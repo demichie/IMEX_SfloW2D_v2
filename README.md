@@ -1,10 +1,12 @@
-# template
-template program
+# New model
+Shallow water model for multiphase flow (gas+particles) with density of gas temperature-dependent. 
 
 To compile:
 
 ./configure
+
 make
+
 make install
 
 
@@ -14,6 +16,5 @@ To test the code copy the executable from the bin folder in the EXAMPLES folder 
 
 ./test
 
-A Matlab script (plot_solution.m) is provided in the MATLAB folder to plot the results.
 
 
