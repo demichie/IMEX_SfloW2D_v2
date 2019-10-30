@@ -1,0 +1,5 @@
+<map id="solver_2d::average_kt" name="solver_2d::average_kt">
+<area shape="rect" id="node2" href="$namespacesolver__2d.html#aaca9ed915d28af72abce4db206e45bdc" title="solver_2d::eval_flux_up" alt="" coords="204,5,363,32"/>
+<area shape="rect" id="node4" href="$namespacesolver__2d.html#a79e24f76b5eccc03a5ba8844459e405a" title="Semidiscrete numerical fluxes. " alt="" coords="205,56,361,83"/>
+<area shape="rect" id="node3" href="$namespacesolver__2d.html#a3490f633c5aa76cd08824229e0673ddd" title="Semidiscrete finite volume central scheme. " alt="" coords="411,23,587,65"/>
+</map>
