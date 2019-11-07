@@ -35,8 +35,3 @@ A Python script to create an animation (mp4) of the simulation is also provided.
 Usage example:
 
 >> ./plot_animated.py exampleBOX_400 100
-<<<<<<< HEAD
-
-
-REFERENCES
-
