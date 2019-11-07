@@ -20,7 +20,7 @@ Usage example of the script:
 Once the input file (IMEX_SfloW2D.inp) is created create a simbolic link of the executable 
 in this folder:
 
->> ln -s ../../../bin/IMEX_SfloW2D .
+>> ln -s ../../bin/IMEX_SfloW2D .
 
 Finally, launch the solver:
 
@@ -35,8 +35,11 @@ A Python script to create an animation (mp4) of the simulation is also provided.
 Usage example:
 
 >> ./plot_animated.py exampleBOX_400 100
+<<<<<<< HEAD
 
 
 REFERENCES
 
 
+=======
+>>>>>>> 9b73486004ccf27c086370efdb212f01a18273c0
