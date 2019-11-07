@@ -51,6 +51,7 @@ PROGRAM IMEX_SfloW_2d
   USE solver_2d, ONLY : deallocate_solver_variables
   USE solver_2d, ONLY : imex_RK_solver
   USE solver_2d, ONLY : update_erosion_deposition_ver
+  USE solver_2d, ONLY : update_erosion_deposition_cell
   USE solver_2d, ONLY : timestep, timestep2
   ! USE solver_2d, ONLY : check_solve
 
@@ -177,7 +178,8 @@ PROGRAM IMEX_SfloW_2d
 
      CALL imex_RK_solver
 
-     CALL update_erosion_deposition_ver(dt)
+     ! CALL update_erosion_deposition_ver(dt)
+     CALL update_erosion_deposition_cell(dt)
  
      q1max(:,:) = MAX( q1max(:,:) , q(1,:,:) )
      

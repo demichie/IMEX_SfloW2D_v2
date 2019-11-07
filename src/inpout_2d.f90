@@ -23,7 +23,7 @@ MODULE inpout_2d
   USE geometry_2d, ONLY : topography_profile , n_topography_profile_x ,         &
        n_topography_profile_y
   USE init_2d, ONLY : riemann_interface
-  USE parameters_2d, ONLY : riemann_flag , rheology_flag
+  USE parameters_2d, ONLY : riemann_flag , rheology_flag , energy_flag
 
   ! -- Variables for the namelist INITIAL_CONDITIONS
   USE parameters_2d, ONLY : released_volume , x_release , y_release
@@ -42,7 +42,7 @@ MODULE inpout_2d
 
   ! -- Variables for the namelist NUMERIC_PARAMETERS
   USE parameters_2d, ONLY : solver_scheme, dt0 , max_dt , cfl, limiter , theta, &
-       reconstr_variables , reconstr_coeff , interfaces_relaxation , n_RK   
+       reconstr_coeff , interfaces_relaxation , n_RK   
 
   ! -- Variables for the namelist EXPL_TERMS_PARAMETERS
   USE constitutive_2d, ONLY : grav
@@ -133,19 +133,19 @@ MODULE inpout_2d
   LOGICAL :: output_runout_flag
 
   ! -- Variables for the namelists WEST_BOUNDARY_CONDITIONS
-  TYPE(bc) :: h_bcW , hB_bcW , u_bcW , v_bcW , hu_bcW , hv_bcW , T_bcW
+  TYPE(bc) :: h_bcW , hu_bcW , hv_bcW , T_bcW
   TYPE(bc), ALLOCATABLE :: alphas_bcW(:)
 
   ! -- Variables for the namelists EAST_BOUNDARY_CONDITIONS
-  TYPE(bc) :: h_bcE , hB_bcE , u_bcE , v_bcE , hu_bcE , hv_bcE , T_bcE
+  TYPE(bc) :: h_bcE , hu_bcE , hv_bcE , T_bcE
   TYPE(bc), ALLOCATABLE :: alphas_bcE(:)
 
   ! -- Variables for the namelists SOUTH_BOUNDARY_CONDITIONS
-  TYPE(bc) :: h_bcS , hB_bcS , u_bcS , v_bcS , hu_bcS , hv_bcS , T_bcS
+  TYPE(bc) :: h_bcS , hu_bcS , hv_bcS , T_bcS
   TYPE(bc), ALLOCATABLE :: alphas_bcS(:)
 
   ! -- Variables for the namelists NORTH_BOUNDARY_CONDITIONS
-  TYPE(bc) :: h_bcN , hB_bcN , u_bcN , v_bcN , hu_bcN , hv_bcN , T_bcN
+  TYPE(bc) :: h_bcN , hu_bcN , hv_bcN , T_bcN
   TYPE(bc), ALLOCATABLE :: alphas_bcN(:)
 
 
@@ -177,7 +177,7 @@ MODULE inpout_2d
        T_init , T_ambient , sed_vol_perc 
 
   NAMELIST / newrun_parameters / x0 , y0 , comp_cells_x , comp_cells_y ,        &
-       cell_size , rheology_flag , riemann_flag
+       cell_size , rheology_flag , riemann_flag , energy_flag
 
   NAMELIST / initial_conditions /  released_volume , x_release , y_release ,    &
        velocity_mod_release , velocity_ang_release , T_init , T_ambient
@@ -186,20 +186,20 @@ MODULE inpout_2d
 
   NAMELIST / right_state / hB_E , u_E , v_E , alphas_E , T_E
 
-  NAMELIST / west_boundary_conditions / h_bcW , hB_bcW , u_bcW , v_bcW ,        &
-       hu_bcW , hv_bcW , alphas_bcW , T_bcW
+  NAMELIST / west_boundary_conditions / h_bcW , hu_bcW , hv_bcW , alphas_bcW ,  &
+       T_bcW
 
-  NAMELIST / east_boundary_conditions / h_bcE , hB_bcE , u_bcE , v_bcE ,        &
-       hu_bcE , hv_bcE , alphas_bcE , T_bcE
+  NAMELIST / east_boundary_conditions / h_bcE , hu_bcE , hv_bcE , alphas_bcE ,  &
+       T_bcE
 
-  NAMELIST / south_boundary_conditions / h_bcS , hB_bcS , u_bcS , v_bcS ,       &
-       hu_bcS , hv_bcS , alphas_bcS , T_bcS
+  NAMELIST / south_boundary_conditions / h_bcS , hu_bcS , hv_bcS , alphas_bcS , &
+       T_bcS
 
-  NAMELIST / north_boundary_conditions / h_bcN , hB_bcN , u_bcN , v_bcN ,       &
-       hu_bcN , hv_bcN , alphas_bcN , T_bcN
+  NAMELIST / north_boundary_conditions / h_bcN , hu_bcN , hv_bcN , alphas_bcN , &
+       T_bcN
 
   NAMELIST / numeric_parameters / solver_scheme, dt0 , max_dt , cfl, limiter ,  &
-       theta , reconstr_variables , reconstr_coeff , interfaces_relaxation , n_RK   
+       theta , reconstr_coeff , interfaces_relaxation , n_RK   
 
   NAMELIST / expl_terms_parameters / grav , x_source , y_source , r_source ,    &
        vfr_source , T_source
@@ -280,6 +280,7 @@ CONTAINS
     cell_size = 1.0D-3
     rheology_flag = .FALSE.
     riemann_flag =.TRUE.
+    energy_flag = .FALSE.
 
     !-- Inizialization of the Variables for the namelist left_state
     riemann_interface = 0.5D0
@@ -300,14 +301,11 @@ CONTAINS
     h_bcW%flag = -1 
     h_bcW%value = 0.d0 
 
-    hB_bcW%flag = 1 
-    hB_bcW%value = 0.d0 
-
-    u_bcW%flag = 1 
-    u_bcW%value = 0.d0
+    hu_bcW%flag = 1 
+    hu_bcW%value = 0.d0
     
-    v_bcW%flag = 1 
-    v_bcW%value = 0.d0 
+    hv_bcW%flag = 1 
+    hv_bcW%value = 0.d0 
 
     !alphas_bcW%flag = 1 
     !alphas_bcW%value = 0.d0 
@@ -316,14 +314,11 @@ CONTAINS
     h_bcE%flag = -1 
     h_bcE%value = 0.d0 
 
-    hB_bcE%flag = 1 
-    hB_bcE%value = 0.d0 
-
-    u_bcE%flag = 1 
-    u_bcE%value = 0.d0
+    hu_bcE%flag = 1 
+    hu_bcE%value = 0.d0
     
-    v_bcE%flag = 1 
-    v_bcE%value = 0.d0 
+    hv_bcE%flag = 1 
+    hv_bcE%value = 0.d0 
 
     !alphas_bcE%flag = 1 
     !alphas_bcE%value = 0.d0 
@@ -332,14 +327,11 @@ CONTAINS
     h_bcS%flag = -1 
     h_bcS%value = 0.d0 
 
-    hB_bcS%flag = 1 
-    hB_bcS%value = 0.d0 
-
-    u_bcS%flag = 1 
-    u_bcS%value = 0.d0
+    hu_bcS%flag = 1 
+    hu_bcS%value = 0.d0
     
-    v_bcS%flag = 1 
-    v_bcS%value = 0.d0 
+    hv_bcS%flag = 1 
+    hv_bcS%value = 0.d0 
 
     !alphas_bcS%flag = 1 
     !alphas_bcS%value = 0.d0 
@@ -348,14 +340,11 @@ CONTAINS
     h_bcN%flag = -1 
     h_bcN%value = 0.d0 
 
-    hB_bcN%flag = 1 
-    hB_bcN%value = 0.d0 
-
-    u_bcN%flag = 1 
-    u_bcN%value = 0.d0
+    hu_bcN%flag = 1 
+    hu_bcN%value = 0.d0
     
-    v_bcN%flag = 1 
-    v_bcN%value = 0.d0 
+    hv_bcN%flag = 1 
+    hv_bcN%value = 0.d0 
 
     !alphas_bcN%flag = 1 
     !alphas_bcN%value = 0.d0 
@@ -368,7 +357,6 @@ CONTAINS
     cfl = 0.24D0
     limiter(1:n_vars) = 1
     theta=1.0
-    reconstr_variables = 'phys'
     reconstr_coeff = 1.0
 
     !-- Inizialization of the Variables for the namelist EXPL_TERMS_PARAMETERS
@@ -482,40 +470,28 @@ CONTAINS
 
     ! -------------- Initialize values for checks during input reading ----------
     h_bcW%flag = -1 
-    hB_bcW%flag = -1 
-    u_bcW%flag = -1 
-    v_bcW%flag = -1 
     hu_bcW%flag = -1 
     hv_bcW%flag = -1 
     !alphas_bcW%flag = -1 
-    !T_bcW%flag = -1 
+    T_bcW%flag = -1 
 
     h_bcE%flag = -1 
-    hB_bcE%flag = -1 
-    u_bcE%flag = -1 
-    v_bcE%flag = -1 
     hu_bcE%flag = -1 
     hv_bcE%flag = -1 
     !alphas_bcE%flag = -1 
-    !T_bcE%flag = -1 
+    T_bcE%flag = -1 
 
     h_bcS%flag = -1 
-    hB_bcS%flag = -1 
-    u_bcS%flag = -1 
-    v_bcS%flag = -1 
     hu_bcS%flag = -1 
     hv_bcS%flag = -1 
     !alphas_bcS%flag = -1 
-    !T_bcS%flag = -1 
+    T_bcS%flag = -1 
 
     h_bcN%flag = -1 
-    hB_bcN%flag = -1 
-    u_bcN%flag = -1 
-    v_bcN%flag = -1 
     hu_bcN%flag = -1 
     hv_bcN%flag = -1 
     !alphas_bcN%flag = -1 
-    !T_bcN%flag = -1 
+    T_bcN%flag = -1 
 
     ! sed_vol_perc = -1.D0
 
@@ -1050,19 +1026,10 @@ CONTAINS
 
     END IF
 
-    IF ( reconstr_variables .EQ. 'phys' ) THEN
 
-       WRITE(*,*) 'Linear reconstruction and b. c. applied to variables:'
-       WRITE(*,*) 'h+B,u,v,T,alphas'
+    WRITE(*,*) 'Linear reconstruction and b. c. applied to variables:'
+    WRITE(*,*) 'h+B,u,v,T,alphas'
 
-    ELSEIF ( reconstr_variables .EQ. 'cons' ) THEN
-
-       WRITE(*,*) 'Linear reconstruction and b. c. applied to variables:'
-       WRITE(*,*) 'h+B,hu,hv,T,alphas'
-       
-    END IF
-    
-    
     IF ( ( reconstr_coeff .GT. 1.0D0 ) .OR. ( reconstr_coeff .LT. 0.D0 ) ) THEN
        
        WRITE(*,*) 'WARNING: wrong value of reconstr_coeff ',reconstr_coeff
@@ -1092,82 +1059,49 @@ CONTAINS
           
        END IF
 
-       IF ( reconstr_variables .EQ. 'phys' ) THEN
-
-          IF ( ( hB_bcW%flag .EQ. -1 ) ) THEN 
+       IF ( ( h_bcW%flag .EQ. -1 ) ) THEN 
+          
+          WRITE(*,*) 'ERROR: problem with namelist WEST_BOUNDARY_CONDITIONS'
+          WRITE(*,*) 'B.C. for h not set properly'
+          WRITE(*,*) 'Please check the input file'
+          STOP
+          
+       END IF
+          
+       IF ( comp_cells_x .GT. 1 ) THEN
+          
+          IF ( hu_bcW%flag .EQ. -1 ) THEN
              
              WRITE(*,*) 'ERROR: problem with namelist WEST_BOUNDARY_CONDITIONS'
-             WRITE(*,*) 'B.C. for h+B not set properly'
+             WRITE(*,*) 'B.C. for hu not set properly'             
              WRITE(*,*) 'Please check the input file'
              STOP
+             
+          ELSE
+             
+             ! hu_bcW%flag = 1
+             ! hu_bcW%value = 0.D0
              
           END IF
           
-          IF ( comp_cells_x .GT. 1 ) THEN
-
-             IF ( u_bcW%flag .EQ. -1 ) THEN
-             
-                WRITE(*,*) 'ERROR: problem with namelist WEST_BOUNDARY_CONDITIONS'
-                WRITE(*,*) 'B.C. for velocities not set properly'             
-                WRITE(*,*) 'Please check the input file'
-                STOP
-
-             ELSE
-
-                ! u_bcW%flag = 1
-                ! u_bcW%value = 0.D0
-
-             END IF
-                
-          END IF
-
-          IF ( comp_cells_y .GT. 1 ) THEN
-
-             IF ( v_bcW%flag .EQ. -1 ) THEN 
-                
-                WRITE(*,*) 'ERROR: problem with namelist WEST_BOUNDARY_CONDITIONS'
-                WRITE(*,*) 'B.C. for velocities not set properly'             
-                WRITE(*,*) 'Please check the input file'
-                STOP
-                
-             ELSE
-
-                v_bcW%flag = 1
-                v_bcW%value = 0.D0
-
-             END IF
-                
-          END IF
-
-       ELSEIF ( reconstr_variables .EQ. 'cons' ) THEN
-
-          IF ( ( hB_bcW%flag .EQ. -1 ) ) THEN 
+       END IF
+       
+       IF ( comp_cells_y .GT. 1 ) THEN
+          
+          IF ( hv_bcW%flag .EQ. -1 ) THEN 
              
              WRITE(*,*) 'ERROR: problem with namelist WEST_BOUNDARY_CONDITIONS'
-             WRITE(*,*) 'B.C. for h not set properly'
+             WRITE(*,*) 'B.C. for hv not set properly'             
              WRITE(*,*) 'Please check the input file'
              STOP
+             
+          ELSE
+             
+             hv_bcW%flag = 1
+             hv_bcW%value = 0.D0
              
           END IF
           
-          IF ( hu_bcW%flag .EQ. -1 ) THEN 
-
-             WRITE(*,*) 'ERROR: problem with namelist WEST_BOUNDARY_CONDITIONS'
-             WRITE(*,*) 'B.C. for x-velocity not set properly'             
-             WRITE(*,*) 'Please check the input file'
-             STOP
-
-          END IF
-
-          IF ( ( comp_cells_y .GT. 1 ) .AND. ( hv_bcW%flag .EQ. -1 ) ) THEN 
-
-             WRITE(*,*) 'ERROR: problem with namelist WEST_BOUNDARY_CONDITIONS'
-             WRITE(*,*) 'B.C. for y-velocity not set properly'             
-             WRITE(*,*) 'Please check the input file'
-             STOP
-
-          END IF
-
        END IF
        
        IF ( ANY(alphas_bcW%flag .EQ. -1 ) ) THEN 
@@ -1190,19 +1124,10 @@ CONTAINS
 
        ! set the approriate boundary conditions
 
-       IF ( reconstr_variables .EQ. 'phys' ) THEN
+       bcW(1) = h_bcW
+       bcW(2) = hu_bcW 
+       bcW(3) = hv_bcW 
        
-          bcW(1) = hB_bcW
-          bcW(2) = u_bcW 
-          bcW(3) = v_bcW 
-
-       ELSEIF ( reconstr_variables .EQ. 'cons' ) THEN
-
-          bcW(1) = hB_bcW
-          bcW(2) = hu_bcW 
-          bcW(3) = hv_bcW 
-          
-       END IF
           
        ! ------------- East boundary conditions --------------------------------
 
@@ -1220,87 +1145,53 @@ CONTAINS
           REWIND(input_unit)
           
        END IF
-
-       IF ( reconstr_variables .EQ. 'phys' ) THEN
           
-          IF ( ( hB_bcE%flag .EQ. -1 ) ) THEN 
-             
-             WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
-             WRITE(*,*) 'B.C. for h+B not set properly'
-             WRITE(*,*) 'Please check the input file'
-             STOP
-             
-          END IF
-
-          IF ( comp_cells_x .GT. 1 ) THEN
-
-             IF ( u_bcE%flag .EQ. -1 ) THEN
-             
-                WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
-                WRITE(*,*) 'B.C. for x-velocity not set properly'             
-                WRITE(*,*) 'Please check the input file'
-                STOP
-                
-             END IF
-
-          ELSE
-
-             u_bcE%flag = 1
-             u_bcE%value = 0.D0
-
-          END IF
-
-          IF ( comp_cells_y .GT. 1 ) THEN
-
-             IF ( v_bcE%flag .EQ. -1 ) THEN 
-             
-                WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
-                WRITE(*,*) 'B.C. for y-velocity not set properly'             
-                WRITE(*,*) 'Please check the input file'
-                STOP
-
-             END IF
-
-          ELSE
-
-             v_bcE%flag = 1
-             v_bcE%value = 0.D0
-
-             
-          END IF
-
-       ELSEIF ( reconstr_variables .EQ. 'cons' ) THEN
-
-          IF ( ( hB_bcE%flag .EQ. -1 ) ) THEN 
-             
-             WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
-             WRITE(*,*) 'B.C. for h not set properly'
-             WRITE(*,*) 'Please check the input file'
-             STOP
-             
-          END IF
+       IF ( ( h_bcE%flag .EQ. -1 ) ) THEN 
           
+          WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
+          WRITE(*,*) 'B.C. for h not set properly'
+          WRITE(*,*) 'Please check the input file'
+          STOP
           
-          IF ( hu_bcE%flag .EQ. -1 ) THEN 
-
-             WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
-             WRITE(*,*) 'B.C. for velocities not set properly'             
-             WRITE(*,*) 'Please check the input file'
-             STOP
-
-          END IF
-
-          IF ( ( comp_cells_y .GT. 1 ) .AND. ( hv_bcE%flag .EQ. -1 ) ) THEN 
-
-             WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
-             WRITE(*,*) 'B.C. for velocities not set properly'             
-             WRITE(*,*) 'Please check the input file'
-             STOP
-
-          END IF
-
        END IF
-
+       
+       IF ( comp_cells_x .GT. 1 ) THEN
+          
+          IF ( hu_bcE%flag .EQ. -1 ) THEN
+             
+             WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
+             WRITE(*,*) 'B.C. for hu not set properly'             
+             WRITE(*,*) 'Please check the input file'
+             STOP
+             
+          END IF
+          
+       ELSE
+          
+          hu_bcE%flag = 1
+          hu_bcE%value = 0.D0
+          
+       END IF
+       
+       IF ( comp_cells_y .GT. 1 ) THEN
+          
+          IF ( hv_bcE%flag .EQ. -1 ) THEN 
+             
+             WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
+             WRITE(*,*) 'B.C. for hv not set properly'             
+             WRITE(*,*) 'Please check the input file'
+             STOP
+             
+          END IF
+          
+       ELSE
+          
+          hv_bcE%flag = 1
+          hv_bcE%value = 0.D0
+          
+          
+       END IF
+       
        IF ( ANY(alphas_bcE%flag .EQ. -1 ) ) THEN 
           
           WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
@@ -1319,21 +1210,10 @@ CONTAINS
           
        END IF
     
-
-       IF ( reconstr_variables .EQ. 'phys' ) THEN
-
-          bcE(1) = hB_bcE 
-          bcE(2) = u_bcE 
-          bcE(3) = v_bcE 
-
-       ELSEIF ( reconstr_variables .EQ. 'cons' ) THEN
-
-          bcE(1) = hB_bcE 
-          bcE(2) = hu_bcE 
-          bcE(3) = hv_bcE 
-
-       END IF
-          
+       bcE(1) = h_bcE 
+       bcE(2) = hu_bcE 
+       bcE(3) = hv_bcE 
+       
     END IF
 
     IF ( comp_cells_y .GT. 1 ) THEN
@@ -1355,84 +1235,49 @@ CONTAINS
           
        END IF
       
-
-       IF ( reconstr_variables .EQ. 'phys' ) THEN
-
-          IF ( ( hB_bcS%flag .EQ. -1 ) ) THEN 
-             
-             WRITE(*,*) 'ERROR: problem with namelist SOUTH_BOUNDARY_CONDITIONS'
-             WRITE(*,*) 'B.C. for h+B not set properly'
-             WRITE(*,*) 'Please check the input file'
-             STOP
-             
-          END IF
-
-          IF ( comp_cells_x .GT. 1 ) THEN
-
-             IF ( u_bcS%flag .EQ. -1 ) THEN 
-                
-                WRITE(*,*) 'ERROR: problem with namelist SOUTH_BOUNDARY_CONDITIONS'
-                WRITE(*,*) 'B.C. for x-velocity not set properly'             
-                WRITE(*,*) 'Please check the input file'
-                STOP
-
-             END IF
-
-          ELSE
-
-             u_bcS%flag = 1
-             u_bcS%value = 0.D0
-             
-          END IF
-
-          IF ( comp_cells_y .GT. 1 ) THEN
+       IF ( ( h_bcS%flag .EQ. -1 ) ) THEN 
           
-             IF ( v_bcS%flag .EQ. -1 ) THEN 
-             
-                WRITE(*,*) 'ERROR: problem with namelist SOUTH_BOUNDARY_CONDITIONS'
-                WRITE(*,*) 'B.C. for velocities not set properly'             
-                WRITE(*,*) 'Please check the input file'
-                STOP
-                
-             END IF
-
-          ELSE
-             
-             v_bcS%flag = 1
-             v_bcS%value = 0.D0
-
-          END IF
-
-       ELSEIF ( reconstr_variables .EQ. 'cons' ) THEN
-
-          IF ( ( hB_bcS%flag .EQ. -1 ) ) THEN 
-             
-             WRITE(*,*) 'ERROR: problem with namelist SOUTH_BOUNDARY_CONDITIONS'
-             WRITE(*,*) 'B.C. for h+B not set properly'
-             WRITE(*,*) 'Please check the input file'
-             STOP
-             
-          END IF
-
+          WRITE(*,*) 'ERROR: problem with namelist SOUTH_BOUNDARY_CONDITIONS'
+          WRITE(*,*) 'B.C. for h not set properly'
+          WRITE(*,*) 'Please check the input file'
+          STOP
           
-          IF ( ( comp_cells_x .GT. 1 ) .AND. ( hu_bcS%flag .EQ. -1 ) ) THEN 
-
+       END IF
+       
+       IF ( comp_cells_x .GT. 1 ) THEN
+          
+          IF ( hu_bcS%flag .EQ. -1 ) THEN 
+             
              WRITE(*,*) 'ERROR: problem with namelist SOUTH_BOUNDARY_CONDITIONS'
-             WRITE(*,*) 'B.C. for velocities not set properly'             
+             WRITE(*,*) 'B.C. for hu not set properly'             
              WRITE(*,*) 'Please check the input file'
              STOP
-
+             
           END IF
-
+          
+       ELSE
+          
+          hu_bcS%flag = 1
+          hu_bcS%value = 0.D0
+          
+       END IF
+       
+       IF ( comp_cells_y .GT. 1 ) THEN
+          
           IF ( hv_bcS%flag .EQ. -1 ) THEN 
-
+             
              WRITE(*,*) 'ERROR: problem with namelist SOUTH_BOUNDARY_CONDITIONS'
-             WRITE(*,*) 'B.C. for velocities not set properly'             
+             WRITE(*,*) 'B.C. for hv not set properly'             
              WRITE(*,*) 'Please check the input file'
              STOP
-
+             
           END IF
-
+          
+       ELSE
+          
+          hv_bcS%flag = 1
+          hv_bcS%value = 0.D0
+          
        END IF
        
        IF ( ANY(alphas_bcS%flag .EQ. -1 ) ) THEN 
@@ -1453,20 +1298,10 @@ CONTAINS
           
        END IF
 
-       IF ( reconstr_variables .EQ. 'phys' ) THEN
+       bcS(1) = h_bcS 
+       bcS(2) = hu_bcS 
+       bcS(3) = hv_bcS 
 
-          bcS(1) = hB_bcS 
-          bcS(2) = u_bcS 
-          bcS(3) = v_bcS 
-
-       ELSEIF ( reconstr_variables .EQ. 'cons' ) THEN
-
-          bcS(1) = hB_bcS 
-          bcS(2) = hu_bcS 
-          bcS(3) = hv_bcS 
-
-       END IF
-                    
        ! ---------------- North boundary conditions ----------------------------
 
        READ(input_unit,north_boundary_conditions,IOSTAT=ios)
@@ -1484,84 +1319,51 @@ CONTAINS
           
        END IF
 
-
-       IF ( reconstr_variables .EQ. 'phys' ) THEN
-
-          IF ( ( hB_bcN%flag .EQ. -1 ) ) THEN 
+       
+       IF ( ( h_bcN%flag .EQ. -1 ) ) THEN 
+          
+          WRITE(*,*) 'ERROR: problem with namelist NORTH_BOUNDARY_CONDITIONS'
+          WRITE(*,*) 'B.C. for h not set properly'
+          WRITE(*,*) 'Please check the input file'
+          STOP
+          
+       END IF
+       
+       
+       IF ( comp_cells_x .GT. 1 ) THEN
+          
+          IF ( hu_bcN%flag .EQ. -1 ) THEN 
              
              WRITE(*,*) 'ERROR: problem with namelist NORTH_BOUNDARY_CONDITIONS'
-             WRITE(*,*) 'B.C. for h+B not set properly'
-             WRITE(*,*) 'Please check the input file'
-             STOP
-             
-          END IF
-
-          
-          IF ( comp_cells_x .GT. 1 ) THEN
-
-             IF ( u_bcN%flag .EQ. -1 ) THEN 
-             
-                WRITE(*,*) 'ERROR: problem with namelist NORTH_BOUNDARY_CONDITIONS'
-                WRITE(*,*) 'B.C. for velocities not set properly'             
-                WRITE(*,*) 'Please check the input file'
-                STOP
-                
-             END IF
-
-          ELSE
-
-             u_bcN%flag = 1
-             u_bcN%value = 0.D0
-
-          END IF
-
-          IF ( comp_cells_y .GT. 1 ) THEN
-          
-             IF ( v_bcN%flag .EQ. -1 ) THEN 
-                
-                WRITE(*,*) 'ERROR: problem with namelist NORTH_BOUNDARY_CONDITIONS'
-                WRITE(*,*) 'B.C. for velocities not set properly'             
-                WRITE(*,*) 'Please check the input file'
-                STOP
-                
-             END IF
-
-          ELSE
-
-             v_bcN%flag = 1
-             v_bcN%value = 0.D0
-             
-          END IF
-
-       ELSEIF ( reconstr_variables .EQ. 'cons' ) THEN
-
-          IF ( ( hB_bcN%flag .EQ. -1 ) ) THEN 
-             
-             WRITE(*,*) 'ERROR: problem with namelist NORTH_BOUNDARY_CONDITIONS'
-             WRITE(*,*) 'B.C. for h not set properly'
+             WRITE(*,*) 'B.C. for hu not set properly'             
              WRITE(*,*) 'Please check the input file'
              STOP
              
           END IF
           
-          IF ( ( comp_cells_x .GT. 1 ) .AND. ( hu_bcN%flag .EQ. -1 ) ) THEN 
-
-             WRITE(*,*) 'ERROR: problem with namelist NORTH_BOUNDARY_CONDITIONS'
-             WRITE(*,*) 'B.C. for velocities not set properly'             
-             WRITE(*,*) 'Please check the input file'
-             STOP
-
-          END IF
-
+       ELSE
+          
+          hu_bcN%flag = 1
+          hu_bcN%value = 0.D0
+          
+       END IF
+       
+       IF ( comp_cells_y .GT. 1 ) THEN
+          
           IF ( hv_bcN%flag .EQ. -1 ) THEN 
-
+             
              WRITE(*,*) 'ERROR: problem with namelist NORTH_BOUNDARY_CONDITIONS'
-             WRITE(*,*) 'B.C. for velocities not set properly'             
+             WRITE(*,*) 'B.C. for hv not set properly'             
              WRITE(*,*) 'Please check the input file'
              STOP
-
+             
           END IF
-
+          
+       ELSE
+          
+          hv_bcN%flag = 1
+          hv_bcN%value = 0.D0
+          
        END IF
        
        IF ( ANY(alphas_bcN%flag .EQ. -1 ) ) THEN 
@@ -1582,19 +1384,9 @@ CONTAINS
           
        END IF
 
-       IF ( reconstr_variables .EQ. 'phys' ) THEN
-
-          bcN(1) = hB_bcN 
-          bcN(2) = u_bcN 
-          bcN(3) = v_bcN 
-
-       ELSEIF ( reconstr_variables .EQ. 'cons' ) THEN
-          
-          bcN(1) = hB_bcN 
-          bcN(2) = hu_bcN 
-          bcN(3) = hv_bcN 
-  
-       END IF
+       bcN(1) = h_bcN 
+       bcN(2) = hu_bcN 
+       bcN(3) = hv_bcN 
        
     END IF
     

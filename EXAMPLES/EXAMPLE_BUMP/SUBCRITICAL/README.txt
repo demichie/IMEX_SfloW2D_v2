@@ -5,25 +5,21 @@ On the left boundary (subcritical) only the volumetric flow is fixed: hu = 4.42m
 On the right boundary (subcritical) flow height is fixed: h = 2m.
 
 A Python script is provided to create the input file for this example. 
-Please provide six arguments:
+Please provide three arguments:
 
-1) Number of cells
+1) Number of cells in the x-direction 
 
-2) Variables to reconstruct: phys or cons
+2) Volume fraction of particles
 
-3) Order of the RK scheme
+3) Erosion coefficient ( 0 => no erosion )
 
-4) Initial solid volume fraction (0-1)
+4) Sedimentation coefficient ( 0 => no deposition )
 
-5) Erosion coefficient (>0)
-
-6) Settling velocity (>0)
-
-7) Temperature
+5) Flow temperature (Kelvin)
 
 Usage example of the script:
 
->> ./create_example.py 200 phys 2 1.0 0 0 300
+>> ./create_example.py 200 1.0 0 0 300
 
 Once the input file (IMEX_SfloW2D.inp) is created create a simbolic link of the executable 
 in this folder:

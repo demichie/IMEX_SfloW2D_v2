@@ -1,31 +1,28 @@
-This example simulate a flow supercritical flow (Ri<1) entering from the left of the domain. An initial slope is followed by a flat topography and a discontinuity.
+This example simulate a flow supercritical flow (Ri<1) entering from the left of the domain. An initial slope is followed by a flat topography and a discontinuity. There is no sedimentation and no entrainment.
 No friction is considered in this test (RHEOLOGY_FLAG=F).
+Instead of the total energy equation, a simpler transport equation (pure advection) for the temperature is solved (ENERGY_FLAG=F).
 
 A Python script is provided to create the input file for this example. 
-Please provide six arguments:
+Please provide three arguments:
 
-1) Number of cells
+1) Number of cells in the x-direction 
 
-2) Variables to reconstruct: phys or cons
+2) Volume fraction of particles
 
-3) Order of the RK scheme
+3) Erosion coefficient ( 0 => no erosion )
 
-4) Initial solid volume fraction (0;1)
+4) Sedimentation coefficient ( 0 => no deposition )
 
-5) Erosion coefficient (>0)
-
-6) Settling velocity (>0)
-
-7) Temperature
+5) Flow temperature (Kelvin)
 
 Usage example of the script:
 
->> ./create_example.py 400 phys 2 1.0 0.0 0.0 300
+>> ./create_example.py 400 1.0 0.0 0.0 300
 
 Once the input file (IMEX_SfloW2D.inp) is created create a simbolic link of the executable 
 in this folder:
 
->> ln -s ../../../bin/IMEX_SfloW2D .
+>> ln -s ../../bin/IMEX_SfloW2D .
 
 Finally, launch the solver:
 

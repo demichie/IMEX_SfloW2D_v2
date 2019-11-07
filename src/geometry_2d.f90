@@ -369,6 +369,28 @@ CONTAINS
              B_prime_y(j,k) = ( B_stag_y(j,k+1) - B_stag_y(j,k) ) /             &
                   (  y_stag(k+1) - y_stag(k) )
 
+
+
+             IF ( B_prime_y(j,k) .NE. 0.D0 ) THEN
+             
+                IF ( DABS( B_prime_y(j,k) ) .LT. 1.D-10 ) THEN
+   
+                   B_prime_y(j,k) = 0.D0
+
+                END IF
+
+             END IF
+
+             IF ( B_prime_x(j,k) .NE. 0.D0 ) THEN
+             
+                IF ( DABS( B_prime_x(j,k) ) .LT. 1.D-10 ) THEN
+   
+                   B_prime_x(j,k) = 0.D0
+
+                END IF
+
+             END IF
+
           END DO
 
        ENDDO

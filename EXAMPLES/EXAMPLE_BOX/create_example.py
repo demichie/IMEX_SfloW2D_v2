@@ -9,7 +9,7 @@ import matplotlib.animation as animation
 import time
 import sys
 
-if len(sys.argv)==8: 
+if len(sys.argv)==6: 
 
     print('Number of cells')
     a = sys.argv[1]
@@ -23,42 +23,39 @@ if len(sys.argv)==8:
  
         sys.exit()
 
-    a = sys.argv[4]
+    a = sys.argv[2]
     try:
         alfas = float(a)
     except ValueError:
         print("You must enter a float")
 
-    a = sys.argv[5]
+    a = sys.argv[3]
     try:
         erosion_coeff = float(a)
     except ValueError:
         print("You must enter a float for erosion coefficient: "+a)
 
-    a = sys.argv[6]
+    a = sys.argv[4]
     try:
         settling_vel = float(a)
     except ValueError:
         print("You must enter a float for settling velocity: "+a)
 
 
-    a = sys.argv[7]
+    a = sys.argv[5]
     try:
         T = float(a)
     except ValueError:
         print("You must enter a float for temperature: "+a)
 
-
 else:
 
     print('Please provide three arguments:\n')
     print('1) Number of cells\n')
-    print('2) Variables to reconstruct: phys or cons\n')
-    print('3) Order of the RK scheme\n')
-    print('4) Solid volume fraction (0,1)\n')
-    print('5) Erosion coefficient (>0)\n')
-    print('6) Settling velocity (>0)\n')
-    print('7) Temperature (>0)\n')
+    print('2) Solid volume fraction (0,1)\n')
+    print('3) Erosion coefficient (>0)\n')
+    print('4) Settling velocity (>0)\n')
+    print('5) Temperature (>0)\n')
     sys.exit()
 
 
@@ -82,6 +79,10 @@ SP_HEAT_MIX = xs * SP_HEAT_S + ( 1.0 - xs ) * SP_HEAT_A
 # Define the boundaries x_left and x_right of the spatial domain
 x_left = 0.0
 x_right = 50000.0
+
+#x_left = 0.0
+#x_right = 1000.0
+
 
 
 # Define the number n_points of points of the grid
@@ -111,10 +112,15 @@ B_disc = 0.0
 h_left = 200.0
 h_right = 0.0
 
+#h_left = 10.0
+#h_right = 2.0
+
+
 u_left = 0.0
 u_right = 0.0
 
 init_sol_disc = 1000.0
+#init_sol_disc = 500.0
 
 # define the topography
 for i in range(n_points):
@@ -197,21 +203,6 @@ filedata = filedata.replace('n_cells', str(n_cells))
 filedata = filedata.replace('dx', str(dx))
 filedata = filedata.replace('erosionCoeff', str(erosion_coeff))
 filedata = filedata.replace('settlingVel', str(settling_vel))
-
-if sys.argv[2]=='cons':
-
-    print('Linear reconstruction of conservative variables (h+B,hu,hv)')
-    filedata = filedata.replace('bc2', 'HU')
-    filedata = filedata.replace('recvar', 'cons')
-
-else:
-
-    print('Linear reconstruction of physical variables (h+B,u,v)')
-    filedata = filedata.replace('bc2', 'U')
-    filedata = filedata.replace('recvar', 'phys')
-
-filedata = filedata.replace('order', sys.argv[3])
-
 
 # Write the file out again
 with open('IMEX_SfloW2D.inp', 'w') as file:

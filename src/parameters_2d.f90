@@ -19,8 +19,6 @@ MODULE parameters_2d
 
   REAL*8 :: eps_sing               !< parameter for desingularization
 
-  CHARACTER(LEN=20) :: reconstr_variables
-  
   REAL*8 :: reconstr_coeff    !< Slope coefficient in the linear reconstruction
 
   !> Flag to add the relaxation terms after the linear reconstruction:\n
@@ -40,6 +38,13 @@ MODULE parameters_2d
   !> - F      => from points in file.inp
   !> .
   LOGICAL :: topography_demfile
+
+
+  !> Flag to choose the equation for temperature to solve
+  !> - T      => solve the full energy equation
+  !> - F      => solve for a simpler transport equation (advection) for temperature
+  !> .
+  LOGICAL :: energy_flag
 
   !> Flag to choose the sort of problem to solve
   !> - T      => riemann problem
