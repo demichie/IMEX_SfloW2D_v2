@@ -20,7 +20,7 @@ if len(sys.argv)==3:
 else:
 
     print('Please provide two arguments:\n')
-    print('1) run name (as given in IMEX_SfloW2D.inp)\n')
+    print('1) run name (as given in SW_VAR_DENS_MODEL.inp)\n')
     print('2) duration of the animated gif in seconds\n')
     sys.exit()
 

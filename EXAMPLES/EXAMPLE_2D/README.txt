@@ -19,9 +19,9 @@ Usage example of the script:
 
 >> python create_example.py 100 0.5 0.0 1.0 300
 
-Once the input file (IMEX_SfloW2D.inp) is created create a simbolic link of the executable in this folder:
+Once the input file (SW_VAR_DENS_MODEL.inp) is created create a simbolic link of the executable in this folder:
 
->> ln -s ../../bin/IMEX_SfloW2D .
+>> ln -s ../../bin/SW_VAR_DENS_MODEL .
 
 Finally, launch the solver:
 
@@ -32,7 +32,7 @@ Usage example:
 
 >> ./plot_p_2d.py example2D_0030.p_2d
 
-A Python script to create an animation of the simulation is also provided. This script plot the topography and animate the flow over it. An animated gif is saved by the script. The script requires two argument: run name (as given in IMEX_SfloW2D.inp) and duration of the animated gif in seconds
+A Python script to create an animation of the simulation is also provided. This script plot the topography and animate the flow over it. An animated gif is saved by the script. The script requires two argument: run name (as given in SW_VAR_DENS_MODEL.inp) and duration of the animated gif in seconds
 
 Usage example:
 
