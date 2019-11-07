@@ -1,7 +1,6 @@
 var searchData=
 [
   ['imex_5frk_5fsolver',['imex_rk_solver',['../namespacesolver__2d.html#aed3f7dbc437442d0fd6521af6eafc8cd',1,'solver_2d']]],
-  ['imex_5fsflow_5f2d',['imex_sflow_2d',['../IMEX__Sflow__2d_8f90.html#a25dafd83c863a358fdd1aa4541d30366',1,'IMEX_Sflow_2d.f90']]],
   ['init_5fgrid',['init_grid',['../namespacegeometry__2d.html#aac4d5b367bcc8719c1bb55c41a221c1b',1,'geometry_2d']]],
   ['init_5fparam',['init_param',['../namespaceinpout__2d.html#aed829c02edffce3ea990d8c468b9c6cb',1,'inpout_2d']]],
   ['init_5fproblem_5fparam',['init_problem_param',['../namespaceconstitutive__2d.html#a614742a84ec4b746f0f66f98750fdc9b',1,'constitutive_2d']]],

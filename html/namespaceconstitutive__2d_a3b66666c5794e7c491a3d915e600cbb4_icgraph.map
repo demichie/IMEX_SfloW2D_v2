@@ -1,7 +1,7 @@
 <map id="constitutive_2d::qp_to_qc" name="constitutive_2d::qp_to_qc">
 <area shape="rect" id="node2" href="$namespaceinit__2d.html#a1325f28b7fce60d45d0e2214204c70dd" title="Riemann problem initialization. " alt="" coords="186,5,353,32"/>
 <area shape="rect" id="node4" href="$namespacesolver__2d.html#afd826688c650c7003818593da5da0b88" title="Linear reconstruction. " alt="" coords="185,85,353,112"/>
-<area shape="rect" id="node3" href="$IMEX__Sflow__2d_8f90.html#a25dafd83c863a358fdd1aa4541d30366" title="Main Program. " alt="" coords="625,41,735,68"/>
+<area shape="rect" id="node3" href="$SW__VAR__DENS__MODEL_8f90.html#a97582f4cc38f0ee6b3117ca7cf96ccd7" title="Main Program. " alt="" coords="625,41,767,68"/>
 <area shape="rect" id="node5" href="$namespacesolver__2d.html#ae00e8a8f9cf604ed48c8a524e9d24ce7" title="Time&#45;step computation. " alt="" coords="418,41,561,68"/>
 <area shape="rect" id="node6" href="$namespacesolver__2d.html#a8aeae5c649fe33e0d8a3c4ba43667f32" title="Evaluate the averaged explicit terms. " alt="" coords="402,93,577,134"/>
 <area shape="rect" id="node7" href="$namespacesolver__2d.html#a3490f633c5aa76cd08824229e0673ddd" title="Semidiscrete finite volume central scheme. " alt="" coords="401,158,577,199"/>

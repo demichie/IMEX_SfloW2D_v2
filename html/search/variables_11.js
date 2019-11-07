@@ -12,7 +12,6 @@ var searchData=
   ['r_5fv',['r_v',['../namespaceconstitutive__2d.html#aba149070fb724889d7771947b5f8689c',1,'constitutive_2d']]],
   ['rad_5fcoeff',['rad_coeff',['../namespaceconstitutive__2d.html#ac3df3f924437ac028e55fbdcde54beda',1,'constitutive_2d']]],
   ['reconstr_5fcoeff',['reconstr_coeff',['../namespaceparameters__2d.html#a8d6fe91540cb2b78700bec78e252f61c',1,'parameters_2d']]],
-  ['reconstr_5fvariables',['reconstr_variables',['../namespaceparameters__2d.html#aa109477b0e3dd14c3109d2730ff24fcb',1,'parameters_2d']]],
   ['red_5fgrav',['red_grav',['../namespaceconstitutive__2d.html#a027862513736aa1236f4d51a75736d5f',1,'constitutive_2d']]],
   ['released_5fvolume',['released_volume',['../namespaceparameters__2d.html#a7c0b10242c47c1d8fd4f37684c4baaf2',1,'parameters_2d']]],
   ['residual_5fterm',['residual_term',['../namespacesolver__2d.html#a7315b34519b375d889c6a03ed15875de',1,'solver_2d']]],

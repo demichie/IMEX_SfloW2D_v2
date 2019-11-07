@@ -14,7 +14,6 @@ var searchData=
   ['read_5fparam',['read_param',['../namespaceinpout__2d.html#a550d7206dc407d4cd272a280a1ebf4c0',1,'inpout_2d']]],
   ['read_5fsolution',['read_solution',['../namespaceinpout__2d.html#ada5156a6f6f7933f11c5da168d78f1f5',1,'inpout_2d']]],
   ['reconstr_5fcoeff',['reconstr_coeff',['../namespaceparameters__2d.html#a8d6fe91540cb2b78700bec78e252f61c',1,'parameters_2d']]],
-  ['reconstr_5fvariables',['reconstr_variables',['../namespaceparameters__2d.html#aa109477b0e3dd14c3109d2730ff24fcb',1,'parameters_2d']]],
   ['reconstruction',['reconstruction',['../namespacesolver__2d.html#afd826688c650c7003818593da5da0b88',1,'solver_2d']]],
   ['red_5fgrav',['red_grav',['../namespaceconstitutive__2d.html#a027862513736aa1236f4d51a75736d5f',1,'constitutive_2d']]],
   ['regrid_5fscalar',['regrid_scalar',['../namespacegeometry__2d.html#afbbaa9fdc7bb8018e7e8ee6bd56d12ee',1,'geometry_2d']]],

@@ -14,8 +14,6 @@ var searchData=
   ['q_5finterfacer',['q_interfacer',['../namespacesolver__2d.html#a33ec28605f54d4165ac38fb305a4f066',1,'solver_2d']]],
   ['q_5finterfacet',['q_interfacet',['../namespacesolver__2d.html#afdab0ce11ba42d5c545ab7da6d04b019',1,'solver_2d']]],
   ['q_5frk',['q_rk',['../namespacesolver__2d.html#a3e7ac3a442e2fdc8be0eee72f019ba84',1,'solver_2d']]],
-  ['qc2_5fto_5fqc',['qc2_to_qc',['../namespaceconstitutive__2d.html#ab62d37fc78e24dab66da113446c8b116',1,'constitutive_2d']]],
-  ['qc_5fto_5fqc2',['qc_to_qc2',['../namespaceconstitutive__2d.html#ad097abb6eee6ea89f085bc17b178edb7',1,'constitutive_2d']]],
   ['qc_5fto_5fqp',['qc_to_qp',['../namespaceconstitutive__2d.html#aa38b7de1baa7a734227a0aa5bf9548bf',1,'constitutive_2d']]],
   ['qp',['qp',['../namespacesolver__2d.html#af07e2db2c847b6af9a346d3e7cab52dc',1,'solver_2d']]],
   ['qp_5fcellne',['qp_cellne',['../namespacesolver__2d.html#a3ae348c4695f8ebf6eaa5c3fd6d8dfdf',1,'solver_2d']]],

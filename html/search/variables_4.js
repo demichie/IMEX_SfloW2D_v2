@@ -2,6 +2,7 @@ var searchData=
 [
   ['emissivity',['emissivity',['../namespaceconstitutive__2d.html#a993bf143c116c6aff337f2ac50311551',1,'constitutive_2d']]],
   ['emme',['emme',['../namespaceconstitutive__2d.html#aa45bf20a2e13d659ad5f67751cb5a404',1,'constitutive_2d']]],
+  ['energy_5fflag',['energy_flag',['../namespaceparameters__2d.html#adf9ae61c8217488d391c5daa91186095',1,'parameters_2d']]],
   ['enne',['enne',['../namespaceconstitutive__2d.html#ad2da9f1508c08bdfeb3aa8e764d84d87',1,'constitutive_2d']]],
   ['entrainment_5fflag',['entrainment_flag',['../namespaceconstitutive__2d.html#aee9ef3578238e63f3aeca80d8e958815',1,'constitutive_2d']]],
   ['eps_5fnewton',['eps_newton',['../namespaceparameters__2d.html#a0985b84591a274a5df106f77fb79d4be',1,'parameters_2d']]],
