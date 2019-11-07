@@ -13,7 +13,7 @@ Mattia de' Michieli Vitturi (@demichie)
 
 Check first if you have the LAPACK library installed on your system.
 
-Download the IMEX_SfloW package and create the executable with the following commands from a terminal:
+Download the SW_VAR_DENS_MODEL package and create the executable with the following commands from a terminal:
 
 >./configure
 >
@@ -35,7 +35,7 @@ Doxygen generated documentation of the code can be found at:
 
 ### Acknowledgments
 
-The development of IMEX-SfloW2D has been partially funded by Istituto Nazionale di Geofisica e Vulcanologia.
+The development of SW_VAR_DENS_MODEL has been partially funded by Istituto Nazionale di Geofisica e Vulcanologia.
 
 ### References
 
