@@ -1,6 +1,6 @@
 Simulation example of an avalanche of finite granular mass sliding down an inclined plane and merging continuously into a horizontal plane is presented. The initial conditions and the topography of this tutorial are similar to those in Example 4.1 from Wang et al., 2004 [1]. A hemispherical shell holding the material together is suddenly released so that the bulk material commences to slide on an inclined flat plane at 35° into a horizontal run-out plane connected by a smooth transition.
 
-Please note that we do not use the same rheological model as in the original paper of the example, but a Voellmy-Salm rhology with mu=0.3 and xi=300.
+Please note that we do not use the same rheological model as in the original paper of the example.
 
 A Python script (create_example4.py) is provided to create the input file for this example. 
 Please provide three arguments:
