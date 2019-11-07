@@ -20,7 +20,7 @@ Usage example of the script:
 Once the input file (IMEX_SfloW2D.inp) is created create a simbolic link of the executable 
 in this folder:
 
->> ln -s ../../bin/IMEX_SfloW2D .
+>> ln -s ../../bin/SW_VAR_DENS_MODEL .
 
 Finally, launch the solver:
 

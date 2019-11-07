@@ -21,14 +21,14 @@ Usage example of the script:
 
 >> ./create_example.py 200 1.0 0 0 300
 
-Once the input file (IMEX_SfloW2D.inp) is created create a simbolic link of the executable 
+Once the input file (SW_VAR_DENS_MODEL.inp) is created create a simbolic link of the executable 
 in this folder:
 
->> ln -s ../../../bin/IMEX_SfloW2D .
+>> ln -s ../../../bin/SW_VAR_DENS_MODEL .
 
 Finally, launch the solver:
 
->> ./IMEX_SfloW2D
+>> ./SW_VAR_DENS_MODEL
 
 A Python script to plot the results is provided. With this script you can choose the output and the variable to plot (h,hB,B,u,v)
 Usage example:

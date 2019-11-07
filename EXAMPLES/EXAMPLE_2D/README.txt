@@ -25,7 +25,7 @@ Once the input file (IMEX_SfloW2D.inp) is created create a simbolic link of the 
 
 Finally, launch the solver:
 
->> ./IMEX_SfloW2D
+>> ./SW_VAR_DENS_MODEL
 
 A Python script to plot the results is provided. With this script you can choose the output to plot.
 Usage example:
