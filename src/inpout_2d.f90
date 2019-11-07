@@ -395,7 +395,7 @@ CONTAINS
     eps_stop = 0.D0
 
     !-------------- Check if input file exists ----------------------------------
-    input_file = 'IMEX_SfloW2D.inp'
+    input_file = 'SW_VAR_DENS_MODEL.inp'
 
     INQUIRE (FILE=input_file,exist=lexist)
 
@@ -457,7 +457,7 @@ CONTAINS
 
        CLOSE(input_unit)
 
-       WRITE(*,*) 'Input file IMEX_SfloW2D.inp not found'
+       WRITE(*,*) 'Input file SW_VAR_DENS_MODEL.inp not found'
        WRITE(*,*) 'A new one with default values has been created'
        STOP
 
