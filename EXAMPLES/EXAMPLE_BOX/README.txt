@@ -40,6 +40,3 @@ Usage example:
 
 REFERENCES
 
-
-=======
->>>>>>> 9b73486004ccf27c086370efdb212f01a18273c0
