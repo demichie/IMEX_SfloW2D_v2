@@ -297,7 +297,7 @@ CONTAINS
 
     ELSE
 
-       h = qj(1) / ( ( DCMPLX(1.D0,0.D0) - alphas_tot ) * rho_a + alphas_tot *     &
+       h = qj(1) / ( ( DCMPLX(1.D0,0.D0) - alphas_tot ) * rho_a + alphas_tot *  &
             rhos_tot )
 
        IF ( DBLE( h ) .GT. eps_sing ) THEN
@@ -306,7 +306,7 @@ CONTAINS
           
        ELSE
           
-          alphas(1:n_solid) = DSQRT(2.D0) * h * qj(5:4+n_solid) / CDSQRT( h**4     &
+          alphas(1:n_solid) = DSQRT(2.D0) * h * qj(5:4+n_solid) / CDSQRT( h**4  &
                + eps_sing**4 ) / rho_s(1:n_solid)
                  
        END IF
@@ -317,7 +317,7 @@ CONTAINS
 
        END IF
     
-       rho_m = ( DCMPLX(1.D0,0.D0) - SUM(alphas) ) * rho_a + SUM( alphas * rho_s ) 
+       rho_m = ( DCMPLX(1.D0,0.D0) - SUM(alphas) ) * rho_a + SUM( alphas*rho_s ) 
 
     END IF
 
@@ -1318,7 +1318,7 @@ CONTAINS
   !> \brief Topography modification related term
   !
   !> This subroutine evaluates the deposition term.
-  !> \date 03/010/2018
+  !> \date 2019/11/08
   !> \param[in]     qj                  conservative variables 
   !> \param[in]     deposition_avg_term averaged deposition terms 
   !> \param[in]     erosion_avg_term    averaged deposition terms 
@@ -1360,8 +1360,6 @@ CONTAINS
        air_entr = 0.D0
 
     END IF
-
-    !air_entr = 0.D0
 
     eqns_term(1:n_eqns) = 0.D0
 
@@ -1408,7 +1406,6 @@ CONTAINS
     END IF
 
   END SUBROUTINE eval_topo_term
-
   
   !------------------------------------------------------------------------------
   !> Settling velocity function
@@ -1465,7 +1462,8 @@ CONTAINS
 
              ! round to first three significative digits
              dig = FLOOR(log10(set_vel_old))
-             settling_velocity = 10.D0**(dig-3)*FLOOR( 10.0**(-dig+3)*set_vel_old ) 
+             settling_velocity = 10.D0**(dig-3)                                 &
+                  * FLOOR( 10.0**(-dig+3)*set_vel_old ) 
 
              EXIT C_D_loop
 

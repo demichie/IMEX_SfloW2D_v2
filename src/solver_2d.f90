@@ -1145,7 +1145,8 @@ CONTAINS
              
              IF ( SUM(q(5:4+n_solid,j,k))-q(1,j,k) .LT. 1.D-10 ) THEN
                 
-                q(5:4+n_solid,j,k) = q(5:4+n_solid,j,k) / SUM(q(5:4+n_solid,j,k)) * q(1,j,k)
+                q(5:4+n_solid,j,k) = q(5:4+n_solid,j,k)                         &
+                     / SUM(q(5:4+n_solid,j,k)) * q(1,j,k)
                 
              ELSE
                 
@@ -1861,16 +1862,14 @@ CONTAINS
   END SUBROUTINE eval_jacobian
 
   !******************************************************************************
-  !> \brief Evaluate the averaged explicit terms 
+  !> \brief Evaluate the eroion/deposition terms
   !
-  !> This subroutine evaluate the averaged explicit terms of the non-linear 
-  !> system with respect to the conservative variables. The average is from
-  !> the four values at the sides of the cell (N,S,E,W)
+  !> This subroutine update the solution and the topography computing the 
+  !> erosion and deposition terms and the solution only because of entrainment.
   !
-  !> \param[in]    q_expl          conservative variables 
-  !> \param[out]   avg_expl_terms  explicit terms
+  !> \param[in]    dt      time step
   !
-  !> \date 07/10/2016
+  !> \date 2019/11/08
   !> @author 
   !> Mattia de' Michieli Vitturi
   !******************************************************************************
@@ -1902,23 +1901,17 @@ CONTAINS
 
        DO j = 1,comp_cells_x
 
-          CALL eval_erosion_dep_term( qp(:,j,k) , B_cent(j,k) , dt ,             &
+          CALL qc_to_qp(q(1:n_vars,j,k) , B_cent(j,k) , qp(1:n_vars,j,k) )
+
+          CALL eval_erosion_dep_term( qp(:,j,k) , B_cent(j,k) , dt ,            &
                erosion_term(1:n_solid) , deposition_term(1:n_solid) )
-    
-          deposition_term(1:n_solid) = MAX(0.D0,MIN( deposition_term(1:n_solid) , &
+
+          ! Limit the deposition during a single time step
+          deposition_term(1:n_solid) = MAX(0.D0,MIN( deposition_term(1:n_solid),&
                q(5:4+n_solid,j,k) / ( rho_s(1:n_solid) * dt ) ))
 
-          IF ( deposition_term(1) .LT. 0.D0 ) THEN
-          
-             WRITE(*,*) 'j,k',j,k
-             WRITE(*,*) 'qp',qp(1:n_vars,j,k)
-             WRITE(*,*) deposition_term
-             READ(*,*)
-          
-          END IF
-
           ! Compute the source terms for the equations
-          CALL eval_topo_term( q(1:n_vars,j,k) , deposition_term ,          &
+          CALL eval_topo_term( q(1:n_vars,j,k) , deposition_term ,              &
                erosion_term , eqns_term , topo_term )
 
           IF ( verbose_level .GE. 2 ) THEN
@@ -1928,7 +1921,6 @@ CONTAINS
 
           END IF
 
-             
           ! Update the solution with erosion/deposition terms
           q(1:n_eqns,j,k) = q(1:n_eqns,j,k) + dt * eqns_term(1:n_eqns)
 
@@ -1953,17 +1945,10 @@ CONTAINS
                 WRITE(*,*) 'dt',dt
                 WRITE(*,*) 'before erosion'
                 WRITE(*,*) 'qp',qp(1:n_eqns,j,k)
-                WRITE(*,*) 'qc',q(1:n_eqns,j,k) - dt * eqns_term(1:n_eqns)
-                WRITE(*,*) 'B_cent',B_cent(j,k) - dt * topo_term
-
-                WRITE(*,*) 
-
                 WRITE(*,*) 'deposition_term',deposition_term
                 WRITE(*,*) 'erosion_term',erosion_term
-                WRITE(*,*) 'qc',q(1:n_vars,j,k)
-                CALL qc_to_qp(q(1:n_vars,j,k) , B_cent(j,k) , qp(1:n_vars,j,k) )
+                CALL qc_to_qp(q(1:n_vars,j,k) , B_cent(j,k) , qp(1:n_vars,j,k))
                 WRITE(*,*) 'qp',qp(1:n_eqns,j,k)
-
                 READ(*,*)
 
              END IF
@@ -1977,20 +1962,7 @@ CONTAINS
              q(1:n_vars,j,k) = 0.D0
 
           END IF
-
           
-          IF ( verbose_level .GE. 2 ) THEN
-
-             WRITE(*,*) 'deposition_term , erosion_term',               &
-                  deposition_term , erosion_term
-
-             WRITE(*,*) 'after update erosion/deposition: j,k,q(:,j,k),B(j,k)', &
-                  j,k,q(:,j,k),B_cent(j,k)
-
-             READ(*,*)
-
-          END IF
-
        END DO
 
     END DO
@@ -2191,10 +2163,10 @@ CONTAINS
        
           DO j = 1,comp_interfaces_x
              
-             CALL eval_fluxes( q_interfaceL(1:n_vars,j,k) ,                    &
+             CALL eval_fluxes( q_interfaceL(1:n_vars,j,k) ,                     &
                   qp_interfaceL(1:n_vars,j,k) , B_interfaceL(j,k) , 1 , fluxL)
 
-             CALL eval_fluxes( q_interfaceR(1:n_vars,j,k) ,                    &
+             CALL eval_fluxes( q_interfaceR(1:n_vars,j,k) ,                     &
                   qp_interfaceR(1:n_vars,j,k) , B_interfaceR(j,k) , 1 , fluxR)
 
 
@@ -2236,10 +2208,10 @@ CONTAINS
           
           DO j = 1,comp_cells_x
 
-             CALL eval_fluxes( q_interfaceB(1:n_vars,j,k) ,                    &
+             CALL eval_fluxes( q_interfaceB(1:n_vars,j,k) ,                     &
                   qp_interfaceB(1:n_vars,j,k) , B_interfaceB(j,k) , 2 , fluxB)
              
-             CALL eval_fluxes( q_interfaceT(1:n_vars,j,k) ,                    &
+             CALL eval_fluxes( q_interfaceT(1:n_vars,j,k) ,                     &
                   qp_interfaceT(1:n_vars,j,k) , B_interfaceT(j,k) , 2 , fluxT)
        
              IF ( ( q_interfaceB(3,j,k) .GT. 0.D0 ) .AND.                       &
@@ -2313,10 +2285,10 @@ CONTAINS
        
           DO j = 1,comp_interfaces_x
 
-             CALL eval_fluxes( q_interfaceL(1:n_vars,j,k) ,                    &
+             CALL eval_fluxes( q_interfaceL(1:n_vars,j,k) ,                     &
                   qp_interfaceL(1:n_vars,j,k) , B_interfaceL(j,k) , 1 , fluxL)
 
-             CALL eval_fluxes( q_interfaceR(1:n_vars,j,k) ,                    &
+             CALL eval_fluxes( q_interfaceR(1:n_vars,j,k) ,                     &
                   qp_interfaceR(1:n_vars,j,k) , B_interfaceR(j,k) , 1 , fluxR)
 
              CALL average_KT( a_interface_xNeg(:,j,k), a_interface_xPos(:,j,k) ,&
@@ -2341,7 +2313,7 @@ CONTAINS
              
              ! In the equation for mass and for trasnport (T,alphas) if the 
              ! velocities at the interfaces are null, then the flux is null
-             IF ( (  qp_interfaceL(2,j,k) .EQ. 0.D0 ) .AND.                      &
+             IF ( (  qp_interfaceL(2,j,k) .EQ. 0.D0 ) .AND.                     &
                   (  qp_interfaceR(2,j,k) .EQ. 0.D0 ) ) THEN
 
                 H_interface_x(1,j,k) = 0.D0
@@ -2363,10 +2335,10 @@ CONTAINS
           
           DO j = 1,comp_cells_x
 
-             CALL eval_fluxes( q_interfaceB(1:n_vars,j,k) ,                    &
+             CALL eval_fluxes( q_interfaceB(1:n_vars,j,k) ,                     &
                   qp_interfaceB(1:n_vars,j,k) , B_interfaceB(j,k) , 2 , fluxB)    
          
-             CALL eval_fluxes( q_interfaceT(1:n_vars,j,k) ,                    &
+             CALL eval_fluxes( q_interfaceT(1:n_vars,j,k) ,                     &
                   qp_interfaceT(1:n_vars,j,k) , B_interfaceT(j,k) , 2 , fluxT)
 
              CALL average_KT( a_interface_yNeg(:,j,k) ,                         &
@@ -2830,8 +2802,8 @@ CONTAINS
 
                 END IF
 
-                CALL qp_to_qc( qrecS , B_interfaceT(j,k) , q_interfaceT(:,j,k) )
-                CALL qp_to_qc( qrecN , B_interfaceB(j,k+1) , q_interfaceB(:,j,k+1) )
+                CALL qp_to_qc( qrecS, B_interfaceT(j,k), q_interfaceT(:,j,k))
+                CALL qp_to_qc( qrecN, B_interfaceB(j,k+1), q_interfaceB(:,j,k+1))
 
                 qp_interfaceT(:,j,k) = qrecS
                 qp_interfaceB(:,j,k+1) = qrecN
