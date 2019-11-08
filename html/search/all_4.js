@@ -30,7 +30,7 @@ var searchData=
   ['eval_5fflux_5fkt',['eval_flux_kt',['../namespacesolver__2d.html#a79e24f76b5eccc03a5ba8844459e405a',1,'solver_2d']]],
   ['eval_5fflux_5flxf',['eval_flux_lxf',['../namespacesolver__2d.html#ad91efcc488e3c836dc1ce72956ea8f05',1,'solver_2d']]],
   ['eval_5fflux_5fup',['eval_flux_up',['../namespacesolver__2d.html#aaca9ed915d28af72abce4db206e45bdc',1,'solver_2d']]],
-  ['eval_5ffluxes2',['eval_fluxes2',['../namespaceconstitutive__2d.html#a08716f5cf1c5743a647968f49c110b26',1,'constitutive_2d']]],
+  ['eval_5ffluxes',['eval_fluxes',['../namespaceconstitutive__2d.html#ac5016dc16d6b220f12dd2bfad5fa857c',1,'constitutive_2d']]],
   ['eval_5fhyperbolic_5fterms',['eval_hyperbolic_terms',['../namespacesolver__2d.html#a3490f633c5aa76cd08824229e0673ddd',1,'solver_2d']]],
   ['eval_5fjacobian',['eval_jacobian',['../namespacesolver__2d.html#a6008c239bc58088d547bde1298091805',1,'solver_2d']]],
   ['eval_5flocal_5fspeeds2_5fx',['eval_local_speeds2_x',['../namespaceconstitutive__2d.html#ae05934389cffe1105b32355fed21412b',1,'constitutive_2d']]],

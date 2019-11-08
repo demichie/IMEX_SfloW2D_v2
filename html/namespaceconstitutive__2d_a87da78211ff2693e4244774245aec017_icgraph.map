@@ -1,5 +1,4 @@
 <map id="constitutive_2d::settling_velocity" name="constitutive_2d::settling_velocity">
-<area shape="rect" id="node2" href="$namespaceconstitutive__2d.html#a10bc7d7175b804fe9c56ba2a823d467b" title="Deposition term. " alt="" coords="213,39,356,80"/>
-<area shape="rect" id="node3" href="$namespacesolver__2d.html#a8aeae5c649fe33e0d8a3c4ba43667f32" title="Evaluate the averaged explicit terms. " alt="" coords="404,5,579,47"/>
-<area shape="rect" id="node4" href="$namespacesolver__2d.html#a6582ae40ece2e0da23db6828b8510208" title="Evaluate the averaged explicit terms. " alt="" coords="404,71,579,112"/>
+<area shape="rect" id="node2" href="$namespaceconstitutive__2d.html#a10bc7d7175b804fe9c56ba2a823d467b" title="Deposition term. " alt="" coords="213,5,356,47"/>
+<area shape="rect" id="node3" href="$namespacesolver__2d.html#a6582ae40ece2e0da23db6828b8510208" title="Evaluate the eroion/deposition terms. " alt="" coords="404,5,579,47"/>
 </map>

@@ -1,15 +1,14 @@
 <map id="solver_2d::eval_hyperbolic_terms" name="solver_2d::eval_hyperbolic_terms">
-<area shape="rect" id="node2" href="$namespacesolver__2d.html#afd826688c650c7003818593da5da0b88" title="Linear reconstruction. " alt="" coords="229,107,397,134"/>
-<area shape="rect" id="node6" href="$namespacesolver__2d.html#a24f04d82aa0f418dce078ce469dc0542" title="Characteristic speeds. " alt="" coords="234,195,393,222"/>
-<area shape="rect" id="node9" href="$namespacesolver__2d.html#ad91efcc488e3c836dc1ce72956ea8f05" title="Numerical fluxes Lax&#45;Friedrichs. " alt="" coords="234,246,393,273"/>
-<area shape="rect" id="node10" href="$namespacesolver__2d.html#a897041a2118c4f9f8e00dca8968e37a3" title="Numerical fluxes GFORCE. " alt="" coords="244,297,383,339"/>
-<area shape="rect" id="node11" href="$namespacesolver__2d.html#a79e24f76b5eccc03a5ba8844459e405a" title="Semidiscrete numerical fluxes. " alt="" coords="235,363,391,390"/>
-<area shape="rect" id="node14" href="$namespacesolver__2d.html#aaca9ed915d28af72abce4db206e45bdc" title="solver_2d::eval_flux_up" alt="" coords="234,414,393,441"/>
+<area shape="rect" id="node2" href="$namespacesolver__2d.html#afd826688c650c7003818593da5da0b88" title="Linear reconstruction. " alt="" coords="229,78,397,105"/>
+<area shape="rect" id="node5" href="$namespacesolver__2d.html#a24f04d82aa0f418dce078ce469dc0542" title="Characteristic speeds. " alt="" coords="234,143,393,170"/>
+<area shape="rect" id="node8" href="$namespacesolver__2d.html#ad91efcc488e3c836dc1ce72956ea8f05" title="Numerical fluxes Lax&#45;Friedrichs. " alt="" coords="234,194,393,221"/>
+<area shape="rect" id="node9" href="$namespacesolver__2d.html#a897041a2118c4f9f8e00dca8968e37a3" title="Numerical fluxes GFORCE. " alt="" coords="244,245,383,287"/>
+<area shape="rect" id="node10" href="$namespacesolver__2d.html#a79e24f76b5eccc03a5ba8844459e405a" title="Semidiscrete numerical fluxes. " alt="" coords="235,362,391,389"/>
+<area shape="rect" id="node13" href="$namespacesolver__2d.html#aaca9ed915d28af72abce4db206e45bdc" title="solver_2d::eval_flux_up" alt="" coords="234,311,393,338"/>
 <area shape="rect" id="node3" href="$namespaceconstitutive__2d.html#aa38b7de1baa7a734227a0aa5bf9548bf" title="Conservative to physical variables. " alt="" coords="455,5,587,47"/>
 <area shape="rect" id="node4" href="$namespaceconstitutive__2d.html#a3b66666c5794e7c491a3d915e600cbb4" title="Physical to conservative variables. " alt="" coords="455,71,587,112"/>
-<area shape="rect" id="node5" href="$namespacesolver__2d.html#aedf247cfeb231aa56b65af9da185605e" title="Slope limiter. " alt="" coords="465,137,576,163"/>
-<area shape="rect" id="node7" href="$namespaceconstitutive__2d.html#a14d19a8b10821844d7ea640264bb8914" title="Local Characteristic speeds x direction. " alt="" coords="449,253,592,295"/>
-<area shape="rect" id="node8" href="$namespaceconstitutive__2d.html#abb94b9fcc0fc9a586a5fc90b9f19b32b" title="Local Characteristic speeds y direction. " alt="" coords="449,188,592,229"/>
-<area shape="rect" id="node12" href="$namespaceconstitutive__2d.html#a08716f5cf1c5743a647968f49c110b26" title="Hyperbolic Fluxes. " alt="" coords="449,411,592,452"/>
-<area shape="rect" id="node13" href="$namespacesolver__2d.html#a780891221ec941ee5d8a17ca760c5833" title="averaged KT flux " alt="" coords="445,359,596,386"/>
+<area shape="rect" id="node6" href="$namespaceconstitutive__2d.html#a14d19a8b10821844d7ea640264bb8914" title="Local Characteristic speeds x direction. " alt="" coords="449,136,592,177"/>
+<area shape="rect" id="node7" href="$namespaceconstitutive__2d.html#abb94b9fcc0fc9a586a5fc90b9f19b32b" title="Local Characteristic speeds y direction. " alt="" coords="449,201,592,243"/>
+<area shape="rect" id="node11" href="$namespaceconstitutive__2d.html#ac5016dc16d6b220f12dd2bfad5fa857c" title="Hyperbolic Fluxes. " alt="" coords="449,304,592,345"/>
+<area shape="rect" id="node12" href="$namespacesolver__2d.html#a780891221ec941ee5d8a17ca760c5833" title="averaged KT flux " alt="" coords="445,370,596,397"/>
 </map>

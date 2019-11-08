@@ -12,14 +12,14 @@ var searchData=
   ['max_5fdt',['max_dt',['../namespaceparameters__2d.html#acb79877ae6c050a251be30d0cbf8917e',1,'parameters_2d']]],
   ['max_5fnl_5fiter',['max_nl_iter',['../namespaceparameters__2d.html#a53a6a5d278a215bff051ded630cbce9b',1,'parameters_2d']]],
   ['max_5frc',['max_rc',['../interfacecomplexify_1_1max.html#a26f09b95462404c5fcdde3532ee371cb',1,'complexify::max::max_rc()'],['../namespacecomplexify.html#a6868dc73ac73160302f4865e3aae6c67',1,'complexify::max_rc()']]],
-  ['maxmod',['maxmod',['../namespacesolver__2d.html#af43d13493b45efd605b0a6d066c26742',1,'solver_2d']]],
+  ['maxmod',['maxmod',['../namespacegeometry__2d.html#af81198be6329618f08e2213724a334ef',1,'geometry_2d']]],
   ['min',['min',['../interfacecomplexify_1_1min.html',1,'complexify']]],
   ['min_5fcc',['min_cc',['../interfacecomplexify_1_1min.html#a92a4632e418a41b66c083e582315fc76',1,'complexify::min::min_cc()'],['../namespacecomplexify.html#a411227881cc221424a8a1d035f6bcd92',1,'complexify::min_cc()']]],
   ['min_5fccc',['min_ccc',['../interfacecomplexify_1_1min.html#ab5e17cc0e63ab6b3ce65bf7b65a8b5f5',1,'complexify::min::min_ccc()'],['../namespacecomplexify.html#ae9e74380fb2237691a73a1e0400432e6',1,'complexify::min_ccc()']]],
   ['min_5fcccc',['min_cccc',['../interfacecomplexify_1_1min.html#aa97c035c9a5758913840395c41f05a53',1,'complexify::min::min_cccc()'],['../namespacecomplexify.html#a65ae9705d7d8e4af04b8f94432e3aeac',1,'complexify::min_cccc()']]],
   ['min_5fcr',['min_cr',['../interfacecomplexify_1_1min.html#a7c1541a54599bd62d094052bad18a7cd',1,'complexify::min::min_cr()'],['../namespacecomplexify.html#aa5d408564c92ca908ba6d59138cabde2',1,'complexify::min_cr()']]],
   ['min_5frc',['min_rc',['../interfacecomplexify_1_1min.html#aadd467cce3d98230c29484a28c519161',1,'complexify::min::min_rc()'],['../namespacecomplexify.html#a98634dad333b224823471ec3183a3c0a',1,'complexify::min_rc()']]],
-  ['minmod',['minmod',['../namespacesolver__2d.html#a9527b31ed89294ceff500428b17af1f7',1,'solver_2d']]],
+  ['minmod',['minmod',['../namespacegeometry__2d.html#a8b922ea4d9a2bf5476f24e46d462391e',1,'geometry_2d']]],
   ['mixt_5fvar',['mixt_var',['../namespaceconstitutive__2d.html#a57a04a27296b87b6c3ffa6cff01b4afd',1,'constitutive_2d']]],
   ['mu',['mu',['../namespaceconstitutive__2d.html#aabeb469009539442a6859e435f8172d3',1,'constitutive_2d']]]
 ];

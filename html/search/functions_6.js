@@ -6,7 +6,7 @@ var searchData=
   ['le_5fic',['le_ic',['../interfacecomplexify_1_1operator_07_3_0A_08.html#afa47d0fbbfe8895cd576aee83ecce635',1,'complexify::operator(&lt;=)::le_ic()'],['../namespacecomplexify.html#ae9542d2e49f36fd2bf1953ac67341184',1,'complexify::le_ic()']]],
   ['le_5frc',['le_rc',['../interfacecomplexify_1_1operator_07_3_0A_08.html#ae0eb5addc8880587d4adffd643d00a47',1,'complexify::operator(&lt;=)::le_rc()'],['../namespacecomplexify.html#a3b7bc54eb8cdba3523599da519b611f8',1,'complexify::le_rc()']]],
   ['lettera',['lettera',['../namespaceinpout__2d.html#a2419dc0fbfd31936d345cfffd3dcbc0d',1,'inpout_2d']]],
-  ['limit',['limit',['../namespacesolver__2d.html#aedf247cfeb231aa56b65af9da185605e',1,'solver_2d']]],
+  ['limit',['limit',['../namespacegeometry__2d.html#a508f9c43c26fea229532859de6a60994',1,'geometry_2d']]],
   ['lnsrch',['lnsrch',['../namespacesolver__2d.html#ac7650adc03cdfb5bd3b19804f3221623',1,'solver_2d']]],
   ['log10_5fc',['log10_c',['../interfacecomplexify_1_1log10.html#a7718f6455cdfa3bddfdff5f519a77ec5',1,'complexify::log10::log10_c()'],['../namespacecomplexify.html#a613ac415b9dad60e230a2b7491f9be21',1,'complexify::log10_c()']]],
   ['lt_5fcc',['lt_cc',['../interfacecomplexify_1_1operator_07_3_08.html#a554468f7200afb0ac69177aafccca622',1,'complexify::operator(&lt;)::lt_cc()'],['../namespacecomplexify.html#a23224acb987a06bc38c23c74110490bf',1,'complexify::lt_cc()']]],

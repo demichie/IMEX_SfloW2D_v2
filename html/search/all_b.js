@@ -6,7 +6,7 @@ var searchData=
   ['le_5fic',['le_ic',['../interfacecomplexify_1_1operator_07_3_0A_08.html#afa47d0fbbfe8895cd576aee83ecce635',1,'complexify::operator(&lt;=)::le_ic()'],['../namespacecomplexify.html#ae9542d2e49f36fd2bf1953ac67341184',1,'complexify::le_ic()']]],
   ['le_5frc',['le_rc',['../interfacecomplexify_1_1operator_07_3_0A_08.html#ae0eb5addc8880587d4adffd643d00a47',1,'complexify::operator(&lt;=)::le_rc()'],['../namespacecomplexify.html#a3b7bc54eb8cdba3523599da519b611f8',1,'complexify::le_rc()']]],
   ['lettera',['lettera',['../namespaceinpout__2d.html#a2419dc0fbfd31936d345cfffd3dcbc0d',1,'inpout_2d']]],
-  ['limit',['limit',['../namespacesolver__2d.html#aedf247cfeb231aa56b65af9da185605e',1,'solver_2d']]],
+  ['limit',['limit',['../namespacegeometry__2d.html#a508f9c43c26fea229532859de6a60994',1,'geometry_2d']]],
   ['limiter',['limiter',['../namespaceparameters__2d.html#a83dfcdee259ed2bf9e3cf5f9ca57653d',1,'parameters_2d']]],
   ['lnsrch',['lnsrch',['../namespacesolver__2d.html#ac7650adc03cdfb5bd3b19804f3221623',1,'solver_2d']]],
   ['log10',['log10',['../interfacecomplexify_1_1log10.html',1,'complexify']]],
