@@ -1,5 +1,6 @@
 This example simulate a 1d flow  with friction, deposition  and entrainment over a gentle slope. 
 The total energy conservation equation is solved in this example (ENERGY_FLAG=T).
+Topography does not change with deposition (TOPO_CHANGE_FLAG=F), but it is interesting to test the effect on the flow changing the flag.
 
 The settings are similar to those presented in Bursik & Woods 1996 [1].
 
