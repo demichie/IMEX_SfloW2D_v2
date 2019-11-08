@@ -102,7 +102,7 @@ B_cent = np.zeros_like(x_cent)
 w_cent = np.zeros_like(x_cent)
 u_cent = np.zeros_like(x_cent)
 
-slope = -5.0
+slope = -3.0
 B_disc = 0.0
 
 
