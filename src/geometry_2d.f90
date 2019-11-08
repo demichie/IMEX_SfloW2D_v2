@@ -22,26 +22,17 @@ MODULE geometry_2d
   !> Location of the boundaries (x) of the control volumes of the domain
   REAL*8, ALLOCATABLE :: y_stag(:)
 
-  !> Topography at the boundaries (x) of the control volumes
-  REAL*8, ALLOCATABLE :: B_stag_x(:,:)
+  !> Reconstructed value at the left of the x-interface
+  REAL*8, ALLOCATABLE :: B_interfaceL(:,:)        
 
-  !> Topography at the boundaries (y) of the control volumes
-  REAL*8, ALLOCATABLE :: B_stag_y(:,:)
+  !> Reconstructed value at the right of the x-interface
+  REAL*8, ALLOCATABLE :: B_interfaceR(:,:)
 
-  !> Topography interpolated at the NW corner of the control volumes
-  REAL*8, ALLOCATABLE :: B_NW(:,:)
+  !> Reconstructed value at the bottom of the y-interface
+  REAL*8, ALLOCATABLE :: B_interfaceB(:,:)        
 
-  !> Topography interpolated at the NE corner of the control volumes
-  REAL*8, ALLOCATABLE :: B_NE(:,:)
-
-  !> Topography interpolated at the SW corner of the control volumes
-  REAL*8, ALLOCATABLE :: B_SW(:,:)
-
-  !> Topography interpolated at the SE corner of the control volumes
-  REAL*8, ALLOCATABLE :: B_SE(:,:)
-  
-  !> Topography at the vertices of the control volumes
-  REAL*8, ALLOCATABLE :: B_ver(:,:)
+  !> Reconstructed value at the top of the y-interface
+  REAL*8, ALLOCATABLE :: B_interfaceT(:,:)
 
   !> Topography at the centers of the control volumes 
   REAL*8, ALLOCATABLE :: B_cent(:,:)
@@ -91,7 +82,7 @@ CONTAINS
 
   SUBROUTINE init_grid
 
-    USE parameters_2d, ONLY: eps_sing, topography_demfile
+    USE parameters_2d, ONLY: eps_sing
 
     IMPLICIT none
 
@@ -108,15 +99,12 @@ CONTAINS
     ALLOCATE( B_cent(comp_cells_x,comp_cells_y) )
     ALLOCATE( B_prime_x(comp_cells_x,comp_cells_y) )
     ALLOCATE( B_prime_y(comp_cells_x,comp_cells_y) )
-    ALLOCATE( B_ver(comp_interfaces_x,comp_interfaces_y) )
-    ALLOCATE( B_stag_x(comp_interfaces_x,comp_cells_y) )
-    ALLOCATE( B_stag_y(comp_cells_x,comp_interfaces_y) )
 
-    ALLOCATE( B_NW(comp_cells_x,comp_cells_y) )
-    ALLOCATE( B_NE(comp_cells_x,comp_cells_y) )
-    ALLOCATE( B_SW(comp_cells_x,comp_cells_y) )
-    ALLOCATE( B_SE(comp_cells_x,comp_cells_y) )
-    
+    ALLOCATE( B_interfaceL( comp_interfaces_x, comp_cells_y ) )
+    ALLOCATE( B_interfaceR( comp_interfaces_x, comp_cells_y ) )
+    ALLOCATE( B_interfaceB( comp_cells_x, comp_interfaces_y ) )
+    ALLOCATE( B_interfaceT( comp_cells_x, comp_interfaces_y ) )
+
     ALLOCATE( grid_output(comp_cells_x,comp_cells_y) )
 
     ALLOCATE( grav_surf(comp_cells_x,comp_cells_y) )
@@ -152,250 +140,52 @@ CONTAINS
     eps_sing=MIN(MIN( dx ** 4.D0,dy ** 4.D0 ),1.d-20)
 
     IF ( verbose_level .GE. 1 ) WRITE(*,*) 'eps_sing = ',eps_sing
+    
+    DO j=1,comp_interfaces_x
 
-    x_comp(1) = x0 + 0.5D0 * dx
-    x_stag(1) = x0
-    y_comp(1) = y0 + 0.5D0 * dy
-    y_stag(1) = y0
+       x_stag(j) = x0 + (j-1) * dx
 
-    ! if topography is defined in file .inp we do a rescaling
-    IF ( .NOT.topography_demfile ) THEN
+    END DO
 
-       topography_profile(1,:,:) = x0 + ( xN - x0 ) * topography_profile(1,:,:)
+    DO k=1,comp_interfaces_y
 
-       topography_profile(2,:,:) = y0 + ( yN - y0 ) * topography_profile(2,:,:)
+       y_stag(k) = y0 + (k-1) * dy
 
-       B_ver(1,1) = topography_profile(3,1,1)
+    END DO
 
-       WRITE(*,*) 'topography_profile(3,:,:)',topography_profile(3,:,:)
+    DO j=1,comp_cells_x
 
-       ! bottom row
+       x_comp(j) = 0.5D0 * ( x_stag(j) + x_stag(j+1) )
+
+    END DO
+
+    DO k=1,comp_cells_y
+
+       y_comp(k) = 0.5D0 * ( y_stag(k) + y_stag(k+1) )
+
+    END DO
+
+    DO k=1,comp_cells_y
+    
        DO j=1,comp_cells_x
 
-          x_stag(j+1) = x_stag(j) + dx
+          CALL interp_2d_scalar( topography_profile(1,:,:) ,                    &
+               topography_profile(2,:,:), topography_profile(3,:,:) ,           &
+               x_comp(j), y_comp(k) , B_cent(j,k) )
 
-          IF( k .EQ. comp_cells_y ) THEN
+          CALL interp_2d_slope( topography_profile(1,:,:) ,                     &
+               topography_profile(2,:,:), topography_profile(3,:,:) ,           &
+               x_comp(j), y_comp(k) , B_prime_x(j,k) , B_prime_y(j,k) )
 
-             ! right-bottom vertex
-             B_ver(j+1,1)=topography_profile(3,n_topography_profile_x,1)
-
-          ELSE
-
-             CALL interp_1d_scalar( topography_profile(1,:,1) ,                 &
-                  topography_profile(3,:,1) , x_stag(j+1) , B_ver(j+1,1) ) 
-
-          ENDIF
-
-          B_stag_y(j,1)=0.5*(B_ver(j+1,1)+B_ver(j,1))
-
-       ENDDO
-
-       ! left column
-       DO k=1,comp_cells_y
-
-          y_stag(k+1) = y_stag(k) + dy
-
-          IF ( k .EQ. comp_cells_y ) THEN
-
-             ! left-top vertex
-             B_ver(1,k+1) = topography_profile(3,1,n_topography_profile_y)
-
-          ELSE
-
-             CALL interp_1d_scalar( topography_profile(2,1,:) ,                 &
-                  topography_profile(3,1,:) , y_stag(k+1) , B_ver(1,k+1) ) 
-
-          ENDIF
-
-          B_stag_x(1,k)=0.5*(B_ver(1,k+1)+B_ver(1,k))
-
-       ENDDO
-
-       ! all the other cells
-       DO j = 1,comp_cells_x
-
-          x_comp(j) = 0.5 * ( x_stag(j) + x_stag(j+1) )
-
-          DO k = 1,comp_cells_y
-
-             y_comp(k) = 0.5 * ( y_stag(k) + y_stag(k+1) )
-
-             ! right column
-             IF ( j.EQ.comp_cells_x .AND. k.NE.comp_cells_y ) THEN
-
-                CALL interp_1d_scalar(                                          &
-                     topography_profile(2,n_topography_profile_x,:) ,           &
-                     topography_profile(3,n_topography_profile_x,:) ,           &
-                     y_stag(k+1) , B_ver(j+1,k+1) )
-                
-                ! top row
-             ELSEIF ( j.NE.comp_cells_x .AND. k.EQ.comp_cells_y ) THEN
-
-                CALL interp_1d_scalar(                                          &
-                     topography_profile(1,:,n_topography_profile_y) ,           &
-                     topography_profile(3,:,n_topography_profile_y) ,           &
-                     x_stag(j+1) , B_ver(j+1,k+1) ) 
-
-                ! right-top vertex
-             ELSEIF ( j.EQ.comp_cells_x .AND. k.EQ.comp_cells_y ) THEN
-
-                B_ver(j+1,k+1) = topography_profile( 3, n_topography_profile_x ,&
-                     n_topography_profile_y)
-
-                ! internal cells
-             ELSE
-
-                CALL interp_2d_scalar( topography_profile(1,:,:) ,              &
-                     & topography_profile(2,:,:), topography_profile(3,:,:) ,   &
-                     & x_stag(j+1), y_stag(k+1) , B_ver(j+1,k+1) )
-
-             ENDIF
-
-             ! Eq. 3.12 K&P
-             B_cent(j,k) = 0.25 * ( B_ver(j,k) + B_ver(j+1,k) + B_ver(j,k+1)    &
-                  + B_ver(j+1,k+1) )
-
-             ! Eq. 3.13 K&P
-             B_stag_x(j+1,k) = 0.5D0 * (B_ver(j+1,k+1)+B_ver(j+1,k))
-
-             ! Eq. 3.14 K&P
-             B_stag_y(j,k+1) = 0.5D0 * (B_ver(j+1,k+1)+B_ver(j,k+1))
-
-             ! Second factor in RHS 1st Eq. 3.16 K&P
-             B_prime_x(j,k) = ( B_stag_x(j+1,k) - B_stag_x(j,k) ) /             &
-                  (  x_stag(j+1) - x_stag(j) )
-
-             ! Second factor in RHS 2nd Eq. 3.16 K&P
-             B_prime_y(j,k) = ( B_stag_y(j,k+1) - B_stag_y(j,k) ) /             &
-                  (  y_stag(k+1) - y_stag(k) )
-
-             IF ( verbose_level .GE. 2 ) THEN
-
-                WRITE(*,*) topography_profile(1,:,:) 
-                WRITE(*,*) topography_profile(2,:,:)
-                WRITE(*,*) topography_profile(3,:,:)
-                WRITE(*,*) x_stag(j+1) , y_stag(k+1) , B_stag_x(j+1,k) ,        &
-                     B_stag_y(j,k+1) , x_comp(j) , y_comp(k) , B_cent(j,k) ,    &
-                     B_ver(j+1,k+1) ,  B_prime_x(j,k) , B_prime_y(j,k) 
-                READ(*,*)
-
-             END IF
-
-          END DO
-
-       ENDDO
-
-    ! topography from larger dem
-    ELSE
-
-       DO j=1,comp_interfaces_x
-
-          x_stag(j) = x0 + (j-1) * dx
-
-       END DO
+          B_interfaceR(j,k) = B_cent(j,k) - dx2 * B_prime_x(j,k)
+          B_interfaceL(j+1,k) = B_cent(j,k) + dx2 * B_prime_x(j,k)
           
-       DO k=1,comp_interfaces_y
-
-          y_stag(k) = y0 + (k-1) * dy
-          
-       END DO
-
-       DO j=1,comp_cells_x
-
-          x_comp(j) = 0.5D0 * ( x_stag(j) + x_stag(j+1) )
+          B_interfaceT(j,k) = B_cent(j,k) - dx2 * B_prime_y(j,k)
+          B_interfaceB(j,k+1) = B_cent(j,k) + dx2 * B_prime_y(j,k)
 
        END DO
 
-       DO k=1,comp_cells_y
-
-          y_comp(k) = 0.5D0 * ( y_stag(k) + y_stag(k+1) )
-
-       END DO
-
-       DO j=1,comp_interfaces_x
-          
-          DO k=1,comp_interfaces_y
-
-             CALL interp_2d_scalar( topography_profile(1,:,:) ,                 &
-                  topography_profile(2,:,:), topography_profile(3,:,:) ,        &
-                  x_stag(j), y_stag(k) , B_ver(j,k) )
-
-          END DO
-
-       END DO
-
-!!$       j=1
-!!$       k=1
-!!$       WRITE(*,*) 'geometry'
-!!$       WRITE(*,*) 'B_ver(j,k) - B_ver(j,k+1)',B_ver(j,k) - B_ver(j,k+1)
-!!$       WRITE(*,*) 'B_ver(j+1,k) - B_ver(j+1,k+1)',B_ver(j+1,k) - B_ver(j+1,k+1)
-!!$       READ(*,*)
-       
-       DO j=1,comp_cells_x
-          
-          DO k=1,comp_interfaces_y
-             
-             ! Eq. 3.14 K&P
-             B_stag_y(j,k) = 0.5D0 * ( B_ver(j+1,k) + B_ver(j,k) )
-             
-          END DO
-          
-       END DO
-       
-       DO j=1,comp_interfaces_x
-          
-          DO k=1,comp_cells_y
-             
-             ! Eq. 3.13 K&P
-             B_stag_x(j,k) = 0.5D0 * ( B_ver(j,k+1) + B_ver(j,k) )
-             
-          END DO
-          
-       END DO
-
-       DO j=1,comp_cells_x
-          
-          DO k=1,comp_cells_y
-
-             ! Eq. 3.12 K&P
-             B_cent(j,k) = 0.25D0 * ( B_ver(j,k) + B_ver(j+1,k) + B_ver(j,k+1)  &
-                  + B_ver(j+1,k+1) )
-             
-             ! Second factor in RHS 1st Eq. 3.16 K&P
-             B_prime_x(j,k) = ( B_stag_x(j+1,k) - B_stag_x(j,k) ) /             &
-                  (  x_stag(j+1) - x_stag(j) )
-
-             ! Second factor in RHS 2nd Eq. 3.16 K&P
-             B_prime_y(j,k) = ( B_stag_y(j,k+1) - B_stag_y(j,k) ) /             &
-                  (  y_stag(k+1) - y_stag(k) )
-
-
-
-             IF ( B_prime_y(j,k) .NE. 0.D0 ) THEN
-             
-                IF ( DABS( B_prime_y(j,k) ) .LT. 1.D-10 ) THEN
-   
-                   B_prime_y(j,k) = 0.D0
-
-                END IF
-
-             END IF
-
-             IF ( B_prime_x(j,k) .NE. 0.D0 ) THEN
-             
-                IF ( DABS( B_prime_x(j,k) ) .LT. 1.D-10 ) THEN
-   
-                   B_prime_x(j,k) = 0.D0
-
-                END IF
-
-             END IF
-
-          END DO
-
-       ENDDO
-
-    ENDIF
+    ENDDO
 
     ! this coefficient is used when the the scalar dot between the normal to the 
     ! topography and gravity is computed
@@ -468,6 +258,7 @@ CONTAINS
 
   END SUBROUTINE interp_1d_scalar
 
+
   !---------------------------------------------------------------------------
   !> Scalar interpolation (2D)
   !
@@ -535,7 +326,6 @@ CONTAINS
     END IF
     
   END SUBROUTINE interp_2d_scalar
-
 
   !---------------------------------------------------------------------------
   !> Scalar interpolation (2D)
@@ -620,6 +410,237 @@ CONTAINS
 
 
   !---------------------------------------------------------------------------
+  !> Scalar interpolation (2D)
+  !
+  !> This subroutine interpolate the values of the  array f1, defined on the 
+  !> grid points (x1,y1), at the point (x2,y2). The value are saved in f2
+  !> \date OCTOBER 2016
+  !> \param    x1           original grid                (\b input)
+  !> \param    y1           original grid                (\b input)
+  !> \param    f1           original values              (\b input)
+  !> \param    x2           new point                    (\b output)
+  !> \param    y2           new point                    (\b output)
+  !> \param    f2           interpolated value           (\b output)
+  !---------------------------------------------------------------------------
+
+  SUBROUTINE interp_2d_slope(x1, y1, f1, x2, y2, f_x, f_y)
+    IMPLICIT NONE
+
+    REAL*8, INTENT(IN), DIMENSION(:,:) :: x1, y1, f1
+    REAL*8, INTENT(IN) :: x2, y2
+    REAL*8, INTENT(OUT) :: f_x , f_y
+
+    INTEGER :: ix , iy
+    REAL*8 :: alfa_x , alfa_y
+    REAL*8 :: f_x1 , f_x2 , f_y1 , f_y2
+
+
+    IF ( size(x1,1) .GT. 1 ) THEN
+
+       ix = FLOOR( ( x2 - x1(1,1) ) / ( x1(2,1) - x1(1,1) ) ) + 1
+       ix = MIN( ix , SIZE(x1,1)-1 )
+       alfa_x = ( x1(ix+1,1) - x2 ) / (  x1(ix+1,1) - x1(ix,1) )
+
+    ELSE
+
+       ix = 1
+       alfa_x = 1.D0
+       
+    END IF
+    
+    IF ( size(x1,2) .GT. 1 ) THEN
+
+       iy = FLOOR( ( y2 - y1(1,1) ) / ( y1(1,2) - y1(1,1) ) ) + 1
+       iy = MIN( iy , SIZE(x1,2)-1 )
+       alfa_y = ( y1(1,iy+1) - y2 ) / (  y1(1,iy+1) - y1(1,iy) )
+    
+    ELSE
+
+       iy = 1
+       alfa_y = 1.D0
+  
+    END IF
+
+    f_x1 = 0.D0
+    f_x2 = 0.D0
+
+    IF ( size(x1,1) .GT. 1 ) THEN
+
+       f_x1 = ( f1(ix+1,iy) -  f1(ix,iy) ) / (  x1(2,1) - x1(1,1) )
+
+       IF ( size(x1,2) .GT. 1 ) THEN
+
+          f_x2 = ( f1(ix+1,iy+1) -  f1(ix,iy+1) ) / (  x1(2,1) - x1(1,1) )
+
+       END IF
+
+    END IF
+
+    f_x = alfa_y * f_x1 + ( 1.D0 - alfa_y ) * f_x2
+
+    f_y1 = 0.D0
+    f_y2 = 0.D0
+
+    IF ( size(x1,2) .GT. 1 ) THEN
+
+       f_y1 = ( f1(ix,iy+1) - f1(ix,iy) ) / (  y1(1,2) - y1(1,1) )
+
+       IF ( size(x1,1) .GT. 1 ) THEN
+
+          f_y2 = ( f1(ix+1,iy+1) - f1(ix+1,iy) ) / (  y1(1,2) - y1(1,1) )
+
+       END IF
+
+    END IF
+
+    f_y = alfa_x * f_y1 + ( 1.D0 - alfa_x ) * f_y2
+
+
+    RETURN
+    
+  END SUBROUTINE interp_2d_slope
+
+
+  !******************************************************************************
+  !> \brief Linear reconstruction
+  !
+  !> In this subroutine a linear reconstruction with slope limiters is
+  !> applied to a set of variables describing the state of the system.
+  !> @author 
+  !> Mattia de' Michieli Vitturi
+  !> \date 2019/11/08
+  !******************************************************************************
+
+  SUBROUTINE topography_reconstruction
+
+    USE parameters_2d, ONLY : limiter
+
+    IMPLICIT NONE
+    
+    REAL*8 :: B_stencil(3)    !< recons variables stencil for the limiter
+    REAL*8 :: x_stencil(3)    !< grid stencil for the limiter
+    REAL*8 :: y_stencil(3)    !< grid stencil for the limiter
+
+    INTEGER :: limiterB
+
+    INTEGER :: j,k
+    
+    
+    ! When limiter(1) = 0 (slope=0) we use a minmod limiter
+    limiterB = MAX(1,limiter(1))
+    limiterB = 1.D0
+
+    y_loop:DO k = 1,comp_cells_y
+
+       x_loop:DO j = 1,comp_cells_x
+
+          ! x direction
+          check_comp_cells_x:IF ( comp_cells_x .GT. 1 ) THEN
+
+             check_x_boundary:IF (j.EQ.1) THEN
+
+                ! west boundary
+
+                x_stencil(1) = 2.D0 * x_comp(1) - x_comp(2)
+                x_stencil(2:3) = x_comp(1:2)
+
+                B_stencil(1) = 2.D0 * B_cent(1,k) - B_cent(2,k) 
+                B_stencil(2:3) = B_cent(1:2,k)
+
+                CALL limit( B_stencil , x_stencil , limiterB , B_prime_x(j,k) )
+
+             ELSEIF (j.EQ.comp_cells_x) THEN
+
+                !east boundary
+                
+                x_stencil(3) = 2.D0 * x_comp(comp_cells_x) - x_comp(comp_cells_x-1)
+                x_stencil(1:2) = x_comp(comp_cells_x-1:comp_cells_x)
+                
+                B_stencil(3) = 2.D0 * B_cent(comp_cells_x,k) - B_cent(comp_cells_x-1,k)
+                B_stencil(1:2) = B_cent(comp_cells_x-1:comp_cells_x,k)
+
+                CALL limit( B_stencil , x_stencil , limiterB , B_prime_x(j,k) ) 
+
+             ELSE
+
+                ! Internal x interfaces
+                x_stencil(1:3) = x_comp(j-1:j+1)
+                B_stencil = B_cent(j-1:j+1,k)
+
+                CALL limit( B_stencil , x_stencil , limiterB , B_prime_x(j,k) )
+
+             ENDIF check_x_boundary
+
+          ELSE
+
+             B_prime_x(j,k) = 0.D0
+             
+          END IF check_comp_cells_x
+
+          ! y-direction
+          check_comp_cells_y:IF ( comp_cells_y .GT. 1 ) THEN
+
+             check_y_boundary:IF (k.EQ.1) THEN
+                
+                ! South boundary
+                y_stencil(1) = 2.D0 * y_comp(1) - y_comp(2)
+                y_stencil(2:3) = y_comp(1:2)
+                
+                B_stencil(1) = 2.D0 * B_cent(j,1) - B_cent(j,2)
+                B_stencil(2:3) = B_cent(j,1:2)
+                
+                CALL limit( B_stencil , y_stencil , limiterB , B_prime_y(j,k) ) 
+                
+             ELSEIF ( k .EQ. comp_cells_y ) THEN
+
+                ! North boundary
+                y_stencil(3) = 2.D0 * y_comp(comp_cells_y) - y_comp(comp_cells_y-1)
+                y_stencil(1:2) = y_comp(comp_cells_y-1:comp_cells_y)
+
+                B_stencil(3) = 2.D0 * B_cent(j,comp_cells_y) - B_cent(j,comp_cells_y-1)
+                B_stencil(1:2) = B_cent(j,comp_cells_y-1:comp_cells_y)
+                
+                CALL limit( B_stencil , y_stencil , limiterB , B_prime_y(j,k) ) 
+                
+             ELSE
+
+                ! Internal y interfaces
+                y_stencil(1:3) = y_comp(k-1:k+1)
+                B_stencil = B_cent(j,k-1:k+1)
+
+                CALL limit( B_stencil , y_stencil , limiterB , B_prime_y(j,k) )
+
+             ENDIF check_y_boundary
+
+          ELSE
+
+             B_prime_y(j,k) = 0.D0
+             
+          ENDIF check_comp_cells_y
+
+       END DO x_loop
+       
+    END DO y_loop
+
+    DO j = 1,comp_cells_x
+    
+       DO k = 1,comp_cells_y
+
+          B_interfaceR(j,k) = B_cent(j,k) - dx2 * B_prime_x(j,k)
+          B_interfaceL(j+1,k) = B_cent(j,k) + dx2 * B_prime_x(j,k)
+       
+          B_interfaceT(j,k) = B_cent(j,k) - dx2 * B_prime_y(j,k)
+          B_interfaceB(j,k+1) = B_cent(j,k) + dx2 * B_prime_y(j,k)
+
+       END DO
+
+    END DO
+
+    RETURN
+
+  END SUBROUTINE topography_reconstruction
+
+  !---------------------------------------------------------------------------
   !> Scalar regrid (2D)
   !
   !> This subroutine interpolate the values of the  array f1, defined on the 
@@ -681,79 +702,123 @@ CONTAINS
         
   END SUBROUTINE regrid_scalar
     
-  !------------------------------------------------------------------------------
-  !> Topography function
+  !******************************************************************************
+  !> \brief Slope limiter
   !
-  !> This subroutine generates a point of the topography
-  !> from the input (x,y) grid point
-  !> \date OCTOBER 2016
-  !> \param    x           original grid                (\b input)
-  !> \param    y           original grid                (\b input)
-  !------------------------------------------------------------------------------
-  REAL*8 FUNCTION topography_function(x,y)
-    IMPLICIT NONE
+  !> This subroutine limits the slope of the linear reconstruction of 
+  !> the physical variables, accordingly to the parameter "solve_limiter":\n
+  !> - 'none'     => no limiter (constant value);
+  !> - 'minmod'   => minmod slope;
+  !> - 'superbee' => superbee limiter (Roe, 1985);
+  !> - 'van_leer' => monotonized central-difference limiter (van Leer, 1977)
+  !> .
+  !> \param[in]     v             3-point stencil value array 
+  !> \param[in]     z             3-point stencil location array 
+  !> \param[in]     limiter       integer defining the limiter choice
+  !> \param[out]    slope_lim     limited slope         
+  !> \date 07/10/2016
+  !> @author 
+  !> Mattia de' Michieli Vitturi
+  !******************************************************************************
 
-    REAL*8, INTENT(IN) :: x,y
+  SUBROUTINE limit( v , z , limiter , slope_lim )
 
-    REAL*8, PARAMETER :: pig = 4.0*ATAN(1.0)
-    REAL*8, PARAMETER :: eps_dis = 1.d-8
-    REAL*8 :: a
+    USE parameters_2d, ONLY : theta
 
-    ! example 1D from Kurganov and Petrova 2007    
-    !IF(y.LT.0.0)THEN
-    !
-    !  topography_function = 1.d0
-    !
-    !ELSEIF(y.GE.0.0.AND.y.LE.0.4)THEN
-    !
-    !  topography_function = COS(pig*y)**2
-    !
-    !ELSEIF(y.GT.0.4.AND.y.LE.0.5)THEN 
-    !
-    !  topography_function = COS(pig*y)**2+0.25*(COS(10.0*pig*(y-0.5))+1)
-    !
-    !ELSEIF(y.GT.0.5.AND.y.LE.0.6)THEN
-    !
-    !  topography_function = 0.5*COS(pig*y)**4+0.25*(COS(10.0*pig*(y-0.5))+1)
-    !
-    !ELSEIF(y.GT.0.6.AND.y.LT.1.0-eps_dis)THEN
-    !
-    !  topography_function = 0.5*COS(pig*y)**4
-    !
-    !ELSEIF(y.GE.1.0-eps_dis.AND.y.LE.1.0+eps_dis)THEN
-    !
-    !  topography_function = 0.25
-    !
-    !ELSEIF(y.GT.1.0+eps_dis.AND.y.LE.1.5)THEN
-    !
-    !  topography_function = 0.25*SIN(2*pig*(y-1))
-    !
-    !ELSE
-    !
-    !  topography_function = 0.d0
-    !
-    !ENDIF
+    IMPLICIT none
+
+    REAL*8, INTENT(IN) :: v(3)
+    REAL*8, INTENT(IN) :: z(3)
+    INTEGER, INTENT(IN) :: limiter
+
+    REAL*8, INTENT(OUT) :: slope_lim
+
+    REAL*8 :: a , b , c
+
+    REAL*8 :: sigma1 , sigma2
+
+    a = ( v(3) - v(2) ) / ( z(3) - z(2) )
+    b = ( v(2) - v(1) ) / ( z(2) - z(1) )
+    c = ( v(3) - v(1) ) / ( z(3) - z(1) )
+
+    SELECT CASE (limiter)
+
+    CASE ( 0 )
+
+       slope_lim = 0.D0
+
+    CASE ( 1 )
+
+       ! minmod
+
+       slope_lim = minmod(a,b)
+
+    CASE ( 2 )
+
+       ! superbee
+
+       sigma1 = minmod( a , 2.D0*b )
+       sigma2 = minmod( 2.D0*a , b )
+       slope_lim = maxmod( sigma1 , sigma2 )
+
+    CASE ( 3 )
+
+       ! generalized minmod
+
+       slope_lim = minmod( c , theta * minmod( a , b ) )
+
+    CASE ( 4 )
+
+       ! monotonized central-difference (MC, LeVeque p.112)
+
+       slope_lim = minmod( c , 2.0 * minmod( a , b ) )
+
+    END SELECT
+
+  END SUBROUTINE limit
 
 
-    ! example 2D from Kurganov and Petrova 2007    
-    IF(ABS(y).LE.0.5.AND.x.LE.(y-1.0)/2.0)THEN
+  REAL*8 FUNCTION minmod(a,b)
 
-       a=y**2
+    IMPLICIT none
 
-    ELSEIF(ABS(y).GT.0.5.AND.x.LE.(y-1.0)/2.0)THEN
+    REAL*8 :: a , b , sa , sb 
 
-       a=y**2+0.1*sin(pig*x)
+    IF ( a*b .EQ. 0.D0 ) THEN
+
+       minmod = 0.d0
 
     ELSE
 
-       a=MAX(0.125,y**2+0.1*sin(pig*x))
+       sa = a / ABS(a)
+       sb = b / ABS(b)
 
-    ENDIF
+       minmod = 0.5D0 * ( sa+sb ) * MIN( ABS(a) , ABS(b) )
 
-    topography_function=7.0/32.0*exp(-8.0*(x-0.3)**2-60.0*(y-0.1)**2)- &
-         & 1.0/8.0*exp(-30.0*(x+0.1)**2-90.0*(y+0.2)**2) + a
+    END IF
 
-  END FUNCTION topography_function
+  END FUNCTION minmod
+
+  REAL*8 function maxmod(a,b)
+
+    IMPLICIT none
+
+    REAL*8 :: a , b , sa , sb 
+
+    IF ( a*b .EQ. 0.d0 ) THEN
+
+       maxmod = 0.d0
+
+    ELSE
+
+       sa = a / ABS(a)
+       sb = b / ABS(b)
+
+       maxmod = 0.5D0 * ( sa+sb ) * MAX( ABS(a) , ABS(b) )
+
+    END IF
+
+  END function maxmod
 
 
 END MODULE geometry_2d

@@ -29,6 +29,7 @@ PROGRAM SW_VAR_DENS_MODEL
   USE constitutive_2d, ONLY : init_problem_param
 
   USE geometry_2d, ONLY : init_grid
+  USE geometry_2d, ONLY : topography_reconstruction
 
   USE geometry_2d, ONLY : dx,dy,B_cent
 
@@ -48,7 +49,6 @@ PROGRAM SW_VAR_DENS_MODEL
   USE solver_2d, ONLY : allocate_solver_variables
   USE solver_2d, ONLY : deallocate_solver_variables
   USE solver_2d, ONLY : imex_RK_solver
-  USE solver_2d, ONLY : update_erosion_deposition_ver
   USE solver_2d, ONLY : update_erosion_deposition_cell
   USE solver_2d, ONLY : timestep, timestep2
   ! USE solver_2d, ONLY : check_solve
@@ -62,6 +62,7 @@ PROGRAM SW_VAR_DENS_MODEL
   USE parameters_2d, ONLY : t_steady
   USE parameters_2d, ONLY : dt0
   USE parameters_2d, ONLY : riemann_flag
+  USE parameters_2d, ONLY : topo_change_flag
   USE parameters_2d, ONLY : verbose_level
   USE parameters_2d, ONLY : n_solid
 
@@ -90,14 +91,16 @@ PROGRAM SW_VAR_DENS_MODEL
   CALL init_problem_param
 
   CALL allocate_solver_variables
-  
+ 
+  WRITE(*,*) 'QUI'
+ 
   IF ( restart ) THEN
 
      CALL read_solution
 
   ELSE
 
-     IF( riemann_flag .EQV. .TRUE. )THEN
+     IF( riemann_flag ) THEN
 
         ! riemann problem defined in file.inp
         CALL riemann_problem
@@ -105,6 +108,10 @@ PROGRAM SW_VAR_DENS_MODEL
      ENDIF
 
   END IF
+
+  WRITE(*,*) 'QUI2'
+
+  IF ( topo_change_flag ) CALL topography_reconstruction
 
   t = t_start
   
@@ -142,7 +149,7 @@ PROGRAM SW_VAR_DENS_MODEL
 
   IF ( SUM(q(1,:,:)) .EQ. 0.D0 ) t_steady = t_output
   
-  WRITE(*,FMT="(A3,F10.4,A5,F9.5,A15,ES12.3E3,A15,ES12.3E3,A15,ES12.3E3)")   &
+  WRITE(*,FMT="(A3,F10.4,A5,F9.5,A15,ES12.3E3,A15,ES12.3E3,A19,ES12.3E3)")   &
        't =',t,'dt =',dt0,                                                   &
        ' total mass = ',dx*dy*SUM(q(1,:,:)) ,                              &
        ' total area = ',dx*dy*COUNT(q(1,:,:).GT.1.D-5) ,                     &
@@ -176,14 +183,15 @@ PROGRAM SW_VAR_DENS_MODEL
 
      CALL imex_RK_solver
 
-     ! CALL update_erosion_deposition_ver(dt)
      CALL update_erosion_deposition_cell(dt)
  
+     IF ( topo_change_flag ) CALL topography_reconstruction
+
      q1max(:,:) = MAX( q1max(:,:) , q(1,:,:) )
      
      t = t+dt
      
-     WRITE(*,FMT="(A3,F10.4,A5,F9.5,A15,ES12.3E3,A15,ES12.3E3,A15,ES12.3E3)")&
+     WRITE(*,FMT="(A3,F10.4,A5,F9.5,A15,ES12.3E3,A15,ES12.3E3,A19,ES12.3E3)")&
           't =',t,'dt =',dt,                                                 &
           ' total mass = ',dx*dy*SUM(q(1,:,:)) ,                           &
           ' total area = ',dx*dy*COUNT(q(1,:,:).GT.1.D-7) ,                  &

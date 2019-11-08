@@ -672,7 +672,7 @@ CONTAINS
   !> \param[out]    flux     real  fluxes    
   !******************************************************************************
 
-  SUBROUTINE eval_fluxes2(qcj,qpj,Bj,dir,flux)
+  SUBROUTINE eval_fluxes(qcj,qpj,Bj,dir,flux)
     
     USE COMPLEXIFY
     IMPLICIT none
@@ -768,7 +768,7 @@ CONTAINS
        
     ENDIF pos_thick
  
-  END SUBROUTINE eval_fluxes2
+  END SUBROUTINE eval_fluxes
 
 
   !******************************************************************************

@@ -18,8 +18,8 @@ MODULE solver_2d
   USE geometry_2d, ONLY : comp_cells_x,comp_cells_y,comp_cells_xy
   USE geometry_2d, ONLY : comp_interfaces_x,comp_interfaces_y
 
-  USE geometry_2d, ONLY : B_cent , B_prime_x , B_prime_y , B_stag_x , B_stag_y
-  USE geometry_2d, ONLY : B_ver
+  USE geometry_2d, ONLY : B_cent , B_prime_x , B_prime_y
+  USE geometry_2d, ONLY : B_interfaceL , B_interfaceR , B_interfaceT , B_interfaceB
   USE geometry_2d, ONLY : grav_surf
 
   USE parameters_2d, ONLY : n_eqns , n_vars , n_nh , n_solid
@@ -27,6 +27,9 @@ MODULE solver_2d
   USE parameters_2d, ONLY : verbose_level
 
   USE parameters_2d, ONLY : bcW , bcE , bcS , bcN
+
+  ! external procedures
+  USE geometry_2d, ONLY : limit
 
   IMPLICIT none
 
@@ -1128,8 +1131,6 @@ CONTAINS
                 WRITE(*,*) 'h old',q0(1,j,k)
                 WRITE(*,*) 'h new',q(1,j,k)
                 WRITE(*,*) 'B_cent(j,k)',B_cent(j,k)
-                WRITE(*,*) 'B_stag_x(j:j+1,k)',B_stag_x(j:j+1,k)
-                WRITE(*,*) 'B_stag_y(j,k:k+1)',B_stag_y(j,k:k+1)
 
                 WRITE(*,*) 'hS',q_interfaceT(1,j,k)
                 WRITE(*,*) 'hE',q_interfaceR(1,j,k)
@@ -1859,1097 +1860,6 @@ CONTAINS
 
   END SUBROUTINE eval_jacobian
 
-
-  !******************************************************************************
-  !> \brief Evaluate the averaged explicit terms 
-  !
-  !> This subroutine evaluate the averaged explicit terms of the non-linear 
-  !> system with respect to the conservative variables. The average is from
-  !> the four values at the sides of the cell (N,S,E,W)
-  !
-  !> \param[in]    q_expl          conservative variables 
-  !> \param[out]   avg_expl_terms  explicit terms
-  !
-  !> \date 07/10/2016
-  !> @author 
-  !> Mattia de' Michieli Vitturi
-  !******************************************************************************
-
-  SUBROUTINE update_erosion_deposition_ver(dt)
-
-    USE constitutive_2d, ONLY : eval_erosion_dep_term
-    USE constitutive_2d, ONLY : eval_topo_term
-
-    USE constitutive_2d, ONLY : qc_to_qp
-
-    
-    USE constitutive_2d, ONLY : erosion_coeff , settling_vel , rho_s , red_grav
-    USE geometry_2d, ONLY : B_NW , B_NE , B_SW , B_SE
-    
-    USE geometry_2d, ONLY : x_stag , y_stag
-
-    USE parameters_2d, ONLY : topo_change_flag , reconstr_coeff
-
-    IMPLICIT NONE
-
-    REAL*8, INTENT(IN) :: dt
-
-    REAL*8 :: erosion_termLT(n_solid) , erosion_termRT(n_solid)
-    REAL*8 :: erosion_termLB(n_solid) , erosion_termRB(n_solid)
-
-    REAL*8 :: deposition_termLT(n_solid) , deposition_termRT(n_solid)
-    REAL*8 :: deposition_termLB(n_solid) , deposition_termRB(n_solid)
-
-    REAL*8 :: vertex_erosion_terms(comp_interfaces_x,comp_interfaces_y,n_solid)
-    REAL*8 :: vertex_deposition_terms(comp_interfaces_x,comp_interfaces_y,n_solid)
-
-    
-    REAL*8 :: avg_erosion_term(n_solid)
-    REAL*8 :: avg_deposition_term(n_solid)
-    REAL*8 :: eqns_term(n_eqns)
-    REAL*8 :: topo_term
-
-    REAL*8 :: B_avg
-
-    INTEGER :: j ,k
-    INTEGER :: solid_idx
-
-    
-    IF ( ( erosion_coeff .EQ. 0.D0 ) .AND. ( settling_vel .EQ. 0.D0 ) ) RETURN
-
-    ! set this variable to 0 for a constant reconstraction in each cell
-    reconstr_coeff = 1.D0
-    
-    ! Bi-linear reconstruction of the solution at the volume interfaces
-    CALL reconstruction
-
-    reconstr_coeff = 1.D0
-        
-    ! Loop to extend the bilinear reconstruction at the 4 corners of each volume
-    DO k = 1,comp_cells_y
-
-       DO j = 1,comp_cells_x
-
-          IF ( ( k.EQ. 1 ) .OR. ( k .EQ. comp_cells_y ) .OR. ( j .EQ. 1 )       &
-               .OR. ( j .EQ. comp_cells_x ) ) THEN
-
-             ! At the boundary cells we account for boundary conditions in the
-             ! reconstruction
-             qp_cellNW(:,j,k) = qp_interfaceR(:,j,k) + qp_interfaceB(:,j,k+1)   &
-                  - qp(:,j,k) 
-
-             qp_cellNE(:,j,k) = qp_interfaceL(:,j+1,k) + qp_interfaceB(:,j,k+1) &
-                  - qp(:,j,k) 
-
-             qp_cellSW(:,j,k) = qp_interfaceR(:,j,k) + qp_interfaceT(:,j,k)     &
-                  - qp(:,j,k) 
-
-             qp_cellSE(:,j,k) = qp_interfaceL(:,j+1,k) + qp_interfaceT(:,j,k)   &
-                  - qp(:,j,k) 
-
-             q_cellNW(:,j,k) = q_interfaceR(:,j,k) + q_interfaceB(:,j,k+1)      &
-                  - q(:,j,k) 
-
-             q_cellNE(:,j,k) = q_interfaceL(:,j+1,k) + q_interfaceB(:,j,k+1)    &
-                  - q(:,j,k) 
-
-             q_cellSW(:,j,k) = q_interfaceR(:,j,k) + q_interfaceT(:,j,k)        &
-                  - q(:,j,k) 
-
-             q_cellSE(:,j,k) = q_interfaceL(:,j+1,k) + q_interfaceT(:,j,k)      &
-                  - q(:,j,k) 
-
-          ELSE
-
-             ! Bilinear reconstruction of the physical variables at the corners
-             qp_cellNW(:,j,k) = qp(:,j,k) - 0.5D0 * ( qp_interfaceL(:,j+1,k) -  &
-                  qp_interfaceR(:,j,k) ) + 0.5D0 * ( qp_interfaceB(:,j,k+1) -   &
-                  qp_interfaceT(:,j,k) ) 
-
-             qp_cellNE(:,j,k) = qp(:,j,k) + 0.5D0 * ( qp_interfaceL(:,j+1,k) -  &
-                  qp_interfaceR(:,j,k) ) + 0.5D0 * ( qp_interfaceB(:,j,k+1) -   &
-                  qp_interfaceT(:,j,k) )
-
-             qp_cellSW(:,j,k) = qp(:,j,k) - 0.5D0 * ( qp_interfaceL(:,j+1,k) -  &
-                  qp_interfaceR(:,j,k) ) - 0.5D0 * ( qp_interfaceB(:,j,k+1) -   &
-                  qp_interfaceT(:,j,k) )
-
-             qp_cellSE(:,j,k) = qp(:,j,k) + 0.5D0 * ( qp_interfaceL(:,j+1,k) -  &
-                  qp_interfaceR(:,j,k) ) - 0.5D0 * ( qp_interfaceB(:,j,k+1) -   &
-                  qp_interfaceT(:,j,k) )
-
-
-             ! Bilinear reconstruction of the conserv. variables at the corners
-             q_cellNW(:,j,k) = q(:,j,k) - 0.5D0 * ( q_interfaceL(:,j+1,k) -     &
-                  q_interfaceR(:,j,k) ) + 0.5D0 * ( q_interfaceB(:,j,k+1) -     &
-                  q_interfaceT(:,j,k) ) 
-
-             q_cellNE(:,j,k) = q(:,j,k) + 0.5D0 * ( q_interfaceL(:,j+1,k) -     &
-                  q_interfaceR(:,j,k) ) + 0.5D0 * ( q_interfaceB(:,j,k+1) -     &
-                  q_interfaceT(:,j,k) )
-
-             q_cellSW(:,j,k) = q(:,j,k) - 0.5D0 * ( q_interfaceL(:,j+1,k) -     &
-                  q_interfaceR(:,j,k) ) - 0.5D0 * ( q_interfaceB(:,j,k+1) -     &
-                  q_interfaceT(:,j,k) )
-
-             q_cellSE(:,j,k) = q(:,j,k) + 0.5D0 * ( q_interfaceL(:,j+1,k) -     &
-                  q_interfaceR(:,j,k) ) - 0.5D0 * ( q_interfaceB(:,j,k+1) -     &
-                  q_interfaceT(:,j,k) )
-
-
-!!$             IF ( ( j .EQ. 35 ) .AND. ( k.EQ. 47 ) ) THEN
-!!$                
-!!$                WRITE(*,*) 'j,k',j,k
-!!$                WRITE(*,*) 'reconstruction'
-!!$                WRITE(*,*) 'q_cellSE',q_cellSE(:,j,k)
-!!$                WRITE(*,*) 'q_cellNE',q_cellNE(:,j,k)
-!!$                WRITE(*,*) 'q_cellSW',q_cellSW(:,j,k)
-!!$                WRITE(*,*) 'q_cellNW',q_cellNW(:,j,k)
-!!$                 WRITE(*,*) 'qp_cellSE',qp_cellSE(:,j,k)
-!!$                WRITE(*,*) 'qp_cellNE',qp_cellNE(:,j,k)
-!!$                WRITE(*,*) 'qc'
-!!$                WRITE(*,*) q(:,j,k)
-!!$                WRITE(*,*) q_interfaceL(:,j+1,k) 
-!!$                WRITE(*,*) q_interfaceR(:,j,k)
-!!$                WRITE(*,*) q_interfaceB(:,j,k+1)
-!!$                WRITE(*,*) q_interfaceT(:,j,k)
-!!$                WRITE(*,*) 'qp'
-!!$                WRITE(*,*) qp(:,j,k)
-!!$                WRITE(*,*) qp_interfaceL(:,j+1,k) 
-!!$                WRITE(*,*) qp_interfaceR(:,j,k)
-!!$                WRITE(*,*) qp_interfaceB(:,j,k+1)
-!!$                WRITE(*,*) qp_interfaceT(:,j,k)
-!!$                WRITE(*,*) 
-!!$
-!!$                READ(*,*)
-!!$                
-!!$             END IF
-
-
-          END IF
-
-          ! Bilinear reconstruction of the topography at the corners 
-          B_NW(j,k) = B_cent(j,k) - 0.5D0 * ( B_stag_x(j+1,k) - B_stag_x(j,k) ) &
-               + 0.5D0 * ( B_stag_y(j,k+1) - B_stag_y(j,k) )
-          
-          B_NE(j,k) = B_cent(j,k) + 0.5D0 * ( B_stag_x(j+1,k) - B_stag_x(j,k) ) &
-               + 0.5D0 * ( B_stag_y(j,k+1) - B_stag_y(j,k) )
-          
-          B_SW(j,k) = B_cent(j,k) - 0.5D0 * ( B_stag_x(j+1,k) - B_stag_x(j,k) ) &
-               - 0.5D0 * ( B_stag_y(j,k+1) - B_stag_y(j,k) )
-          
-          B_SE(j,k) = B_cent(j,k) + 0.5D0 * ( B_stag_x(j+1,k) - B_stag_x(j,k) ) &
-               - 0.5D0 * ( B_stag_y(j,k+1) - B_stag_y(j,k) )
-        
-          ! Correct the slope of the reconstruction if h<0 at NW corner 
-          IF ( qp_cellNW(1,j,k) .LT. 0.D0 ) THEN
-             
-             qp_cellNW(1,j,k) = 0.D0
-             qp_cellSE(1,j,k) = 2.D0 * qp(1,j,k) 
-
-             qp_cellNW(5:4+n_solid,j,k) = 0.D0
-             qp_cellSE(5:4+n_solid,j,k) = MAX(0.D0,2.D0 * qp(5:4+n_solid,j,k)) 
-          
-             q_cellNW(:,j,k) = 0.D0
-             q_cellSE(:,j,k) = 2.D0 * q(:,j,k)
-   
-          ENDIF
-
-          ! Correct the slope of the reconstruction if h<0 at SE corner 
-          IF ( qp_cellSE(1,j,k) .LT. 0.D0 ) THEN
-             
-             qp_cellSE(1,j,k) = 0.D0
-             qp_cellNW(1,j,k) = 2.D0 * qp(1,j,k) 
-
-             qp_cellSE(5:4+n_solid,j,k) = 0.D0
-             qp_cellNW(5:4+n_solid,j,k) = MAX(0.D0,2.D0 * qp(5:4+n_solid,j,k))
-
-             q_cellSE(:,j,k) = 0.D0
-             q_cellNW(:,j,k) = 2.D0 * q(:,j,k)
-
-             
-          ENDIF
-
-          ! Correct the slope of the reconstruction if h<0 at NE corner 
-          IF ( qp_cellNE(1,j,k) .LT. 0.D0 ) THEN
-             
-             qp_cellNE(1,j,k) = 0.D0            
-             qp_cellSW(1,j,k) = 2.D0 * qp(1,j,k)
-
-             qp_cellNE(5:4+n_solid,j,k) = 0.D0
-             qp_cellSW(5:4+n_solid,j,k) = MAX(0.D0,2.D0 * qp(5:4+n_solid,j,k))
-   
-             q_cellNE(:,j,k) = 0.D0
-             q_cellSW(:,j,k) = 2.D0 * q(:,j,k)
-          
-          ENDIF
-
-          ! Correct the slope of the reconstruction if h<0 at SW corner 
-          IF ( qp_cellSW(1,j,k) .LT. 0.D0 ) THEN
-             
-             qp_cellSW(1,j,k) = 0.D0
-             qp_cellNE(1,j,k) = 2.D0 * qp(1,j,k)
-
-             qp_cellSW(5:4+n_solid,j,k) = 0.D0
-             qp_cellNE(5:4+n_solid,j,k) = MAX(0.D0,2.D0 * qp(5:4+n_solid,j,k)) 
-
-             q_cellSW(:,j,k) = 0.D0
-             q_cellNE(:,j,k) = 2.D0 * q(:,j,k)
-
-          ENDIF
-                    
-          !-----
-          DO solid_idx = 5,4+n_solid
-
-             ! ----------- CORRECTION TO qp(solid_idx) -------------------------
-
-             ! Correct the slope of the reconstruction if h*alpha<0 at NW corner 
-             IF ( qp_cellNW(solid_idx,j,k) .LT. 0.D0 ) THEN
-
-                qp_cellNW(solid_idx,j,k) = 0.D0
-                qp_cellSE(solid_idx,j,k) = MAX(0.D0,2.D0 * qp(solid_idx,j,k))
-
-                ! Correct the slope of the reconstruction if alpha>1 at NW corner 
-             END IF
-
-
-             ! Correct the slope of the reconstruction if h*alpha<0 at SE corner 
-             IF ( qp_cellSE(solid_idx,j,k) .LT. 0.D0 ) THEN
-
-                qp_cellSE(solid_idx,j,k) = 0.D0
-                qp_cellNW(solid_idx,j,k) = MAX(0.D0,2.D0 * qp(solid_idx,j,k))
-
-                ! Correct the slope of the reconstruction if alpha>1 at SE corner 
-             END IF
-
-
-
-             ! Correct the slope of the reconstruction if h*alpha<0 at NE corner 
-             IF ( qp_cellNE(solid_idx,j,k) .LT. 0.D0 ) THEN
-
-                qp_cellNE(solid_idx,j,k) = 0.D0
-                qp_cellSW(solid_idx,j,k) = MAX(0.D0,2.D0 * qp(solid_idx,j,k))
-
-                ! Correct the slope of the reconstruction if alpha>1 at NE corner 
-                
-             END IF
-
-             ! Correct the slope of the reconstruction if h*alpha<0 at SW corner 
-             IF ( qp_cellSW(solid_idx,j,k) .LT. 0.D0 ) THEN
-
-                qp_cellSW(solid_idx,j,k) = 0.D0
-                qp_cellNE(solid_idx,j,k) = MAX(0.D0,2.D0 * qp(solid_idx,j,k)) 
-
-                ! Correct the slope of the reconstruction if alpha>1 at SW corner 
-             END IF
-
-             ! ----------- CORRECTION TO q(solid_idx) --------------------------
-
-
-             ! Correct the slope of the reconstruction if h*alpha<0 at NW corner 
-             IF ( q_cellNW(solid_idx,j,k) .LT. 0.D0 ) THEN
-
-                q_cellNW(solid_idx,j,k) = 0.D0
-                q_cellSE(solid_idx,j,k) = MAX(0.D0,2.D0 * q(solid_idx,j,k))
-
-                ! Correct the slope of the reconstruction if alpha>1 at NW corner 
-             END IF
-
-             ! Correct the slope of the reconstruction if h*alpha<0 at SE corner 
-             IF ( q_cellSE(solid_idx,j,k) .LT. 0.D0 ) THEN
-
-                q_cellSE(solid_idx,j,k) = 0.D0
-                q_cellNW(solid_idx,j,k) = MAX(0.D0,2.D0 * q(solid_idx,j,k))
-
-                ! Correct the slope of the reconstruction if alpha>1 at SE corner 
-             END IF
-
-             ! Correct the slope of the reconstruction if h*alpha<0 at NE corner 
-             IF ( q_cellNE(solid_idx,j,k) .LT. 0.D0 ) THEN
-
-                q_cellNE(solid_idx,j,k) = 0.D0
-                q_cellSW(solid_idx,j,k) = MAX(0.D0,2.D0 * q(solid_idx,j,k))
-
-                ! Correct the slope of the reconstruction if alpha>1 at NE corner 
-                
-             END IF
-
-             ! Correct the slope of the reconstruction if h*alpha<0 at SW corner 
-             IF ( q_cellSW(solid_idx,j,k) .LT. 0.D0 ) THEN
-
-                q_cellSW(solid_idx,j,k) = 0.D0
-                q_cellNE(solid_idx,j,k) = MAX(0.D0,2.D0 * q(solid_idx,j,k)) 
-
-                ! Correct the slope of the reconstruction if alpha>1 at SW corner 
-             END IF
-
-          END DO
-
-          ! ----------- CORRECTION TO SUM(qp(solid_idx)) ------------------------
-
-          IF ( SUM(qp_cellNW(5:4+n_solid,j,k)) .GT. 1.D0 ) THEN
-             
-             qp_cellNW(5:4+n_solid,j,k) = qp_cellNW(5:4+n_solid,j,k) /          &
-                  SUM( qp_cellNW(5:4+n_solid,j,k) ) 
-             
-             qp_cellSE(5:4+n_solid,j,k) = 2.D0 * qp(5:4+n_solid,j,k)            &
-                  - qp_cellNW(5:4+n_solid,j,k)
-             
-          ENDIF
-          
-          IF ( SUM(qp_cellSE(5:4+n_solid,j,k)) .GT. 1.D0 ) THEN
-             
-             qp_cellSE(5:4+n_solid,j,k) = qp_cellSE(5:4+n_solid,j,k) /          &
-                  SUM( qp_cellSE(5:4+n_solid,j,k) ) 
-             
-             qp_cellNW(5:4+n_solid,j,k) = 2.D0 * qp(5:4+n_solid,j,k)            &
-                  - qp_cellSE(5:4+n_solid,j,k)
-
-          ENDIF
-                       
-          IF ( SUM(qp_cellNE(5:4+n_solid,j,k)) .GT. 1.D0 ) THEN
-
-             qp_cellNE(5:4+n_solid,j,k) = qp_cellNE(5:4+n_solid,j,k) /          &
-                  SUM( qp_cellNE(5:4+n_solid,j,k) ) 
-             
-             qp_cellSW(5:4+n_solid,j,k) = 2.D0 * qp(5:4+n_solid,j,k)            &
-                  - qp_cellNE(5:4+n_solid,j,k)
-
-          ENDIF
-          
-          
-          IF( SUM(qp_cellSW(5:4+n_solid,j,k)) .GT. 1.D0 ) THEN
-    
-             qp_cellSW(5:4+n_solid,j,k) = qp_cellSW(5:4+n_solid,j,k) /          &
-                  SUM( qp_cellSW(5:4+n_solid,j,k) ) 
-             
-             qp_cellNE(5:4+n_solid,j,k) = 2.D0 * qp(5:4+n_solid,j,k)            &
-                  - qp_cellSW(5:4+n_solid,j,k)
-
-          ENDIF
-          
-          DO solid_idx = 5,4+n_solid
-
-             ! Final checks and corrections for negative values at NW corner          
-             IF ( qp_cellNW(solid_idx,j,k) .LT. 0.D0 ) THEN
-
-                IF ( qp_cellNW(solid_idx,j,k) .GT. -1.D-10 ) THEN
-
-                   qp_cellNW(solid_idx,j,k) = 0.D0
-
-                ELSE
-
-                   WRITE(*,*) 'j,k',j,k
-                   WRITE(*,*) 'qp_cellNW(solid_idx,j,k)', qp_cellNW(solid_idx,j,k)
-                   WRITE(*,*) 'qp_cellSE(solid_idx,j,k)', qp_cellSE(solid_idx,j,k)
-                   WRITE(*,*) 'qp(solid_idx,j,k)',qp(solid_idx,j,k)
-                   READ(*,*)
-
-                END IF
-
-             END IF
-
-             ! Final checks and corrections for negative values at NE corner          
-             IF ( qp_cellNE(solid_idx,j,k) .LT. 0.D0 ) THEN
-
-                IF (qp_cellNE(solid_idx,j,k) .GT. -1.D-10 ) THEN
-
-                   qp_cellNE(solid_idx,j,k) = 0.D0
-
-                ELSE
-
-                   WRITE(*,*) 'j,k',j,k
-                   WRITE(*,*) ' qp_cellNE(solid_idx,j,k)', qp_cellNE(solid_idx,j,k)
-                   READ(*,*)
-
-                END IF
-
-             END IF
-
-             ! Final checks and corrections for negative values at SW corner          
-             IF ( qp_cellSW(solid_idx,j,k) .LT. 0.D0 ) THEN
-
-                IF ( qp_cellSW(solid_idx,j,k) .GT. -1.D-10 ) THEN
-
-                   qp_cellSW(solid_idx,j,k) = 0.D0
-
-                ELSE
-
-                   WRITE(*,*) 'j,k',j,k
-                   WRITE(*,*) 'qp_cellSW(solid_idx,j,k)', qp_cellSW(solid_idx,j,k)
-                   WRITE(*,*) qp_interfaceR(solid_idx,j,k)
-                   WRITE(*,*) qp_interfaceL(solid_idx,j+1,k)
-                   WRITE(*,*) qp_interfaceT(solid_idx,j,k)
-                   WRITE(*,*) qp_interfaceB(solid_idx,j,k+1)
-                   WRITE(*,*) qp(solid_idx,j,k)
-                   READ(*,*)
-
-                END IF
-
-             END IF
-
-             ! Final checks and corrections for negative values at SE corner          
-             IF ( qp_cellSE(solid_idx,j,k) .LT. 0.D0 ) THEN
-
-                IF ( qp_cellSE(solid_idx,j,k) .GT. -1.D-10 ) THEN
-
-                   qp_cellSE(solid_idx,j,k) = 0.D0
-
-                ELSE
-
-                   WRITE(*,*) 'j,k',j,k
-                   WRITE(*,*) 'qp_cellSE(solid_idx,j,k)',qp_cellSE(solid_idx,j,k)
-                   READ(*,*)
-
-                END IF
-
-             END IF
-
-          END DO
-
-       END DO
-
-    END DO
-
-
-    ! Initialization of erosion and deposition at vertices of the cells
-    vertex_erosion_terms(1:comp_interfaces_x,1:comp_interfaces_y,1:n_solid) =   &
-         0.D0
-    vertex_deposition_terms(1:comp_interfaces_x,1:comp_interfaces_y,1:n_solid) =&
-         0.D0
-
-    ! ---------------------------------------------------------------------------
-    ! Compute the erosion and deposition terms at the south-boundary vertexes
-    ! of the domain (k=1)
-    
-    k = 1
-    j = 1
-
-    CALL eval_erosion_dep_term( qp_cellSW(:,j,k) , B_SW(j,k) , dt ,             &
-         erosion_termRT(1:n_solid) , deposition_termRT(1:n_solid) )
-    
-    deposition_termRT(1:n_solid) = MAX(0.D0,MIN( deposition_termRT(1:n_solid) , &
-         q_cellSW(5:4+n_solid,j,k) / ( rho_s(1:n_solid) * dt ) ))
-    
-    vertex_erosion_terms(j,k,1:n_solid) = erosion_termRT(1:n_solid)
-    
-    vertex_deposition_terms(j,k,1:n_solid) = deposition_termRT(1:n_solid)
-    
-    south_loop:DO j = 2,comp_interfaces_x-1
-
-       ! ------- Erosion and deposition at the SW side of vertex ----------------
-       CALL eval_erosion_dep_term( qp_cellSW(:,j,k) , B_SW(j,k) , dt ,          &
-            erosion_termRT(1:n_solid) , deposition_termRT(1:n_solid) )
-       
-       deposition_termRT(1:n_solid) = MAX(0.D0,MIN(deposition_termRT(1:n_solid),&
-            q_cellSW(5:4+n_solid,j,k) / ( rho_s(1:n_solid) * dt ) ))
-
-       ! ------- Erosion and deposition at the SE side of vertex ----------------
-       CALL eval_erosion_dep_term( qp_cellSE(:,j-1,k), B_SE(j-1,k) , dt ,       &
-            erosion_termLT(1:n_solid) , deposition_termLT(1:n_solid) )
-!!$
-!!$       IF ( ( j .EQ. 36 ) .AND. ( k.EQ. 47 ) ) THEN
-!!$
-!!$          WRITE(*,*) 'j,k',j,k
-!!$          WRITE(*,*) deposition_termLT(1:n_solid)
-!!$          WRITE(*,*) 'q_cellSE',q_cellSE(:,j-1,k)
-!!$          WRITE(*,*) 'q_cellNE',q_cellNE(:,j-1,k)
-!!$          WRITE(*,*) 'q',q(:,j-1,k)
-!!$          WRITE(*,*) 'q_interfaceL(:,j,k)',q_interfaceL(:,j,k)
-!!$          WRITE(*,*) 'q_interfaceR(:,j-1,k)',q_interfaceR(:,j-1,k)
-!!$          WRITE(*,*) 'q_interfaceB(:,j-1,k+1)',q_interfaceB(:,j-1,k+1)
-!!$          WRITE(*,*) 'q_interfaceT(:,j-1,k)',q_interfaceT(:,j-1,k)
-!!$          
-!!$       END IF
-
-       
-       deposition_termLT(1:n_solid) = MAX(0.D0,MIN(deposition_termLT(1:n_solid),&
-            q_cellSE(5:4+n_solid,j-1,k) / ( rho_s(1:n_solid) * dt ) ))
-       
-       ! ------------------- Erosion at the vertex (j,k) ------------------------
-       vertex_erosion_terms(j,k,1:n_solid) = MIN( erosion_termRT(1:n_solid) ,   &
-            erosion_termLT(1:n_solid) ) 
-       
-       ! ----------------- Deposition at the vertex (j,k) -----------------------
-       vertex_deposition_terms(j,k,1:n_solid)=MIN( deposition_termRT(1:n_solid),&
-            deposition_termLT(1:n_solid) ) 
-
-!!$       IF ( j .EQ. 2 ) THEN
-!!$
-!!$          WRITE(*,*) 'j,k',j,k
-!!$          WRITE(*,*) vertex_deposition_terms(j,k,1:n_solid)
-!!$          WRITE(*,*) deposition_termRT(1:n_solid)
-!!$          WRITE(*,*) deposition_termLT(1:n_solid)
-!!$          
-!!$       END IF
-       
-       
-    END DO south_loop
-    
-    j = comp_interfaces_x
-
-    ! ------- Erosion and deposition at the SE side of vertex -------------------
-    CALL eval_erosion_dep_term( qp_cellSE(:,j-1,k) , B_SE(j-1,k) , dt ,         &
-         erosion_termLT(1:n_solid) , deposition_termLT(1:n_solid) )
-
-    deposition_termLT(1:n_solid) = MAX(0.D0,MIN( deposition_termLT(1:n_solid) , &
-         q_cellSE(5:4+n_solid,j-1,k) / ( rho_s(1:n_solid) * dt ) ))
-    
-    vertex_erosion_terms(j,k,1:n_solid) = erosion_termLT(1:n_solid)
-    
-    vertex_deposition_terms(j,k,1:n_solid) = deposition_termLT(1:n_solid)
-    
-    ! End loop for erosion and deposition terms at the south-boundary vertexes
-    ! of the domain (k=1)
-    ! ---------------------------------------------------------------------------
-
-
-    ! ---------------------------------------------------------------------------
-    ! Compute the erosion and deposition terms at the west-boundary vertexes
-    ! of the domain, corners excluded (j=1, k=2,comp_interfaces_y-1)
-
-    j = 1
-    
-    west_loop:DO k = 2,comp_interfaces_y-1
-       
-       ! ------- Erosion and deposition at the SW side of vertex ----------------
-       CALL eval_erosion_dep_term( qp_cellSW(:,j,k), B_SW(j,k) , dt ,           &
-            erosion_termRT(1:n_solid) , deposition_termRT(1:n_solid) )
-       
-       deposition_termRT(1:n_solid) = MAX(0.D0,MIN(deposition_termRT(1:n_solid),&
-            q_cellSW(5:4+n_solid,j,k) / ( rho_s(1:n_solid) * dt ) ))
-       
-       ! ------- Erosion and deposition at the NW side of vertex ----------------
-       CALL eval_erosion_dep_term( qp_cellNW(:,j,k-1), B_NW(j,k-1) , dt ,       &
-            erosion_termRB(1:n_solid) , deposition_termRB(1:n_solid) )
-       
-       deposition_termRB(1:n_solid) = MAX(0.D0,MIN(deposition_termRB(1:n_solid),&
-            q_cellNW(5:4+n_solid,j,k-1) / ( rho_s(1:n_solid) * dt ) ))
-       
-       ! ------------------- Erosion at the (j,k) vertex ------------------------
-       vertex_erosion_terms(j,k,1:n_solid) = MIN( erosion_termRT(1:n_solid) ,   &
-            erosion_termRB(1:n_solid) ) 
-                    
-       ! ----------------- Deposition at the (j,k) vertex -----------------------
-       vertex_deposition_terms(j,k,1:n_solid)= MIN(deposition_termRT(1:n_solid),&
-            deposition_termRB(1:n_solid) )
-              
-    END DO west_loop
-
-    ! End loop for erosion and deposition terms at the west-boundary vertexes
-    ! of the domain, corners excluded (j=1, k=2,comp_interfaces_y-1)
-    ! ---------------------------------------------------------------------------
-
-    ! ---------------------------------------------------------------------------
-    ! Compute the erosion and deposition terms at the east-boundary vertexes of
-    ! the domain, corners excluded (j=comp_interfaces_x, k=2,comp_interfaces_y-1)
-
-    j = comp_interfaces_x
-
-    east_loop:DO k = 2,comp_interfaces_y-1
-
-       ! ------- Erosion and deposition at the NE side of vertex ----------------
-       CALL eval_erosion_dep_term( qp_cellNE(:,j-1,k-1) , B_NE(j-1,k-1) , dt ,  &
-            erosion_termLB(1:n_solid) , deposition_termLB(1:n_solid) )
-
-       deposition_termLB(1:n_solid) = MAX(0.D0,MIN(deposition_termLB(1:n_solid),&
-            q_cellNE(5:4+n_solid,j-1,k-1) / ( rho_s(1:n_solid) * dt ) ))
-       
-       ! ------- Erosion and deposition at the SE side of vertex ----------------
-       CALL eval_erosion_dep_term( qp_cellSE(:,j-1,k), B_SE(j-1,k) , dt ,       &
-            erosion_termLT(1:n_solid) , deposition_termLT(1:n_solid) )
-
-       deposition_termLT(1:n_solid) = MAX(0.D0,MIN(deposition_termLT(1:n_solid),&
-            q_cellSE(5:4+n_solid,j-1,k) / ( rho_s(1:n_solid) * dt ) ))
-      
-       ! ------------------- Erosion at the (j,k) vertex ------------------------
-       vertex_erosion_terms(j,k,1:n_solid) = MIN( erosion_termLT(1:n_solid) ,   &
-            erosion_termLB(1:n_solid) ) 
-              
-       ! ----------------- Deposition at the (j,k) vertex -----------------------
-       vertex_deposition_terms(j,k,1:n_solid)=MIN( deposition_termLT(1:n_solid),&
-            deposition_termLB(1:n_solid)) 
-                     
-    END DO east_loop
-   
-
- 
-    ! End loop for erosion and deposition terms at the east-boundary vertexes of
-    ! the domain, corners excluded (j=comp_interfaces_x, k=2,comp_interfaces_y-1)
-    ! ---------------------------------------------------------------------------
-
-
-    ! ---------------------------------------------------------------------------
-    ! Compute the erosion and deposition terms at the north-boundary vertexes
-    ! of the domain (k=comp_interfaces_y , j = 1,comp_interfaces_x)
-    
-
-    ! End loop for erosion and deposition terms at the north-boundary vertexes
-    ! of the domain (k=comp_interfaces_y , j = 1,comp_interfaces_x)
-    ! ---------------------------------------------------------------------------
-
-    k = comp_interfaces_y
-    j = 1
-    
-    ! ------- Erosion and deposition at the NW side of vertex -------------------
-    CALL eval_erosion_dep_term( qp_cellNW(:,j,k-1) , B_NW(j,k-1) , dt ,         &
-         erosion_termRB(1:n_solid) , &
-         deposition_termRB(1:n_solid) )
-    
-    deposition_termRB(1:n_solid) = MAX(0.D0,MIN(deposition_termRB(1:n_solid),   &
-            q_cellNW(5:4+n_solid,j,k-1) / ( rho_s(1:n_solid) * dt ) ))
-
-    
-    vertex_erosion_terms(j,k,1:n_solid) = erosion_termRB(1:n_solid)
-    vertex_deposition_terms(j,k,1:n_solid) = deposition_termRB(1:n_solid)
-
-    DO j = 2,comp_interfaces_x-1
-       
-       ! ------- Erosion and deposition at the NW side of vertex ----------------
-       CALL eval_erosion_dep_term( qp_cellNW(:,j,k-1), B_NW(j,k-1) , dt ,       &
-            erosion_termRB(1:n_solid) , deposition_termRB(1:n_solid) )
-
-       deposition_termRB(1:n_solid) = MAX(0.D0,MIN(deposition_termRB(1:n_solid),&
-            q_cellNW(5:4+n_solid,j,k-1) / ( rho_s(1:n_solid) * dt ) ))
-
-       ! ------- Erosion and deposition at the NE side of vertex ----------------
-       CALL eval_erosion_dep_term( qp_cellNE(:,j-1,k-1) , B_NE(j-1,k-1) , dt ,  &
-            erosion_termLB(1:n_solid) , deposition_termLB(1:n_solid) )
-       
-       deposition_termLB(1:n_solid) = MAX(0.D0,MIN(deposition_termLB(1:n_solid),&
-            q_cellNE(5:4+n_solid,j-1,k-1) / ( rho_s(1:n_solid) * dt ) ))
-
-       ! ------------------- Erosion at the (j,k) vertex ------------------------
-       vertex_erosion_terms(j,k,1:n_solid) = MIN( erosion_termRB(1:n_solid) ,   &
-            erosion_termLB(1:n_solid) ) 
-       
-       ! ----------------- Deposition at the (j,k) vertex -----------------------
-       vertex_deposition_terms(j,k,1:n_solid)=MIN( deposition_termRB(1:n_solid),&
-            deposition_termLB(1:n_solid) ) 
-              
-    END DO
-
-    j = comp_interfaces_x
-
-    ! ------- Erosion and deposition at the NE side of vertex -------------------
-    CALL eval_erosion_dep_term( qp_cellNE(:,j-1,k-1), B_NE(j-1,k-1) , dt ,      &
-         erosion_termLB(1:n_solid) , deposition_termLB(1:n_solid) )
-    
-    deposition_termLB(1:n_solid) = MAX(0.D0,MIN( deposition_termLB(1:n_solid) , &
-            q_cellNE(5:4+n_solid,j-1,k-1) / ( rho_s(1:n_solid) * dt ) ))
-
-    vertex_erosion_terms(j,k,1:n_solid) = erosion_termLB(1:n_solid)
-    vertex_deposition_terms(j,k,1:n_solid) = deposition_termLB(1:n_solid)
-   
-    ! ---------------------------------------------------------------------------
-    ! Compute the erosion and deposition terms at all internal vertexes
-    ! of the domain (j=2,comp_interfaces_x-1, k=2,comp_interfaces_y-1)
-    
-    internal_vertexes_y:DO k = 2,comp_interfaces_y-1
-
-       internal_vertexes_x:DO j = 2,comp_interfaces_x-1
-
-          ! ------- Erosion and deposition at the SW side of vertex -------------
-          CALL eval_erosion_dep_term(qp_cellSW(:,j,k), B_SW(j,k) , dt ,         &
-               erosion_termRT(1:n_solid) , deposition_termRT(1:n_solid) )
-
-          deposition_termRT(1:n_solid) = MAX( 0.D0 ,                            &
-               MIN( deposition_termRT(1:n_solid) ,                              &
-               q_cellSW(5:4+n_solid,j,k) / ( rho_s(1:n_solid) * dt ) ) )
-          
-          ! ------- Erosion and deposition at the SE side of vertex -------------
-          CALL eval_erosion_dep_term( qp_cellSE(:,j-1,k) , B_SE(j-1,k) , dt ,   &
-               erosion_termLT(1:n_solid) , deposition_termLT(1:n_solid) )
-
-          deposition_termLT(1:n_solid) = MAX( 0.D0 ,                            &
-               MIN( deposition_termLT(1:n_solid) ,                              &
-               q_cellSE(5:4+n_solid,j-1,k) / ( rho_s(1:n_solid) * dt ) ) )
-          
-          ! ------- Erosion and deposition at the NW side of vertex -------------
-          CALL eval_erosion_dep_term( qp_cellNW(:,j,k-1) , B_NW(j,k-1) , dt ,   &
-               erosion_termRB(1:n_solid) , deposition_termRB(1:n_solid) )
-
-          deposition_termRB(1:n_solid) = MAX( 0.D0 ,                            &
-               MIN( deposition_termRB(1:n_solid) ,                              &
-               q_cellNW(5:4+n_solid,j,k-1) / ( rho_s(1:n_solid) * dt ) ) )
-          
-          ! ------- Erosion and deposition at the NE side of vertex -------------
-          CALL eval_erosion_dep_term( qp_cellNE(:,j-1,k-1) , B_NE(j-1,k-1) , dt,&
-               erosion_termLB(1:n_solid) , deposition_termLB(1:n_solid) )
-
-          deposition_termLB(1:n_solid) = MAX( 0.D0 ,                            &
-               MIN( deposition_termLB(1:n_solid) ,                              &
-               q_cellNE(5:4+n_solid,j-1,k-1) / ( rho_s(1:n_solid) * dt ) ) )
-
-          ! ------------------- Erosion at the (j,k) vertex --------------------- 
-          vertex_erosion_terms(j,k,1:n_solid) = MIN( erosion_termRT(1:n_solid) ,&
-               erosion_termLT(1:n_solid) , erosion_termRB(1:n_solid) ,          &
-               erosion_termLB(1:n_solid) ) 
-
-          ! ----------------- Deposition at the (j,k) vertex --------------------
-          vertex_deposition_terms(j,k,1:n_solid) =                              &
-               MIN( deposition_termRT(1:n_solid), deposition_termLT(1:n_solid) ,&
-               deposition_termRB(1:n_solid) , deposition_termLB(1:n_solid) ) 
-
-
-       IF ( vertex_deposition_terms(j,k,1) .LT. 0.D0 ) THEN
-
-          WRITE(*,*) 'j,k',j,k
-
-          WRITE(*,*) 'deposition_termRT'
-          WRITE(*,*) deposition_termRT
-          WRITE(*,*) 'qp_cellSW(:,j,k)'
-          WRITE(*,*) qp_cellSW(:,j,k)
-          WRITE(*,*) q_cellSW(5:4+n_solid,j,k) / ( rho_s(1:n_solid) * dt )
-          READ(*,*)
-
-       END IF
-
-
-       END DO internal_vertexes_x
-
-    END DO internal_vertexes_y
-
-
-
-    ! ---------------------------------------------------------------------------
-    ! End loop for erosion and deposition terms at all internal vertexes
-    ! of the domain (j=2,comp_interfaces_x-1, k=2,comp_interfaces_y-1)
-
-
-    IF ( topo_change_flag ) THEN
-    
-       ! --------------- Update topography at the all vertexes ------------------
-       vertexes_y:DO k = 1,comp_interfaces_y
-          
-          vertexes_x:DO j = 1,comp_interfaces_x
-             
-             B_ver(j,k) = B_ver(j,k) + dt *                                     &
-                  ( SUM( - vertex_erosion_terms(j,k,1:n_solid) +                &
-                  vertex_deposition_terms(j,k,1:n_solid) ) )
-             
-          END DO vertexes_x
-          
-       END DO vertexes_y
-       
-    END IF
-
-    ! ------------ Compute erosion and deposition at the cell faces -------------
-    DO k = 1,comp_interfaces_y
-
-       DO j = 1,comp_cells_x
-
-          avg_erosion_term(1:n_solid) = 0.5D0 *                                 &
-               ( vertex_erosion_terms(j,k,1:n_solid)                            &
-               + vertex_erosion_terms(j+1,k,1:n_solid) )
-
-          avg_deposition_term(1:n_solid) = 0.5D0 *                              &
-               ( vertex_deposition_terms(j,k,1:n_solid)                         &
-               + vertex_deposition_terms(j+1,k,1:n_solid) )
-
-          IF ( topo_change_flag ) THEN
-
-             B_stag_y(j,k) = B_stag_y(j,k) + dt * ( SUM( avg_deposition_term -  &
-                  avg_erosion_term ) )
-
-          END IF
-          
-       END DO
-
-    END DO
-
-    DO k = 1,comp_cells_y
-
-       DO j = 1,comp_interfaces_x
-
-          avg_erosion_term(1:n_solid) = 0.5D0 *                                 &
-               ( vertex_erosion_terms(j,k,1:n_solid)                            &
-               + vertex_erosion_terms(j,k+1,1:n_solid) )
-
-          avg_deposition_term(1:n_solid) = 0.5D0 *                              &
-               ( vertex_deposition_terms(j,k,1:n_solid)                         &
-               + vertex_deposition_terms(j,k+1,1:n_solid) )
-
-          IF ( topo_change_flag ) THEN
-
-             B_stag_x(j,k) = B_stag_x(j,k) + dt * ( SUM(avg_deposition_term -   &
-                  avg_erosion_term) )  
-
-          END IF
-          
-       END DO
-
-    END DO
-
-    ! ------ Update the topography slopes in the x and y directions -------------
-    DO k = 1,comp_cells_y
-
-       DO j = 1,comp_cells_x
-          
-          B_prime_x(j,k) = ( B_stag_x(j+1,k) - B_stag_x(j,k) ) /                &
-               (  x_stag(j+1) - x_stag(j) )
-
-          B_prime_y(j,k) = ( B_stag_y(j,k+1) - B_stag_y(j,k) ) /                &
-               (  y_stag(k+1) - y_stag(k) )
-
-          IF ( B_prime_y(j,k) .NE. 0.D0 ) THEN
-
-             IF ( DABS( B_prime_y(j,k) ) .LT. 1.D-10 ) THEN
-
-                B_prime_y(j,k) = 0.D0
-
-             END IF
-
-          END IF
-
-          IF ( B_prime_x(j,k) .NE. 0.D0 ) THEN
-
-             IF ( DABS( B_prime_x(j,k) ) .LT. 1.D-10 ) THEN
-
-                B_prime_x(j,k) = 0.D0
-
-             END IF
-
-          END IF
-
-          IF ( B_prime_y(j,k) .NE. 0.D0 ) THEN
-
-             WRITE(*,*) 'B_prime',j,k, B_prime_y(j,k)
-             WRITE(*,*) B_stag_y(j,k+1) , B_stag_y(j,k)
-             WRITE(*,*) 'B_ver(j,k) - B_ver(j,k+1)',B_ver(j,k) - B_ver(j,k+1)
-             WRITE(*,*) 'B_ver(j+1,k) - B_ver(j+1,k+1)',B_ver(j+1,k) - B_ver(j+1,k+1)
-             READ(*,*) 
-
-          END IF
-
-       END DO
-
-    END DO
-    
-    ! For each cell, the erosion and deposition term is obtained with an 
-    ! average of the values computed at the four vertexes of the cell
-    DO k = 1,comp_cells_y
-    
-       DO j = 1,comp_cells_x
-
-          avg_erosion_term(1:n_solid) = 0.25D0 *                                &
-               ( vertex_erosion_terms(j,k,1:n_solid)                            &
-               + vertex_erosion_terms(j+1,k,1:n_solid)                          &
-               + vertex_erosion_terms(j,k+1,1:n_solid)                          &
-               + vertex_erosion_terms(j+1,k+1,1:n_solid) )
-          
-          avg_deposition_term(1:n_solid) = 0.25D0 *                             &
-               ( vertex_deposition_terms(j,k,1:n_solid)                         &
-               + vertex_deposition_terms(j+1,k,1:n_solid)                       &
-               + vertex_deposition_terms(j,k+1,1:n_solid)                       &
-               + vertex_deposition_terms(j+1,k+1,1:n_solid) )
-
-          IF ( avg_deposition_term(1) .LT. 0.D0 ) THEN
-          
-             WRITE(*,*) 'j,k',j,k
-             WRITE(*,*) 'qp',qp(1:n_vars,j,k)
-             WRITE(*,*) avg_deposition_term
-             WRITE(*,*) vertex_deposition_terms(j,k,1:n_solid)                        
-             WRITE(*,*)  vertex_deposition_terms(j+1,k,1:n_solid)                       
-             WRITE(*,*)  vertex_deposition_terms(j,k+1,1:n_solid)                       
-             WRITE(*,*)  vertex_deposition_terms(j+1,k+1,1:n_solid)
-             READ(*,*)
-          
-          END IF
-
-          ! Compute the source terms for the equations
-          CALL eval_topo_term( q(1:n_vars,j,k) , avg_deposition_term ,          &
-               avg_erosion_term , eqns_term , topo_term )
-
-          IF ( verbose_level .GE. 2 ) THEN
-
-             WRITE(*,*) 'before update erosion/deposition: j,k,q(:,j,k),B(j,k)',&
-                  j,k,q(:,j,k),B_cent(j,k)
-
-          END IF
-
-          ! Update the topography with erosion/deposition terms
-          IF ( topo_change_flag ) THEN
-
-             B_cent(j,k) = B_cent(j,k) + dt * topo_term 
-
-
-             ! First check for bi-linearity of recontructed B
-             IF ( DABS(B_cent(j,k) - 0.5 * ( B_stag_x(j,k) + B_stag_x(j+1,k) ) )&
-                  .GT. 1.D-5) THEN
-
-                WRITE(*,*) 'after update erosion/deposition'
-                WRITE(*,*) 'j,k',j,k
-                WRITE(*,*) 'B val x'
-                WRITE(*,*) B_cent(j,k) ,0.5*(B_stag_x(j,k) + B_stag_x(j+1,k)) , &
-                     B_stag_x(j,k) , B_stag_x(j+1,k)
-                READ(*,*)
-
-             END IF
-
-             ! Second check for bi-linearity of recontructed B
-             IF ( DABS(B_cent(j,k) - 0.5 * ( B_stag_y(j,k) + B_stag_y(j,k+1) ) )&
-                  .GT. 1.D-5) THEN
-
-                WRITE(*,*) 'after update erosion/deposition'
-                WRITE(*,*) 'j,k',j,k
-                WRITE(*,*) 'B val y'
-                WRITE(*,*) B_cent(j,k) ,0.5*(B_stag_y(j,k) + B_stag_y(j,k+1)) ,    &
-                     B_stag_y(j,k) , B_stag_y(j,k+1)
-                READ(*,*)
-
-             END IF
-
-             ! Third check for bi-linearity of recontructed B
-             B_avg = 0.25D0 * ( B_stag_x(j,k) + B_stag_x(j+1,k ) + B_stag_y(j,k)   &
-                  + B_stag_y(j,k+1 ) )
-
-             IF ( DABS(B_cent(j,k)-B_avg) .GT. 1.D-5 ) THEN
-
-                WRITE(*,*) 'j,k',j,k
-                WRITE(*,*) 'B_cent(j,k),B_avg1',B_cent(j,k),B_avg
-                WRITE(*,*)  
-                READ(*,*)
-
-             END IF
-
-             ! Forth check for bi-linearity of recontructed B
-             B_avg = 0.25D0 * ( B_ver(j,k) + B_ver(j+1,k ) + B_ver(j,k+1)          &
-                  + B_ver(j+1,k+1) )
-
-             IF ( DABS(B_cent(j,k)-B_avg) .GT. 1.D-5 ) THEN
-
-                WRITE(*,*) 'j,k',j,k
-                WRITE(*,*) 'B_cent(j,k),B_avg2',B_cent(j,k),B_avg
-                WRITE(*,*)  
-                READ(*,*)
-
-             END IF
-
-          END IF
-
-             
-          ! Update the solution with erosion/deposition terms
-          q(1:n_eqns,j,k) = q(1:n_eqns,j,k) + dt * eqns_term(1:n_eqns)
-
-!!$          IF ( eqns_term(1) .GT. 1.D-4 ) THEN
-!!$
-!!$             WRITE(*,*) 'j,k',j,k
-!!$             WRITE(*,*) 'q(1:n_eqns,j,k)',q(1:n_eqns,j,k)
-!!$             WRITE(*,*) 'eqns_term',eqns_term
-!!$
-!!$             WRITE(*,*) 'qp',qp(1:n_vars,j,k)
-!!$             WRITE(*,*) avg_deposition_term
-!!$             WRITE(*,*) vertex_deposition_terms(j,k,1:n_solid)                        
-!!$             WRITE(*,*)  vertex_deposition_terms(j+1,k,1:n_solid)                       
-!!$             WRITE(*,*)  vertex_deposition_terms(j,k+1,1:n_solid)                       
-!!$             WRITE(*,*)  vertex_deposition_terms(j+1,k+1,1:n_solid)
-!!$             READ(*,*)
-!!$          
-!!$
-!!$             READ(*,*)
-!!$
-!!$          END IF
-          
-          !q(5:4+n_solid,j,k) = MIN( q(5:4+n_solid,j,k) , q(5:4+n_solid,j,k) /   &
-          !     SUM(q(5:4+n_solid,j,k)) * q(1,j,k) )
-          
-          
-          
-          
-          ! Check for negative thickness
-          IF ( q(1,j,k) .LT. 0.D0 ) THEN
-
-             IF ( q(1,j,k) .GT. -1.D-10 ) THEN
-
-                q(1:n_vars,j,k) = 0.D0
-
-             ELSE
-
-                WRITE(*,*) 'j,k',j,k
-                WRITE(*,*) 'dt',dt
-                WRITE(*,*) 'before erosion'
-                WRITE(*,*) 'qp',qp(1:n_eqns,j,k)
-                WRITE(*,*) 'qc',q(1:n_eqns,j,k) - dt * eqns_term(1:n_eqns)
-                WRITE(*,*) 'B_cent',B_cent(j,k) - dt * topo_term
-
-                WRITE(*,*) 'qp_cellSW',qp_cellSW(1:n_vars,j,k)
-                WRITE(*,*) 'B_SW',B_SW(j,k)
-
-                WRITE(*,*) 'qp_cellSE',qp_cellSE(1:n_vars,j,k)
-                WRITE(*,*) 'B_SE',B_SE(j,k)
-
-                WRITE(*,*) 'qp_cellNW',qp_cellNW(1:n_vars,j,k)
-                WRITE(*,*) 'B_NW',B_NW(j,k)
-
-                WRITE(*,*) 'qp_cellNE',qp_cellNE(1:n_vars,j,k)
-                WRITE(*,*) 'B_NE',B_NE(j,k)
-
-                WRITE(*,*) qp_interfaceR(5,j,k)
-                WRITE(*,*) qp_interfaceL(5,j+1,k)
-                WRITE(*,*) qp_interfaceT(5,j,k)
-                WRITE(*,*) qp_interfaceB(5,j,k+1)
-
-                WRITE(*,*) 'after update erosion/deposition'
-                WRITE(*,*) vertex_erosion_terms(j,k,1:n_solid) ,                   &
-                     vertex_erosion_terms(j+1,k,1:n_solid) ,                       &
-                     vertex_erosion_terms(j,k+1,1:n_solid) ,                       &
-                     vertex_erosion_terms(j+1,k+1,1:n_solid)
-
-                WRITE(*,*) 'deposition at vertexes',                               &
-                     vertex_deposition_terms(j,k,1:n_solid) ,                      &
-                     vertex_deposition_terms(j+1,k,1:n_solid) ,                    &
-                     vertex_deposition_terms(j,k+1,1:n_solid) ,                    &
-                     vertex_deposition_terms(j+1,k+1,1:n_solid)
-
-                WRITE(*,*) 
-
-                WRITE(*,*) 'avg_deposition_term',avg_deposition_term
-                WRITE(*,*) 'avg_erosion_term',avg_erosion_term
-                WRITE(*,*) 'qc',q(1:n_vars,j,k)
-                CALL qc_to_qp(q(1:n_vars,j,k) , B_cent(j,k) , qp(1:n_vars,j,k) )
-                WRITE(*,*) 'qp',qp(1:n_eqns,j,k)
-
-                READ(*,*)
-
-             END IF
-
-          END IF
-
-          CALL qc_to_qp(q(1:n_vars,j,k) , B_cent(j,k) , qp(1:n_vars,j,k) )
-
-          IF ( REAL(red_grav) .LT. 0.D0 ) THEN
-
-             q(1:n_vars,j,k) = 0.D0
-
-          END IF
-
-          
-          IF ( verbose_level .GE. 2 ) THEN
-
-             WRITE(*,*) 'avg_deposition_term , avg_erosion_term',               &
-                  avg_deposition_term , avg_erosion_term
-
-             WRITE(*,*) 'after update erosion/deposition: j,k,q(:,j,k),B(j,k)', &
-                  j,k,q(:,j,k),B_cent(j,k)
-
-             READ(*,*)
-
-          END IF
-
-       END DO
-
-    END DO
-
-    !WRITE(*,*) 'qp(:,1,1)',qp(:,1,1)
-    !WRITE(*,*) 'B_prime_y(1,1)',B_prime_y(1,1)
-    !READ(*,*)
-    
-    RETURN
-
-  END SUBROUTINE update_erosion_deposition_ver
-
-
   !******************************************************************************
   !> \brief Evaluate the averaged explicit terms 
   !
@@ -2967,14 +1877,14 @@ CONTAINS
 
   SUBROUTINE update_erosion_deposition_cell(dt)
 
+    USE constitutive_2d, ONLY : erosion_coeff , settling_vel , rho_s , red_grav
+
     USE constitutive_2d, ONLY : eval_erosion_dep_term
     USE constitutive_2d, ONLY : eval_topo_term
 
     USE constitutive_2d, ONLY : qc_to_qp
+    USE parameters_2d, ONLY : topo_change_flag
 
-    
-    USE constitutive_2d, ONLY : erosion_coeff , settling_vel , rho_s , red_grav
-    
     IMPLICIT NONE
 
     REAL*8, INTENT(IN) :: dt
@@ -3021,6 +1931,14 @@ CONTAINS
              
           ! Update the solution with erosion/deposition terms
           q(1:n_eqns,j,k) = q(1:n_eqns,j,k) + dt * eqns_term(1:n_eqns)
+
+          ! Update the topography with erosion/deposition terms
+          IF ( topo_change_flag ) THEN
+
+             B_cent(j,k) = B_cent(j,k) + dt * topo_term 
+
+          END IF
+
 
           ! Check for negative thickness
           IF ( q(1,j,k) .LT. 0.D0 ) THEN
@@ -3076,10 +1994,6 @@ CONTAINS
        END DO
 
     END DO
-
-    !WRITE(*,*) 'qp(:,1,1)',qp(:,1,1)
-    !WRITE(*,*) 'B_prime_y(1,1)',B_prime_y(1,1)
-    !READ(*,*)
     
     RETURN
 
@@ -3257,7 +2171,7 @@ CONTAINS
   SUBROUTINE eval_flux_UP
 
     ! External procedures
-    USE constitutive_2d, ONLY : eval_fluxes2
+    USE constitutive_2d, ONLY : eval_fluxes
 
     IMPLICIT NONE
 
@@ -3266,9 +2180,7 @@ CONTAINS
     REAL*8 :: fluxB(n_eqns)           !< Numerical fluxes from the eqns 
     REAL*8 :: fluxT(n_eqns)           !< Numerical fluxes from the eqns
 
-    REAL*8 :: flux_avg_y(n_eqns)   
-
-    INTEGER :: i,j,k                  !< Loop counters
+    INTEGER :: j,k                  !< Loop counters
 
     H_interface_x = 0.D0
     H_interface_y = 0.D0
@@ -3279,12 +2191,12 @@ CONTAINS
        
           DO j = 1,comp_interfaces_x
              
-             CALL eval_fluxes2( q_interfaceL(1:n_vars,j,k) ,                    &
-                  qp_interfaceL(1:n_vars,j,k) , B_stag_x(j,k) , 1 , fluxL)
+             CALL eval_fluxes( q_interfaceL(1:n_vars,j,k) ,                    &
+                  qp_interfaceL(1:n_vars,j,k) , B_interfaceL(j,k) , 1 , fluxL)
 
+             CALL eval_fluxes( q_interfaceR(1:n_vars,j,k) ,                    &
+                  qp_interfaceR(1:n_vars,j,k) , B_interfaceR(j,k) , 1 , fluxR)
 
-             CALL eval_fluxes2( q_interfaceR(1:n_vars,j,k) ,                    &
-                  qp_interfaceR(1:n_vars,j,k) , B_stag_x(j,k) , 1 , fluxR)
 
              IF ( ( q_interfaceL(2,j,k) .GT. 0.D0 ) .AND.                       &
                   ( q_interfaceR(2,j,k) .GE. 0.D0 ) ) THEN
@@ -3324,38 +2236,28 @@ CONTAINS
           
           DO j = 1,comp_cells_x
 
-             !CALL eval_fluxes( r_qj = q_interfaceB(1:n_vars,j,k) ,              &
-             !     r_flux=fluxB , dir=2 )
-
-             !CALL eval_fluxes( r_qj = q_interfaceT(1:n_vars,j,k) ,              &
-             !     r_flux=fluxT , dir=2 )
-
-             CALL eval_fluxes2( q_interfaceB(1:n_vars,j,k) ,                    &
-                  qp_interfaceB(1:n_vars,j,k) , B_stag_y(j,k) , 2 , fluxB)
+             CALL eval_fluxes( q_interfaceB(1:n_vars,j,k) ,                    &
+                  qp_interfaceB(1:n_vars,j,k) , B_interfaceB(j,k) , 2 , fluxB)
              
-             CALL eval_fluxes2( q_interfaceT(1:n_vars,j,k) ,                    &
-                  qp_interfaceT(1:n_vars,j,k) , B_stag_y(j,k) , 2 , fluxT)
-             
-             CALL average_KT( a_interface_yNeg(:,j,k) ,                         &
-                  a_interface_yPos(:,j,k) , fluxB , fluxT , flux_avg_y )
-             
-             DO i=1,n_eqns
+             CALL eval_fluxes( q_interfaceT(1:n_vars,j,k) ,                    &
+                  qp_interfaceT(1:n_vars,j,k) , B_interfaceT(j,k) , 2 , fluxT)
+       
+             IF ( ( q_interfaceB(3,j,k) .GT. 0.D0 ) .AND.                       &
+                  ( q_interfaceT(3,j,k) .GE. 0.D0 ) ) THEN
 
-                IF ( a_interface_yNeg(i,j,k) .EQ. a_interface_yPos(i,j,k) ) THEN
+                H_interface_y(:,j,k) = fluxB
 
-                   H_interface_y(i,j,k) = 0.D0
+             ELSEIF ( ( q_interfaceB(3,j,k) .LE. 0.D0 ) .AND.                   &
+                  ( q_interfaceT(3,j,k) .LT. 0.D0 ) ) THEN
 
-                ELSE
+                H_interface_y(:,j,k) = fluxT
 
-                   H_interface_y(i,j,k) = flux_avg_y(i)                         &
-                        + ( a_interface_yPos(i,j,k) * a_interface_yNeg(i,j,k) ) &
-                        / ( a_interface_yPos(i,j,k) - a_interface_yNeg(i,j,k) ) &
-                        * ( q_interfaceT(i,j,k) - q_interfaceB(i,j,k) )             
+             ELSE
 
-                END IF
+                H_interface_y(:,j,k) = 0.5D0 * ( fluxB + fluxT )
 
-             END DO
-
+             END IF
+      
              ! In the equation for mass and for trasnport (T,alphas) if the 
              ! velocities at the interfaces are null, then the flux is null
              IF ( (  q_interfaceB(3,j,k) .EQ. 0.D0 ) .AND.                      &
@@ -3388,7 +2290,7 @@ CONTAINS
   SUBROUTINE eval_flux_KT
 
     ! External procedures
-    USE constitutive_2d, ONLY : eval_fluxes2
+    USE constitutive_2d, ONLY : eval_fluxes
 
     IMPLICIT NONE
 
@@ -3411,11 +2313,11 @@ CONTAINS
        
           DO j = 1,comp_interfaces_x
 
-             CALL eval_fluxes2( q_interfaceL(1:n_vars,j,k) ,                    &
-                  qp_interfaceL(1:n_vars,j,k) , B_stag_x(j,k) , 1 , fluxL)
+             CALL eval_fluxes( q_interfaceL(1:n_vars,j,k) ,                    &
+                  qp_interfaceL(1:n_vars,j,k) , B_interfaceL(j,k) , 1 , fluxL)
 
-             CALL eval_fluxes2( q_interfaceR(1:n_vars,j,k) ,                    &
-                  qp_interfaceR(1:n_vars,j,k) , B_stag_x(j,k) , 1 , fluxR)
+             CALL eval_fluxes( q_interfaceR(1:n_vars,j,k) ,                    &
+                  qp_interfaceR(1:n_vars,j,k) , B_interfaceR(j,k) , 1 , fluxR)
 
              CALL average_KT( a_interface_xNeg(:,j,k), a_interface_xPos(:,j,k) ,&
                   fluxL , fluxR , flux_avg_x )
@@ -3461,10 +2363,11 @@ CONTAINS
           
           DO j = 1,comp_cells_x
 
-             CALL eval_fluxes2( q_interfaceB(1:n_vars,j,k) ,                    &
-                  qp_interfaceB(1:n_vars,j,k) , B_stag_y(j,k) , 2 , fluxB)             
-             CALL eval_fluxes2( q_interfaceT(1:n_vars,j,k) ,                    &
-                  qp_interfaceT(1:n_vars,j,k) , B_stag_y(j,k) , 2 , fluxT)
+             CALL eval_fluxes( q_interfaceB(1:n_vars,j,k) ,                    &
+                  qp_interfaceB(1:n_vars,j,k) , B_interfaceB(j,k) , 2 , fluxB)    
+         
+             CALL eval_fluxes( q_interfaceT(1:n_vars,j,k) ,                    &
+                  qp_interfaceT(1:n_vars,j,k) , B_interfaceT(j,k) , 2 , fluxT)
 
              CALL average_KT( a_interface_yNeg(:,j,k) ,                         &
                   a_interface_yPos(:,j,k) , fluxB , fluxT , flux_avg_y )
@@ -3720,33 +2623,6 @@ CONTAINS
                 qrecW(i) = qrec(i,j,k) - reconstr_coeff * dx2 * qrec_prime_x
                 qrecE(i) = qrec(i,j,k) + reconstr_coeff * dx2 * qrec_prime_x
 
-                ! positivity preserving reconstruction for h (i=1, 1st variable)
-!!$                IF ( i .EQ. 1 ) THEN
-!!$
-!!$                   IF ( qrecE(i) .LT. B_stag_x(j+1,k) ) THEN
-!!$
-!!$                      ! qrec_prime_x = ( B_stag_x(j+1,k) - qrec(i,j,k) ) / dx2
-!!$                      qrec_prime_x = ( B_stag_x(j+1,k) - B_stag_x(j,k) ) / dx
-!!$
-!!$                      qrecE(i) = qrec(i,j,k) + dx2 * qrec_prime_x
-!!$
-!!$                      qrecW(i) = 2.D0 * qrec(i,j,k) - qrecE(i) 
-!!$
-!!$                   ENDIF
-!!$
-!!$                   IF ( qrecW(i) .LT. B_stag_x(j,k) ) THEN
-!!$
-!!$                      ! qrec_prime_x = ( qrec(i,j,k) - B_stag_x(j,k) ) / dx2
-!!$                      qrec_prime_x = ( B_stag_x(j+1,k) - B_stag_x(j,k) ) / dx
-!!$
-!!$                      qrecW(i) = qrec(i,j,k) - dx2 * qrec_prime_x
-!!$
-!!$                      qrecE(i) = 2.D0 * qrec(i,j,k) - qrecW(i) 
-!!$
-!!$                   ENDIF
-!!$
-!!$                END IF
-
              END IF check_comp_cells_x
 
              ! y-direction
@@ -3815,33 +2691,6 @@ CONTAINS
                 qrecS(i) = qrec(i,j,k) - reconstr_coeff * dy2 * qrec_prime_y
                 qrecN(i) = qrec(i,j,k) + reconstr_coeff * dy2 * qrec_prime_y
 
-                ! positivity preserving reconstruction for h
-!!$                IF ( i .EQ. 1 ) THEN
-!!$
-!!$                   IF ( qrecN(i) .LT. B_stag_y(j,k+1) ) THEN
-!!$
-!!$                      ! qrec_prime_y = ( B_stag_y(j,k+1) - qrec(i,j,k) ) / dy2
-!!$                      qrec_prime_y = ( B_stag_y(j,k+1) - B_stag_y(j,k) ) / dy
-!!$
-!!$                      qrecN(i) = qrec(i,j,k) + dy2 * qrec_prime_y
-!!$
-!!$                      qrecS(i) = 2.D0 * qrec(i,j,k) - qrecN(i) 
-!!$
-!!$                   ENDIF
-!!$
-!!$                   IF ( qrecS(i) .LT. B_stag_y(j,k) ) THEN
-!!$
-!!$                      ! qrec_prime_y = ( qrec(i,j,k) - B_stag_y(j,k) ) / dy2
-!!$                      qrec_prime_y = ( B_stag_y(j,k+1) - B_stag_y(j,k) ) / dy
-!!$
-!!$                      qrecS(i) = qrec(i,j,k) - dy2 * qrec_prime_y
-!!$
-!!$                      qrecN(i) = 2.D0 * qrec(i,j,k) - qrecS(i)
-!!$
-!!$                   ENDIF
-!!$
-!!$                END IF
-
              ENDIF check_comp_cells_y
 
           ENDDO vars_loop
@@ -3894,9 +2743,9 @@ CONTAINS
 
                 END IF
                 
-                CALL qp_to_qc( qrecW,B_stag_x(j,k),q_interfaceR(:,j,k) )
-                CALL qp_to_qc( qrecE,B_stag_x(j+1,k),q_interfaceL(:,j+1,k) )
-                
+                CALL qp_to_qc( qrecW,B_interfaceR(j,k),q_interfaceR(:,j,k) )
+                CALL qp_to_qc( qrecE,B_interfaceL(j+1,k),q_interfaceL(:,j+1,k) )
+ 
                 qp_interfaceR(1:n_vars,j,k) = qrecW(1:n_vars)
                 qp_interfaceL(1:n_vars,j+1,k) = qrecE(1:n_vars)
 
@@ -3981,8 +2830,8 @@ CONTAINS
 
                 END IF
 
-                CALL qp_to_qc( qrecS , B_stag_y(j,k) , q_interfaceT(:,j,k) )
-                CALL qp_to_qc( qrecN , B_stag_y(j,k+1) , q_interfaceB(:,j,k+1) )
+                CALL qp_to_qc( qrecS , B_interfaceT(j,k) , q_interfaceT(:,j,k) )
+                CALL qp_to_qc( qrecN , B_interfaceB(j,k+1) , q_interfaceB(:,j,k+1) )
 
                 qp_interfaceT(:,j,k) = qrecS
                 qp_interfaceB(:,j,k+1) = qrecN
@@ -4095,124 +2944,5 @@ CONTAINS
     END IF
        
   END SUBROUTINE eval_speeds
-
-
-  !******************************************************************************
-  !> \brief Slope limiter
-  !
-  !> This subroutine limits the slope of the linear reconstruction of 
-  !> the physical variables, accordingly to the parameter "solve_limiter":\n
-  !> - 'none'     => no limiter (constant value);
-  !> - 'minmod'   => minmod slope;
-  !> - 'superbee' => superbee limiter (Roe, 1985);
-  !> - 'van_leer' => monotonized central-difference limiter (van Leer, 1977)
-  !> .
-  !> \param[in]     v             3-point stencil value array 
-  !> \param[in]     z             3-point stencil location array 
-  !> \param[in]     limiter       integer defining the limiter choice
-  !> \param[out]    slope_lim     limited slope         
-  !> \date 07/10/2016
-  !> @author 
-  !> Mattia de' Michieli Vitturi
-  !******************************************************************************
-
-  SUBROUTINE limit( v , z , limiter , slope_lim )
-
-    USE parameters_2d, ONLY : theta
-
-    IMPLICIT none
-
-    REAL*8, INTENT(IN) :: v(3)
-    REAL*8, INTENT(IN) :: z(3)
-    INTEGER, INTENT(IN) :: limiter
-
-    REAL*8, INTENT(OUT) :: slope_lim
-
-    REAL*8 :: a , b , c
-
-    REAL*8 :: sigma1 , sigma2
-
-    a = ( v(3) - v(2) ) / ( z(3) - z(2) )
-    b = ( v(2) - v(1) ) / ( z(2) - z(1) )
-    c = ( v(3) - v(1) ) / ( z(3) - z(1) )
-
-    SELECT CASE (limiter)
-
-    CASE ( 0 )
-
-       slope_lim = 0.D0
-
-    CASE ( 1 )
-
-       ! minmod
-
-       slope_lim = minmod(a,b)
-
-    CASE ( 2 )
-
-       ! superbee
-
-       sigma1 = minmod( a , 2.D0*b )
-       sigma2 = minmod( 2.D0*a , b )
-       slope_lim = maxmod( sigma1 , sigma2 )
-
-    CASE ( 3 )
-
-       ! generalized minmod
-
-       slope_lim = minmod( c , theta * minmod( a , b ) )
-
-    CASE ( 4 )
-
-       ! monotonized central-difference (MC, LeVeque p.112)
-
-       slope_lim = minmod( c , 2.0 * minmod( a , b ) )
-
-    END SELECT
-
-  END SUBROUTINE limit
-
-
-  REAL*8 FUNCTION minmod(a,b)
-
-    IMPLICIT none
-
-    REAL*8 :: a , b , sa , sb 
-
-    IF ( a*b .EQ. 0.D0 ) THEN
-
-       minmod = 0.d0
-
-    ELSE
-
-       sa = a / ABS(a)
-       sb = b / ABS(b)
-
-       minmod = 0.5D0 * ( sa+sb ) * MIN( ABS(a) , ABS(b) )
-
-    END IF
-
-  END FUNCTION minmod
-
-  REAL*8 function maxmod(a,b)
-
-    IMPLICIT none
-
-    REAL*8 :: a , b , sa , sb 
-
-    IF ( a*b .EQ. 0.d0 ) THEN
-
-       maxmod = 0.d0
-
-    ELSE
-
-       sa = a / ABS(a)
-       sb = b / ABS(b)
-
-       maxmod = 0.5D0 * ( sa+sb ) * MAX( ABS(a) , ABS(b) )
-
-    END IF
-
-  END function maxmod
 
 END MODULE solver_2d

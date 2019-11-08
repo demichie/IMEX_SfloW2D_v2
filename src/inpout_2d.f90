@@ -13,8 +13,7 @@
 MODULE inpout_2d
 
   ! -- Variables for the namelist RUN_PARAMETERS
-  USE parameters_2d, ONLY : t_start , t_end , dt_output ,                       &
-       topography_function_flag, topography_demfile , topo_change_flag
+  USE parameters_2d, ONLY : t_start , t_end , dt_output , topo_change_flag
 
   USE solver_2d, ONLY : verbose_level
 
@@ -169,9 +168,9 @@ MODULE inpout_2d
   REAL*8 :: rho0_s(1000) , diam0_s(1000) , sp_heat0_s(1000)
 
 
-  NAMELIST / run_parameters / run_name , restart , topography_demfile ,         &
-       t_start , t_end , dt_output , output_cons_flag , output_esri_flag ,      &
-       output_phys_flag , output_runout_flag , topo_change_flag , verbose_level
+  NAMELIST / run_parameters / run_name , restart , t_start , t_end , dt_output ,&
+       output_cons_flag , output_esri_flag , output_phys_flag ,                 &
+       output_runout_flag , topo_change_flag , verbose_level
 
   NAMELIST / restart_parameters / restart_file , alphas_init , alphas_ambient , &
        T_init , T_ambient , sed_vol_perc 
@@ -253,8 +252,6 @@ CONTAINS
     !-- Inizialization of the Variables for the namelist RUN_PARAMETERS
     run_name = 'default'
     restart = .FALSE.
-    topography_function_flag=.FALSE.
-    topography_demfile=.FALSE.
     t_start = 0.0
     t_end = 5.0d-2
     dt_output = 5.d-3
@@ -1672,166 +1669,112 @@ CONTAINS
     ! ---------------------------------------------------------------------------
 
     IF ( verbose_level .GE. 1 ) WRITE(*,*) 
-    
-    ! read topography from .inp (recommended for simple batimetries) 
-    IF ( .NOT.topography_demfile ) THEN
 
-       tend1 = .FALSE.
+    WRITE(*,*) 'Searching for DEM file'
 
-       WRITE(*,*) 'Searching for topography_profile'
+    INQUIRE(FILE='topography_dem.asc',EXIST=lexist)
 
-       topography_profile_search: DO
+    IF(lexist)THEN
 
-          READ(input_unit,*, END = 200 ) card
+       OPEN(2001, file='topography_dem.asc', status='old', action='read')
 
-          IF( TRIM(card) == 'TOPOGRAPHY_PROFILE' ) THEN
-
-             EXIT topography_profile_search
-
-          END IF
-
-       END DO topography_profile_search
-
-
-       READ(input_unit,*) n_topography_profile_x
-
-       IF ( verbose_level .GE. 1 ) WRITE(*,*) 'n_topography_profile_x' ,        &
-            n_topography_profile_x
-
-       READ(input_unit,*) n_topography_profile_y
-
-       IF ( verbose_level .GE. 1 ) WRITE(*,*) 'n_topography_profile_y' ,        &
-            n_topography_profile_y
-
-       ALLOCATE( topography_profile( 3 , n_topography_profile_x ,               &
-            n_topography_profile_y ) )
-
-       DO j = 1, n_topography_profile_x
-
-          DO k = 1, n_topography_profile_y
-
-             READ(input_unit,*) topography_profile(1:3,j,k)
-
-             IF ( verbose_level.GE.1 ) WRITE(*,*) j,k,topography_profile(1:3,j,k)
-
-          ENDDO
-
-       END DO
-
-       GOTO 210
-200    tend1 = .TRUE.
-210    CONTINUE
-
-
-       ! read topography from dem file (recommended for complex batimetries) 
     ELSE
 
-       WRITE(*,*) 'Searching for DEM file'
-
-       INQUIRE(FILE='topography_dem.asc',EXIST=lexist)
-
-       IF(lexist)THEN
-
-          OPEN(2001, file='topography_dem.asc', status='old', action='read')
-
-       ELSE
-
-          WRITE(*,*) 'no dem file'
-          STOP
-
-       ENDIF
-
-       READ(2001,*) chara, ncols
-       READ(2001,*) chara, nrows
-       READ(2001,*) chara, xllcorner
-       READ(2001,*) chara, yllcorner
-       READ(2001,*) chara, cellsize
-       READ(2001,*) chara, nodata_value
-
-       ! The values read from the DEM files are associated to the center of the
-       ! pixels. x0 is the left margin of the computational domain and has to be
-       ! greater than the center of the first pixel.
-       IF ( x0 .LT. xllcorner + 0.5D0 * cellsize ) THEN 
-
-          WRITE(*,*) 'Computational domain problem'
-          WRITE(*,*) 'x0 < xllcorner+0.5*cellsize',x0,xllcorner+0.5D0*cellsize
-          STOP
-
-       END IF
-
-       ! The right margin of the computational domain should be smaller then the
-       ! center of the last pixel
-       IF ( x0 + ( comp_cells_x ) * cell_size .GT.                              &
-            xllcorner + ( 0.5D0 + ncols ) * cellsize ) THEN 
-
-          WRITE(*,*) 'Computational domain problem'
-          WRITE(*,*) 'right edge > xllcorner+ncols*cellsize',                   &
-               x0+comp_cells_x*cell_size , xllcorner+(0.5D0+ncols)*cellsize
-          STOP
-
-       END IF
-
-       IF ( y0 .LT. yllcorner+0.5D0*cellsize ) THEN 
-
-          WRITE(*,*) 'Computational domain problem'
-          WRITE(*,*) 'y0 < yllcorner+0.5*cellsize',y0,yllcorner+0.5D0*cellsize
-          STOP
-
-       END IF
-
-       IF ( ABS( ( y0 + comp_cells_y * cell_size ) - ( yllcorner + 0.5D0 +      &
-            nrows * cellsize ) ) .LT. 1.D-10 ) THEN 
-
-          WRITE(*,*) 'Computational domain problem'
-          WRITE(*,*) 'top edge > yllcorner+nrows*cellsize',                     &
-               y0+comp_cells_y*cell_size , yllcorner+(0.5D0+nrows)*cellsize
-          STOP
-
-       END IF
-
-
-       WRITE(*,*) 'Reading DEM file' 
-       WRITE(*,*) 'ncols',ncols
-       WRITE(*,*) 'nrows',nrows
-
-       n_topography_profile_x = ncols
-
-       n_topography_profile_y = nrows
-
-       ALLOCATE( topography_profile( 3 , n_topography_profile_x ,               &
-            n_topography_profile_y) )
-
-       DO j=1,n_topography_profile_x 
-
-          topography_profile(1,j,:) = xllcorner + ( j - 0.5D0 ) * cellsize
-
-       ENDDO
-
-       DO k=1,n_topography_profile_y
-
-          topography_profile(2,:,k) = yllcorner + ( k - 0.5D0 ) * cellsize
-
-       ENDDO
-
-       ! Read topography values (starting at the upper-left corner)
-
-       DO k=1,n_topography_profile_y
-
-          WRITE(*,FMT="(A1,A,t21,F6.2,A)",ADVANCE="NO") ACHAR(13),              &
-               & " Percent Complete: " ,                                        &
-               ( REAL(k) / REAL(n_topography_profile_y))*100.0, "%"
-
-          READ(2001,*) topography_profile(3,:,n_topography_profile_y-k+1)
-
-       ENDDO
-
-       topography_profile(3,:,:) = MAX(0.D0,topography_profile(3,:,:))
-
-       WRITE(*,*) ''
-
-       CLOSE(2001)
+       WRITE(*,*) 'no dem file'
+       STOP
 
     ENDIF
+
+    READ(2001,*) chara, ncols
+    READ(2001,*) chara, nrows
+    READ(2001,*) chara, xllcorner
+    READ(2001,*) chara, yllcorner
+    READ(2001,*) chara, cellsize
+    READ(2001,*) chara, nodata_value
+
+    ! The values read from the DEM files are associated to the center of the
+    ! pixels. x0 is the left margin of the computational domain and has to be
+    ! greater than the center of the first pixel.
+    IF ( x0 - ( xllcorner + 0.5D0 * cellsize ) .LT. -1.D-10  ) THEN 
+
+       WRITE(*,*) 'Computational domain problem'
+       WRITE(*,*) 'x0 < xllcorner+0.5*cellsize',x0,xllcorner+0.5D0*cellsize
+       STOP
+
+    END IF
+
+    ! The right margin of the computational domain should be smaller then the
+    ! center of the last pixel
+    IF ( x0 + ( comp_cells_x ) * cell_size .GT.                              &
+         xllcorner + ( 0.5D0 + ncols ) * cellsize ) THEN 
+
+       WRITE(*,*) 'Computational domain problem'
+       WRITE(*,*) 'right edge > xllcorner+ncols*cellsize',                   &
+            x0+comp_cells_x*cell_size , xllcorner+(0.5D0+ncols)*cellsize
+       STOP
+
+    END IF
+
+    IF ( y0 - ( yllcorner+0.5D0*cellsize ) .LT. -1.D-10 ) THEN 
+
+       WRITE(*,*) 'Computational domain problem'
+       WRITE(*,*) 'y0 < yllcorner+0.5*cellsize',y0,yllcorner+0.5D0*cellsize
+       STOP
+
+    END IF
+
+    IF ( ABS( ( y0 + comp_cells_y * cell_size ) - ( yllcorner + 0.5D0 +      &
+         nrows * cellsize ) ) .LT. 1.D-10 ) THEN 
+
+       WRITE(*,*) 'Computational domain problem'
+       WRITE(*,*) 'top edge > yllcorner+nrows*cellsize',                     &
+            y0+comp_cells_y*cell_size , yllcorner+(0.5D0+nrows)*cellsize
+       STOP
+
+    END IF
+
+
+    WRITE(*,*) 'Reading DEM file' 
+    WRITE(*,*) 'ncols',ncols
+    WRITE(*,*) 'nrows',nrows
+
+    n_topography_profile_x = ncols
+
+    n_topography_profile_y = nrows
+
+    ALLOCATE( topography_profile( 3 , n_topography_profile_x ,               &
+         n_topography_profile_y) )
+
+    DO j=1,n_topography_profile_x 
+
+       topography_profile(1,j,:) = xllcorner + ( j - 0.5D0 ) * cellsize
+
+    ENDDO
+
+    DO k=1,n_topography_profile_y
+
+       topography_profile(2,:,k) = yllcorner + ( k - 0.5D0 ) * cellsize
+
+    ENDDO
+
+    ! Read topography values (starting at the upper-left corner)
+
+    DO k=1,n_topography_profile_y
+
+       WRITE(*,FMT="(A1,A,t21,F6.2,A)",ADVANCE="NO") ACHAR(13),              &
+            & " Percent Complete: " ,                                        &
+            ( REAL(k) / REAL(n_topography_profile_y))*100.0, "%"
+
+       READ(2001,*) topography_profile(3,:,n_topography_profile_y-k+1)
+
+    ENDDO
+
+    topography_profile(3,:,:) = MAX(0.D0,topography_profile(3,:,:))
+
+    WRITE(*,*) ''
+
+    CLOSE(2001)
+
 
     ! ------- READ runout_parameters NAMELIST -----------------------------------
 
@@ -2004,27 +1947,6 @@ CONTAINS
 
     IF ( output_runout_flag ) WRITE(backup_unit, runout_parameters)
 
-
-    IF ( .NOT.topography_demfile ) THEN
-
-       WRITE(backup_unit,*) '''TOPOGRAPHY_PROFILE'''
-       WRITE(backup_unit,*) n_topography_profile_x
-       WRITE(backup_unit,*) n_topography_profile_y
-       
-       DO j = 1, n_topography_profile_x
-          
-          DO k = 1, n_topography_profile_y
-             
-             WRITE(backup_unit,107) topography_profile(1:3,j,k)
-             
-107          FORMAT(3(1x,e14.7))
-             
-          ENDDO
-          
-       END DO
-       
-    END IF
-    
     IF ( n_probes .GT. 0 ) THEN
        
        WRITE(backup_unit,*) '''PROBES_COORDS'''
@@ -2066,7 +1988,6 @@ CONTAINS
 
     CHARACTER(LEN=40) :: run_name_org
     LOGICAL :: restart_org
-    LOGICAL :: topography_demfile_org
     REAL*8 :: t_start_org
     REAL*8 :: t_end_org
     REAL*8 :: dt_output_org
@@ -2077,7 +1998,6 @@ CONTAINS
     
     run_name_org = run_name
     restart_org = restart
-    topography_demfile_org = topography_demfile
     t_start_org = t_start
     t_end_org = t_end
     dt_output_org = dt_output
@@ -2145,7 +2065,6 @@ CONTAINS
 
     run_name_org = run_name
     restart_org = restart
-    topography_demfile_org = topography_demfile
     t_start_org = t_start
 
 
@@ -2213,7 +2132,9 @@ CONTAINS
 
     INQUIRE (FILE=restart_file,exist=lexist)
 
-    IF (lexist .EQV. .FALSE.) THEN
+    WRITE(*,*) 'READ INIT',restart_file,lexist,restart_unit
+
+    IF ( lexist .EQV. .FALSE.) THEN
 
        WRITE(*,*) 'Restart: ',TRIM(restart_file),' not found'
        STOP
@@ -2225,6 +2146,8 @@ CONTAINS
        WRITE(*,*) 'Restart: ',TRIM(restart_file), ' found'
 
     END IF
+
+    WRITE(*,*) 'READ 1'
 
     dot_idx = SCAN(restart_file, ".", .TRUE.)
 
@@ -2517,7 +2440,6 @@ CONTAINS
     USE constitutive_2d, ONLY : h , u , v , alphas , T , rho_m , red_grav
 
     USE geometry_2d, ONLY : comp_cells_x , B_cent , comp_cells_y , x_comp, y_comp
-    ! USE geometry_2d, ONLY : x0 , dx , B_ver , y0 , dy
 
     USE parameters_2d, ONLY : n_vars
     USE parameters_2d, ONLY : t_output , dt_output 
