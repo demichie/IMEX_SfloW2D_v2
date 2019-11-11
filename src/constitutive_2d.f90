@@ -532,81 +532,6 @@ CONTAINS
   !******************************************************************************
   !> \brief Local Characteristic speeds x direction
   !
-  !> This subroutine desingularize the velocities and then evaluates the largest 
-  !> positive and negative characteristic speed in the x-direction. 
-  !> \param[in]     qj            array of conservative variables
-  !> \param[in]     Bj            topography at the cell center
-  !> \param[out]    vel_min       minimum x-velocity
-  !> \param[out]    vel_max       maximum x-velocity
-  !> @author 
-  !> Mattia de' Michieli Vitturi
-  !> \date 05/12/2017
-  !******************************************************************************
-
-  SUBROUTINE eval_local_speeds_x(qj,vel_min,vel_max)
-  
-    IMPLICIT none
-    
-    REAL*8, INTENT(IN) :: qj(n_vars)
-
-    REAL*8, INTENT(OUT) :: vel_min(n_vars) , vel_max(n_vars)
-
-    CALL phys_var(r_qj = qj)
-    
-    IF ( DBLE(red_grav * h) .LT. 0.D0 ) THEN
-
-       vel_min(1:n_eqns) = DBLE(u)
-       vel_max(1:n_eqns) = DBLE(u)
-  
-    ELSE
-
-       vel_min(1:n_eqns) = DBLE(u) - DSQRT( DBLE(red_grav * h) )
-       vel_max(1:n_eqns) = DBLE(u) + DSQRT( DBLE(red_grav * h) )
-    
-    END IF
-
-  END SUBROUTINE eval_local_speeds_x
-
-  !******************************************************************************
-  !> \brief Local Characteristic speeds y direction
-  !
-  !> This subroutine desingularize the velocities and then evaluates the largest 
-  !> positive and negative characteristic speed in the y-direction. 
-  !> \param[in]     qj            array of conservative variables
-  !> \param[in]     Bj            topography at the cell center
-  !> \param[out]    vel_min       minimum y-velocity
-  !> \param[out]    vel_max       maximum y-velocity
-  !> @author 
-  !> Mattia de' Michieli Vitturi
-  !> \date 05/12/2017
-  !******************************************************************************
-
-  SUBROUTINE eval_local_speeds_y(qj,vel_min,vel_max)
-    
-    IMPLICIT none
-    
-    REAL*8, INTENT(IN)  :: qj(n_vars)
-    REAL*8, INTENT(OUT) :: vel_min(n_vars) , vel_max(n_vars)
-    
-    CALL phys_var(r_qj = qj)
- 
-    IF ( DBLE(red_grav * h) .LT. 0.D0 ) THEN
-
-       vel_min(1:n_eqns) = DBLE(v)
-       vel_max(1:n_eqns) = DBLE(v)
-  
-    ELSE
-   
-       vel_min(1:n_eqns) = DBLE(v) - DSQRT( DBLE(red_grav * h) )
-       vel_max(1:n_eqns) = DBLE(v) + DSQRT( DBLE(red_grav * h) )
-       
-    END IF
-
-  END SUBROUTINE eval_local_speeds_y
-
-  !******************************************************************************
-  !> \brief Local Characteristic speeds x direction
-  !
   !> This subroutine computes from the physical variable evaluates the largest 
   !> positive and negative characteristic speed in the x-direction. 
   !> \param[in]     qpj           array of physical variables
@@ -617,7 +542,7 @@ CONTAINS
   !> \date 05/12/2017
   !******************************************************************************
 
-  SUBROUTINE eval_local_speeds2_x(qpj,vel_min,vel_max)
+  SUBROUTINE eval_local_speeds_x(qpj,vel_min,vel_max)
   
     IMPLICIT none
     
@@ -626,11 +551,20 @@ CONTAINS
     REAL*8, INTENT(OUT) :: vel_min(n_vars) , vel_max(n_vars)
 
     CALL mixt_var(qpj)
+   
+    IF ( r_red_grav * r_h .LT. 0.D0 ) THEN
+
+       vel_min(1:n_eqns) = r_u
+       vel_max(1:n_eqns) = r_u
+  
+    ELSE
+
+       vel_min(1:n_eqns) = r_u - DSQRT( r_red_grav * r_h )
+       vel_max(1:n_eqns) = r_u + DSQRT( r_red_grav * r_h )
     
-    vel_min(1:n_eqns) = r_u - DSQRT( r_red_grav * r_h )
-    vel_max(1:n_eqns) = r_u + DSQRT( r_red_grav * r_h )
-    
-  END SUBROUTINE eval_local_speeds2_x
+    END IF
+
+  END SUBROUTINE eval_local_speeds_x
 
   !******************************************************************************
   !> \brief Local Characteristic speeds y direction
@@ -645,7 +579,7 @@ CONTAINS
   !> \date 05/12/2017
   !******************************************************************************
 
-  SUBROUTINE eval_local_speeds2_y(qpj,vel_min,vel_max)
+  SUBROUTINE eval_local_speeds_y(qpj,vel_min,vel_max)
     
     IMPLICIT none
     
@@ -654,10 +588,19 @@ CONTAINS
     
     CALL mixt_var(qpj)
     
-    vel_min(1:n_eqns) = r_v - DSQRT( r_red_grav * r_h )
-    vel_max(1:n_eqns) = r_v + DSQRT( r_red_grav * r_h )
+    IF ( r_red_grav * r_h .LT. 0.D0 ) THEN
+
+       vel_min(1:n_eqns) = r_v
+       vel_max(1:n_eqns) = r_v
+  
+    ELSE
+      
+       vel_min(1:n_eqns) = r_v - DSQRT( r_red_grav * r_h )
+       vel_max(1:n_eqns) = r_v + DSQRT( r_red_grav * r_h )
        
-  END SUBROUTINE eval_local_speeds2_y
+    END IF
+
+  END SUBROUTINE eval_local_speeds_y
   
   !******************************************************************************
   !> \brief Hyperbolic Fluxes
@@ -1161,46 +1104,15 @@ CONTAINS
   !> in the DIRK numerical scheme (e.g. gravity,source of mass). The sign of the
   !> terms is taken with the terms on the left-hand side of the equations.
   !> \date 01/06/2012
-  !> \param[in]     qj                 conservative variables 
+  !> \param[in]     B_primej_x         local x-slope
+  !> \param[in]     B_primej_y         local y_slope
+  !> \param[in]     qj                 local source
+  !> \param[in]     qpj                physical variables 
+  !> \param[in]     qcj                conservative variables 
   !> \param[out]    expl_term          explicit term
   !******************************************************************************
 
-  SUBROUTINE eval_expl_terms( Bprimej_x , Bprimej_y , source_xy , qj ,          &
-       expl_term )
-
-    IMPLICIT NONE
-
-    REAL*8, INTENT(IN) :: Bprimej_x
-    REAL*8, INTENT(IN) :: Bprimej_y
-    REAL*8, INTENT(IN) :: source_xy
-    
-    REAL*8, INTENT(IN) :: qj(n_eqns)                 !< conservative variables 
-    REAL*8, INTENT(OUT) :: expl_term(n_eqns)         !< explicit forces 
-
-    expl_term(1:n_eqns) = 0.D0
-
-    CALL phys_var(r_qj = qj)
-
-    expl_term(2) = DBLE(red_grav*rho_m*h) * Bprimej_x
-   
-    expl_term(3) = DBLE(red_grav*rho_m*h) * Bprimej_y
-
-    IF ( energy_flag ) THEN
-
-       expl_term(4) = DBLE(red_grav*rho_m*h) * ( DBLE(u) * Bprimej_x            &
-            + DBLE(v) * Bprimej_y )  
-
-    ELSE
-
-       expl_term(4) = 0.D0
-
-    END IF
-
-    RETURN
-
-  END SUBROUTINE eval_expl_terms
-
-  SUBROUTINE eval_expl_terms2( Bprimej_x , Bprimej_y , source_xy , qpj , qcj ,  &
+  SUBROUTINE eval_expl_terms( Bprimej_x , Bprimej_y , source_xy , qpj , qcj ,  &
        expl_term )
 
     IMPLICIT NONE
@@ -1234,7 +1146,7 @@ CONTAINS
 
     RETURN
 
-  END SUBROUTINE eval_expl_terms2
+  END SUBROUTINE eval_expl_terms
 
 
   !******************************************************************************

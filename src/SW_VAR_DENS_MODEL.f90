@@ -50,7 +50,7 @@ PROGRAM SW_VAR_DENS_MODEL
   USE solver_2d, ONLY : deallocate_solver_variables
   USE solver_2d, ONLY : imex_RK_solver
   USE solver_2d, ONLY : update_erosion_deposition_cell
-  USE solver_2d, ONLY : timestep, timestep2
+  USE solver_2d, ONLY : timestep
   ! USE solver_2d, ONLY : check_solve
 
   USE inpout_2d, ONLY : restart
@@ -162,10 +162,7 @@ PROGRAM SW_VAR_DENS_MODEL
      ! CALL check_solve
      ! WRITE(*,*) 'cells to solve:',COUNT(solve_mask)
 
-
-     ! CALL timestep
-
-     CALL timestep2
+     CALL timestep
 
      IF ( t+dt .GT. t_end ) dt = t_end - t
      IF ( t+dt .GT. t_output ) dt = t_output - t

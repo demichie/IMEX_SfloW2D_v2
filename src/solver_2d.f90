@@ -131,6 +131,10 @@ MODULE solver_2d
   !> Intermediate solutions of the Runge-Kutta scheme
   REAL*8, ALLOCATABLE :: q_rk(:,:,:,:)
 
+  !> Intermediate physical solutions of the Runge-Kutta scheme
+  REAL*8, ALLOCATABLE :: qp_rk(:,:,:,:)
+
+
   !> Intermediate hyperbolic terms of the Runge-Kutta scheme
   REAL*8, ALLOCATABLE :: divFlux(:,:,:,:)
 
@@ -380,6 +384,7 @@ CONTAINS
     ALLOCATE( a_dirk(n_RK) )
 
     ALLOCATE( q_rk( n_vars , comp_cells_x , comp_cells_y , n_RK ) )
+    ALLOCATE( qp_rk( n_vars , comp_cells_x , comp_cells_y , n_RK ) )
     ALLOCATE( divFlux( n_eqns , comp_cells_x , comp_cells_y , n_RK ) )
     ALLOCATE( NH( n_eqns , comp_cells_x , comp_cells_y , n_RK ) )
     ALLOCATE( SI_NH( n_eqns , comp_cells_x , comp_cells_y , n_RK ) )
@@ -507,6 +512,7 @@ CONTAINS
     DEALLOCATE( a_dirk )
 
     DEALLOCATE( q_rk )
+    DEALLOCATE( qp_rk )
     DEALLOCATE( divFlux )
     DEALLOCATE( NH )
     DEALLOCATE( SI_NH )
@@ -574,7 +580,7 @@ CONTAINS
 
   END SUBROUTINE check_solve
 
-  !******************************************************************************
+  !*****************************************************************************
   !> \brief Time-step computation
   !
   !> This subroutine evaluate the maximum time step according to the CFL
@@ -585,7 +591,7 @@ CONTAINS
   !> @author 
   !> Mattia de' Michieli Vitturi
   !
-  !******************************************************************************
+  !*****************************************************************************
 
   SUBROUTINE timestep
 
@@ -593,82 +599,7 @@ CONTAINS
     USE geometry_2d, ONLY : dx,dy
     USE parameters_2d, ONLY : max_dt , cfl
 
-    ! External procedures
-    USE constitutive_2d, ONLY : eval_local_speeds_x, eval_local_speeds_y
-
-    IMPLICIT none
-
-    REAL*8 :: vel_max(n_vars)
-    REAL*8 :: vel_min(n_vars)
-    REAL*8 :: vel_j         !< maximum speed in the j-th cell
-    REAL*8 :: dt_cfl        !< local time step
-    REAL*8 :: qj(n_vars)    !< conservative variables
-
-    INTEGER :: j,k          !< loop counter
-
-    dt = max_dt
-
-    IF ( cfl .NE. -1.d0 ) THEN
-
-       DO j = 1,comp_cells_x
-
-          DO k = 1,comp_cells_y
-
-             qj = q( 1:n_vars , j , k )
-
-             IF ( comp_cells_x .GT. 1 ) THEN
-
-                ! x direction
-                CALL eval_local_speeds_x( qj , vel_min , vel_max )
-                
-                vel_j = MAX( MAXVAL(ABS(vel_min)) , MAXVAL(ABS(vel_max)) )
-                
-                dt_cfl = cfl * dx / vel_j
-                
-                dt = MIN( dt , dt_cfl )
-
-             END IF
-
-             IF ( comp_cells_y .GT. 1 ) THEN
-                
-                ! y direction
-                CALL eval_local_speeds_y( qj , vel_min , vel_max )
-                
-                vel_j = MAX( MAXVAL(ABS(vel_min)) , MAXVAL(ABS(vel_max)) )
-                
-                dt_cfl = cfl * dy / vel_j
-                                
-                dt = MIN( dt , dt_cfl )
-
-             END IF
-                
-          ENDDO
-
-       END DO
-
-    END IF
-
-  END SUBROUTINE timestep
-
-
-  !*****************************************************************************
-  !> \brief Time-step computation
-  !
-  !> This subroutine evaluate the maximum time step according to the CFL
-  !> condition. The local speed are evaluated with the characteristic
-  !> polynomial of the Jacobian of the fluxes.
-  !
-  !> \date 07/10/2016
-  !> @author 
-  !> Mattia de' Michieli Vitturi
-  !
-  !*****************************************************************************
-
-  SUBROUTINE timestep2
-
-    ! External variables
-    USE geometry_2d, ONLY : dx,dy
-    USE parameters_2d, ONLY : max_dt , cfl
+    USE constitutive_2d, ONLY : qc_to_qp
 
     IMPLICIT none
 
@@ -686,8 +617,20 @@ CONTAINS
 
     IF ( cfl .NE. -1.d0 ) THEN
 
-       CALL reconstruction
+       DO j = 1,comp_cells_x
 
+          DO k = 1,comp_cells_y
+
+             CALL qc_to_qp( q(1:n_vars,j,k), B_cent(j,k) , qp(1:n_vars,j,k) )
+
+          END DO
+
+       END DO
+
+       ! Compute the physical variables at the interfaces
+       CALL reconstruction( q , qp )
+
+       ! Compute the max/min eigenvalues at the interfaces
        CALL eval_speeds
 
        DO i=1,n_vars
@@ -740,7 +683,7 @@ CONTAINS
 
     END IF
 
-  END SUBROUTINE timestep2
+  END SUBROUTINE timestep
 
   !******************************************************************************
   !> \brief Runge-Kutta integration
@@ -780,6 +723,7 @@ CONTAINS
 
     ! Initialization of the variables for the Runge-Kutta scheme
     q_rk(1:n_vars,1:comp_cells_x,1:comp_cells_y,1:n_RK) = 0.d0
+    qp_rk(1:n_vars,1:comp_cells_x,1:comp_cells_y,1:n_RK) = 0.d0
 
     divFlux(1:n_eqns,1:comp_cells_x,1:comp_cells_y,1:n_RK) = 0.d0
 
@@ -849,21 +793,6 @@ CONTAINS
                   - MATMUL( NHj(1:n_eqns,1:i_RK) + SI_NHj(1:n_eqns,1:i_RK) ,    &
                   a_dirk(1:i_RK) ) )
 
-             IF ( ( j.EQ.-34 ) .AND. (k.EQ.1) .AND. ( q_fv(3,j,k) .EQ. 0.D0 ) ) THEN
-
-                WRITE(*,*) 'i_RK',i_RK
-                WRITE(*,*) 'j,k',j,k
-                WRITE(*,*) 'dt',dt
-                WRITE(*,*) 'q0(:,j,k)',q0(:,j,k)
-                WRITE(*,*) dt *MATMUL( Expl_terms_j(1:n_eqns,1:i_RK) , a_tilde(1:i_RK) )
-                WRITE(*,*) dt *MATMUL( divFluxj(1:n_eqns,1:i_RK) , a_tilde(1:i_RK) )
-                WRITE(*,*) dt *MATMUL( NHj(1:n_eqns,1:i_RK) + SI_NHj(1:n_eqns,1:i_RK) ,    &
-                  a_dirk(1:i_RK) )
-                WRITE(*,*) 'q_fv(:,j,k)',q_fv(:,j,k)
-                READ(*,*)
-                
-             END IF
-             
              IF ( verbose_level .GE. 2 ) THEN
 
                 WRITE(*,*) 'q_guess',q_guess
@@ -876,23 +805,17 @@ CONTAINS
 
                 pos_thick:IF ( q_fv(1,j,k) .GT.  0.D0 )  THEN
 
-                   ! WRITE(*,*) 'SOLVER_2D, imex_RK_solver: q_fv', q_fv(1:n_vars,j,k )
-
                    ! Eval the semi-implicit discontinuous terms
                    CALL eval_nh_semi_impl_terms( grav_surf(j,k) ,               &
                         r_qj = q_fv( 1:n_vars , j , k ) ,                       &
                         r_nh_semi_impl_term = SI_NH(1:n_eqns,j,k,i_RK) ) 
 
-                   ! WRITE(*,*) 'SOLVER_2D, imex_RK_solver: SI_NH', SI_NH(1:n_eqns,j,k,i_RK)
-                  
                    SI_NHj(1:n_eqns,i_RK) = SI_NH( 1:n_eqns,j,k,i_RK )
 
                    ! Assemble the initial guess for the implicit solver
                    q_si(1:n_vars) = q_fv(1:n_vars,j,k ) + dt * a_diag *         &
                         SI_NH(1:n_eqns,j,k,i_RK)
                    
-                   ! WRITE(*,*) 'SOLVER_2D, imex_RK_solver: q_si', q_si(1:n_vars )
-
                    IF ( q_fv(2,j,k)**2 + q_fv(3,j,k)**2 .EQ. 0.D0 ) THEN
                       
                       !Case 1: if the velocity was null, then it must stay null
@@ -923,10 +846,6 @@ CONTAINS
 
                    ! Initialize the guess for the NR solver
                    q_guess(1:n_vars) = q_si(1:n_vars)
-
-                   ! WRITE(*,*) 'SOLVER_2D, imex_RK_solver: q_guess', q_guess(1:n_vars )
-
-                   ! WRITE(*,*) 'SOLVER_2D, imex_RK_solver: j,k',j,k
 
                    ! Solve the implicit system to find the solution at the 
                    ! i_RK step of the IMEX RK procedure
@@ -1026,16 +945,32 @@ CONTAINS
 
        IF ( omega_tilde(i_RK) .GT. 0.D0 ) THEN
 
+          DO k = 1,comp_cells_y
+          
+             DO j = 1,comp_cells_x
+
+                CALL qc_to_qp( q_rk(1:n_vars,j,k,i_RK) , B_cent(j,k) ,          &
+                     qp_rk(1:n_vars,j,k,i_RK) )
+
+             END DO
+
+          END DO
+
           ! Eval and store the explicit hyperbolic (fluxes) terms
-          CALL eval_hyperbolic_terms( q_rk(1:n_vars,1:comp_cells_x,1:comp_cells_y, &
-               i_RK) , divFlux(1:n_eqns,1:comp_cells_x,1:comp_cells_y,i_RK) )
+          CALL eval_hyperbolic_terms(                                           &
+               q_rk(1:n_vars,1:comp_cells_x,1:comp_cells_y,i_RK) ,              &
+               qp_rk(1:n_vars,1:comp_cells_x,1:comp_cells_y,i_RK) ,             &
+               divFlux(1:n_eqns,1:comp_cells_x,1:comp_cells_y,i_RK) )
 
           CALL cpu_time(t_imex1)
           ! WRITE(*,*) 'Time taken by explicit',t_imex1-t_imex2,'seconds'
           
-          ! Eval and store the other explicit terms (e.g. gravity or viscous forces)
-          CALL eval_explicit_terms( q_rk(1:n_vars,1:comp_cells_x,1:comp_cells_y,   &
-               i_RK) , expl_terms(1:n_eqns,1:comp_cells_x,1:comp_cells_y,i_RK) )
+          ! Eval and store the other explicit terms (e.g. gravity or viscous 
+          ! forces)
+          CALL eval_explicit_terms(                                             &
+               q_rk(1:n_vars,1:comp_cells_x,1:comp_cells_y,i_RK) ,              &
+               qp_rk(1:n_vars,1:comp_cells_x,1:comp_cells_y,i_RK) ,             &
+               expl_terms(1:n_eqns,1:comp_cells_x,1:comp_cells_y,i_RK) )
 
           CALL cpu_time(t_imex1)
           ! WRITE(*,*) 'Time taken by explicit',t_imex1-t_imex2,'seconds'
@@ -1067,9 +1002,9 @@ CONTAINS
        
        DO j = 1,comp_cells_x
           
-          residual_term(1:n_vars,j,k) = MATMUL( divFlux(1:n_eqns,j,k,1:n_RK) &
-               + expl_terms(1:n_eqns,j,k,1:n_RK) , omega_tilde ) -           &
-               MATMUL( NH(1:n_eqns,j,k,1:n_RK) + SI_NH(1:n_eqns,j,k,1:n_RK) ,&
+          residual_term(1:n_vars,j,k) = MATMUL( divFlux(1:n_eqns,j,k,1:n_RK)    &
+               + expl_terms(1:n_eqns,j,k,1:n_RK) , omega_tilde ) -              &
+               MATMUL( NH(1:n_eqns,j,k,1:n_RK) + SI_NH(1:n_eqns,j,k,1:n_RK) ,   &
                omega )
           
        ENDDO
@@ -1102,17 +1037,6 @@ CONTAINS
 
           END IF
 
-          IF ( ( j .EQ. -1 ) .AND. ( k .EQ. 36 ) ) THEN
-             
-             WRITE(*,*) 'after assemble new solution'
-             WRITE(*,*) 'j,k',j,k
-             WRITE(*,*) 'q_old(1,j,k),q_new(1,j,k)',q0(1,j,k), q(1,j,k) 
-             WRITE(*,*) 'q_old(4,j,k),q_new(4,j,k)',q0(4,j,k), q(4,j,k)
-             WRITE(*,*) 'divFlux(1,j,k,1:n_RK)',divFlux(1,j,k,1:n_RK)
-             WRITE(*,*) 'dt',dt
-
-          END IF
-          
           negative_thickness_check:IF ( q(1,j,k) .LT. 0.D0 ) THEN
 
              IF ( q(1,j,k) .GT. -1.D-7 ) THEN
@@ -1985,14 +1909,14 @@ CONTAINS
   !> Mattia de' Michieli Vitturi
   !******************************************************************************
 
-  SUBROUTINE eval_explicit_terms( q_expl , expl_terms )
+  SUBROUTINE eval_explicit_terms( qc_expl , qp_expl , expl_terms )
 
     USE constitutive_2d, ONLY : eval_expl_terms
-    USE constitutive_2d, ONLY : eval_expl_terms2
 
     IMPLICIT NONE
 
-    REAL*8, INTENT(IN) :: q_expl(n_vars,comp_cells_x,comp_cells_y)
+    REAL*8, INTENT(IN) :: qc_expl(n_vars,comp_cells_x,comp_cells_y)
+    REAL*8, INTENT(IN) :: qp_expl(n_vars,comp_cells_x,comp_cells_y)
     REAL*8, INTENT(OUT) :: expl_terms(n_eqns,comp_cells_x,comp_cells_y)
 
     REAL*8 :: qcj(n_vars)     !< local conservative variables 
@@ -2005,12 +1929,10 @@ CONTAINS
     
        DO j = 1,comp_cells_x
 
-          qcj = q_expl(1:n_vars,j,k)
-          qpj = qp(1:n_vars,j,k)
+          qcj = qc_expl(1:n_vars,j,k)
+          qpj = qp_expl(1:n_vars,j,k)
 
-          !CALL eval_expl_terms( B_prime_x(j,k), B_prime_y(j,k), source_xy(j,k) ,&
-          !     qcj , expl_forces_term )
-          CALL eval_expl_terms2( B_prime_x(j,k), B_prime_y(j,k), source_xy(j,k) ,&
+          CALL eval_expl_terms( B_prime_x(j,k), B_prime_y(j,k), source_xy(j,k) ,&
                qpj , qcj , expl_forces_term )
           
           expl_terms(1:n_eqns,j,k) =  expl_forces_term
@@ -2037,7 +1959,7 @@ CONTAINS
   !> Mattia de' Michieli Vitturi
   !******************************************************************************
 
-  SUBROUTINE eval_hyperbolic_terms( q_expl , divFlux )
+  SUBROUTINE eval_hyperbolic_terms( q_expl , qp_expl , divFlux )
 
     ! External variables
     USE geometry_2d, ONLY : dx,dy
@@ -2046,6 +1968,7 @@ CONTAINS
     IMPLICIT NONE
 
     REAL*8, INTENT(IN) :: q_expl(n_vars,comp_cells_x,comp_cells_y)
+    REAL*8, INTENT(IN) :: qp_expl(n_vars,comp_cells_x,comp_cells_y)
     REAL*8, INTENT(OUT) :: divFlux(n_eqns,comp_cells_x,comp_cells_y)
 
     REAL*8 :: q_old(n_vars,comp_cells_x,comp_cells_y)
@@ -2063,7 +1986,7 @@ CONTAINS
     CALL cpu_time(tcpu0)
 
     ! Linear reconstruction of the physical variables at the interfaces
-    CALL reconstruction
+    CALL reconstruction(q_expl,qp_expl)
 
     CALL cpu_time(tcpu1)
     !WRITE(*,*) 'eval_hyperbolic_terms: Time taken by the code was',tcpu1-tcpu0,'seconds'
@@ -2464,7 +2387,7 @@ CONTAINS
   !> \date 15/08/2011
   !******************************************************************************
 
-  SUBROUTINE reconstruction
+  SUBROUTINE reconstruction(q_expl,qp_expl)
 
     ! External procedures
     USE constitutive_2d, ONLY : qc_to_qp , qp_to_qc
@@ -2479,7 +2402,9 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL*8 :: qcj(n_vars)      !< local conservative variables
+    REAL*8, INTENT(IN) :: q_expl(n_vars,comp_cells_x,comp_cells_y)
+    REAL*8, INTENT(IN) :: qp_expl(n_vars,comp_cells_x,comp_cells_y)
+
     REAL*8 :: qrec(n_vars,comp_cells_x,comp_cells_y) 
     REAL*8 :: qrecW(n_vars)     !< recons var at the west edge of the cells
     REAL*8 :: qrecE(n_vars)     !< recons var at the east edge of the cells
@@ -2502,19 +2427,14 @@ CONTAINS
        j = j_cent(l)
        k = k_cent(l)
 
-       qcj = q(1:n_vars,j,k)
-
-       CALL qc_to_qp( qcj , B_cent(j,k) , qrec(1:n_vars,j,k) )
-
-       qp(1:n_vars,j,k) = qrec(1:n_vars,j,k)
+       qrec(1:n_vars,j,k) = qp_expl(1:n_vars,j,k)
 
        IF ( SUM(qrec(5:4+n_solid,j,k)) .GT. 1.D0 ) THEN
 
           WRITE(*,*) 'reconstruction: j,k',j,k
           WRITE(*,*) 'qrec(5:n_solid,j,k)',qrec(5:4+n_solid,j,k)
-          WRITE(*,*) 'q(1:n_vars,j,k)',q(1:n_vars,j,k)
+          WRITE(*,*) 'q(1:n_vars,j,k)',q_expl(1:n_vars,j,k)
           WRITE(*,*) 'B_cent(j,k)', B_cent(j,k)
-          WRITE(*,*) 'h',q(1,j,k)-B_cent(j,k)
           READ(*,*)
 
        END IF
@@ -2670,7 +2590,7 @@ CONTAINS
           IF ( comp_cells_x .GT. 1 ) THEN
 
              IF ( ( j .GT. 1 ) .AND. ( j .LT. comp_cells_x ) .AND.              &
-                  ( q(1,j,k) .EQ. 0.D0 ) ) THEN
+                  ( q_expl(1,j,k) .EQ. 0.D0 ) ) THEN
 
                 ! In the internal cell, if thickness h is 0 at the center
                 ! of the cell, then all the variables are 0 at the center
@@ -2743,8 +2663,8 @@ CONTAINS
           ELSE
              
              ! for case comp_cells_x = 1 
-             q_interfaceR(1:n_vars,j,k) = q(1:n_vars,j,k)
-             q_interfaceL(1:n_vars,j+1,k) = q(1:n_vars,j,k)
+             q_interfaceR(1:n_vars,j,k) = q_expl(1:n_vars,j,k)
+             q_interfaceL(1:n_vars,j+1,k) = q_expl(1:n_vars,j,k)
 
 
              qp_interfaceR(1:n_vars,j,k) = qrec(1:n_vars,j,k)
@@ -2755,7 +2675,7 @@ CONTAINS
           IF ( comp_cells_y .GT. 1 ) THEN
              
              IF ( ( k .GT. 1 ) .AND. ( k .LT. comp_cells_y ) .AND.              &
-                  ( q(1,j,k) .EQ. 0.D0 ) ) THEN
+                  ( q_expl(1,j,k) .EQ. 0.D0 ) ) THEN
                 
                 ! In the internal cell, if thickness h is 0 at the center
                 ! of the cell, then all the variables are 0 at the center
@@ -2826,8 +2746,8 @@ CONTAINS
              
           ELSE
              
-             q_interfaceT(:,j,k) = q(:,j,k)
-             q_interfaceB(:,j,k+1) = q(:,j,k)
+             q_interfaceT(:,j,k) = q_expl(:,j,k)
+             q_interfaceB(:,j,k+1) = q_expl(:,j,k)
   
              qp_interfaceT(:,j,k) = qrec(:,j,k)
              qp_interfaceB(:,j,k+1) = qrec(:,j,k)
@@ -2849,7 +2769,7 @@ CONTAINS
   !> cells interfaces from the reconstructed states.
   !> @author 
   !> Mattia de' Michieli Vitturi
-  !> \date 16/08/2011
+  !> \date 2019/11/11
   !******************************************************************************
 
   SUBROUTINE eval_speeds
@@ -2873,12 +2793,12 @@ CONTAINS
           
           DO k = 1, comp_cells_y
              
-             CALL eval_local_speeds_x( q_interfaceL(:,j,k) , abslambdaL_min ,   &
+             CALL eval_local_speeds_x( qp_interfaceL(:,j,k) , abslambdaL_min ,  &
                   abslambdaL_max )
              
-             CALL eval_local_speeds_x( q_interfaceR(:,j,k) , abslambdaR_min ,   &
+             CALL eval_local_speeds_x( qp_interfaceR(:,j,k) , abslambdaR_min ,  &
                   abslambdaR_max )
-             
+
              min_r = MIN(abslambdaL_min , abslambdaR_min , 0.0D0)
              max_r = MAX(abslambdaL_max , abslambdaR_max , 0.0D0)
              
@@ -2897,12 +2817,12 @@ CONTAINS
           
           DO k = 1,comp_interfaces_y
              
-             CALL eval_local_speeds_y( q_interfaceB(:,j,k) , abslambdaB_min ,   &
+             CALL eval_local_speeds_y( qp_interfaceB(:,j,k) , abslambdaB_min ,  &
                   abslambdaB_max )
              
-             CALL eval_local_speeds_y( q_interfaceT(:,j,k) , abslambdaT_min ,   &
+             CALL eval_local_speeds_y( qp_interfaceT(:,j,k) , abslambdaT_min ,  &
                   abslambdaT_max )
-             
+            
              min_r = MIN(abslambdaB_min , abslambdaT_min , 0.0D0)
              max_r = MAX(abslambdaB_max , abslambdaT_max , 0.0D0)
              
