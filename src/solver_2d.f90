@@ -352,8 +352,6 @@ CONTAINS
        omega(1) =  1.0D0 / 3.0D0
        omega(2) =  1.0D0 / 3.0D0
        omega(3) =  1.0D0 / 3.0D0
-
-
        
     ELSEIF ( n_RK .EQ. 4 ) THEN
 
@@ -945,6 +943,7 @@ CONTAINS
 
        IF ( omega_tilde(i_RK) .GT. 0.D0 ) THEN
 
+          ! Compute the physical variables at the cell centers 
           DO k = 1,comp_cells_y
           
              DO j = 1,comp_cells_x
@@ -2016,8 +2015,6 @@ CONTAINS
     CASE ("UP")
 
        CALL eval_flux_UP
-
-
        
     END SELECT
 
@@ -2382,9 +2379,14 @@ CONTAINS
   !
   !> In this subroutine a linear reconstruction with slope limiters is
   !> applied to a set of variables describing the state of the system.
+  !> In this way the values at the two sides of each cell interface are computed.
+  !> This subroutine is also used for the boundary condition, when the
+  !> reconstruction at the boundary interfaces are computed.
+  !> \param[in]     q_expl         center values of the conservative variables
+  !> \param[in]     qp_expl        center values of the physical variables
   !> @author 
   !> Mattia de' Michieli Vitturi
-  !> \date 15/08/2011
+  !> \date 2019/11/11
   !******************************************************************************
 
   SUBROUTINE reconstruction(q_expl,qp_expl)
@@ -2689,8 +2691,6 @@ CONTAINS
                 qp_interfaceT(4:n_vars,j,k) = qrecS(4:n_vars)
                 qp_interfaceB(1:3,j,k+1) = 0.D0
                 qp_interfaceB(4:n_vars,j,k+1) = qrecN(4:n_vars)
-              
-
    
              ELSE
                 

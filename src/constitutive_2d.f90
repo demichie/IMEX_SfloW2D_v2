@@ -357,8 +357,6 @@ CONTAINS
   !> conservative local variables qcj and the local topography Bj a set of 
   !> the local real-valued physical variables  (\f$h, u, v, xs , T \f$).
   !> \param[in]    qpj    real-valued physical variables 
-  !> \param[in]    qcj    real-valued conservative variables 
-  !> \param[in]    Bj     real-valued topography 
   !> @author 
   !> Mattia de' Michieli Vitturi
   !> \date 10/10/2019
@@ -369,7 +367,6 @@ CONTAINS
     IMPLICIT none
 
     REAL*8, INTENT(IN) :: qpj(n_vars)
-    ! REAL*8, INTENT(IN) :: qcj(n_vars)
 
     r_h = qpj(1)
 
@@ -422,9 +419,14 @@ CONTAINS
   !> .
   !> The physical variables are those used for the linear reconstruction at the
   !> cell interfaces. Limiters are applied to the reconstructed slopes.
-  !> \param[in]     qc      conservative variables 
-  !> \param[out]    qp      physical variables  
-  !> \date 15/08/2011
+  !> \param[in]     qc     local conservative variables 
+  !> \param[in]     B      local topography
+  !> \param[out]    qp     local physical variables  
+  !> \date 2019/11/11
+  !
+  !> @author 
+  !> Mattia de' Michieli Vitturi
+  !
   !******************************************************************************
   
   SUBROUTINE qc_to_qp(qc,B,qp)
@@ -461,15 +463,19 @@ CONTAINS
   !
   !> This subroutine evaluates the conservative variables qc from the 
   !> array of physical variables qp:\n
-  !> - qp(1) = \f$ h + B \f$
-  !> - qp(2) = \f$ rho_m*u \f$
-  !> - qp(3) = \f$ rho_m*v \f$
+  !> - qp(1) = \f$ h \f$
+  !> - qp(2) = \f$ h*u \f$
+  !> - qp(3) = \f$ h*v \f$
   !> - qp(4) = \f$ T \f$
   !> - qp(5:4+n_s) = \f$ alphas(1:n_s) \f$
   !> .
   !> \param[in]    qp      physical variables  
   !> \param[out]   qc      conservative variables 
   !> \date 15/08/2011
+  !
+  !> @author 
+  !> Mattia de' Michieli Vitturi
+  !
   !******************************************************************************
 
   SUBROUTINE qp_to_qc(qp,B,qc)
@@ -484,7 +490,6 @@ CONTAINS
     REAL*8 :: r_mass_fract_s(n_solid)
     REAL*8 :: r_sp_heat_mix
 
-    !r_h = qp(1) - B
     r_h = qp(1)
 
     IF ( r_h .GT. 0.D0 ) THEN
@@ -534,7 +539,7 @@ CONTAINS
   !
   !> This subroutine computes from the physical variable evaluates the largest 
   !> positive and negative characteristic speed in the x-direction. 
-  !> \param[in]     qpj           array of physical variables
+  !> \param[in]     qpj           array of local physical variables
   !> \param[out]    vel_min       minimum x-velocity
   !> \param[out]    vel_max       maximum x-velocity
   !> @author 
@@ -564,6 +569,8 @@ CONTAINS
     
     END IF
 
+    RETURN
+
   END SUBROUTINE eval_local_speeds_x
 
   !******************************************************************************
@@ -571,7 +578,7 @@ CONTAINS
   !
   !> This subroutine computes from the physical variable evaluates the largest 
   !> positive and negative characteristic speed in the y-direction. 
-  !> \param[in]     qpj           array of physical variables
+  !> \param[in]     qpj           array of local physical variables
   !> \param[out]    vel_min       minimum y-velocity
   !> \param[out]    vel_max       maximum y-velocity
   !> @author 
@@ -600,24 +607,30 @@ CONTAINS
        
     END IF
 
+    RETURN
+
   END SUBROUTINE eval_local_speeds_y
   
+
   !******************************************************************************
   !> \brief Hyperbolic Fluxes
   !
   !> This subroutine evaluates the numerical fluxes given the conservative
   !> variables qcj and physical variables qpj.
   !> \date 01/06/2012
-  !> \param[in]     qcj      real conservative variables 
-  !> \param[in]     qpj      real physical variables 
+  !> \param[in]     qcj      real local conservative variables 
+  !> \param[in]     qpj      real local physical variables 
   !> \param[in]     Bj       topography
   !> \param[in]     dir      direction of the flux (1=x,2=y)
   !> \param[out]    flux     real  fluxes    
+  !
+  !> @author 
+  !> Mattia de' Michieli Vitturi
+  !
   !******************************************************************************
 
   SUBROUTINE eval_fluxes(qcj,qpj,Bj,dir,flux)
     
-    USE COMPLEXIFY
     IMPLICIT none
 
     REAL*8, INTENT(IN) :: qcj(n_vars)
@@ -629,15 +642,12 @@ CONTAINS
 
     CALL mixt_var(qpj)
 
-    
-    ! pos_thick:IF ( r_h .NE. 0.D0 ) THEN
     pos_thick:IF ( qcj(1) .NE. 0.D0 ) THEN
 
        IF ( dir .EQ. 1 ) THEN
 
           ! Volumetric flux in x-direction: rhom*h*u
           flux(1) = r_u * qcj(1)
-          !flux(1) = qcj(2) / qcj(1) * qcj(1)
           
           ! x-momentum flux in x-direction + hydrostatic pressure term
           flux(2) = r_u * qcj(2) + 0.5D0 * r_rho_m * r_red_grav * r_h**2
@@ -701,7 +711,6 @@ CONTAINS
                flux(5:4+n_solid) / SUM(flux(5:4+n_solid)) * flux(1)
 
           END IF
-
                      
        END IF
 
@@ -711,6 +720,8 @@ CONTAINS
        
     ENDIF pos_thick
  
+    RETURN
+
   END SUBROUTINE eval_fluxes
 
 
@@ -726,6 +737,10 @@ CONTAINS
   !> \param[in]     r_qj            real conservative variables 
   !> \param[out]    c_nh_term_impl  complex non-hyperbolic terms     
   !> \param[out]    r_nh_term_impl  real non-hyperbolic terms
+  !
+  !> @author 
+  !> Mattia de' Michieli Vitturi
+  !
   !******************************************************************************
 
   SUBROUTINE eval_nonhyperbolic_terms( c_qj , c_nh_term_impl , r_qj ,           &
@@ -959,13 +974,16 @@ CONTAINS
   !> \param[in]     r_qj            real conservative variables 
   !> \param[out]    c_nh_term_impl  complex non-hyperbolic terms     
   !> \param[out]    r_nh_term_impl  real non-hyperbolic terms
+  !
+  !> @author 
+  !> Mattia de' Michieli Vitturi
+  !
   !******************************************************************************
 
   SUBROUTINE eval_nh_semi_impl_terms( grav3_surf , c_qj , c_nh_semi_impl_term , &
        r_qj , r_nh_semi_impl_term )
 
     USE COMPLEXIFY 
-
 
     IMPLICIT NONE
 
@@ -1110,6 +1128,10 @@ CONTAINS
   !> \param[in]     qpj                physical variables 
   !> \param[in]     qcj                conservative variables 
   !> \param[out]    expl_term          explicit term
+  !
+  !> @author 
+  !> Mattia de' Michieli Vitturi
+  !
   !******************************************************************************
 
   SUBROUTINE eval_expl_terms( Bprimej_x , Bprimej_y , source_xy , qpj , qcj ,  &
@@ -1150,13 +1172,19 @@ CONTAINS
 
 
   !******************************************************************************
-  !> \brief Deposition term
+  !> \brief Erosion/Deposition term
   !
   !> This subroutine evaluates the deposition term.
   !> \date 03/010/2018
-  !> \param[in]     Bj                 topography
-  !> \param[in]     qj                 conservative variables 
-  !> \param[out]    dep_term          explicit term
+  !> \param[in]     qpj                local physical variables 
+  !> \param[in]     Bj                 local topography
+  !> \param[in]     dt                 time step
+  !> \param[out]    erosion_term       erosion term for each solid phase
+  !> \param[out]    dep_term           deposition term for each solid phase
+  !
+  !> @author 
+  !> Mattia de' Michieli Vitturi
+  !
   !******************************************************************************
 
   SUBROUTINE eval_erosion_dep_term( qpj , Bj , dt , erosion_term ,              &
@@ -1235,6 +1263,10 @@ CONTAINS
   !> \param[in]     deposition_avg_term averaged deposition terms 
   !> \param[in]     erosion_avg_term    averaged deposition terms 
   !> \param[out]    topo_term           explicit term
+  !
+  !> @author 
+  !> Mattia de' Michieli Vitturi
+  !
   !******************************************************************************
 
   SUBROUTINE eval_topo_term( qj , deposition_avg_term , erosion_avg_term ,      &
@@ -1324,11 +1356,15 @@ CONTAINS
   !
   !> This subroutine compute the settling velocity of the particles, as a
   !> function of diameter, density.
-  !> \date OCTOBER 2016
-  !> \param    diam        particle diameter                (\b input)
-  !> \param    rhos        particle density                 (\b input)
-  !> \param    rhoa        atmospheric density              (\b input)
-  !> \patam    i_solid     particle class index             (\b input)
+  !> \date 2019/11/11
+  !> \param[in]    diam        particle diameter      
+  !> \param[in]    rhos        particle density
+  !> \param[in]    rhoa        atmospheric density
+  !> \patam[in]    i_solid     particle class index
+  !
+  !> @author 
+  !> Mattia de' Michieli Vitturi
+  !
   !------------------------------------------------------------------------------
   
   REAL*8 FUNCTION settling_velocity(diam,rhos,rhoa,i_solid)
@@ -1389,9 +1425,6 @@ CONTAINS
 
     C_D_s(i_solid) = C_D
     
-    ! WRITE(*,*) 'C_D,settling_velocity',C_D,settling_velocity
-    ! READ(*,*)
-   
     RETURN
 
   END FUNCTION settling_velocity
