@@ -30,8 +30,6 @@ else:
 
 data = np.loadtxt(filename,skiprows=0)
 
-print data.shape
-
 x = data[:,0]
 y = data[:,1]
 h = data[:,2]
@@ -47,7 +45,8 @@ x0_idx = np.asarray((np.where(data[:,0]==data[0,0])))
 ny_cells = x0_idx[0,1]
 nx_cells = data.shape[0] / ny_cells
 
-print nx_cells,ny_cells
+nx_cells = nx_cells.astype(int)
+ny_cells = ny_cells.astype(int)
 
 X_cent = x.reshape((nx_cells,ny_cells))
 Y_cent = y.reshape((nx_cells,ny_cells))

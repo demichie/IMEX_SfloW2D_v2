@@ -21,7 +21,6 @@ if len(sys.argv)==6:
     if a.isdigit():
 
         nx_cells = int(a)
-        print nx_cells
  
     else:
  
@@ -116,7 +115,7 @@ y_min = -dy*ny_half_cells
 y_max = -y_min
 
 print('Number of cells in the y-direction')
-print ny_cells
+print(ny_cells)
 
 n_cells = nx_cells * ny_cells
 

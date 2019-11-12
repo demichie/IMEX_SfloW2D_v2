@@ -8,8 +8,6 @@ import time
 import sys
 import os.path
 
-print len(sys.argv)
-
 if len(sys.argv)==3: 
  
     filename = sys.argv[1]
@@ -26,10 +24,6 @@ else:
     sys.exit()
 
 data = np.loadtxt(filename,skiprows=0)
-
-
-
-print data.shape
 
 x = data[:,0]
 y = data[:,1]
@@ -70,6 +64,9 @@ x0_idx = np.asarray((np.where(data[:,0]==data[0,0])))
 
 ny_cells = x0_idx[0,1]
 nx_cells = data.shape[0] / ny_cells
+
+nx_cells = nx_cells.astype(int)
+ny_cells = ny_cells.astype(int)
 
 X_cent = x.reshape((nx_cells,ny_cells))
 Y_cent = y.reshape((nx_cells,ny_cells))
@@ -125,7 +122,7 @@ trace2 = go.Surface(x=X_cent,y=Y_cent,z=z2d_cent, visible=True,opacity=1.0)
 
 data = [trace2]
 
-layout = go.Layout(title='Example2D', autosize=False,
+layout = go.Layout(title=filename, autosize=False,
                   width=1200, height=800,
                   margin=dict(l=65, r=50, b=65, t=90))
 
