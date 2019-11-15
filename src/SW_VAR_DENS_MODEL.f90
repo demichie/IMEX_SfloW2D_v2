@@ -29,11 +29,14 @@ PROGRAM SW_VAR_DENS_MODEL
   USE constitutive_2d, ONLY : init_problem_param
 
   USE geometry_2d, ONLY : init_grid
+  USE geometry_2d, ONLY : init_source
   USE geometry_2d, ONLY : topography_reconstruction
 
   USE geometry_2d, ONLY : dx,dy,B_cent
+  USE geometry_2d, ONLY : comp_cells_x,comp_cells_y
 
   USE init_2d, ONLY : riemann_problem
+  USE init_2d, ONLY : collapsing_volume
 
   USE inpout_2d, ONLY : init_param
   USE inpout_2d, ONLY : read_param
@@ -51,7 +54,7 @@ PROGRAM SW_VAR_DENS_MODEL
   USE solver_2d, ONLY : imex_RK_solver
   USE solver_2d, ONLY : update_erosion_deposition_cell
   USE solver_2d, ONLY : timestep
-  ! USE solver_2d, ONLY : check_solve
+  USE solver_2d, ONLY : check_solve
 
   USE inpout_2d, ONLY : restart
 
@@ -65,11 +68,15 @@ PROGRAM SW_VAR_DENS_MODEL
   USE parameters_2d, ONLY : topo_change_flag
   USE parameters_2d, ONLY : verbose_level
   USE parameters_2d, ONLY : n_solid
+  USE parameters_2d, ONLY : n_vars
+  USE parameters_2d, ONLY : radial_source_flag
+  USE parameters_2d, ONLY : collapsing_volume_flag
 
-
-  USE solver_2d, ONLY : q , dt
+  USE solver_2d, ONLY : q , qp , dt
   USE solver_2d, ONLY : q1max
   
+  USE constitutive_2d, ONLY : qc_to_qp
+
   ! USE solver_2d, ONLY : solve_mask
 
   IMPLICIT NONE
@@ -79,6 +86,8 @@ PROGRAM SW_VAR_DENS_MODEL
   REAL*8 :: dt_old , dt_old_old
   LOGICAL :: stop_flag
   LOGICAL :: stop_flag_old
+
+  INTEGER j,k
 
   CALL cpu_time(t1)
 
@@ -92,13 +101,17 @@ PROGRAM SW_VAR_DENS_MODEL
 
   CALL allocate_solver_variables
  
-  WRITE(*,*) 'QUI'
- 
   IF ( restart ) THEN
 
      CALL read_solution
 
   ELSE
+
+     IF ( collapsing_volume_flag ) THEN
+
+        CALL collapsing_volume
+
+     END IF
 
      IF( riemann_flag ) THEN
 
@@ -109,7 +122,9 @@ PROGRAM SW_VAR_DENS_MODEL
 
   END IF
 
-  WRITE(*,*) 'QUI2'
+  CALL check_solve
+
+  IF ( radial_source_flag ) CALL init_source
 
   IF ( topo_change_flag ) CALL topography_reconstruction
 
@@ -143,17 +158,28 @@ PROGRAM SW_VAR_DENS_MODEL
   stop_flag = .FALSE.
 
 
+  DO k = 1,comp_cells_y
+     
+     DO j = 1,comp_cells_x
+        
+        CALL qc_to_qp(q(1:n_vars,j,k) , B_cent(j,k) , qp(1:n_vars,j,k) )
+        
+     END DO
+     
+  END DO
+  
   IF ( output_runout_flag ) CALL output_runout(t,stop_flag)
 
   CALL output_solution(t)
 
   IF ( SUM(q(1,:,:)) .EQ. 0.D0 ) t_steady = t_output
   
-  WRITE(*,FMT="(A3,F10.4,A5,F9.5,A15,ES12.3E3,A15,ES12.3E3,A19,ES12.3E3)")   &
-       't =',t,'dt =',dt0,                                                   &
-       ' total mass = ',dx*dy*SUM(q(1,:,:)) ,                              &
-       ' total area = ',dx*dy*COUNT(q(1,:,:).GT.1.D-5) ,                     &
-       ' total solid mass = ',dx*dy*SUM(q(5:4+n_solid,:,:)) 
+  WRITE(*,FMT="(A3,F10.4,A5,F9.5,A9,ES10.3E3,A11,ES10.3E3,A9,ES10.3E3,A15,ES10.3E3)")   &
+       't =',t,'dt =',dt0,                                                      &
+       ' mass = ',dx*dy*SUM(q(1,:,:)) ,                                         &
+       ' volume = ',dx*dy*SUM(qp(1,:,:)) ,                                      &
+       ' area = ',dx*dy*COUNT(q(1,:,:).GT.1.D-5) ,                              &
+       ' solid mass = ',dx*dy*SUM(q(5:4+n_solid,:,:)) 
 
   DO WHILE ( ( t .LT. t_end ) .AND. ( t .LT. t_steady ) )
 
@@ -188,11 +214,24 @@ PROGRAM SW_VAR_DENS_MODEL
      
      t = t+dt
      
-     WRITE(*,FMT="(A3,F10.4,A5,F9.5,A15,ES12.3E3,A15,ES12.3E3,A19,ES12.3E3)")&
-          't =',t,'dt =',dt,                                                 &
-          ' total mass = ',dx*dy*SUM(q(1,:,:)) ,                           &
-          ' total area = ',dx*dy*COUNT(q(1,:,:).GT.1.D-7) ,                  &
-          ' total solid mass = ',dx*dy*SUM(q(5:4+n_solid,:,:)) 
+
+     DO k = 1,comp_cells_y
+        
+        DO j = 1,comp_cells_x
+           
+           CALL qc_to_qp(q(1:n_vars,j,k) , B_cent(j,k) , qp(1:n_vars,j,k) )
+           
+        END DO
+
+     END DO
+  
+
+     WRITE(*,FMT="(A3,F10.4,A5,F9.5,A9,ES10.3E3,A11,ES10.3E3,A9,ES10.3E3,A15,ES10.3E3)")&
+          't =',t,'dt =',dt,                                                    &
+          ' mass = ',dx*dy*SUM(q(1,:,:)) ,                                      &
+          ' volume = ',dx*dy*SUM(qp(1,:,:)) ,                                   &
+          ' area = ',dx*dy*COUNT(q(1,:,:).GT.1.D-7) ,                           &
+          ' solid mass = ',dx*dy*SUM(q(5:4+n_solid,:,:)) 
      
      IF ( output_runout_flag ) THEN
 

@@ -35,7 +35,6 @@ MODULE init_2d
 
 CONTAINS
 
-
   !******************************************************************************
   !> \brief Riemann problem initialization
   !
@@ -182,4 +181,59 @@ CONTAINS
 
   END SUBROUTINE riemann_problem
   
+  SUBROUTINE collapsing_volume
+
+    USE constitutive_2d, ONLY : qp_to_qc
+
+    USE geometry_2d, ONLY : comp_cells_x , comp_cells_y , B_cent
+    USE geometry_2d, ONLY : x_comp , y_comp
+
+    USE parameters_2d, ONLY : n_vars
+
+    USE parameters_2d, ONLY : x_collapse , y_collapse , r_collapse , T_collapse , &
+       h_collapse , alphas_collapse
+
+    USE solver_2d, ONLY : q
+
+    IMPLICIT NONE
+
+    INTEGER :: j,k
+
+    REAL*8 :: qp_init(n_vars) ,  qp0_init(n_vars)
+
+    qp0_init(1) = 0.D0
+    qp0_init(2) = 0.D0
+    qp0_init(3) = 0.D0
+    qp0_init(4) = T_collapse
+    qp0_init(5:4+n_solid) = 0.D0
+
+    qp_init(1) = h_collapse
+    qp_init(2) = 0.D0
+    qp_init(3) = 0.D0
+    qp_init(4) = T_collapse
+    qp_init(5:4+n_solid) = alphas_collapse(1:n_solid)
+    
+    DO j = 1,comp_cells_x
+       
+       DO k = 1,comp_cells_y
+          
+          IF ( ( x_comp(j) - x_collapse )**2 + ( y_comp(k) - y_collapse )**2 .LE. &
+               r_collapse ** 2 ) THEN
+             
+             CALL qp_to_qc( qp_init(1:n_vars) , B_cent(j,k) , q(1:n_vars,j,k) )
+             
+          ELSE
+             
+             CALL qp_to_qc( qp0_init(1:n_vars) , B_cent(j,k) , q(1:n_vars,j,k) )
+             
+          END IF
+          
+       END DO
+       
+    END DO
+
+    RETURN
+
+  END SUBROUTINE collapsing_volume
+
 END MODULE init_2d

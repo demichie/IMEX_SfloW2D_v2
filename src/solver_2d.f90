@@ -21,10 +21,12 @@ MODULE solver_2d
   USE geometry_2d, ONLY : B_cent , B_prime_x , B_prime_y
   USE geometry_2d, ONLY : B_interfaceL , B_interfaceR , B_interfaceT , B_interfaceB
   USE geometry_2d, ONLY : grav_surf
+  USE geometry_2d, ONLY : source_cell
 
   USE parameters_2d, ONLY : n_eqns , n_vars , n_nh , n_solid
   USE parameters_2d, ONLY : n_RK
   USE parameters_2d, ONLY : verbose_level
+  USE parameters_2d, ONLY : radial_source_flag
 
   USE parameters_2d, ONLY : bcW , bcE , bcS , bcN
 
@@ -57,7 +59,6 @@ MODULE solver_2d
   REAL*8, ALLOCATABLE :: qp_interfaceB(:,:,:)        
   !> Reconstructed physical value at the top of the y-interface
   REAL*8, ALLOCATABLE :: qp_interfaceT(:,:,:)
-
 
   !> Reconstructed value at the NW corner of cell
   REAL*8, ALLOCATABLE :: q_cellNW(:,:,:)        
@@ -551,7 +552,7 @@ CONTAINS
 
     IMPLICIT NONE
 
-    INTEGER :: i
+    INTEGER :: i,j,k
 
     solve_mask0(1:comp_cells_x,1:comp_cells_y) = .FALSE.
 
@@ -575,6 +576,23 @@ CONTAINS
 
     END DO
 
+    solve_mask(1:comp_cells_x,1:comp_cells_y) = .TRUE.
+    
+    IF ( radial_source_flag ) THEN
+
+       DO j = 1,comp_cells_x
+
+          DO k = 1,comp_cells_y
+
+             IF ( source_cell(j,k) .EQ. 1 ) solve_mask(j,k) = .FALSE.
+
+          END DO
+
+       END DO
+
+    END IF
+
+    RETURN
 
   END SUBROUTINE check_solve
 
@@ -615,6 +633,7 @@ CONTAINS
 
     IF ( cfl .NE. -1.d0 ) THEN
 
+       ! Compute the physical variables at the cell centers
        DO j = 1,comp_cells_x
 
           DO k = 1,comp_cells_y
@@ -625,7 +644,7 @@ CONTAINS
 
        END DO
 
-       ! Compute the physical variables at the interfaces
+       ! Compute the physical and conservative variables at the interfaces
        CALL reconstruction( q , qp )
 
        ! Compute the max/min eigenvalues at the interfaces
@@ -752,6 +771,8 @@ CONTAINS
        
           loop_over_xcells:DO j = 1,comp_cells_x
 
+             IF ( solve_mask(j,k) ) THEN
+
              IF ( verbose_level .GE. 2 ) THEN
 
                 WRITE(*,*) 'solver, imex_RK_solver: j',j,k
@@ -803,7 +824,8 @@ CONTAINS
 
                 pos_thick:IF ( q_fv(1,j,k) .GT.  0.D0 )  THEN
 
-                   ! Eval the semi-implicit discontinuous terms
+                   ! Eval the semi-implicit terms
+                   ! (terms which non depend on velocity magnitude)
                    CALL eval_nh_semi_impl_terms( grav_surf(j,k) ,               &
                         r_qj = q_fv( 1:n_vars , j , k ) ,                       &
                         r_nh_semi_impl_term = SI_NH(1:n_eqns,j,k,i_RK) ) 
@@ -900,23 +922,9 @@ CONTAINS
              ! Check the sign of the flow thickness
              h_new = q_guess(1)
 
-             IF ( j .EQ. 0 ) THEN
-                
-                WRITE(*,*) 'h',q_guess(1)
-                READ(*,*)
-
-             END IF
-             
-             ! IF ( h_new .LT. 1.D-10 ) THEN
-             !
-             !   q_guess(1) = B_cent(j,k)
-             !   q_guess(2:n_vars) = 0.D0
-             !      
-             ! END IF
-
              IF ( a_diag .NE. 0.D0 ) THEN
                 
-                ! Update the viscous term with the correction on the new velocity
+                ! Update the implicit term with correction on the new velocity
                 NH(1:n_vars,j,k,i_RK) = ( q_guess(1:n_vars) - q_si(1:n_vars))   &
                      / ( dt*a_diag ) 
 
@@ -933,6 +941,8 @@ CONTAINS
                 READ(*,*)
 
              END IF
+
+          END IF
 
           END DO loop_over_xcells
 
@@ -974,6 +984,7 @@ CONTAINS
           CALL cpu_time(t_imex1)
           ! WRITE(*,*) 'Time taken by explicit',t_imex1-t_imex2,'seconds'
 
+
        END IF
           
        IF ( verbose_level .GE. 1 ) THEN
@@ -1013,7 +1024,11 @@ CONTAINS
     assemble_sol_loop_x:DO k = 1,comp_cells_y
        
        assemble_sol_loop_y:DO j = 1,comp_cells_x
-          
+     
+          ! IF ( ( .NOT. radial_source_flag ) .OR. ( source_cell(j,k) .NE. 1 ) ) THEN
+
+          IF ( solve_mask(j,k) ) THEN
+     
           IF ( verbose_level .GE. 1 ) THEN
 
              WRITE(*,*) 'cell jk =',j,k
@@ -1047,7 +1062,11 @@ CONTAINS
                 
                 WRITE(*,*) 'j,k,n_RK',j,k,n_RK
                 WRITE(*,*) 'dt',dt
-                
+                WRITE(*,*) 'source_cell',source_cell(j,k)
+                WRITE(*,*) 'source_cell left',source_cell(j-1,k)
+                WRITE(*,*) 'source_cell right',source_cell(j+1,k)
+                WRITE(*,*) 'source_cell top',source_cell(j,k+1)
+                WRITE(*,*) 'source_cell bottom',source_cell(j,k-1)
                 WRITE(*,*) 'before imex_RK_solver: qc',q0(1:n_vars,j,k)
                 CALL qc_to_qp(q0(1:n_vars,j,k) , B_cent(j,k) , qp(1:n_vars,j,k))
                 WRITE(*,*) 'before imex_RK_solver: qp',qp(1:n_vars,j,k)
@@ -1103,6 +1122,10 @@ CONTAINS
              END IF
              
           END IF
+
+       END IF
+
+       ! END IF
 
        ENDDO assemble_sol_loop_y
 
@@ -1699,14 +1722,6 @@ CONTAINS
 
     scal_f = 0.5D0 * DOT_PRODUCT( f_nl , f_nl )
 
-    !WRITE(*,*) 'i_RK',i_RK
-    !WRITE(*,*) 'eval_f: qj(2) = ',qj(2)
-    !WRITE(*,*) 'nh_term_impl(2) = ',nh_term_impl(2)
-    !WRITE(*,*) ' SI_NHj(1:n_eqns,i_RK) = ', SI_NHj(1:n_eqns,i_RK)
-    !WRITE(*,*) 'eval_f: new term = ',qj(2) + dt * ( - a_diag * nh_term_impl(2) )
-    !WRITE(*,*) 'f_nl(2)=',f_nl(2)
-    !READ(*,*)
-
   END SUBROUTINE eval_f
 
   !******************************************************************************
@@ -1801,6 +1816,8 @@ CONTAINS
 
     USE constitutive_2d, ONLY : erosion_coeff , settling_vel , rho_s , red_grav
 
+    USE geometry_2d, ONLY : deposit
+
     USE constitutive_2d, ONLY : eval_erosion_dep_term
     USE constitutive_2d, ONLY : eval_topo_term
 
@@ -1814,10 +1831,13 @@ CONTAINS
     REAL*8 :: erosion_term(n_solid)
     REAL*8 :: deposition_term(n_solid)
     REAL*8 :: eqns_term(n_eqns)
-    REAL*8 :: topo_term
+    REAL*8 :: deposit_term(n_solid)
+
+    REAL*8 :: u_old , u_new
+    REAL*8 :: v_old , v_new
 
     INTEGER :: j ,k
-    
+  
     IF ( ( erosion_coeff .EQ. 0.D0 ) .AND. ( settling_vel .EQ. 0.D0 ) ) RETURN
 
     DO k = 1,comp_cells_y
@@ -1835,7 +1855,7 @@ CONTAINS
 
           ! Compute the source terms for the equations
           CALL eval_topo_term( q(1:n_vars,j,k) , deposition_term ,              &
-               erosion_term , eqns_term , topo_term )
+               erosion_term , eqns_term , deposit_term )
 
           IF ( verbose_level .GE. 2 ) THEN
 
@@ -1844,13 +1864,48 @@ CONTAINS
 
           END IF
 
+          IF ( deposition_term(1) .GT. 0.D0 ) THEN
+             
+             CALL qc_to_qp(q(1:n_vars,j,k) , B_cent(j,k) , qp(1:n_vars,j,k))
+
+             u_old = qp(2,j,k)/qp(1,j,k)
+             v_old = qp(3,j,k)/qp(1,j,k)
+             
+          END IF
+                
+
           ! Update the solution with erosion/deposition terms
           q(1:n_eqns,j,k) = q(1:n_eqns,j,k) + dt * eqns_term(1:n_eqns)
+
+          IF ( deposition_term(1) .GT. 0.D0 ) THEN
+             
+             CALL qc_to_qp(q(1:n_vars,j,k) , B_cent(j,k) , qp(1:n_vars,j,k))
+
+             u_new = qp(2,j,k)/qp(1,j,k)
+             v_new = qp(3,j,k)/qp(1,j,k)
+             
+             IF ( DABS( u_new - u_old ) .GT. 1.D-3) THEN
+
+                WRITE(*,*) 'u',qp(1,j,k),u_old,u_new
+                READ(*,*)
+
+             END IF
+
+             IF ( DABS( v_new - v_old ) .GT. 1.D-3) THEN
+
+                WRITE(*,*) 'v',qp(1,j,k),u_old,u_new
+                READ(*,*)
+
+             END IF
+
+          END IF
+
+          deposit(j,k,1:n_solid) =  deposit(j,k,1:n_solid) + dt * deposit_term(1:n_solid)
 
           ! Update the topography with erosion/deposition terms
           IF ( topo_change_flag ) THEN
 
-             B_cent(j,k) = B_cent(j,k) + dt * topo_term 
+             B_cent(j,k) = B_cent(j,k) + dt * SUM( deposit_term(1:n_solid) )
 
           END IF
 
@@ -1924,17 +1979,23 @@ CONTAINS
 
     INTEGER :: j,k
 
+    expl_terms = 0.D0
+
     DO k = 1,comp_cells_y
     
        DO j = 1,comp_cells_x
 
-          qcj = qc_expl(1:n_vars,j,k)
-          qpj = qp_expl(1:n_vars,j,k)
+          IF ( solve_mask(j,k) ) THEN
 
-          CALL eval_expl_terms( B_prime_x(j,k), B_prime_y(j,k), source_xy(j,k) ,&
-               qpj , qcj , expl_forces_term )
-          
-          expl_terms(1:n_eqns,j,k) =  expl_forces_term
+             qcj = qc_expl(1:n_vars,j,k)
+             qpj = qp_expl(1:n_vars,j,k)
+             
+             CALL eval_expl_terms( B_prime_x(j,k), B_prime_y(j,k), source_xy(j,k) ,&
+                  qpj , qcj , expl_forces_term )
+             
+             expl_terms(1:n_eqns,j,k) =  expl_forces_term
+             
+          END IF
 
        ENDDO
 
@@ -2029,6 +2090,7 @@ CONTAINS
           DO i=1,n_eqns
              
              divFlux(i,j,k) = 0.D0
+
              
              IF ( comp_cells_x .GT. 1 ) THEN
                 
@@ -2043,7 +2105,7 @@ CONTAINS
                      ( H_interface_y(i,j,k+1) - H_interface_y(i,j,k) ) / dy
                 
              END IF
-           
+    
           END DO
 
           h_old = q_expl(1,j,k)
@@ -2263,7 +2325,7 @@ CONTAINS
 
              CALL average_KT( a_interface_yNeg(:,j,k) ,                         &
                   a_interface_yPos(:,j,k) , fluxB , fluxT , flux_avg_y )
-             
+           
              DO i=1,n_eqns
 
                 IF ( a_interface_yNeg(i,j,k) .EQ. a_interface_yPos(i,j,k) ) THEN
@@ -2393,12 +2455,18 @@ CONTAINS
 
     ! External procedures
     USE constitutive_2d, ONLY : qc_to_qp , qp_to_qc
-    ! USE constitutive_2d, ONLY : qc_to_qc2 , qc2_to_qc
+    USE constitutive_2d, ONLY : eval_source_bdry
     USE parameters_2d, ONLY : limiter
 
     ! External variables
     USE geometry_2d, ONLY : x_comp , x_stag , y_comp , y_stag , dx , dx2 , dy , &
          dy2
+
+    USE geometry_2d, ONLY : sourceW , sourceE , sourceN , sourceS
+    USE geometry_2d, ONLY : sourceW_vect_x , sourceW_vect_y
+    USE geometry_2d, ONLY : sourceE_vect_x , sourceE_vect_y
+    USE geometry_2d, ONLY : sourceN_vect_x , sourceN_vect_y
+    USE geometry_2d, ONLY : sourceS_vect_x , sourceS_vect_y
 
     USE parameters_2d, ONLY : reconstr_coeff
 
@@ -2413,6 +2481,8 @@ CONTAINS
     REAL*8 :: qrecS(n_vars)     !< recons var at the south edge of the cells
     REAL*8 :: qrecN(n_vars)     !< recons var at the north edge of the cells
 
+    REAL*8 :: source_bdry(n_vars)
+
     REAL*8 :: qrec_stencil(3)   !< recons variables stencil for the limiter
     REAL*8 :: x_stencil(3)    !< grid stencil for the limiter
     REAL*8 :: y_stencil(3)    !< grid stencil for the limiter
@@ -2421,26 +2491,27 @@ CONTAINS
 
     INTEGER :: j,k            !< loop counters (cells)
     INTEGER :: i              !< loop counter (variables)
-    INTEGER :: l              !< loop counter (cells)
+    ! INTEGER :: l              !< loop counter (cells)
 
     ! Compute the variable to reconstruct (phys or cons)
-    DO l = 1,comp_cells_x*comp_cells_y
+    DO k = 1,comp_cells_y
+
+       DO j = 1,comp_cells_x
+          
+          qrec(1:n_vars,j,k) = qp_expl(1:n_vars,j,k)
+          
+          IF ( SUM(qrec(5:4+n_solid,j,k)) .GT. 1.D0 ) THEN
+             
+             WRITE(*,*) 'reconstruction: j,k',j,k
+             WRITE(*,*) 'qrec(5:n_solid,j,k)',qrec(5:4+n_solid,j,k)
+             WRITE(*,*) 'q(1:n_vars,j,k)',q_expl(1:n_vars,j,k)
+             WRITE(*,*) 'B_cent(j,k)', B_cent(j,k)
+             READ(*,*)
+             
+          END IF
+          
+       END DO
        
-       j = j_cent(l)
-       k = k_cent(l)
-
-       qrec(1:n_vars,j,k) = qp_expl(1:n_vars,j,k)
-
-       IF ( SUM(qrec(5:4+n_solid,j,k)) .GT. 1.D0 ) THEN
-
-          WRITE(*,*) 'reconstruction: j,k',j,k
-          WRITE(*,*) 'qrec(5:n_solid,j,k)',qrec(5:4+n_solid,j,k)
-          WRITE(*,*) 'q(1:n_vars,j,k)',q_expl(1:n_vars,j,k)
-          WRITE(*,*) 'B_cent(j,k)', B_cent(j,k)
-          READ(*,*)
-
-       END IF
-
     END DO
     
     ! Linear reconstruction
@@ -2448,6 +2519,14 @@ CONTAINS
     y_loop:DO k = 1,comp_cells_y
 
        x_loop:DO j = 1,comp_cells_x
+
+          IF ( solve_mask(j,k) ) THEN
+          ! IF ( ( .NOT. radial_source_flag ) .OR. ( source_cell(j,k) .NE. 1 ) ) THEN
+
+             qrecW(1:n_vars) =  qp_expl(1:n_vars,j,k)
+             qrecE(1:n_vars) =  qp_expl(1:n_vars,j,k)
+             qrecS(1:n_vars) =  qp_expl(1:n_vars,j,k)
+             qrecN(1:n_vars) =  qp_expl(1:n_vars,j,k)
 
           vars_loop:DO i=1,n_vars
 
@@ -2507,7 +2586,31 @@ CONTAINS
                 ELSE
 
                    x_stencil(1:3) = x_comp(j-1:j+1)
-                   qrec_stencil = qrec(i,j-1:j+1,k)
+                   qrec_stencil(1:3) = qrec(i,j-1:j+1,k)
+
+                   ! correction for radial source inlet x-interfaces values 
+                   ! used for the linear reconstruction
+                   IF ( radial_source_flag .AND. ( source_cell(j,k).EQ.2 ) ) THEN
+
+                      IF ( sourceE(j,k) ) THEN
+
+                        CALL eval_source_bdry( sourceE_vect_x(j,k) ,            &
+                             sourceE_vect_y(j,k) , source_bdry )
+
+                        x_stencil(3) = x_stag(j+1)
+                        qrec_stencil(3) = source_bdry(i)
+
+                      ELSEIF ( sourceW(j,k) ) THEN
+
+                        CALL eval_source_bdry( sourceW_vect_x(j,k) ,            &
+                             sourceW_vect_y(j,k) , source_bdry )
+
+                        x_stencil(1) = x_stag(j)
+                        qrec_stencil(1) = source_bdry(i)
+
+                      END IF
+
+                   END IF
 
                    CALL limit( qrec_stencil , x_stencil , limiter(i) ,          &
                         qrec_prime_x )
@@ -2577,6 +2680,30 @@ CONTAINS
                    y_stencil(1:3) = y_comp(k-1:k+1)
                    qrec_stencil = qrec(i,j,k-1:k+1)
 
+                   ! correction for radial source inlet y-interfaces
+                   ! used for the linear reconstruction
+                   IF ( radial_source_flag .AND. ( source_cell(j,k).EQ.2 ) ) THEN
+
+                      IF ( sourceS(j,k) ) THEN
+
+                        CALL eval_source_bdry( sourceS_vect_x(j,k) ,            &
+                             sourceS_vect_y(j,k) , source_bdry )
+
+                        y_stencil(1) = y_stag(k)
+                        qrec_stencil(1) = source_bdry(i)
+
+                      ELSEIF ( sourceN(j,k) ) THEN
+
+                        CALL eval_source_bdry( sourceN_vect_x(j,k) ,            &
+                             sourceN_vect_y(j,k) , source_bdry )
+
+                        x_stencil(3) = y_stag(k+1)
+                        qrec_stencil(3) = source_bdry(i)
+
+                      END IF
+
+                   END IF
+
                    CALL limit( qrec_stencil , y_stencil , limiter(i) ,          &
                         qrec_prime_y )
 
@@ -2591,23 +2718,31 @@ CONTAINS
 
           IF ( comp_cells_x .GT. 1 ) THEN
 
-             IF ( ( j .GT. 1 ) .AND. ( j .LT. comp_cells_x ) .AND.              &
-                  ( q_expl(1,j,k) .EQ. 0.D0 ) ) THEN
+             IF ( ( j .GT. 1 ) .AND. ( j .LT. comp_cells_x ) ) THEN
 
-                ! In the internal cell, if thickness h is 0 at the center
-                ! of the cell, then all the variables are 0 at the center
-                ! and at the interfaces (no conversion back is needed from
-                ! reconstructed to conservative)
-                q_interfaceR(:,j,k) = 0.D0
-                q_interfaceL(:,j+1,k) = 0.D0
+                IF ( q_expl(1,j,k) .EQ. 0.D0 ) THEN
 
-                qp_interfaceR(1:3,j,k) = 0.D0
-                qp_interfaceR(4:n_vars,j,k) = qrecW(4:n_vars)
-                qp_interfaceL(1:3,j+1,k) = 0.D0
-                qp_interfaceL(4:n_vars,j+1,k) = qrecE(4:n_vars)
-                
-                
-             ELSE
+                   IF ( ( .NOT. radial_source_flag ) .OR.                       &
+                        ( ( radial_source_flag ) .AND.                          &
+                        ( source_cell(j,k) .EQ. 0 ) ) ) THEN
+                   
+                      ! In the internal cell, if thickness h is 0 at the center
+                      ! of the cell, then all the variables are 0 at the center
+                      ! and at the interfaces (no conversion back is needed from
+                      ! reconstructed to conservative)
+                      q_interfaceR(:,j,k) = 0.D0
+                      q_interfaceL(:,j+1,k) = 0.D0
+                      
+                      qp_interfaceR(1:3,j,k) = 0.D0
+                      qp_interfaceR(4:n_vars,j,k) = qrecW(4:n_vars)
+                      qp_interfaceL(1:3,j+1,k) = 0.D0
+                      qp_interfaceL(4:n_vars,j+1,k) = qrecE(4:n_vars)
+                      
+                   END IF
+
+                END IF
+
+             END IF
                 
                 IF ( j.EQ.1 ) THEN
                    
@@ -2635,11 +2770,36 @@ CONTAINS
 
                    ENDDO
 
+                ELSE
+
+                   ! correction for radial source inlet x-interfaces:
+                   ! the physical variables at the x-interfaces qrecW or
+                   ! qrecE are computed from the radial inlet values
+                   IF ( radial_source_flag .AND. ( source_cell(j,k).EQ.2 ) ) THEN
+
+                      IF ( sourceE(j,k) ) THEN
+
+                        CALL eval_source_bdry( sourceE_vect_x(j,k) ,            &
+                             sourceE_vect_y(j,k) , source_bdry )
+
+                        qrecE(1:n_vars) = source_bdry(1:n_vars)
+
+                      ELSEIF ( sourceW(j,k) ) THEN
+
+                        CALL eval_source_bdry( sourceW_vect_x(j,k) ,            &
+                             sourceW_vect_y(j,k) , source_bdry )
+
+                        qrecW(1:n_vars) = source_bdry(1:n_vars)
+                        
+                      END IF
+
+                   END IF
+
                 END IF
                 
                 CALL qp_to_qc( qrecW,B_interfaceR(j,k),q_interfaceR(:,j,k) )
                 CALL qp_to_qc( qrecE,B_interfaceL(j+1,k),q_interfaceL(:,j+1,k) )
- 
+
                 qp_interfaceR(1:n_vars,j,k) = qrecW(1:n_vars)
                 qp_interfaceL(1:n_vars,j+1,k) = qrecE(1:n_vars)
 
@@ -2658,9 +2818,25 @@ CONTAINS
                    q_interfaceR(:,j+1,k) = q_interfaceL(:,j+1,k)
                    qp_interfaceR(:,j+1,k) = qp_interfaceL(:,j+1,k)
 
-                END IF
+                ELSE
 
-             END IF
+                   IF ( radial_source_flag .AND. ( source_cell(j,k) .EQ. 2 ) ) THEN
+
+                      IF ( sourceE(j,k) ) THEN
+
+                         q_interfaceR(:,j+1,k) = q_interfaceL(:,j+1,k)
+                         qp_interfaceR(:,j+1,k) = qp_interfaceL(:,j+1,k)
+                         
+                      ELSEIF ( sourceW(j,k) ) THEN
+                      
+                         q_interfaceL(:,j,k) = q_interfaceR(:,j,k)
+                         qp_interfaceL(:,j,k) = qp_interfaceR(:,j,k)
+                         
+                      END IF
+
+                   END IF
+
+                END IF
 
           ELSE
              
@@ -2676,23 +2852,31 @@ CONTAINS
           
           IF ( comp_cells_y .GT. 1 ) THEN
              
-             IF ( ( k .GT. 1 ) .AND. ( k .LT. comp_cells_y ) .AND.              &
-                  ( q_expl(1,j,k) .EQ. 0.D0 ) ) THEN
+             IF ( ( k .GT. 1 ) .AND. ( k .LT. comp_cells_y ) ) THEN
                 
-                ! In the internal cell, if thickness h is 0 at the center
-                ! of the cell, then all the variables are 0 at the center
-                ! and at the interfaces (no conversion back is needed from
-                ! reconstructed to conservative)
+                IF ( q_expl(1,j,k) .EQ. 0.D0 ) THEN
+                   
+                   IF ( ( .NOT. radial_source_flag ) .OR.   &
+                        ( ( radial_source_flag ) .AND. ( source_cell(j,k) .EQ. 0 ) ) ) THEN
+                      
+                      ! In the internal cell, if thickness h is 0 at the center
+                      ! of the cell, then all the variables are 0 at the center
+                      ! and at the interfaces (no conversion back is needed from
+                      ! reconstructed to conservative)
+                      
+                      q_interfaceT(:,j,k) = 0.D0
+                      q_interfaceB(:,j,k+1) = 0.D0
+                      
+                      qp_interfaceT(1:3,j,k) = 0.D0
+                      qp_interfaceT(4:n_vars,j,k) = qrecS(4:n_vars)
+                      qp_interfaceB(1:3,j,k+1) = 0.D0
+                      qp_interfaceB(4:n_vars,j,k+1) = qrecN(4:n_vars)
+                      
+                   END IF
+                   
+                END IF
                 
-                q_interfaceT(:,j,k) = 0.D0
-                q_interfaceB(:,j,k+1) = 0.D0
-                
-                qp_interfaceT(1:3,j,k) = 0.D0
-                qp_interfaceT(4:n_vars,j,k) = qrecS(4:n_vars)
-                qp_interfaceB(1:3,j,k+1) = 0.D0
-                qp_interfaceB(4:n_vars,j,k+1) = qrecN(4:n_vars)
-   
-             ELSE
+             END IF
                 
                 IF ( k .EQ. 1 ) THEN
 
@@ -2719,6 +2903,28 @@ CONTAINS
                       END IF
 
                    ENDDO
+        
+                ELSE
+
+                   IF ( radial_source_flag .AND. ( source_cell(j,k) .EQ. 2 ) ) THEN
+
+                      IF ( sourceS(j,k) ) THEN
+
+                        CALL eval_source_bdry( sourceS_vect_x(j,k) ,            &
+                             sourceS_vect_y(j,k) , source_bdry )
+
+                        qrecS(1:n_vars) = source_bdry(1:n_vars)
+
+                      ELSEIF ( sourceN(j,k) ) THEN
+
+                        CALL eval_source_bdry( sourceN_vect_x(j,k) ,            &
+                             sourceN_vect_y(j,k) , source_bdry )
+
+                        qrecN(1:n_vars) = source_bdry(1:n_vars)
+                        
+                      END IF
+
+                   END IF
 
                 END IF
 
@@ -2740,25 +2946,43 @@ CONTAINS
                    q_interfaceT(:,j,k+1) = q_interfaceB(:,j,k+1)
                    qp_interfaceT(:,j,k+1) = qp_interfaceB(:,j,k+1)
 
+                ELSE
+
+                   IF ( radial_source_flag .AND. ( source_cell(j,k) .EQ. 2 ) ) THEN
+
+                      IF ( sourceS(j,k) ) THEN
+
+                         q_interfaceB(:,j,k) = q_interfaceT(:,j,k)
+                         qp_interfaceB(:,j,k) = qp_interfaceT(:,j,k)
+
+                      ELSEIF ( sourceN(j,k) ) THEN
+
+                         q_interfaceT(:,j,k+1) = q_interfaceB(:,j,k+1)
+                         qp_interfaceT(:,j,k+1) = qp_interfaceB(:,j,k+1)
+
+                      END IF
+
+                   END IF
+
                 END IF
 
-             END IF
-             
           ELSE
-             
+          
+             ! comp_cells_y = 1
              q_interfaceT(:,j,k) = q_expl(:,j,k)
              q_interfaceB(:,j,k+1) = q_expl(:,j,k)
   
              qp_interfaceT(:,j,k) = qrec(:,j,k)
              qp_interfaceB(:,j,k+1) = qrec(:,j,k)
- 
                         
           END IF
           
+       END IF
+
        END DO x_loop
 
     END DO y_loop
-    
+
   END SUBROUTINE reconstruction
 
   

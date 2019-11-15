@@ -66,13 +66,27 @@ MODULE parameters_2d
 
   LOGICAL :: topo_change_flag
 
+  LOGICAL :: radial_source_flag
+
   REAL*8 :: x_source
   REAL*8 :: y_source
   REAL*8 :: r_source
-  REAL*8 :: vfr_source
   REAL*8 :: vel_source
   REAL*8 :: T_source
+  REAL*8 :: h_source
+  REAL*8, ALLOCATABLE :: alphas_source(:)
   
+  LOGICAL :: collapsing_volume_flag
+
+  REAL*8 :: x_collapse
+  REAL*8 :: y_collapse
+  REAL*8 :: r_collapse
+  REAL*8 :: T_collapse
+  REAL*8 :: h_collapse
+  REAL*8, ALLOCATABLE :: alphas_collapse(:)
+
+
+
   !> Initial volume of the flow
   REAL*8 :: released_volume
 

@@ -52,7 +52,35 @@ MODULE geometry_2d
   !> curvature wrt mixed directions for each cell
   REAL*8, ALLOCATABLE :: curv_xy(:,:)
 
+  !> deposit for the different classes
+  REAL*8, ALLOCATABLE :: deposit(:,:,:)
+
   REAL*8, ALLOCATABLE :: topography_profile(:,:,:)
+
+  INTEGER, ALLOCATABLE :: source_cell(:,:)
+  LOGICAL, ALLOCATABLE :: sourceE(:,:)
+  LOGICAL, ALLOCATABLE :: sourceW(:,:)
+  LOGICAL, ALLOCATABLE :: sourceS(:,:)
+  LOGICAL, ALLOCATABLE :: sourceN(:,:)
+
+  REAL*8, ALLOCATABLE :: dist_sourceE(:,:)
+  REAL*8, ALLOCATABLE :: dist_sourceW(:,:)
+  REAL*8, ALLOCATABLE :: dist_sourceS(:,:)
+  REAL*8, ALLOCATABLE :: dist_sourceN(:,:)
+
+  REAL*8, ALLOCATABLE :: sourceE_vect_x(:,:)
+  REAL*8, ALLOCATABLE :: sourceE_vect_y(:,:)
+
+  REAL*8, ALLOCATABLE :: sourceW_vect_x(:,:)
+  REAL*8, ALLOCATABLE :: sourceW_vect_y(:,:)
+
+  REAL*8, ALLOCATABLE :: sourceS_vect_x(:,:)
+  REAL*8, ALLOCATABLE :: sourceS_vect_y(:,:)
+
+  REAL*8, ALLOCATABLE :: sourceN_vect_x(:,:)
+  REAL*8, ALLOCATABLE :: sourceN_vect_y(:,:)
+
+  REAL*8 :: pi_g
 
   INTEGER :: n_topography_profile_x, n_topography_profile_y
 
@@ -95,6 +123,32 @@ CONTAINS
     ALLOCATE( x_stag(comp_interfaces_x) )
     ALLOCATE( y_comp(comp_cells_y) )
     ALLOCATE( y_stag(comp_interfaces_y) )
+
+    ALLOCATE( source_cell(comp_cells_x,comp_cells_y) )
+
+    ! cell where are equations are solved
+    source_cell(1:comp_cells_x,1:comp_cells_y) = 0
+
+
+    ALLOCATE( sourceE(comp_cells_x,comp_cells_y) )
+    ALLOCATE( sourceW(comp_cells_x,comp_cells_y) )
+    ALLOCATE( sourceN(comp_cells_x,comp_cells_y) )
+    ALLOCATE( sourceS(comp_cells_x,comp_cells_y) )
+
+    ALLOCATE( dist_sourceE(comp_cells_x,comp_cells_y) )
+    ALLOCATE( dist_sourceW(comp_cells_x,comp_cells_y) )
+    ALLOCATE( dist_sourceN(comp_cells_x,comp_cells_y) )
+    ALLOCATE( dist_sourceS(comp_cells_x,comp_cells_y) )
+
+    ALLOCATE( sourceE_vect_x(comp_cells_x,comp_cells_y) )
+    ALLOCATE( sourceE_vect_y(comp_cells_x,comp_cells_y) )
+    ALLOCATE( sourceW_vect_x(comp_cells_x,comp_cells_y) )
+    ALLOCATE( sourceW_vect_y(comp_cells_x,comp_cells_y) )
+    ALLOCATE( sourceS_vect_x(comp_cells_x,comp_cells_y) )
+    ALLOCATE( sourceS_vect_y(comp_cells_x,comp_cells_y) )
+    ALLOCATE( sourceN_vect_x(comp_cells_x,comp_cells_y) )
+    ALLOCATE( sourceN_vect_y(comp_cells_x,comp_cells_y) )
+
 
     ALLOCATE( B_cent(comp_cells_x,comp_cells_y) )
     ALLOCATE( B_prime_x(comp_cells_x,comp_cells_y) )
@@ -200,7 +254,137 @@ CONTAINS
 
     ENDDO
 
+    pi_g = 4.D0 * DATAN(1.D0) 
+
+    RETURN
+
   END SUBROUTINE init_grid
+
+
+  SUBROUTINE init_source
+
+    USE parameters_2d, ONLY : x_source , y_source , r_source
+
+    IMPLICIT NONE
+    
+    INTEGER :: j,k
+
+    REAL*8 :: total_source
+
+    WRITE(*,*) 'r_source',r_source
+    WRITE(*,*) 'dx,dy',dx,dy
+
+    ! cell where are equations are solved
+    source_cell(1:comp_cells_x,1:comp_cells_y) = 0
+
+    sourceE(1:comp_cells_x,1:comp_cells_y) = .FALSE.
+    sourceW(1:comp_cells_x,1:comp_cells_y) = .FALSE.
+    sourceN(1:comp_cells_x,1:comp_cells_y) = .FALSE.
+    sourceS(1:comp_cells_x,1:comp_cells_y) = .FALSE.
+
+    dist_sourceE(1:comp_cells_x,1:comp_cells_y) = 0.D0
+    dist_sourceW(1:comp_cells_x,1:comp_cells_y) = 0.D0
+    dist_sourceN(1:comp_cells_x,1:comp_cells_y) = 0.D0
+    dist_sourceS(1:comp_cells_x,1:comp_cells_y) = 0.D0
+
+    total_source = 0.D0
+
+    DO k = 2,comp_cells_y-1
+
+       DO j = 2,comp_cells_x-1
+
+          IF ( ( x_comp(j) - x_source )**2 + ( y_comp(k) - y_source )**2 .LE.   &
+               r_source**2 ) THEN
+
+             ! cells where equations are not solved
+             source_cell(j,k) = 1 
+
+             ! check on x-faces
+             IF ( ( x_comp(j-1) - x_source )**2 + ( y_comp(k) - y_source )**2   &
+                  .GE. r_source**2 ) THEN
+
+                ! cells where radial source boundary condition are applied
+                source_cell(j-1,k) = 2
+                sourceE(j-1,k) = .TRUE.
+                dist_sourceE(j-1,k) = DSQRT( ( x_stag(j) - x_source )**2        &
+                     + ( y_comp(k) - y_source )**2 )
+
+                sourceE_vect_x(j-1,k) = ( x_stag(j) - x_source ) * r_source     &
+                     / dist_sourceE(j-1,k)**2
+
+                sourceE_vect_y(j-1,k) = ( y_comp(k) - y_source ) * r_source     &
+                     / dist_sourceE(j-1,k)**2
+
+                total_source = total_source + dx * DABS( sourceE_vect_x(j-1,k) )
+         
+             ELSEIF ( ( x_comp(j+1) - x_source )**2 + ( y_comp(k)-y_source )**2 &
+                  .GE. r_source**2 ) THEN
+                
+                ! cells where radial source boundary condition are applied
+                source_cell(j+1,k) = 2
+                sourceW(j+1,k) = .TRUE.
+                dist_sourceW(j+1,k) = DSQRT( ( x_stag(j+1) - x_source )**2      &
+                     + ( y_comp(k) - y_source )**2 )
+
+                sourceW_vect_x(j+1,k) = ( x_stag(j+1) - x_source ) * r_source   &
+                     / dist_sourceW(j+1,k)**2
+
+                sourceW_vect_y(j+1,k) = ( y_comp(k) - y_source ) * r_source     &
+                     / dist_sourceW(j+1,k)**2
+
+                total_source = total_source + dx * DABS( sourceW_vect_x(j+1,k) )
+
+             END IF
+    
+             ! check on y-faces
+             IF ( ( x_comp(j) - x_source )**2 + ( y_comp(k-1) - y_source )**2   &
+                  .GE. r_source**2 ) THEN
+
+                ! cells where radial source boundary condition are applied
+                source_cell(j,k-1) = 2
+                sourceN(j,k-1) = .TRUE.
+                dist_sourceN(j,k-1) = DSQRT( ( x_comp(j) - x_source )**2        &
+                     + ( y_stag(k) - y_source )**2 )
+
+                sourceN_vect_x(j,k-1) = ( x_comp(j) - x_source ) * r_source     &
+                     / dist_sourceN(j,k-1)**2
+
+                sourceN_vect_y(j,k-1) = ( y_stag(k) - y_source ) * r_source     &
+                     / dist_sourceN(j,k-1)**2
+
+                total_source = total_source + dy * DABS( sourceN_vect_y(j,k-1) )
+
+             ELSEIF ( ( x_comp(j)-x_source )**2 + ( y_comp(k+1) - y_source )**2 &
+                  .GE. r_source**2 ) THEN
+
+                ! cells where radial source boundary condition are applied
+                source_cell(j,k+1) = 2
+                sourceS(j,k+1) = .TRUE.
+                dist_sourceS(j,k+1) = DSQRT( ( x_comp(j) - x_source )**2        &
+                     + ( y_stag(k+1) - y_source )**2 )
+                
+                sourceS_vect_x(j,k+1) = ( x_comp(j) - x_source ) * r_source     &
+                     / dist_sourceS(j,k+1)**2
+
+                sourceS_vect_y(j,k+1) = ( y_stag(k+1) - y_source ) * r_source   &
+                     / dist_sourceS(j,k+1)**2
+
+                total_source = total_source + dy * DABS( sourceS_vect_y(j,k+1) )
+
+             END IF
+
+          END IF
+
+       END DO
+
+    END DO
+    
+    WRITE(*,*) 'Volumetric inflow error',(total_source-2.D0*pi_g*r_source) / ( 2.D0 *pi_g*r_source )
+
+    RETURN
+
+
+  END SUBROUTINE init_source
 
   !---------------------------------------------------------------------------
   !> Scalar interpolation

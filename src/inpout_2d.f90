@@ -13,7 +13,7 @@
 MODULE inpout_2d
 
   ! -- Variables for the namelist RUN_PARAMETERS
-  USE parameters_2d, ONLY : t_start , t_end , dt_output , topo_change_flag
+  USE parameters_2d, ONLY : t_start , t_end , dt_output 
 
   USE solver_2d, ONLY : verbose_level
 
@@ -22,7 +22,8 @@ MODULE inpout_2d
   USE geometry_2d, ONLY : topography_profile , n_topography_profile_x ,         &
        n_topography_profile_y
   USE init_2d, ONLY : riemann_interface
-  USE parameters_2d, ONLY : riemann_flag , rheology_flag , energy_flag
+  USE parameters_2d, ONLY : riemann_flag , rheology_flag , energy_flag ,        &
+       topo_change_flag , radial_source_flag , collapsing_volume_flag
 
   ! -- Variables for the namelist INITIAL_CONDITIONS
   USE parameters_2d, ONLY : released_volume , x_release , y_release
@@ -45,8 +46,14 @@ MODULE inpout_2d
 
   ! -- Variables for the namelist EXPL_TERMS_PARAMETERS
   USE constitutive_2d, ONLY : grav
-  USE parameters_2d, ONLY : x_source , y_source , r_source , vfr_source ,       &
-       T_source
+
+  ! -- Variables for the namelist RADIAL_SOURCE_PARAMETERS
+  USE parameters_2d, ONLY : x_source , y_source , r_source , vel_source ,       &
+       T_source , h_source , alphas_source
+
+  ! -- Variables for the namelist COLLAPSING_VOLUME_PARAMETERS
+  USE parameters_2d, ONLY : x_collapse , y_collapse , r_collapse , T_collapse , &
+       h_collapse , alphas_collapse
   
   ! -- Variables for the namelist TEMPERATURE_PARAMETERS
   USE constitutive_2d, ONLY : rho , emissivity , exp_area_fract , enne , emme , &
@@ -170,13 +177,14 @@ MODULE inpout_2d
 
   NAMELIST / run_parameters / run_name , restart , t_start , t_end , dt_output ,&
        output_cons_flag , output_esri_flag , output_phys_flag ,                 &
-       output_runout_flag , topo_change_flag , verbose_level
+       output_runout_flag , verbose_level
 
   NAMELIST / restart_parameters / restart_file , alphas_init , alphas_ambient , &
        T_init , T_ambient , sed_vol_perc 
 
   NAMELIST / newrun_parameters / x0 , y0 , comp_cells_x , comp_cells_y ,        &
-       cell_size , rheology_flag , riemann_flag , energy_flag
+       cell_size , rheology_flag , riemann_flag , energy_flag ,                 &
+       radial_source_flag , collapsing_volume_flag , topo_change_flag
 
   NAMELIST / initial_conditions /  released_volume , x_release , y_release ,    &
        velocity_mod_release , velocity_ang_release , T_init , T_ambient
@@ -200,8 +208,13 @@ MODULE inpout_2d
   NAMELIST / numeric_parameters / solver_scheme, dt0 , max_dt , cfl, limiter ,  &
        theta , reconstr_coeff , interfaces_relaxation , n_RK   
 
-  NAMELIST / expl_terms_parameters / grav , x_source , y_source , r_source ,    &
-       vfr_source , T_source
+  NAMELIST / expl_terms_parameters / grav
+ 
+  NAMELIST / radial_source_parameters / x_source , y_source , r_source ,        &
+       vel_source , T_source , h_source , alphas_source
+
+  NAMELIST / collapsing_volume_parameters / x_collapse , y_collapse ,           &
+       r_collapse , T_collapse , h_collapse , alphas_collapse
  
   NAMELIST / temperature_parameters / emissivity ,  atm_heat_transf_coeff ,     &
        thermal_conductivity , exp_area_fract , c_p , enne , emme , T_env ,      &
@@ -278,6 +291,9 @@ CONTAINS
     rheology_flag = .FALSE.
     riemann_flag =.TRUE.
     energy_flag = .FALSE.
+    topo_change_flag = .FALSE.
+    radial_source_flag = .FALSE.
+    collapsing_volume_flag = .FALSE.
 
     !-- Inizialization of the Variables for the namelist left_state
     riemann_interface = 0.5D0
@@ -358,11 +374,6 @@ CONTAINS
 
     !-- Inizialization of the Variables for the namelist EXPL_TERMS_PARAMETERS
     grav = 9.81D0
-    x_source = 0.D0
-    y_source = 0.D0
-    r_source = 0.D0
-    vfr_source = 0.D0
-    T_source = 0.D0
 
     !-- Inizialization of the Variables for the namelist TEMPERATURE_PARAMETERS
     exp_area_fract = 0.5D0
@@ -542,7 +553,19 @@ CONTAINS
     !- Variables for the namelist LIQUID_TRANSPORT_PARAMETERS
     sp_heat_l = -1.D0
     rho_l = -1.D0
-    
+   
+
+    !- Variables for the namelist RADIAL_SOURCE_PARAMETERS
+    T_source = -1.D0
+    h_source = -1.D0
+    r_source = -1.D0
+    vel_source = -1.D0
+
+    !- Variables for the namelist COLLAPSING_VOLUME_PARAMETERS
+    T_collapse = -1.D0
+    h_collapse = -1.D0
+    r_collapse = -1.D0
+ 
   END SUBROUTINE init_param
 
   !******************************************************************************
@@ -564,6 +587,8 @@ CONTAINS
     USE parameters_2d, ONLY : n_vars , n_eqns 
     USE parameters_2d, ONLY : limiter
     USE parameters_2d, ONLY : bcW , bcE , bcS , bcN
+
+    USE geometry_2d, ONLY : deposit
 
     USE constitutive_2d, ONLY : rho_a_amb
 
@@ -823,7 +848,11 @@ CONTAINS
     diam_s(1:n_solid) = diam0_s(1:n_solid)
     sp_heat_s(1:n_solid) = sp_heat0_s(1:n_solid)
     C_D_s(1:n_solid) = 0.44D0
+
+    ALLOCATE( deposit( comp_cells_x , comp_cells_y , n_solid ) )
     
+    deposit = 0.D0
+
     IF ( restart ) THEN
 
        ! ------- READ restart_parameters NAMELIST --------------------------
@@ -931,30 +960,30 @@ CONTAINS
             
        ELSE
 
-          READ(input_unit,initial_conditions,IOSTAT=ios)
-          
-          IF ( ios .NE. 0 ) THEN
-             
-             WRITE(*,*) 'IOSTAT=',ios
-             WRITE(*,*) 'ERROR: problem with namelist INITIAL_CONDITIONS'
-             WRITE(*,*) 'Please check the input file'
-             STOP
-             
-          ELSE
-             
-             REWIND(input_unit)
-             
-          END IF
-          
-          IF ( T_init*T_ambient .EQ. 0.D0 ) THEN
-             
-             WRITE(*,*) 'T_init=',T_init
-             WRITE(*,*) 'T_ambient=',T_ambient
-             WRITE(*,*) 'Add the two variables to namelist INITIAL_CONDITIONS'
-             STOP
-             
-          END IF
-                    
+!!$          READ(input_unit,initial_conditions,IOSTAT=ios)
+!!$          
+!!$          IF ( ios .NE. 0 ) THEN
+!!$             
+!!$             WRITE(*,*) 'IOSTAT=',ios
+!!$             WRITE(*,*) 'ERROR: problem with namelist INITIAL_CONDITIONS'
+!!$             WRITE(*,*) 'Please check the input file'
+!!$             STOP
+!!$             
+!!$          ELSE
+!!$             
+!!$             REWIND(input_unit)
+!!$             
+!!$          END IF
+!!$          
+!!$          IF ( T_init*T_ambient .EQ. 0.D0 ) THEN
+!!$             
+!!$             WRITE(*,*) 'T_init=',T_init
+!!$             WRITE(*,*) 'T_ambient=',T_ambient
+!!$             WRITE(*,*) 'Add the two variables to namelist INITIAL_CONDITIONS'
+!!$             STOP
+!!$             
+!!$          END IF
+!!$                    
        END IF
 
     END IF
@@ -1417,12 +1446,190 @@ CONTAINS
     IF ( grav .EQ. -1.D0 ) THEN
        
        WRITE(*,*) 'ERROR: problem with namelist EXPL_TERMS_PARAMETERS'
-       WRITE(*,*) 'R_SOURCE not set properly'
+       WRITE(*,*) 'GRAV not set properly'
        WRITE(*,*) 'Please check the input file'
        STOP
        
     END IF
+
+    ! ------- READ radial_source_parameters NAMELIST ----------------------------
+
+    IF ( radial_source_flag ) THEN
+
+       ALLOCATE( alphas_source(n_solid) )
+
+       READ(input_unit,radial_source_parameters,IOSTAT=ios)
+
+       IF ( ios .NE. 0 ) THEN
+             
+          WRITE(*,*) 'IOSTAT=',ios
+          WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+          WRITE(*,*) 'Please check the input file'
+          STOP
+          
+       ELSE
+          
+          REWIND(input_unit)
+          
+          IF ( t_source .EQ. -1.D0 ) THEN
+             
+             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+             WRITE(*,*) 'PLEASE CHEC VALUE OF T_SOURCE',t_source
+             STOP
+             
+          END IF
+
+          IF ( h_source .EQ. -1.D0 ) THEN
+             
+             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+             WRITE(*,*) 'PLEASE CHEC VALUE OF H_SOURCE',h_source
+             STOP
+             
+          END IF
+
+          IF ( r_source .EQ. -1.D0 ) THEN
+             
+             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+             WRITE(*,*) 'PLEASE CHEC VALUE OF R_SOURCE',r_source
+             STOP
+             
+          END IF
+
+          IF ( vel_source .EQ. -1.D0 ) THEN
+             
+             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+             WRITE(*,*) 'PLEASE CHEC VALUE OF VEL_SOURCE',vel_source
+             STOP
+             
+          END IF
+          
+          IF ( ( x_source - r_source ) .LE. X0 + cell_size ) THEN
+             
+             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+             WRITE(*,*) 'SOURCE TOO LARGE'
+             WRITE(*,*) ' x_source - radius ',x_source-r_source
+             STOP
+
+          END IF
+
+          IF ( ( x_source + r_source ) .GE. X0+(comp_cells_x-1)*cell_size ) THEN
+             
+             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+             WRITE(*,*) 'SOURCE TOO LARGE'
+             WRITE(*,*) ' x_source + radius ',x_source+r_source
+             STOP
+
+          END IF
+
+          IF ( ( y_source - r_source ) .LE. Y0 + cell_size ) THEN
+             
+             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+             WRITE(*,*) 'SOURCE TOO LARGE'
+             WRITE(*,*) ' y_source - radius ',y_source-r_source
+             STOP
+
+          END IF
+
+          IF ( ( y_source + r_source ) .GE. Y0 +(comp_cells_y-1)*cell_size ) THEN
+             
+             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+             WRITE(*,*) 'SOURCE TOO LARGE'
+             WRITE(*,*) ' y_source + radius ',y_source+r_source
+             STOP
+
+          END IF
+
+       END IF
+           
+    END IF
+
+
+
     
+    ! ------- READ collapsing_volume_parameters NAMELIST ------------------------
+
+    IF ( collapsing_volume_flag ) THEN
+
+       ALLOCATE( alphas_collapse(n_solid) )
+
+       READ(input_unit,collapsing_volume_parameters,IOSTAT=ios)
+
+       IF ( ios .NE. 0 ) THEN
+             
+          WRITE(*,*) 'IOSTAT=',ios
+          WRITE(*,*) 'ERROR: problem with namelist COLLAPSING_VOLUME_PARAMETERS'
+          WRITE(*,*) 'Please check the input file'
+          STOP
+          
+       ELSE
+          
+          REWIND(input_unit)
+          
+          IF ( t_collapse .EQ. -1.D0 ) THEN
+             
+             WRITE(*,*) 'ERROR: problem with namelist COLLAPSING_VOLUME_PARAMETERS'
+             WRITE(*,*) 'PLEASE CHECK VALUE OF T_COLLAPSE',t_collapse
+             STOP
+             
+          END IF
+
+          IF ( h_collapse .EQ. -1.D0 ) THEN
+             
+             WRITE(*,*) 'ERROR: problem with namelist COLLAPSING_VOLUME_PARAMETERS'
+             WRITE(*,*) 'PLEASE CHECK VALUE OF H_COLLAPSE',h_collapse
+             STOP
+             
+          END IF
+
+          IF ( r_collapse .EQ. -1.D0 ) THEN
+             
+             WRITE(*,*) 'ERROR: problem with namelist COLLAPSING_VOLUME_PARAMETERS'
+             WRITE(*,*) 'PLEASE CHECK VALUE OF R_COLLAPSE',r_collapse
+             STOP
+             
+          END IF
+
+          IF ( ( x_collapse - r_collapse ) .LE. X0 + cell_size ) THEN
+             
+             WRITE(*,*) 'ERROR: problem with namelist COLLAPSING_VOLUME_PARAMETERS'
+             WRITE(*,*) 'COLLAPSING VOLUME TOO LARGE'
+             WRITE(*,*) ' x_collapse - radius ',x_collapse-r_collapse
+             STOP
+
+          END IF
+
+          IF ( ( x_collapse + r_collapse ) .GE. X0+(comp_cells_x-1)*cell_size ) THEN
+             
+             WRITE(*,*) 'ERROR: problem with namelist COLLAPSING_VOLUME_PARAMETERS'
+             WRITE(*,*) 'COLLAPSING VOLUME TOO LARGE'
+             WRITE(*,*) ' x_collapse + radius ',x_collapse+r_collapse
+             STOP
+
+          END IF
+
+          IF ( ( y_collapse - r_collapse ) .LE. Y0 + cell_size ) THEN
+             
+             WRITE(*,*) 'ERROR: problem with namelist COLLAPSING_VOLUME_PARAMETERS'
+             WRITE(*,*) 'COLLAPSING VOLUME TOO LARGE'
+             WRITE(*,*) ' y_collapse - radius ',y_collapse-r_collapse
+             STOP
+
+          END IF
+
+          IF ( ( y_collapse + r_collapse ) .GE. Y0 +(comp_cells_y-1)*cell_size ) THEN
+             
+             WRITE(*,*) 'ERROR: problem with namelist COLLAPSING_VOLUME_PARAMETERS'
+             WRITE(*,*) 'COLLAPSING VOLUME TOO LARGE'
+             WRITE(*,*) ' y_collapse + radius ',y_collapse+r_collapse
+             STOP
+
+          END IF
+
+       END IF
+           
+    END IF
+
+
     ! ------- READ temperature_parameters NAMELIST ------------------------------
 
     READ(input_unit, temperature_parameters,IOSTAT=ios)
@@ -1645,7 +1852,7 @@ CONTAINS
           WRITE(*,*) 'RHEOLOGY_MODEL =' , rheology_model
           WRITE(*,*) 'Bursik & Woods'
 
-          IF ( friction_factor .EQ. -1.D0 ) THEN
+          IF ( friction_factor .LT. 0.D0 ) THEN
              
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'FRICTION_FACTOR =' , friction_factor 
@@ -2643,16 +2850,18 @@ CONTAINS
 
   SUBROUTINE output_esri(output_idx)
 
-    USE geometry_2d, ONLY : B_cent , grid_output
+    USE geometry_2d, ONLY : B_cent , grid_output , deposit
     ! USE geometry_2d, ONLY : comp_interfaces_x , comp_interfaces_y
-    USE solver_2d, ONLY : q
+    USE solver_2d, ONLY : qp
 
     IMPLICIT NONE
 
     INTEGER, INTENT(IN) :: output_idx
 
     CHARACTER(LEN=4) :: idx_string
+    CHARACTER(LEN=4) :: isolid_string
     INTEGER :: j
+    INTEGER :: i_solid
     
     IF ( output_idx .EQ. 1 ) THEN
        
@@ -2686,9 +2895,9 @@ CONTAINS
 
     grid_output = -9999 
 
-    WHERE ( q(1,:,:).GE. 1.D-5 )
+    WHERE ( qp(1,:,:).GE. 1.D-5 )
 
-       grid_output = q(1,:,:) 
+       grid_output = qp(1,:,:) 
 
     END WHERE
 
@@ -2716,9 +2925,9 @@ CONTAINS
     
     grid_output = -9999 
     
-    WHERE ( q(1,:,:) .GE. 1.D-5 )
+    WHERE ( qp(1,:,:) .GE. 1.D-5 )
        
-       grid_output = q(4,:,:) / ( q(1,:,:) )
+       grid_output = qp(4,:,:)
        
     END WHERE
     
@@ -2736,8 +2945,45 @@ CONTAINS
     ENDDO
     
     CLOSE(output_esri_unit)
-    
-     
+
+    !Save deposit
+    DO i_solid=1,n_solid
+
+       isolid_string = lettera(i_solid)
+
+       output_esri_file = TRIM(run_name)//'_dep_'//isolid_string//'_'//idx_string//'.asc'
+       
+       WRITE(*,*) 'WRITING ',output_esri_file
+       
+       OPEN(output_esri_unit,FILE=output_esri_file,status='unknown',form='formatted')
+       
+       grid_output = -9999 
+       
+       WHERE ( deposit(:,:,i_solid) .GT. 0.D0 )
+          
+          grid_output = deposit(:,:,i_solid)
+       
+       END WHERE
+       
+       WRITE(output_esri_unit,'(A,I5)') 'ncols ', comp_cells_x
+       WRITE(output_esri_unit,'(A,I5)') 'nrows ', comp_cells_y
+       WRITE(output_esri_unit,'(A,F15.3)') 'xllcorner ', x0
+       WRITE(output_esri_unit,'(A,F15.3)') 'yllcorner ', y0
+       WRITE(output_esri_unit,'(A,F15.3)') 'cellsize ', cell_size
+       WRITE(output_esri_unit,'(A,I5)') 'NODATA_value ', -9999
+       
+       DO j = comp_cells_y,1,-1
+          
+          WRITE(output_esri_unit,'(2000ES12.3E3)') grid_output(1:comp_cells_x,j)
+          
+       ENDDO
+       
+       CLOSE(output_esri_unit)
+       
+    END DO
+
+    RETURN
+       
   END SUBROUTINE output_esri
 
   SUBROUTINE close_units

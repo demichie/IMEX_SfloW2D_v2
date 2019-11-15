@@ -238,7 +238,7 @@ CONTAINS
 
     END IF
 
-    IF ( qj(1) .GT. 1.D-25 ) THEN
+    IF ( DBLE(qj(1)) .GT. 1.D-25 ) THEN
 
        sp_heat_mix = SUM( qj(5:4+n_solid) / qj(1) * sp_heat_s(1:n_solid) ) +    &
             ( DCMPLX(1.D0,0.D0) - SUM( qj(5:4+n_solid) / qj(1) ) ) * sp_heat_a
@@ -266,7 +266,7 @@ CONTAINS
 
     rho_a =  pres / ( sp_gas_const_a * T )
 
-    IF ( SUM(qj(5:4+n_solid)) .GT. 1.D-25 ) THEN
+    IF ( SUM(DBLE(qj(5:4+n_solid))) .GT. 1.D-25 ) THEN
 
        rhos_tot = SUM( qj(5:4+n_solid) ) / SUM( qj(5:4+n_solid) /               &
             rho_s(1:n_solid) ) 
@@ -370,6 +370,22 @@ CONTAINS
 
     r_h = qpj(1)
 
+    IF ( r_h .LE. 0.D0 ) THEN
+
+       r_u = 0.D0
+       r_v = 0.D0
+       r_T = T_ambient
+       r_alphas(1:n_solid) = 0.D0
+       r_red_grav = 0.D0
+       r_Ri = 0.D0
+
+       RETURN
+
+    END IF
+
+    r_u = qpj(2) / r_h
+    r_v = qpj(3) / r_h
+
     r_T = qpj(4)
 
     r_alphas(1:n_solid) = qpj(5:4+n_solid) 
@@ -380,17 +396,6 @@ CONTAINS
 
     r_red_grav = ( r_rho_m - rho_a_amb ) / r_rho_m * grav
 
-    IF ( r_h .GT. 0.D0 ) THEN
-
-       r_u = qpj(2) / r_h
-       r_v = qpj(3) / r_h
-
-    ELSE
-
-       r_u = 0.D0
-       r_v = 0.D0
-
-    END IF
 
     IF ( ( r_u**2 + r_v**2 ) .GT. 0.D0 ) THEN
     
@@ -411,9 +416,9 @@ CONTAINS
   !
   !> This subroutine evaluates from the conservative variables qc the 
   !> array of physical variables qp:\n
-  !> - qp(1) = \f$ h+B \f$
-  !> - qp(2) = \f$ u \f$
-  !> - qp(3) = \f$ v \f$
+  !> - qp(1) = \f$ h \f$
+  !> - qp(2) = \f$ hu \f$
+  !> - qp(3) = \f$ hv \f$
   !> - qp(4) = \f$ T \f$
   !> - qp(5) = \f$ alphas \f$
   !> .
@@ -444,7 +449,6 @@ CONTAINS
     ! is not flat and the free surface is horizontal (steady condition), the  
     ! latter is kept flat by the reconstruction and the solution is stable.
 
-    !qp(1) = DBLE(h+B)
     qp(1) = DBLE(h)
     
     qp(2) = DBLE(h*u)
@@ -760,8 +764,6 @@ CONTAINS
 
     COMPLEX*16 :: nh_term(n_eqns)
 
-    COMPLEX*16 :: relaxation_term(n_eqns)
-
     COMPLEX*16 :: forces_term(n_eqns)
 
     INTEGER :: i
@@ -815,9 +817,6 @@ CONTAINS
        STOP
 
     END IF
-
-    ! initialize and evaluate the relaxation terms
-    relaxation_term(1:n_eqns) = DCMPLX(0.D0,0.D0) 
 
     ! initialize and evaluate the forces terms
     forces_term(1:n_eqns) = DCMPLX(0.D0,0.D0)
@@ -949,7 +948,7 @@ CONTAINS
        
     ENDIF
 
-    nh_term = relaxation_term + forces_term
+    nh_term = forces_term
 
     IF ( present(c_qj) .AND. present(c_nh_term_impl) ) THEN
 
@@ -1270,10 +1269,8 @@ CONTAINS
   !******************************************************************************
 
   SUBROUTINE eval_topo_term( qj , deposition_avg_term , erosion_avg_term ,      &
-       eqns_term, topo_term )
+       eqns_term, deposit_term )
     
-    USE parameters_2d, ONLY : topo_change_flag
-
     IMPLICIT NONE
     
     REAL*8, INTENT(IN) :: qj(n_eqns)                   !< conservative variables 
@@ -1281,7 +1278,7 @@ CONTAINS
     REAL*8, INTENT(IN) :: erosion_avg_term(n_solid)    !< erosion term
 
     REAL*8, INTENT(OUT):: eqns_term(n_eqns)
-    REAL*8, INTENT(OUT):: topo_term
+    REAL*8, INTENT(OUT):: deposit_term(n_solid)
    
     REAL*8 :: entr_coeff
     REAL*8 :: air_entr
@@ -1335,22 +1332,37 @@ CONTAINS
 
    
     ! solid phase thickness equation
-    eqns_term(5:4+n_solid) = rho_s * ( erosion_avg_term(1:n_solid)              &
+    eqns_term(5:4+n_solid) = rho_s(1:n_solid) * ( erosion_avg_term(1:n_solid)   &
          - deposition_avg_term(1:n_solid) )
 
-    IF ( topo_change_flag ) THEN
+    ! solid deposit rate terms
+    deposit_term(1:n_solid) =deposition_avg_term(1:n_solid)                     &
+         - erosion_avg_term(1:n_solid)
 
-       ! topography term
-       topo_term = SUM( deposition_avg_term - erosion_avg_term )
-
-    ELSE
-
-       topo_term = 0.D0
-
-    END IF
+    RETURN
 
   END SUBROUTINE eval_topo_term
   
+  SUBROUTINE eval_source_bdry( vect_x , vect_y , source_bdry )
+
+    USE parameters_2d, ONLY : h_source , vel_source , T_source , alphas_source
+
+    IMPLICIT NONE
+
+    REAL*8, INTENT(IN) :: vect_x
+    REAL*8, INTENT(IN) :: vect_y
+    REAL*8, INTENT(OUT) :: source_bdry(n_vars)
+
+    source_bdry(1) = h_source
+    source_bdry(2) = h_source * vel_source * vect_x
+    source_bdry(3) = h_source * vel_source * vect_y
+    source_bdry(4) = T_source
+    source_bdry(5:n_vars) = alphas_source(1:n_solid)
+    
+    RETURN
+
+  END SUBROUTINE eval_source_bdry
+
   !------------------------------------------------------------------------------
   !> Settling velocity function
   !
@@ -1424,7 +1436,7 @@ CONTAINS
     END IF
 
     C_D_s(i_solid) = C_D
-    
+
     RETURN
 
   END FUNCTION settling_velocity
