@@ -983,8 +983,7 @@ CONTAINS
 
           CALL cpu_time(t_imex1)
           ! WRITE(*,*) 'Time taken by explicit',t_imex1-t_imex2,'seconds'
-
-
+          
        END IF
           
        IF ( verbose_level .GE. 1 ) THEN
@@ -2090,7 +2089,6 @@ CONTAINS
           DO i=1,n_eqns
              
              divFlux(i,j,k) = 0.D0
-
              
              IF ( comp_cells_x .GT. 1 ) THEN
                 
@@ -2105,9 +2103,9 @@ CONTAINS
                      ( H_interface_y(i,j,k+1) - H_interface_y(i,j,k) ) / dy
                 
              END IF
-    
+                
           END DO
-
+         
           h_old = q_expl(1,j,k)
           h_new = h_old - dt * divFlux(1,j,k)
 
@@ -2120,7 +2118,19 @@ CONTAINS
 
     q = q_old
 
+    RETURN
+
   END SUBROUTINE eval_hyperbolic_terms
+
+  !******************************************************************************
+  !> \brief Upwind numerical fluxes
+  !
+  !> This subroutine evaluates the numerical fluxes H at the 
+  !> cells interfaces with an upwind discretization.
+  !> @author 
+  !> Mattia de' Michieli Vitturi
+  !> \date 2019/11/16
+  !******************************************************************************
 
   SUBROUTINE eval_flux_UP
 
@@ -2150,7 +2160,6 @@ CONTAINS
 
              CALL eval_fluxes( q_interfaceR(1:n_vars,j,k) ,                     &
                   qp_interfaceR(1:n_vars,j,k) , B_interfaceR(j,k) , 1 , fluxR)
-
 
              IF ( ( q_interfaceL(2,j,k) .GT. 0.D0 ) .AND.                       &
                   ( q_interfaceR(2,j,k) .GE. 0.D0 ) ) THEN

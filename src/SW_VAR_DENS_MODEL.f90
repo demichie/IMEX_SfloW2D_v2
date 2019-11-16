@@ -122,10 +122,10 @@ PROGRAM SW_VAR_DENS_MODEL
 
   END IF
 
-  CALL check_solve
-
   IF ( radial_source_flag ) CALL init_source
 
+  CALL check_solve
+  
   IF ( topo_change_flag ) CALL topography_reconstruction
 
   t = t_start
