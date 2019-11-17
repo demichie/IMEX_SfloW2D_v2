@@ -1932,19 +1932,19 @@ CONTAINS
              
              max_vel_new = MAX(max_vel_new,DSQRT(u_new**2+v_new**2))
 
-             IF ( DABS( u_new - u_old ) .GT. 1.D-3) THEN
-
-                WRITE(*,*) 'u',qp(1,j,k),u_old,u_new
-                READ(*,*)
-
-             END IF
-
-             IF ( DABS( v_new - v_old ) .GT. 1.D-3) THEN
-
-                WRITE(*,*) 'v',qp(1,j,k),u_old,u_new
-                READ(*,*)
-
-             END IF
+!!$             IF ( DABS( u_new - u_old ) .GT. 1.D-3) THEN
+!!$
+!!$                WRITE(*,*) 'u',qp(1,j,k),u_old,u_new
+!!$                READ(*,*)
+!!$
+!!$             END IF
+!!$
+!!$             IF ( DABS( v_new - v_old ) .GT. 1.D-3) THEN
+!!$
+!!$                WRITE(*,*) 'v',qp(1,j,k),u_old,u_new
+!!$                READ(*,*)
+!!$
+!!$             END IF
 
           END IF
 
