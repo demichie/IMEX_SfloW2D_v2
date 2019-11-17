@@ -10,8 +10,6 @@ import time
 import sys
 import os.path
 
-print 
-
 if len(sys.argv)==3: 
  
     filename = sys.argv[1]
@@ -40,8 +38,6 @@ else:
 
 data = np.loadtxt(filename,skiprows=0)
 
-print data.shape
-
 x_cent = data[:,0]
 y_cent = data[:,1]
 h = data[:,2]
@@ -58,8 +54,6 @@ x_unique = np.unique(x_cent)
 
 n_cent = len(x_cent)
 n_unique = len(x_unique)
-
-print n_cent,n_unique
 
 # create a figure for the plot
 fig, ax = plt.subplots()
