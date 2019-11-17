@@ -191,7 +191,7 @@ CONTAINS
     dy2 = dy / 2.d0
 
     ! eps_sing = MIN( dx ** 4.D0,dy ** 4.D0 )
-    eps_sing=MIN(MIN( dx ** 4.D0,dy ** 4.D0 ),1.d-20)
+    eps_sing=MIN(MIN( dx ** 4.D0,dy ** 4.D0 ),1.d-10)
 
     IF ( verbose_level .GE. 1 ) WRITE(*,*) 'eps_sing = ',eps_sing
     

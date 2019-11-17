@@ -628,6 +628,12 @@ CONTAINS
     INTEGER :: i,j,k          !< loop counter
 
     REAL*8 :: max_a
+    
+    REAL*8 :: max_vel
+    INTEGER :: max_j,max_k
+    INTEGER :: max_dir
+    
+    max_vel = 0.D0
 
     dt = max_dt
 
@@ -667,6 +673,15 @@ CONTAINS
              max_a =  MAX( MAXVAL(a_interface_x_max(:,j,k)) ,                   &
                   MAXVAL(a_interface_x_max(:,j+1,k)) )
 
+             IF ( max_a .GT. max_vel) THEN 
+
+                max_vel = max_a
+                max_j = j
+                max_k = k
+                max_dir = 1
+
+             END IF
+                
              IF ( max_a .GT. 0.D0 ) THEN
 
                 dt_interface_x = cfl * dx / max_a
@@ -676,10 +691,19 @@ CONTAINS
                 dt_interface_x = dt
                 
              END IF
-
+             
              max_a =  MAX( MAXVAL(a_interface_y_max(:,j,k)) ,                   &
                   MAXVAL(a_interface_y_max(:,j,k+1)) )
 
+             IF ( max_a .GT. max_vel) THEN 
+
+                max_vel = max_a
+                max_j = j
+                max_k = k
+                max_dir = 2
+
+             END IF
+             
              IF ( max_a .GT. 0.D0 ) THEN
 
                 dt_interface_y = cfl * dy / max_a
@@ -690,16 +714,32 @@ CONTAINS
 
              END IF
 
+             
              dt_cfl = MIN( dt_interface_x , dt_interface_y )
 
              dt = MIN(dt,dt_cfl)
 
+!!$             IF ( ( j.EQ. 230 ) .AND. ( k.EQ.123) ) THEN
+!!$
+!!$                WRITE(*,*) a_interface_x_max(1,j,k),a_interface_x_max(1,j+1,k)
+!!$                
+!!$                WRITE(*,*) qp(1,j,k),qp_interfaceR(1,j+1,k),qp(1,j+1,k),  &
+!!$                     qp_interfaceL(1,j+2,k),qp(1,j+2,k)
+!!$                
+!!$                WRITE(*,*) qp(2,j,k),qp_interfaceR(2,j+1,k),qp(2,j+1,k),  &
+!!$                     qp_interfaceL(2,j+2,k),qp(2,j+2,k)
+!!$                   
+!!$             END IF
+
+             
           ENDDO
 
        END DO
 
     END IF
 
+!!$    WRITE(*,*) 'max_vel',max_vel,max_j,max_k,max_dir
+    
   END SUBROUTINE timestep
 
   !******************************************************************************
@@ -1835,8 +1875,13 @@ CONTAINS
     REAL*8 :: u_old , u_new
     REAL*8 :: v_old , v_new
 
+    REAL*8 :: max_vel_old , max_vel_new
+    
     INTEGER :: j ,k
-  
+
+    max_vel_old = 0.D0
+    max_vel_new = 0.D0
+    
     IF ( ( erosion_coeff .EQ. 0.D0 ) .AND. ( settling_vel .EQ. 0.D0 ) ) RETURN
 
     DO k = 1,comp_cells_y
@@ -1869,6 +1914,8 @@ CONTAINS
 
              u_old = qp(2,j,k)/qp(1,j,k)
              v_old = qp(3,j,k)/qp(1,j,k)
+
+             max_vel_old = MAX(max_vel_old,DSQRT(u_old**2+v_old**2))
              
           END IF
                 
@@ -1883,6 +1930,8 @@ CONTAINS
              u_new = qp(2,j,k)/qp(1,j,k)
              v_new = qp(3,j,k)/qp(1,j,k)
              
+             max_vel_new = MAX(max_vel_new,DSQRT(u_new**2+v_new**2))
+
              IF ( DABS( u_new - u_old ) .GT. 1.D-3) THEN
 
                 WRITE(*,*) 'u',qp(1,j,k),u_old,u_new
@@ -1943,6 +1992,8 @@ CONTAINS
        END DO
 
     END DO
+
+!!$    WRITE(*,*) 'max_vel',max_vel_old,max_vel_new
     
     RETURN
 
@@ -2502,6 +2553,10 @@ CONTAINS
     INTEGER :: i              !< loop counter (variables)
     ! INTEGER :: l              !< loop counter (cells)
 
+    REAL*8 :: gamma_W , gamma_E
+    REAL*8 :: gamma_N , gamma_S
+    REAL*8 :: gamma
+    
     ! Compute the variable to reconstruct (phys or cons)
     DO k = 1,comp_cells_y
 
@@ -2629,6 +2684,27 @@ CONTAINS
                 qrecW(i) = qrec(i,j,k) - reconstr_coeff * dx2 * qrec_prime_x
                 qrecE(i) = qrec(i,j,k) + reconstr_coeff * dx2 * qrec_prime_x
 
+                IF ( ( j .GT. 1 ) .AND. ( j .LT. comp_cells_x ) .AND.           &
+                     ( ( i.EQ.2 ) .OR. ( i.EQ. 3 ) ) ) THEN
+
+                   ! correction on the reconstruction slope in order to keep u, 
+                   ! v at the interfaces limited (no new max and min created) 
+                   
+                   gamma_W =  MAX( DABS( qrec(i,j-1,k) / qrec(1,j-1,k) ) ,      &
+                        DABS( qrec(i,j,k) / qrec(1,j,k) ) ) /                   &
+                        DABS( qrecW(i) / qrecW(1) )
+
+                   gamma_E =  MAX( DABS( qrec(i,j,k) / qrec(1,j,k) ) ,          &
+                        DABS( qrec(i,j+1,k) / qrec(1,j+1,k) ) ) /               &
+                        DABS( qrecE(i) / qrecE(1) ) 
+                   
+                   gamma = MIN( gamma_W,gamma_E,1.D0)
+                   
+                   qrecW(i) = qrec(i,j,k) - gamma * dx2 * qrec_prime_x
+                   qrecE(i) = qrec(i,j,k) + gamma * dx2 * qrec_prime_x
+                   
+                END IF
+                
              END IF check_comp_cells_x
 
              ! y-direction
@@ -2721,6 +2797,27 @@ CONTAINS
                 qrecS(i) = qrec(i,j,k) - reconstr_coeff * dy2 * qrec_prime_y
                 qrecN(i) = qrec(i,j,k) + reconstr_coeff * dy2 * qrec_prime_y
 
+                IF ( ( k.GT.1 ) .AND. ( k .LT. comp_cells_y ) .AND.             &
+                     ( ( i.EQ.2 ) .OR. ( i.EQ. 3 ) ) ) THEN
+
+                   ! correction on the reconstruction slope in order to keep u, 
+                   ! v at the interfaces limited (no new max and min created) 
+                   
+                   gamma_S =  MAX( DABS( qrec(i,j,k-1) / qrec(1,j,k-1) ) ,      &
+                        DABS( qrec(i,j,k) / qrec(1,j,k) ) ) /                   &
+                        DABS( qrecS(i) / qrecS(1) )
+
+                   gamma_N =  MAX( DABS( qrec(i,j,k) / qrec(1,j,k) ) ,          &
+                        DABS( qrec(i,j,k+1) / qrec(1,j,k+1) ) ) /               &
+                        DABS( qrecN(i) / qrecN(1) ) 
+                   
+                   gamma = MIN( gamma_S,gamma_N,1.D0)
+                   
+                   qrecS(i) = qrec(i,j,k) - gamma * dy2 * qrec_prime_y
+                   qrecN(i) = qrec(i,j,k) + gamma * dy2 * qrec_prime_y
+                   
+                END IF
+                
              ENDIF check_comp_cells_y
 
           ENDDO vars_loop
@@ -2805,7 +2902,7 @@ CONTAINS
                    END IF
 
                 END IF
-                
+                   
                 CALL qp_to_qc( qrecW,B_interfaceR(j,k),q_interfaceR(:,j,k) )
                 CALL qp_to_qc( qrecE,B_interfaceL(j+1,k),q_interfaceL(:,j+1,k) )
 
