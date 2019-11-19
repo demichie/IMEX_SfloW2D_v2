@@ -2522,6 +2522,10 @@ CONTAINS
     USE geometry_2d, ONLY : x_comp , x_stag , y_comp , y_stag , dx , dx2 , dy , &
          dy2
 
+    USE geometry_2d, ONLY : B_cent
+    USE geometry_2d, ONLY : B_interfaceL , B_interfaceR
+    USE geometry_2d, ONLY : B_interfaceT , B_interfaceB
+    
     USE geometry_2d, ONLY : sourceW , sourceE , sourceN , sourceS
     USE geometry_2d, ONLY : sourceW_vect_x , sourceW_vect_y
     USE geometry_2d, ONLY : sourceE_vect_x , sourceE_vect_y
@@ -2541,9 +2545,9 @@ CONTAINS
     REAL*8 :: qrecS(n_vars)     !< recons var at the south edge of the cells
     REAL*8 :: qrecN(n_vars)     !< recons var at the north edge of the cells
 
-    REAL*8 :: qp2recC(2)
-    REAL*8 :: qp2recL(2) , qp2recW(2) , qp2recE(2) , qp2recR(2)
-    REAL*8 :: qp2recB(2) , qp2recS(2) , qp2recN(2) , qp2recT(2)
+    REAL*8 :: qp2recC(3)
+    REAL*8 :: qp2recL(3) , qp2recW(3) , qp2recE(3) , qp2recR(3)
+    REAL*8 :: qp2recB(3) , qp2recS(3) , qp2recN(3) , qp2recT(3)
 
     REAL*8 :: source_bdry(n_vars)
 
@@ -2793,13 +2797,13 @@ CONTAINS
              ! min created) 
   
              ! compute the values of u,v at the cell centers and W,E interfaces
-             CALL qp_to_qp2( qrec(1:n_vars,j-1,k) , qp2recL(1:2) ) 
-             CALL qp_to_qp2( qrecW(1:n_vars) , qp2recW(1:2) ) 
-             CALL qp_to_qp2( qrec(1:n_vars,j,k) , qp2recC(1:2) ) 
-             CALL qp_to_qp2( qrecE(1:n_vars) , qp2recE(1:2) ) 
-             CALL qp_to_qp2( qrec(1:n_vars,j+1,k) , qp2recR(1:2) ) 
+             CALL qp_to_qp2( qrec(1:n_vars,j-1,k) , B_cent(j-1,k) , qp2recL ) 
+             CALL qp_to_qp2( qrecW(1:n_vars) , B_interfaceR(j,k), qp2recW ) 
+             CALL qp_to_qp2( qrec(1:n_vars,j,k) , B_cent(j,k) , qp2recC ) 
+             CALL qp_to_qp2( qrecE(1:n_vars) , B_interfaceL(j+1,k) , qp2recE ) 
+             CALL qp_to_qp2( qrec(1:n_vars,j+1,k) , B_cent(j+1,k) , qp2recR ) 
              
-             DO i=1,2
+             DO i=2,3
            
                 IF ( qp2recW(i) .GT. 0.D0 ) THEN
                    
@@ -2825,8 +2829,8 @@ CONTAINS
 
                 gamma = MIN( gamma_W,gamma_E,1.D0)
                 
-                qrecW(i+1) = qrec(i+1,j,k) - gamma * dx2 * qrec_prime_x(i+1)
-                qrecE(i+1) = qrec(i+1,j,k) + gamma * dx2 * qrec_prime_x(i+1)
+                qrecW(i) = qrec(i,j,k) - gamma * dx2 * qrec_prime_x(i)
+                qrecE(i) = qrec(i,j,k) + gamma * dx2 * qrec_prime_x(i)
                 
              END DO
              
@@ -2839,13 +2843,13 @@ CONTAINS
              ! min created) 
  
              ! compute the values of u,v at the cell centers and S,N interfaces
-             CALL qp_to_qp2( qrec(1:n_vars,j,k-1) , qp2recB(1:2) ) 
-             CALL qp_to_qp2( qrecS(1:n_vars) , qp2recS(1:2) ) 
-             CALL qp_to_qp2( qrec(1:n_vars,j,k) , qp2recC(1:2) ) 
-             CALL qp_to_qp2( qrecN(1:n_vars) , qp2recN(1:2) ) 
-             CALL qp_to_qp2( qrec(1:n_vars,j,k+1) , qp2recT(1:2) ) 
+             CALL qp_to_qp2( qrec(1:n_vars,j,k-1) , B_cent(j,k-1) , qp2recB ) 
+             CALL qp_to_qp2( qrecS(1:n_vars) , B_interfaceT(j,k) , qp2recS ) 
+             CALL qp_to_qp2( qrec(1:n_vars,j,k) , B_cent(j,k) , qp2recC ) 
+             CALL qp_to_qp2( qrecN(1:n_vars) , B_interfaceB(j,k+1) , qp2recN ) 
+             CALL qp_to_qp2( qrec(1:n_vars,j,k+1) , B_cent(j,k+1) , qp2recT ) 
 
-             DO i=1,2
+             DO i=2,3
 
                 IF ( qp2recS(i) .GT. 0.D0 ) THEN
 
@@ -2871,8 +2875,8 @@ CONTAINS
 
                 gamma = MIN( gamma_S,gamma_N,1.D0)
              
-                qrecS(i+1) = qrec(i+1,j,k) - gamma * dy2 * qrec_prime_y(i+1)
-                qrecN(i+1) = qrec(i+1,j,k) + gamma * dy2 * qrec_prime_y(i+1)
+                qrecS(i) = qrec(i,j,k) - gamma * dy2 * qrec_prime_y(i)
+                qrecN(i) = qrec(i,j,k) + gamma * dy2 * qrec_prime_y(i)
              
              END DO
 

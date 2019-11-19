@@ -551,22 +551,25 @@ CONTAINS
   !> \date 10/10/2019
   !******************************************************************************
  
-  SUBROUTINE qp_to_qp2(qpj,qp2j)
+  SUBROUTINE qp_to_qp2(qpj,Bj,qp2j)
 
     IMPLICIT none
 
     REAL*8, INTENT(IN) :: qpj(n_vars)
-    REAL*8, INTENT(OUT) :: qp2j(2)
+    REAL*8, INTENT(IN) :: Bj
+    REAL*8, INTENT(OUT) :: qp2j(3)
 
+    qp2j(1) = qpj(1) + Bj
+    
     IF ( qpj(1) .LE. 0.D0 ) THEN
 
-       qp2j(1) = 0.D0
        qp2j(2) = 0.D0
+       qp2j(3) = 0.D0
 
     ELSE
 
-       qp2j(1) = qpj(2) / qpj(1)
-       qp2j(2) = qpj(3) / qpj(1)
+       qp2j(2) = qpj(2) / qpj(1)
+       qp2j(3) = qpj(3) / qpj(1)
 
     END IF
 

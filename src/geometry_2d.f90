@@ -379,10 +379,7 @@ CONTAINS
 
     END DO
     
-    WRITE(*,*) 'Volumetric inflow error',(total_source-2.D0*pi_g*r_source) / ( 2.D0 *pi_g*r_source )
-
     RETURN
-
 
   END SUBROUTINE init_source
 
