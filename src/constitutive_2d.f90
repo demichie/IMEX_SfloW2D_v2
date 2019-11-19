@@ -538,6 +538,42 @@ CONTAINS
        
   END SUBROUTINE qp_to_qc
 
+  
+  !******************************************************************************
+  !> \brief Additional Physical variables
+  !
+  !> This subroutine evaluates from the physical local variables qpj, the two
+  !> additional local variables qp2j = (u,v). 
+  !> \param[in]    qpj    real-valued physical variables 
+  !> \param[out]   qp2j   real-valued physical variables 
+  !> @author 
+  !> Mattia de' Michieli Vitturi
+  !> \date 10/10/2019
+  !******************************************************************************
+ 
+  SUBROUTINE qp_to_qp2(qpj,qp2j)
+
+    IMPLICIT none
+
+    REAL*8, INTENT(IN) :: qpj(n_vars)
+    REAL*8, INTENT(OUT) :: qp2j(2)
+
+    IF ( qpj(1) .LE. 0.D0 ) THEN
+
+       qp2j(1) = 0.D0
+       qp2j(2) = 0.D0
+
+    ELSE
+
+       qp2j(1) = qpj(2) / qpj(1)
+       qp2j(2) = qpj(3) / qpj(1)
+
+    END IF
+
+    RETURN
+
+  END SUBROUTINE qp_to_qp2
+
   !******************************************************************************
   !> \brief Local Characteristic speeds x direction
   !

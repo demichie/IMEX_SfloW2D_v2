@@ -2514,7 +2514,7 @@ CONTAINS
   SUBROUTINE reconstruction(q_expl,qp_expl)
 
     ! External procedures
-    USE constitutive_2d, ONLY : qc_to_qp , qp_to_qc
+    USE constitutive_2d, ONLY : qc_to_qp , qp_to_qc ,qp_to_qp2
     USE constitutive_2d, ONLY : eval_source_bdry
     USE parameters_2d, ONLY : limiter
 
@@ -2541,13 +2541,17 @@ CONTAINS
     REAL*8 :: qrecS(n_vars)     !< recons var at the south edge of the cells
     REAL*8 :: qrecN(n_vars)     !< recons var at the north edge of the cells
 
+    REAL*8 :: qp2recC(2)
+    REAL*8 :: qp2recL(2) , qp2recW(2) , qp2recE(2) , qp2recR(2)
+    REAL*8 :: qp2recB(2) , qp2recS(2) , qp2recN(2) , qp2recT(2)
+
     REAL*8 :: source_bdry(n_vars)
 
     REAL*8 :: qrec_stencil(3)   !< recons variables stencil for the limiter
     REAL*8 :: x_stencil(3)    !< grid stencil for the limiter
     REAL*8 :: y_stencil(3)    !< grid stencil for the limiter
-    REAL*8 :: qrec_prime_x      !< recons variables slope
-    REAL*8 :: qrec_prime_y      !< recons variables slope
+    REAL*8 :: qrec_prime_x(n_vars)      !< recons variables slope
+    REAL*8 :: qrec_prime_y(n_vars)      !< recons variables slope
 
     INTEGER :: j,k            !< loop counters (cells)
     INTEGER :: i              !< loop counter (variables)
@@ -2557,6 +2561,7 @@ CONTAINS
     REAL*8 :: gamma_N , gamma_S
     REAL*8 :: gamma
     
+
     ! Compute the variable to reconstruct (phys or cons)
     DO k = 1,comp_cells_y
 
@@ -2609,15 +2614,15 @@ CONTAINS
                       qrec_stencil(2:3) = qrec(i,1:2,k)
 
                       CALL limit( qrec_stencil , x_stencil , limiter(i) ,       &
-                           qrec_prime_x ) 
+                           qrec_prime_x(i) ) 
 
                    ELSEIF ( bcW(i)%flag .EQ. 1 ) THEN
 
-                      qrec_prime_x = bcW(i)%value
+                      qrec_prime_x(i) = bcW(i)%value
 
                    ELSEIF ( bcW(i)%flag .EQ. 2 ) THEN
 
-                      qrec_prime_x = ( qrec(i,2,k) - qrec(i,1,k) ) / dx
+                      qrec_prime_x(i) = ( qrec(i,2,k) - qrec(i,1,k) ) / dx
 
                    END IF
 
@@ -2633,15 +2638,15 @@ CONTAINS
                       x_stencil(1:2) = x_comp(comp_cells_x-1:comp_cells_x)
 
                       CALL limit( qrec_stencil , x_stencil , limiter(i) ,       &
-                           qrec_prime_x ) 
+                           qrec_prime_x(i) ) 
 
                    ELSEIF ( bcE(i)%flag .EQ. 1 ) THEN
 
-                      qrec_prime_x = bcE(i)%value
+                      qrec_prime_x(i) = bcE(i)%value
 
                    ELSEIF ( bcE(i)%flag .EQ. 2 ) THEN
 
-                      qrec_prime_x = ( qrec(i,comp_cells_x,k) -                 &
+                      qrec_prime_x(i) = ( qrec(i,comp_cells_x,k) -                 &
                            qrec(i,comp_cells_x-1,k) ) / dx
 
                    END IF
@@ -2677,33 +2682,12 @@ CONTAINS
                    END IF
 
                    CALL limit( qrec_stencil , x_stencil , limiter(i) ,          &
-                        qrec_prime_x )
+                        qrec_prime_x(i) )
 
                 ENDIF check_x_boundary
 
-                qrecW(i) = qrec(i,j,k) - reconstr_coeff * dx2 * qrec_prime_x
-                qrecE(i) = qrec(i,j,k) + reconstr_coeff * dx2 * qrec_prime_x
-
-                IF ( ( j .GT. 1 ) .AND. ( j .LT. comp_cells_x ) .AND.           &
-                     ( ( i.EQ.2 ) .OR. ( i.EQ. 3 ) ) ) THEN
-
-                   ! correction on the reconstruction slope in order to keep u, 
-                   ! v at the interfaces limited (no new max and min created) 
-                   
-                   gamma_W =  MAX( DABS( qrec(i,j-1,k) / qrec(1,j-1,k) ) ,      &
-                        DABS( qrec(i,j,k) / qrec(1,j,k) ) ) /                   &
-                        DABS( qrecW(i) / qrecW(1) )
-
-                   gamma_E =  MAX( DABS( qrec(i,j,k) / qrec(1,j,k) ) ,          &
-                        DABS( qrec(i,j+1,k) / qrec(1,j+1,k) ) ) /               &
-                        DABS( qrecE(i) / qrecE(1) ) 
-                   
-                   gamma = MIN( gamma_W,gamma_E,1.D0)
-                   
-                   qrecW(i) = qrec(i,j,k) - gamma * dx2 * qrec_prime_x
-                   qrecE(i) = qrec(i,j,k) + gamma * dx2 * qrec_prime_x
-                   
-                END IF
+                qrecW(i) = qrec(i,j,k) - reconstr_coeff * dx2 * qrec_prime_x(i)
+                qrecE(i) = qrec(i,j,k) + reconstr_coeff * dx2 * qrec_prime_x(i)
                 
              END IF check_comp_cells_x
 
@@ -2722,15 +2706,15 @@ CONTAINS
                       y_stencil(2:3) = y_comp(1:2)
 
                       CALL limit( qrec_stencil , y_stencil , limiter(i) ,       &
-                           qrec_prime_y ) 
+                           qrec_prime_y(i) ) 
 
                    ELSEIF ( bcS(i)%flag .EQ. 1 ) THEN
 
-                      qrec_prime_y = bcS(i)%value
+                      qrec_prime_y(i) = bcS(i)%value
 
                    ELSEIF ( bcS(i)%flag .EQ. 2 ) THEN
 
-                      qrec_prime_y = ( qrec(i,j,2) - qrec(i,j,1) ) / dy 
+                      qrec_prime_y(i) = ( qrec(i,j,2) - qrec(i,j,1) ) / dy 
 
                    END IF
 
@@ -2746,15 +2730,15 @@ CONTAINS
                       y_stencil(1:2) = y_comp(comp_cells_y-1:comp_cells_y)
 
                       CALL limit( qrec_stencil , y_stencil , limiter(i) ,       &
-                           qrec_prime_y ) 
+                           qrec_prime_y(i) ) 
 
                    ELSEIF ( bcN(i)%flag .EQ. 1 ) THEN
 
-                      qrec_prime_y = bcN(i)%value
+                      qrec_prime_y(i) = bcN(i)%value
 
                    ELSEIF ( bcN(i)%flag .EQ. 2 ) THEN
 
-                      qrec_prime_y = ( qrec(i,j,comp_cells_y) -                 &
+                      qrec_prime_y(i) = ( qrec(i,j,comp_cells_y) -                 &
                            qrec(i,j,comp_cells_y-1) ) / dy 
 
                    END IF
@@ -2790,38 +2774,112 @@ CONTAINS
                    END IF
 
                    CALL limit( qrec_stencil , y_stencil , limiter(i) ,          &
-                        qrec_prime_y )
+                        qrec_prime_y(i) )
 
                 ENDIF check_y_boundary
 
-                qrecS(i) = qrec(i,j,k) - reconstr_coeff * dy2 * qrec_prime_y
-                qrecN(i) = qrec(i,j,k) + reconstr_coeff * dy2 * qrec_prime_y
+                qrecS(i) = qrec(i,j,k) - reconstr_coeff * dy2 * qrec_prime_y(i)
+                qrecN(i) = qrec(i,j,k) + reconstr_coeff * dy2 * qrec_prime_y(i)
 
-                IF ( ( k.GT.1 ) .AND. ( k .LT. comp_cells_y ) .AND.             &
-                     ( ( i.EQ.2 ) .OR. ( i.EQ. 3 ) ) ) THEN
-
-                   ! correction on the reconstruction slope in order to keep u, 
-                   ! v at the interfaces limited (no new max and min created) 
-                   
-                   gamma_S =  MAX( DABS( qrec(i,j,k-1) / qrec(1,j,k-1) ) ,      &
-                        DABS( qrec(i,j,k) / qrec(1,j,k) ) ) /                   &
-                        DABS( qrecS(i) / qrecS(1) )
-
-                   gamma_N =  MAX( DABS( qrec(i,j,k) / qrec(1,j,k) ) ,          &
-                        DABS( qrec(i,j,k+1) / qrec(1,j,k+1) ) ) /               &
-                        DABS( qrecN(i) / qrecN(1) ) 
-                   
-                   gamma = MIN( gamma_S,gamma_N,1.D0)
-                   
-                   qrecS(i) = qrec(i,j,k) - gamma * dy2 * qrec_prime_y
-                   qrecN(i) = qrec(i,j,k) + gamma * dy2 * qrec_prime_y
-                   
-                END IF
-                
              ENDIF check_comp_cells_y
 
           ENDDO vars_loop
 
+
+          IF ( ( j .GT. 1 ) .AND. ( j .LT. comp_cells_x ) .AND.                 &
+               ( ( i.EQ.2 ) .OR. ( i.EQ. 3 ) ) ) THEN
+             
+             ! correction on the reconstruction slope in order to keep u, 
+             ! v at the W,E interfaces limited (no new max and min created) 
+  
+             ! compute the values of u,v at the cell centers and W,E interfaces
+             CALL qp_to_qp2( qrec(:,j-1,k),qp2recL) 
+             CALL qp_to_qp2( qrecW(:),qp2recW) 
+             CALL qp_to_qp2( qrec(:,j,k),qp2recC) 
+             CALL qp_to_qp2( qrecE(:),qp2recE) 
+             CALL qp_to_qp2( qrec(i,j+1,k),qp2recR) 
+             
+             DO i=1,2
+           
+                IF ( qp2recW(i) .GT. 0.D0 ) THEN
+                   
+                   gamma_W =  MAX( DABS( qp2recL(i) ) , DABS( qp2recC(i) ) )    &
+                        / DABS( qp2recW(i) )
+                
+                ELSE
+
+                   gamma_W = 1.D0
+
+                END IF
+
+                IF ( qp2recE(i) .GT. 0.D0 ) THEN
+
+                   gamma_E =  MAX( DABS( qp2recC(i) ) , DABS( qp2recR(i) ) )       &
+                        / DABS( qp2recE(i) )
+                
+                ELSE
+
+                   gamma_E = 1.D0
+
+                END IF
+
+                gamma = MIN( gamma_W,gamma_E,1.D0)
+                
+                qrecW(i+1) = qrec(i+1,j,k) - gamma * dx2 * qrec_prime_x(i+1)
+                qrecE(i+1) = qrec(i+1,j,k) + gamma * dx2 * qrec_prime_x(i+1)
+                
+             END DO
+             
+          END IF
+          
+          IF ( ( k.GT.1 ) .AND. ( k .LT. comp_cells_y ) .AND.                   &
+               ( ( i.EQ.2 ) .OR. ( i.EQ. 3 ) ) ) THEN
+
+             ! correction on the reconstruction slope in order to keep u, 
+             ! v at the S,N interfaces limited (no new max and min created) 
+
+             ! compute the values of u,v at the cell centers and S,N interfaces
+             CALL qp_to_qp2( qrec(:,j,k-1),qp2recB) 
+             CALL qp_to_qp2( qrecS(:),qp2recS) 
+             CALL qp_to_qp2( qrec(:,j,k),qp2recC) 
+             CALL qp_to_qp2( qrecN(:),qp2recN) 
+             CALL qp_to_qp2( qrec(i,j,k+1),qp2recT) 
+
+             DO i=1,2
+
+                IF ( qp2recS(i) .GT. 0.D0 ) THEN
+
+                   gamma_S =  MAX( DABS( qp2recB(i) ) , DABS( qp2recC(i) ) )    &
+                        / DABS( qp2recS(i) )
+                
+                ELSE
+
+                   gamma_S = 1.D0
+
+                END IF
+
+                IF ( qp2recN(i) .GT. 0.D0 ) THEN
+
+                   gamma_N =  MAX( DABS( qp2recC(i) ) , DABS( qp2recT(i) ) )    &
+                        / DABS( qp2recN(i) )
+ 
+                ELSE
+
+                   gamma_N = 0.D0 
+
+                END IF
+
+                gamma = MIN( gamma_S,gamma_N,1.D0)
+             
+                qrecS(i+1) = qrec(i+1,j,k) - gamma * dy2 * qrec_prime_y(i+1)
+                qrecN(i+1) = qrec(i+1,j,k) + gamma * dy2 * qrec_prime_y(i+1)
+             
+             END DO
+
+          END IF
+          
+          
+          
           IF ( comp_cells_x .GT. 1 ) THEN
 
              IF ( ( j .GT. 1 ) .AND. ( j .LT. comp_cells_x ) ) THEN
