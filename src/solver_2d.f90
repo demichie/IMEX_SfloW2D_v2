@@ -2786,18 +2786,18 @@ CONTAINS
           ENDDO vars_loop
 
 
-          IF ( ( j .GT. 1 ) .AND. ( j .LT. comp_cells_x ) .AND.                 &
-               ( ( i.EQ.2 ) .OR. ( i.EQ. 3 ) ) ) THEN
+          IF ( ( j .GT. 1 ) .AND. ( j .LT. comp_cells_x ) ) THEN
              
-             ! correction on the reconstruction slope in order to keep u, 
-             ! v at the W,E interfaces limited (no new max and min created) 
+             ! correction on the reconstruction slope in order to keep u,v at  
+             ! the W,E interfaces of internal cells limited (no new max and 
+             ! min created) 
   
              ! compute the values of u,v at the cell centers and W,E interfaces
-             CALL qp_to_qp2( qrec(:,j-1,k),qp2recL) 
-             CALL qp_to_qp2( qrecW(:),qp2recW) 
-             CALL qp_to_qp2( qrec(:,j,k),qp2recC) 
-             CALL qp_to_qp2( qrecE(:),qp2recE) 
-             CALL qp_to_qp2( qrec(i,j+1,k),qp2recR) 
+             CALL qp_to_qp2( qrec(1:n_vars,j-1,k) , qp2recL(1:2) ) 
+             CALL qp_to_qp2( qrecW(1:n_vars) , qp2recW(1:2) ) 
+             CALL qp_to_qp2( qrec(1:n_vars,j,k) , qp2recC(1:2) ) 
+             CALL qp_to_qp2( qrecE(1:n_vars) , qp2recE(1:2) ) 
+             CALL qp_to_qp2( qrec(1:n_vars,j+1,k) , qp2recR(1:2) ) 
              
              DO i=1,2
            
@@ -2832,18 +2832,18 @@ CONTAINS
              
           END IF
           
-          IF ( ( k.GT.1 ) .AND. ( k .LT. comp_cells_y ) .AND.                   &
-               ( ( i.EQ.2 ) .OR. ( i.EQ. 3 ) ) ) THEN
+          IF ( ( k.GT.1 ) .AND. ( k .LT. comp_cells_y ) ) THEN
 
-             ! correction on the reconstruction slope in order to keep u, 
-             ! v at the S,N interfaces limited (no new max and min created) 
-
+             ! correction on the reconstruction slope in order to keep u,v at  
+             ! the S,N interfaces of internal cells limited (no new max and 
+             ! min created) 
+ 
              ! compute the values of u,v at the cell centers and S,N interfaces
-             CALL qp_to_qp2( qrec(:,j,k-1),qp2recB) 
-             CALL qp_to_qp2( qrecS(:),qp2recS) 
-             CALL qp_to_qp2( qrec(:,j,k),qp2recC) 
-             CALL qp_to_qp2( qrecN(:),qp2recN) 
-             CALL qp_to_qp2( qrec(i,j,k+1),qp2recT) 
+             CALL qp_to_qp2( qrec(1:n_vars,j,k-1) , qp2recB(1:2) ) 
+             CALL qp_to_qp2( qrecS(1:n_vars) , qp2recS(1:2) ) 
+             CALL qp_to_qp2( qrec(1:n_vars,j,k) , qp2recC(1:2) ) 
+             CALL qp_to_qp2( qrecN(1:n_vars) , qp2recN(1:2) ) 
+             CALL qp_to_qp2( qrec(1:n_vars,j,k+1) , qp2recT(1:2) ) 
 
              DO i=1,2
 
@@ -2865,7 +2865,7 @@ CONTAINS
  
                 ELSE
 
-                   gamma_N = 0.D0 
+                   gamma_N = 1.D0 
 
                 END IF
 
