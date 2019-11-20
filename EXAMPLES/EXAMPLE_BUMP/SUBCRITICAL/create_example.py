@@ -17,7 +17,7 @@ if len(sys.argv)==6:
     if a.isdigit():
 
         n_cells = int(a)
-        print n_cells
+        print(n_cells)
  
     else:
  
