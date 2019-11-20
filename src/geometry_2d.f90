@@ -707,9 +707,8 @@ CONTAINS
     INTEGER :: j,k
     
     
-    ! When limiter(1) = 0 (slope=0) we use a minmod limiter
-    limiterB = MAX(1,limiter(1))
-    limiterB = 1.D0
+    ! centered approximation for the topography slope
+    limiterB = 5
 
     y_loop:DO k = 1,comp_cells_y
 
@@ -953,6 +952,10 @@ CONTAINS
        ! monotonized central-difference (MC, LeVeque p.112)
 
        slope_lim = minmod( c , 2.0 * minmod( a , b ) )
+
+    CASE ( 5 )
+
+       slope_lim = c
 
     END SELECT
 
