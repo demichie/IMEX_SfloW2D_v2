@@ -182,7 +182,7 @@ q0[5,:] = rho_m * (w_cent-B_cent)* ( SP_HEAT_MIX * T + 0.5 * u_cent**2 )
 for i in range(n_solid):
     q0[6+i,:] = rho_s*(w_cent-B_cent)*alfas/n_solid
 
-init_file = 'exampleTrNoShock_0000.q_2d'
+init_file = 'exampleTrShock_0000.q_2d'
 
 np.savetxt(init_file, np.transpose(q0), fmt='%19.12e') 
 
@@ -193,7 +193,7 @@ with open(init_file,'a') as file:
 with open('SW_VAR_DENS_MODEL.template', 'r') as file :
   filedata = file.read()
 
-runname= 'exampleTrNoShock_'+str(n_cells)
+runname= 'exampleTrShock_'+str(n_cells)
 
 # Replace the target string
 filedata = filedata.replace('runname', runname)
