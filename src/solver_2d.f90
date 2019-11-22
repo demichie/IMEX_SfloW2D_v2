@@ -2534,6 +2534,8 @@ CONTAINS
 
     USE parameters_2d, ONLY : reconstr_coeff
 
+    USE geometry_2d, ONLY : minmod
+
     IMPLICIT NONE
 
     REAL*8, INTENT(IN) :: q_expl(n_vars,comp_cells_x,comp_cells_y)
@@ -2557,9 +2559,11 @@ CONTAINS
     REAL*8 :: qrec_prime_x(n_vars)      !< recons variables slope
     REAL*8 :: qrec_prime_y(n_vars)      !< recons variables slope
 
+    REAL*8 :: qp2rec_prime_x(3)      !< recons variables slope
+    REAL*8 :: qp2rec_prime_y(3)      !< recons variables slope
+
     INTEGER :: j,k            !< loop counters (cells)
     INTEGER :: i              !< loop counter (variables)
-    ! INTEGER :: l              !< loop counter (cells)
 
     REAL*8 :: gamma_W , gamma_E
     REAL*8 :: gamma_N , gamma_S
@@ -2798,11 +2802,25 @@ CONTAINS
   
              ! compute the values of u,v at the cell centers and W,E interfaces
              CALL qp_to_qp2( qrec(1:n_vars,j-1,k) , B_cent(j-1,k) , qp2recL ) 
-             CALL qp_to_qp2( qrecW(1:n_vars) , B_interfaceR(j,k), qp2recW ) 
              CALL qp_to_qp2( qrec(1:n_vars,j,k) , B_cent(j,k) , qp2recC ) 
-             CALL qp_to_qp2( qrecE(1:n_vars) , B_interfaceL(j+1,k) , qp2recE ) 
              CALL qp_to_qp2( qrec(1:n_vars,j+1,k) , B_cent(j+1,k) , qp2recR ) 
-             
+
+             qrec_stencil(1) = qp2recL(1)
+             qrec_stencil(2) = qp2recC(1)
+             qrec_stencil(3) = qp2recR(1)
+
+             CALL limit( qrec_stencil , x_stencil , limiter(1) ,          &
+                        qp2rec_prime_x(1) )
+
+             qp2recW(1) = qp2recC(1) - reconstr_coeff * dx2 * qp2rec_prime_x(1)
+             qp2recE(1) = qp2recC(1) + reconstr_coeff * dx2 * qp2rec_prime_x(1)
+
+             !qrecW(1) = qp2recW(1) - B_interfaceR(j,k)
+             !qrecE(1) = qp2recE(1) - B_interfaceL(j+1,k)
+
+             CALL qp_to_qp2( qrecW(1:n_vars) , B_interfaceR(j,k), qp2recW ) 
+             CALL qp_to_qp2( qrecE(1:n_vars) , B_interfaceL(j+1,k) , qp2recE ) 
+
              DO i=2,3
            
                 IF ( qp2recW(i) .GT. 0.D0 ) THEN

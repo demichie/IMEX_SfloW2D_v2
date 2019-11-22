@@ -22,6 +22,9 @@ MODULE geometry_2d
   !> Location of the boundaries (x) of the control volumes of the domain
   REAL*8, ALLOCATABLE :: y_stag(:)
 
+  !> Topography at the vertices of the control volumes
+  REAL*8, ALLOCATABLE :: B_ver(:,:)
+
   !> Reconstructed value at the left of the x-interface
   REAL*8, ALLOCATABLE :: B_interfaceL(:,:)        
 
@@ -149,6 +152,7 @@ CONTAINS
     ALLOCATE( sourceN_vect_x(comp_cells_x,comp_cells_y) )
     ALLOCATE( sourceN_vect_y(comp_cells_x,comp_cells_y) )
 
+    ALLOCATE( B_ver( comp_interfaces_x , comp_interfaces_y ) )
 
     ALLOCATE( B_cent(comp_cells_x,comp_cells_y) )
     ALLOCATE( B_prime_x(comp_cells_x,comp_cells_y) )
@@ -218,6 +222,44 @@ CONTAINS
        y_comp(k) = 0.5D0 * ( y_stag(k) + y_stag(k+1) )
 
     END DO
+
+       
+    DO k=1,comp_interfaces_y
+          
+       DO j=1,comp_interfaces_x
+          
+          CALL interp_2d_scalar( topography_profile(1,:,:) ,                    &
+               topography_profile(2,:,:), topography_profile(3,:,:) ,           &
+               x_stag(j), y_stag(k) , B_ver(j,k) )
+          
+       END DO
+       
+    END DO
+
+!!$    DO j=1,comp_cells_x
+!!$
+!!$       DO k=1,comp_cells_y
+!!$
+!!$          B_interfaceR(j,k) = 0.5D0 * ( B_ver(j,k+1) + B_ver(j,k) )
+!!$          B_interfaceL(j+1,k) = 0.5D0 * ( B_ver(j+1,k+1) + B_ver(j+1,k) ) 
+!!$
+!!$          B_interfaceT(j,k) = 0.5D0 * ( B_ver(j+1,k) + B_ver(j,k) )
+!!$          B_interfaceB(j,k+1) = 0.5D0 * ( B_ver(j+1,k+1) + B_ver(j,k+1) )
+!!$          
+!!$          B_cent(j,k) = 0.25D0 * ( B_ver(j,k) + B_ver(j+1,k) + B_ver(j,k+1)     &
+!!$               + B_ver(j+1,k+1) )
+!!$
+!!$             ! Second factor in RHS 1st Eq. 3.16 K&P
+!!$          B_prime_x(j,k) = ( B_interfaceL(j+1,k) - B_interfaceR(j,k) ) /        &
+!!$               (  x_stag(j+1) - x_stag(j) )
+!!$          
+!!$          ! Second factor in RHS 2nd Eq. 3.16 K&P
+!!$          B_prime_y(j,k) = ( B_interfaceB(j,k+1) - B_interfaceT(j,k) ) /        &
+!!$               (  y_stag(k+1) - y_stag(k) )
+!!$          
+!!$       END DO
+!!$       
+!!$    ENDDO
 
     DO k=1,comp_cells_y
     
@@ -694,8 +736,6 @@ CONTAINS
 
   SUBROUTINE topography_reconstruction
 
-    USE parameters_2d, ONLY : limiter
-
     IMPLICIT NONE
     
     REAL*8 :: B_stencil(3)    !< recons variables stencil for the limiter
@@ -930,13 +970,11 @@ CONTAINS
     CASE ( 1 )
 
        ! minmod
-
        slope_lim = minmod(a,b)
 
     CASE ( 2 )
 
        ! superbee
-
        sigma1 = minmod( a , 2.D0*b )
        sigma2 = minmod( 2.D0*a , b )
        slope_lim = maxmod( sigma1 , sigma2 )
@@ -944,18 +982,27 @@ CONTAINS
     CASE ( 3 )
 
        ! generalized minmod
-
        slope_lim = minmod( c , theta * minmod( a , b ) )
 
     CASE ( 4 )
 
        ! monotonized central-difference (MC, LeVeque p.112)
-
        slope_lim = minmod( c , 2.0 * minmod( a , b ) )
 
     CASE ( 5 )
 
+       ! centered
        slope_lim = c
+
+    CASE (6) 
+
+       ! backward
+       slope_lim = a
+
+    CASE (7)
+       
+       !forward
+       slope_lim = b
 
     END SELECT
 
