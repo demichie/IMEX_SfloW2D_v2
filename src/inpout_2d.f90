@@ -2646,7 +2646,8 @@ CONTAINS
     ! external variables
     USE constitutive_2d, ONLY : h , u , v , alphas , T , rho_m , red_grav
 
-    USE geometry_2d, ONLY : comp_cells_x , B_cent , comp_cells_y , x_comp, y_comp
+    USE geometry_2d, ONLY : comp_cells_x , B_cent , comp_cells_y , x_comp,      &
+         y_comp , deposit
 
     USE parameters_2d, ONLY : n_vars
     USE parameters_2d, ONLY : t_output , dt_output 
@@ -2742,9 +2743,10 @@ CONTAINS
              END DO
                 IF ( dabs(REAL(T)) .LT. 1d-99) T = DCMPLX(0.d0,0.d0) 
 
-             WRITE(output_unit_2d,1010) x_comp(j), y_comp(k), REAL(h),       &
-                  REAL(u), REAL(v) , B_out , REAL(h) + B_out ,         &
-                  REAL(alphas) , REAL(T) , REAL(rho_m) , REAL(red_grav)
+             WRITE(output_unit_2d,1010) x_comp(j), y_comp(k), REAL(h),          &
+                  REAL(u), REAL(v) , B_out , REAL(h) + B_out ,                  &
+                  REAL(alphas) , REAL(T) , REAL(rho_m) , REAL(red_grav) ,       &
+                  DEPOSIT(j,k,:)
              
           END DO
           
