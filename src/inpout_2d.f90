@@ -2747,7 +2747,7 @@ CONTAINS
                   REAL(u), REAL(v) , B_out , REAL(h) + B_out ,                  &
                   REAL(alphas) , REAL(T) , REAL(rho_m) , REAL(red_grav) ,       &
                   DEPOSIT(j,k,:)
-             
+
           END DO
           
           WRITE(output_unit_2d,*) ' ' 
@@ -2761,7 +2761,7 @@ CONTAINS
 
     END IF
 
-1010 FORMAT(100e20.12)
+1010 FORMAT(100ES13.5E2)
 
     t_output = time + dt_output
 

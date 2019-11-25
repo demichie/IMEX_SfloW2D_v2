@@ -117,29 +117,37 @@ h = ncfile.createVariable('h',np.float64,('time','y','x')) # note: unlimited dim
 h.standard_name = 'flow thickness' # this is a CF standard name
 h.units = 'meters' # degrees Kelvin
 
-b = ncfile.createVariable('b',np.float64,('time','y','x'),zlib=True) # note: unlimited dimension is leftmost
+b = ncfile.createVariable('b',np.float64,('time','y','x'),zlib=True) 
 b.standard_name = 'topography' # this is a CF standard name
 b.units = 'meters' # degrees Kelvin
 
-ux = ncfile.createVariable('ux',np.float64,('time','y','x'),zlib=True) # note: unlimited dimension is leftmost
+ux = ncfile.createVariable('ux',np.float64,('time','y','x'),zlib=True) 
 ux.standard_name = 'x-velocity' # 
 ux.units = 'meters/second' # 
 
-uy = ncfile.createVariable('uy',np.float64,('time','y','x'),zlib=True) # note: unlimited dimension is leftmost
+uy = ncfile.createVariable('uy',np.float64,('time','y','x'),zlib=True) 
 uy.standard_name = 'y-velocity' # 
 uy.units = 'meters/second' # 
 
-T = ncfile.createVariable('T',np.float64,('time','y','x'),zlib=True) # note: unlimited dimension is leftmost
+T = ncfile.createVariable('T',np.float64,('time','y','x'),zlib=True) 
 T.standard_name = 'temperature' # this is a CF standard name
 T.units = 'kelvin' # degrees Kelvin
 
-W = ncfile.createVariable('W',np.float64,('time','y','x'),zlib=True) # note: unlimited dimension is leftmost
+W = ncfile.createVariable('W',np.float64,('time','y','x'),zlib=True) 
 W.standard_name = 'free surface' # 
 W.units = 'meters' # 
 
-dep = ncfile.createVariable('dep',np.float64,('time','y','x'),zlib=True) # note: unlimited dimension is leftmost
+dep = ncfile.createVariable('dep',np.float64,('time','y','x'),zlib=True) 
 dep.standard_name = 'deposit' # 
 dep.units = 'meters' # 
+
+alphas = ncfile.createVariable('alphas',np.float64,('time','y','x'),zlib=True) 
+alphas.standard_name = 'solid volume fraction' # 
+alphas.units = '' # 
+
+rhom = ncfile.createVariable('rhom',np.float64,('time','y','x'),zlib=True) 
+rhom.standard_name = 'flow density' # 
+rhom.units = 'kilograms/second' # 
 
 
 X = np.zeros((ny,nx))
@@ -168,9 +176,9 @@ uy[i_output,:,:] = data[:,4].reshape((ny,nx))
 T[i_output,:,:] = data[:,8].reshape((ny,nx))
 W[i_output,:,:] = data[:,6].reshape((ny,nx))
 dep[i_output,:,:] = data[:,11].reshape((ny,nx))
+alphas[i_output,:,:] = data[:,7].reshape((ny,nx))
+rhom[i_output,:,:] = data[:,9].reshape((ny,nx))
 """
-ALPHAS[i_output,:,:] = data[:,7].reshape((ny,nx))
-RHO_M[i_output,:,:] = data[:,9].reshape((ny,nx))
 RED_GRAV[i_output,:,:] = data[:,10].reshape((ny,nx))
 """
 
@@ -190,9 +198,9 @@ for i_output in range(1,n_output+1):
     T[i_output,:,:] = data[:,8].reshape((ny,nx))
     W[i_output,:,:] = data[:,6].reshape((ny,nx))
     dep[i_output,:,:] = data[:,11].reshape((ny,nx))
+    alphas[i_output,:,:] = data[:,7].reshape((ny,nx))
+    rhom[i_output,:,:] = data[:,9].reshape((ny,nx))
     """
-    ALPHAS[i_output,:,:] = data[:,7].reshape((ny,nx))
-    RHO_M[i_output,:,:] = data[:,9].reshape((ny,nx))
     RED_GRAV[i_output,:,:] = data[:,10].reshape((ny,nx))
     """
 
