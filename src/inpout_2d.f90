@@ -840,7 +840,7 @@ CONTAINS
     END IF
     
     n_vars = n_vars + n_solid
-    n_eqns = n_vars + n_solid
+    n_eqns = n_vars
 
     ALLOCATE( alphas_bcW(n_solid) , alphas_bcE(n_solid) , alphas_bcS(n_solid) , &
          alphas_bcN(n_solid) ) 
