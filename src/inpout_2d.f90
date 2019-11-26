@@ -23,7 +23,8 @@ MODULE inpout_2d
        n_topography_profile_y
   USE init_2d, ONLY : riemann_interface
   USE parameters_2d, ONLY : riemann_flag , rheology_flag , energy_flag ,        &
-       topo_change_flag , radial_source_flag , collapsing_volume_flag
+       topo_change_flag , radial_source_flag , collapsing_volume_flag ,         &
+       liquid_flag
 
   ! -- Variables for the namelist INITIAL_CONDITIONS
   USE parameters_2d, ONLY : released_volume , x_release , y_release
@@ -183,7 +184,7 @@ MODULE inpout_2d
        T_init , T_ambient , sed_vol_perc 
 
   NAMELIST / newrun_parameters / x0 , y0 , comp_cells_x , comp_cells_y ,        &
-       cell_size , rheology_flag , riemann_flag , energy_flag ,                 &
+       cell_size , rheology_flag , riemann_flag , energy_flag , liquid_flag ,   &
        radial_source_flag , collapsing_volume_flag , topo_change_flag
 
   NAMELIST / initial_conditions /  released_volume , x_release , y_release ,    &
@@ -294,6 +295,7 @@ CONTAINS
     topo_change_flag = .FALSE.
     radial_source_flag = .FALSE.
     collapsing_volume_flag = .FALSE.
+    liquid_flag = .FALSE.
 
     !-- Inizialization of the Variables for the namelist left_state
     riemann_interface = 0.5D0
@@ -723,39 +725,47 @@ CONTAINS
 
     ! ------- READ liquid_transport_parameters NAMELIST -------------------------
     
-    READ(input_unit, liquid_transport_parameters,IOSTAT=ios)
-    
-    IF ( ios .NE. 0 ) THEN
+    n_vars = 4
+
+    IF ( liquid_flag ) THEN
+
+       n_vars = n_vars + 1
+
+       READ(input_unit, liquid_transport_parameters,IOSTAT=ios)
        
-       WRITE(*,*) 'IOSTAT=',ios
-       WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
-       WRITE(*,*) 'Please check the input file'
-       STOP
+       IF ( ios .NE. 0 ) THEN
+          
+          WRITE(*,*) 'IOSTAT=',ios
+          WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
+          WRITE(*,*) 'Please check the input file'
+          STOP
+          
+       ELSE
        
-    ELSE
+          REWIND(input_unit)
+          
+       END IF
        
-       REWIND(input_unit)
+       IF ( sp_heat_l .EQ. -1.D0 ) THEN
+          
+          WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
+          WRITE(*,*) 'SP_HEAT_l =' , sp_heat_l
+          WRITE(*,*) 'Please check the input file'
+          STOP
+          
+       END IF
        
-    END IF
-    
-    IF ( sp_heat_l .EQ. -1.D0 ) THEN
-       
-       WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
-       WRITE(*,*) 'SP_HEAT_l =' , sp_heat_l
-       WRITE(*,*) 'Please check the input file'
-       STOP
+       IF ( rho_l .EQ. -1.D0 ) THEN
+          
+          WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
+          WRITE(*,*) 'RHO_L =' , rho_l
+          WRITE(*,*) 'Please check the input file'
+          STOP
+          
+       END IF
        
     END IF
 
-    IF ( rho_l .EQ. -1.D0 ) THEN
-       
-       WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
-       WRITE(*,*) 'RHO_L =' , rho_l
-       WRITE(*,*) 'Please check the input file'
-       STOP
-       
-    END IF
-    
     ! ------- READ solid_transport_parameters NAMELIST --------------------------
     
     READ(input_unit, solid_transport_parameters,IOSTAT=ios)
@@ -829,9 +839,8 @@ CONTAINS
        
     END IF
     
-
-    n_vars = 4 + n_solid
-    n_eqns = 4 + n_solid
+    n_vars = n_vars + n_solid
+    n_eqns = n_vars + n_solid
 
     ALLOCATE( alphas_bcW(n_solid) , alphas_bcE(n_solid) , alphas_bcS(n_solid) , &
          alphas_bcN(n_solid) ) 
@@ -960,30 +969,7 @@ CONTAINS
             
        ELSE
 
-!!$          READ(input_unit,initial_conditions,IOSTAT=ios)
-!!$          
-!!$          IF ( ios .NE. 0 ) THEN
-!!$             
-!!$             WRITE(*,*) 'IOSTAT=',ios
-!!$             WRITE(*,*) 'ERROR: problem with namelist INITIAL_CONDITIONS'
-!!$             WRITE(*,*) 'Please check the input file'
-!!$             STOP
-!!$             
-!!$          ELSE
-!!$             
-!!$             REWIND(input_unit)
-!!$             
-!!$          END IF
-!!$          
-!!$          IF ( T_init*T_ambient .EQ. 0.D0 ) THEN
-!!$             
-!!$             WRITE(*,*) 'T_init=',T_init
-!!$             WRITE(*,*) 'T_ambient=',T_ambient
-!!$             WRITE(*,*) 'Add the two variables to namelist INITIAL_CONDITIONS'
-!!$             STOP
-!!$             
-!!$          END IF
-!!$                    
+
        END IF
 
     END IF

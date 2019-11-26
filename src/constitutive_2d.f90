@@ -21,7 +21,8 @@ MODULE constitutive_2d
   COMPLEX*16, ALLOCATABLE :: alphas(:)  !< sediment volume fraction
   COMPLEX*16 :: rho_m                   !< mixture density
   COMPLEX*16 :: Ri
-  
+  COMPLEX*16 :: alphal                  !< liquid volume fraction
+
   COMPLEX*16 :: alphas_tot
   COMPLEX*16 :: rhos_tot
 
@@ -40,7 +41,7 @@ MODULE constitutive_2d
   REAL*8 :: r_rho_m
   REAL*8 :: r_rho_a
   REAL*8 :: r_Ri
-
+  REAL*8 :: r_alphal
 
   !> drag coefficients (Voellmy-Salm model)
   REAL*8 :: mu

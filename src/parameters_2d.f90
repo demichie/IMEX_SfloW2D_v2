@@ -64,6 +64,8 @@ MODULE parameters_2d
   !> .
   INTEGER :: rheology_model
 
+  LOGICAL :: liquid_flag
+
   LOGICAL :: topo_change_flag
 
   LOGICAL :: radial_source_flag
