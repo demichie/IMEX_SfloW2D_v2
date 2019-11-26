@@ -2725,9 +2725,15 @@ CONTAINS
              END IF
 
              DO i=1,n_solid
+
                 IF ( dabs(REAL(alphas(i))) .LT. 1d-99) alphas(i) = DCMPLX(0.d0,0.d0) 
+                IF ( dabs( DEPOSIT(j,k,i) ) .LT. 1d-99) DEPOSIT(j,k,i) = 0.d0 
+
              END DO
-                IF ( dabs(REAL(T)) .LT. 1d-99) T = DCMPLX(0.d0,0.d0) 
+             
+             IF ( dabs(REAL(T)) .LT. 1d-99) T = DCMPLX(0.d0,0.d0) 
+             IF ( dabs(REAL(rho_m)) .LT. 1d-99) rho_m = DCMPLX(0.d0,0.d0) 
+             IF ( dabs(REAL(red_grav)) .LT. 1d-99) red_grav = DCMPLX(0.d0,0.d0) 
 
              WRITE(output_unit_2d,1010) x_comp(j), y_comp(k), REAL(h),          &
                   REAL(u), REAL(v) , B_out , REAL(h) + B_out ,                  &
