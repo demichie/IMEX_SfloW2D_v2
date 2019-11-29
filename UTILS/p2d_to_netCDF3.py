@@ -74,7 +74,7 @@ with open(bakfile) as fp:
        if "N_SOLID" in line:
            nsolid_str= line.replace('N_SOLID=','')
            nsolid_str= nsolid_str.replace(',','')
-           nsolid = np.float(nsolid_str)
+           nsolid = np.int(nsolid_str)
            print("nsolid",nsolid)
 
 
@@ -137,13 +137,14 @@ W = ncfile.createVariable('W',np.float64,('time','y','x'),zlib=True)
 W.standard_name = 'free surface' # 
 W.units = 'meters' # 
 
-dep = ncfile.createVariable('dep',np.float64,('time','y','x'),zlib=True) 
-dep.standard_name = 'deposit' # 
-dep.units = 'meters' # 
+for i in range(nsolid):
+    globals()['dep'+'_{0:04}'.format(i)] = ncfile.createVariable('dep'+'_{0:04}'.format(i),np.float64,('time','y','x'),zlib=True) 
+    globals()['dep'+'_{0:04}'.format(i)].standard_name = 'deposit' # 
+    globals()['dep'+'_{0:04}'.format(i)].units = 'meters' # 
 
-alphas = ncfile.createVariable('alphas',np.float64,('time','y','x'),zlib=True) 
-alphas.standard_name = 'solid volume fraction' # 
-alphas.units = '' # 
+    globals()['alphas'+'_{0:04}'.format(i)] = ncfile.createVariable('alphas'+'_{0:04}'.format(i),np.float64,('time','y','x'),zlib=True) 
+    globals()['alphas'+'_{0:04}'.format(i)].standard_name = 'solid volume fraction' # 
+    globals()['alphas'+'_{0:04}'.format(i)].units = '' # 
 
 rhom = ncfile.createVariable('rhom',np.float64,('time','y','x'),zlib=True) 
 rhom.standard_name = 'flow density' # 
@@ -154,35 +155,8 @@ X = np.zeros((ny,nx))
 Y = np.zeros((ny,nx))
 
 
-i_output = 0
 
-filename = filename_fix+'_{0:04}'.format(i_output)+'.p_2d'
-print(filename)
-
-data = np.loadtxt(filename,skiprows=0)
-
-X[:,:] = data[:,0].reshape((ny,nx))
-Y[:,:] = data[:,1].reshape((ny,nx))
-
-x[:] = X[0,:]
-y[:] = Y[:,0]
-
-
-h[i_output,:,:] = data[:,2].reshape((ny,nx))
-b[i_output,:,:] = data[:,5].reshape((ny,nx))
-time[i_output] = 0.0
-ux[i_output,:,:] = data[:,3].reshape((ny,nx))
-uy[i_output,:,:] = data[:,4].reshape((ny,nx))
-T[i_output,:,:] = data[:,8].reshape((ny,nx))
-W[i_output,:,:] = data[:,6].reshape((ny,nx))
-dep[i_output,:,:] = data[:,11].reshape((ny,nx))
-alphas[i_output,:,:] = data[:,7].reshape((ny,nx))
-rhom[i_output,:,:] = data[:,9].reshape((ny,nx))
-"""
-RED_GRAV[i_output,:,:] = data[:,10].reshape((ny,nx))
-"""
-
-for i_output in range(1,n_output+1):
+for i_output in range(0,n_output+1):
 
     filename = filename_fix+'_{0:04}'.format(i_output)+'.p_2d'
     print(filename)
@@ -192,19 +166,23 @@ for i_output in range(1,n_output+1):
     time[i_output] = dt_output*(i_output)
 
     h[i_output,:,:] = data[:,2].reshape((ny,nx))
-    b[i_output,:,:] = data[:,5].reshape((ny,nx))
     ux[i_output,:,:] = data[:,3].reshape((ny,nx))
     uy[i_output,:,:] = data[:,4].reshape((ny,nx))
-    T[i_output,:,:] = data[:,8].reshape((ny,nx))
+    b[i_output,:,:] = data[:,5].reshape((ny,nx))
     W[i_output,:,:] = data[:,6].reshape((ny,nx))
-    dep[i_output,:,:] = data[:,11].reshape((ny,nx))
-    alphas[i_output,:,:] = data[:,7].reshape((ny,nx))
+    for i in range(nsolid):
+        globals()['alphas'+'_{0:04}'.format(i)][i_output,:,:] = data[:,7+i].reshape((ny,nx))
+    T[i_output,:,:] = data[:,8].reshape((ny,nx))
     rhom[i_output,:,:] = data[:,9].reshape((ny,nx))
-    """
-    RED_GRAV[i_output,:,:] = data[:,10].reshape((ny,nx))
-    """
+    for i in range(nsolid):
+        globals()['dep'+'_{0:04}'.format(i)][i_output,:,:] = data[:,10+nsolid+i].reshape((ny,nx))
 
 
+X[:,:] = data[:,0].reshape((ny,nx))
+Y[:,:] = data[:,1].reshape((ny,nx))
+
+x[:] = X[0,:]
+y[:] = Y[:,0]
 
 print(ncfile)
 
