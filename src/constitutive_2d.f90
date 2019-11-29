@@ -4,7 +4,8 @@
 MODULE constitutive_2d
 
   USE parameters_2d, ONLY : n_eqns , n_vars , n_solid
-  USE parameters_2d, ONLY : rheology_flag , rheology_model , energy_flag
+  USE parameters_2d, ONLY : rheology_flag , rheology_model , energy_flag ,      &
+       liquid_flag
   USE parameters_2d, ONLY : sed_vol_perc
 
   IMPLICIT none
@@ -241,8 +242,18 @@ CONTAINS
 
     IF ( DBLE(qj(1)) .GT. 1.D-25 ) THEN
 
-       sp_heat_mix = SUM( qj(5:4+n_solid) / qj(1) * sp_heat_s(1:n_solid) ) +    &
-            ( DCMPLX(1.D0,0.D0) - SUM( qj(5:4+n_solid) / qj(1) ) ) * sp_heat_a
+       IF ( liquid_flag ) THEN
+
+          sp_heat_mix = SUM( qj(5:4+n_solid) / qj(1) * sp_heat_s(1:n_solid) ) + &
+               qj(n_vars) / qj(1) * sp_heat_l + ( DCMPLX(1.D0,0.D0)             &
+               - ( SUM( qj(5:4+n_solid) + qj(n_vars) ) / qj(1) ) ) * sp_heat_a
+
+       ELSE
+
+          sp_heat_mix = SUM( qj(5:4+n_solid) / qj(1) * sp_heat_s(1:n_solid) ) + &
+               ( DCMPLX(1.D0,0.D0) - SUM( qj(5:4+n_solid) / qj(1) ) ) * sp_heat_a
+
+       END IF
 
        IF ( energy_flag ) THEN
 
@@ -277,6 +288,8 @@ CONTAINS
        rhos_tot = SUM( rho_s(1:n_solid) ) / n_solid
 
     END IF
+
+    IF ( liquid_flag ) alphal = qj(n_vars) / rho_l
 
     IF ( SUM(qj(5:4+n_solid)/rho_s(1:n_solid)) .LT. 1.D-25 ) THEN
     
