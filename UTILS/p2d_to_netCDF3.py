@@ -172,8 +172,8 @@ for i_output in range(0,n_output+1):
     W[i_output,:,:] = data[:,6].reshape((ny,nx))
     for i in range(nsolid):
         globals()['alphas'+'_{0:04}'.format(i)][i_output,:,:] = data[:,7+i].reshape((ny,nx))
-    T[i_output,:,:] = data[:,8].reshape((ny,nx))
-    rhom[i_output,:,:] = data[:,9].reshape((ny,nx))
+    T[i_output,:,:] = data[:,7+nsolid].reshape((ny,nx))
+    rhom[i_output,:,:] = data[:,8+nsolid].reshape((ny,nx))
     for i in range(nsolid):
         globals()['dep'+'_{0:04}'.format(i)][i_output,:,:] = data[:,10+nsolid+i].reshape((ny,nx))
 
