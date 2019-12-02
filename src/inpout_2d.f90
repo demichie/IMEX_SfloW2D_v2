@@ -173,7 +173,7 @@ MODULE inpout_2d
 
   REAL*8 :: x0_runout, y0_runout , init_runout , eps_stop
 
-  REAL*8 :: rho0_s(1000) , diam0_s(1000) , sp_heat0_s(1000)
+  REAL*8 :: rho0_s(1000) , diam0_s(1000) , sp_heat0_s(1000), erosion_coeff0(1000)
 
   REAL*8 :: alpha1_ref
 
@@ -229,7 +229,7 @@ MODULE inpout_2d
        eps_stop
 
   NAMELIST / solid_transport_parameters / n_solid , rho0_s , diam0_s ,          &
-       sp_heat0_s , erosion_coeff , settling_vel , T_s_substrate
+       sp_heat0_s , erosion_coeff0 , settling_vel , T_s_substrate
 
   NAMELIST / gas_transport_parameters / sp_heat_a , sp_gas_const_a , kin_visc_a,&
        pres , T_ambient , entrainment_flag
@@ -539,7 +539,7 @@ CONTAINS
     !- Variables for the namelist SOLID_TRANSPORT_PARAMETERS
     ! rho_s = -1.D0
     settling_vel = -1.D0
-    erosion_coeff = -1.D0
+    erosion_coeff0 = -1.D0
     n_solid = -1
     T_s_substrate = -1.D0
 
@@ -861,9 +861,8 @@ CONTAINS
        STOP
        
     END IF
-
     
-    IF ( erosion_coeff .LT. 0.D0 ) THEN
+    IF ( ANY(erosion_coeff0(1:n_solid) .LT. 0.D0 ) ) THEN
        
        WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
        WRITE(*,*) 'EROSION_COEFF =' , erosion_coeff
@@ -904,10 +903,14 @@ CONTAINS
 
     ALLOCATE( alphas_init(n_solid) , sed_vol_perc(n_solid) )
 
+    ALLOCATE( erosion_coeff(n_solid) )
+
     rho_s(1:n_solid) = rho0_s(1:n_solid)
     diam_s(1:n_solid) = diam0_s(1:n_solid)
     sp_heat_s(1:n_solid) = sp_heat0_s(1:n_solid)
+    erosion_coeff(1:n_solid) = erosion_coeff0(1:n_solid)
     C_D_s(1:n_solid) = 0.44D0
+    
 
     ALLOCATE( deposit( comp_cells_x , comp_cells_y , n_solid ) )
     

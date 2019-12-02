@@ -78,7 +78,7 @@
  DIAM0_S = 1.E-4,
  SP_HEAT0_S = 1617.D0 , 
  SETTLING_VEL = settlingVel ,
- EROSION_COEFF = erosionCoeff ,
+ EROSION_COEFF0 = erosionCoeff ,
  T_S_SUBSTRATE = 300.D0 ,
  /
 &GAS_TRANSPORT_PARAMETERS

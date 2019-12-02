@@ -184,7 +184,7 @@ MODULE constitutive_2d
   REAL*8 :: settling_vel
 
   !> erosion model coefficient  ( units: m-1 )
-  REAL*8 :: erosion_coeff
+  REAL*8, ALLOCATABLE :: erosion_coeff(:)
 
   !> temperature of solid substrate (K)
   REAL*8 :: T_s_substrate
@@ -1475,7 +1475,7 @@ CONTAINS
           ! empirical formulation (see Fagents & Baloga 2006, Eq. 5)
           ! here we use the solid volume fraction instead of relative density
           ! This term has units: m s-1
-          erosion_term(i_solid) = erosion_coeff * mod_vel * r_h                 &
+          erosion_term(i_solid) = erosion_coeff(i_solid) * mod_vel * r_h        &
                * ( 1.D0 - SUM(r_alphas) )
 
        ELSE
