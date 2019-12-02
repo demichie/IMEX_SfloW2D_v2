@@ -10,8 +10,6 @@ import time
 import sys
 import os.path
 
-print 
-
 if len(sys.argv)==3: 
  
     filename = sys.argv[1]
@@ -39,8 +37,6 @@ else:
     sys.exit()
 
 data = np.loadtxt(filename,skiprows=0)
-
-print data.shape
 
 x_cent = data[:,0]
 y_cent = data[:,1]
