@@ -1444,10 +1444,7 @@ CONTAINS
     IF ( qpj(1) .LE. 0.D0 ) RETURN
 
     CALL mixt_var(qpj)
-    
-    deposition_term(1:n_solid) = 0.D0
-    erosion_term(1:n_solid) = 0.D0
-    
+        
     DO i_solid=1,n_solid
 
        IF ( ( r_alphas(i_solid) .GT. 0.D0 ) .AND. ( settling_flag ) ) THEN
