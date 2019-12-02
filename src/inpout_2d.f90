@@ -24,12 +24,12 @@ MODULE inpout_2d
   USE init_2d, ONLY : riemann_interface
   USE parameters_2d, ONLY : riemann_flag , rheology_flag , energy_flag ,        &
        topo_change_flag , radial_source_flag , collapsing_volume_flag ,         &
-       liquid_flag
+       liquid_flag , gas_flag
 
   ! -- Variables for the namelist INITIAL_CONDITIONS
   USE parameters_2d, ONLY : released_volume , x_release , y_release
   USE parameters_2d, ONLY : velocity_mod_release , velocity_ang_release
-  USE parameters_2d, ONLY : alphas_init , alphas_ambient , sed_vol_perc
+  USE parameters_2d, ONLY : alphas_init , sed_vol_perc
   USE parameters_2d, ONLY : T_init
 
   ! -- Variables for the namelist LEFT_STATE
@@ -69,7 +69,7 @@ MODULE inpout_2d
   ! --- Variables for the namelist SOLID_TRANSPORT_PARAMETERS
   USE parameters_2d, ONLY : n_solid
   USE constitutive_2d, ONLY : rho_s , diam_s , sp_heat_s , alphas , r_alphas ,  &
-       C_D_s
+       C_D_s , xs , r_xs
   USE constitutive_2d, ONLY : settling_vel , erosion_coeff
   USE constitutive_2d, ONLY : T_s_substrate
 
@@ -78,7 +78,7 @@ MODULE inpout_2d
        T_ambient , entrainment_flag
 
   ! --- Variables for the namelist LIQUID_TRANSPORT_PARAMETERS
-  USE constitutive_2d, ONLY : sp_heat_l , rho_l
+  USE constitutive_2d, ONLY : sp_heat_l , rho_l , kin_visc_l
 
 
   IMPLICIT NONE
@@ -180,12 +180,11 @@ MODULE inpout_2d
        output_cons_flag , output_esri_flag , output_phys_flag ,                 &
        output_runout_flag , verbose_level
 
-  NAMELIST / restart_parameters / restart_file , alphas_init , alphas_ambient , &
-       T_init , T_ambient , sed_vol_perc 
+  NAMELIST / restart_parameters / restart_file, T_init, T_ambient , sed_vol_perc
 
   NAMELIST / newrun_parameters / x0 , y0 , comp_cells_x , comp_cells_y ,        &
        cell_size , rheology_flag , riemann_flag , energy_flag , liquid_flag ,   &
-       radial_source_flag , collapsing_volume_flag , topo_change_flag
+       radial_source_flag , collapsing_volume_flag , topo_change_flag , gas_flag
 
   NAMELIST / initial_conditions /  released_volume , x_release , y_release ,    &
        velocity_mod_release , velocity_ang_release , T_init , T_ambient
@@ -277,11 +276,8 @@ CONTAINS
 
     !-- Inizialization of the Variables for the namelist restart parameters
     restart_file = ''
-    !alphas_init = 0.D0
-    !alphas_ambient = 0.D0
     T_init = 0.D0
     T_ambient = 0.D0
-    ! sed_vol_perc = 0.D0
 
     !-- Inizialization of the Variables for the namelist newrun_parameters
     x0 = 0.D0
@@ -296,6 +292,7 @@ CONTAINS
     radial_source_flag = .FALSE.
     collapsing_volume_flag = .FALSE.
     liquid_flag = .FALSE.
+    gas_flag = .TRUE.
 
     !-- Inizialization of the Variables for the namelist left_state
     riemann_interface = 0.5D0
@@ -555,7 +552,7 @@ CONTAINS
     !- Variables for the namelist LIQUID_TRANSPORT_PARAMETERS
     sp_heat_l = -1.D0
     rho_l = -1.D0
-   
+    kin_visc_l = -1.D0
 
     !- Variables for the namelist RADIAL_SOURCE_PARAMETERS
     T_source = -1.D0
@@ -593,7 +590,8 @@ CONTAINS
     USE geometry_2d, ONLY : deposit
 
     USE constitutive_2d, ONLY : rho_a_amb
-
+    USE constitutive_2d, ONLY : kin_visc_c
+    
     IMPLICIT none
 
     REAL*8 :: max_cfl
@@ -657,7 +655,19 @@ CONTAINS
        WRITE(*,*) '----- 2D SIMULATION -----' 
 
     END IF
-     
+
+    IF ( ( .NOT. liquid_flag ) .AND. ( .NOT. gas_flag ) ) THEN
+
+       WRITE(*,*) 'IOSTAT=',ios
+       WRITE(*,*) 'ERROR: problem with namelist NEWRUN_PARAMETERS'
+       WRITE(*,*) 'One of these parameters must be set to .TRUE.'
+       WRITE(*,*) 'LIQUID_FLAG',liquid_flag
+       WRITE(*,*) 'GAS_FLAG',liquid_flag
+       WRITE(*,*) 'Please check the input file'
+       STOP
+       
+    END IF
+    
     ! ------- READ gas_transport_parameters NAMELIST --------------------------
     
     READ(input_unit, gas_transport_parameters,IOSTAT=ios)
@@ -699,6 +709,15 @@ CONTAINS
        WRITE(*,*) 'KIN_VISC_CONST_a =' , kin_visc_a
        WRITE(*,*) 'Please check the input file'
        STOP
+
+    ELSE
+
+       IF ( gas_flag ) THEN
+
+          WRITE(*,*) 'CARRIER PHASE: gas'
+          kin_visc_c = kin_visc_a
+
+       END IF
        
     END IF
 
@@ -719,7 +738,17 @@ CONTAINS
        STOP
        
     END IF
-   
+
+    IF ( ( .NOT. gas_flag ) .AND. ( liquid_flag .AND. entrainment_flag ) ) THEN
+       
+       WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
+       WRITE(*,*) 'LIQUID_FLAG',liquid_flag
+       WRITE(*,*) 'ENTRAINMENT_FLAG =' , entrainment_flag
+       WRITE(*,*) 'Please check the input file'
+       STOP
+       
+    END IF
+
     rho_a_amb = pres / ( sp_gas_const_a * T_ambient )
     WRITE(*,*) 'Ambient density = ',rho_a_amb,' (kg/m3)'
 
@@ -729,7 +758,7 @@ CONTAINS
 
     IF ( liquid_flag ) THEN
 
-       n_vars = n_vars + 1
+       IF ( gas_flag ) n_vars = n_vars + 1
 
        READ(input_unit, liquid_transport_parameters,IOSTAT=ios)
        
@@ -763,6 +792,25 @@ CONTAINS
           STOP
           
        END IF
+
+       IF ( kin_visc_l .EQ. -1.D0 ) THEN
+          
+          WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
+          WRITE(*,*) 'KIN_VISC_L =' , kin_visc_l
+          WRITE(*,*) 'Please check the input file'
+          STOP
+
+       ELSE
+
+          IF ( .NOT. gas_flag ) THEN
+
+          WRITE(*,*) 'CARRIER PHASE: liquid'
+          kin_visc_c = kin_visc_l
+
+       END IF
+
+          
+       END IF
        
     END IF
 
@@ -783,7 +831,6 @@ CONTAINS
        
     END IF
     
-
     IF ( n_solid .LT. 1 ) THEN
        
        WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
@@ -848,10 +895,10 @@ CONTAINS
     ALLOCATE( bcW(n_vars) , bcE(n_vars) , bcS(n_vars) , bcN(n_vars) )
 
     ALLOCATE( rho_s(n_solid) , alphas(n_solid) , r_alphas(n_solid) ,            &
-         diam_s(n_solid) , sp_heat_s(n_solid) , C_D_s(n_solid) )
+         xs(n_solid) , r_xs(n_solid) , diam_s(n_solid) , sp_heat_s(n_solid) ,   &
+         C_D_s(n_solid) )
 
-    ALLOCATE( alphas_init(n_solid) , alphas_ambient(n_solid) ,                  &
-         sed_vol_perc(n_solid) )
+    ALLOCATE( alphas_init(n_solid) , sed_vol_perc(n_solid) )
 
     rho_s(1:n_solid) = rho0_s(1:n_solid)
     diam_s(1:n_solid) = diam0_s(1:n_solid)
@@ -890,7 +937,6 @@ CONTAINS
              END IF
              
              alphas_init = 1.D-2 * sed_vol_perc 
-             alphas_ambient = 1.D-2 * sed_vol_perc 
              
              REWIND(input_unit)
           
@@ -1765,6 +1811,15 @@ CONTAINS
 
        ELSEIF ( rheology_model .EQ. 4 ) THEN
 
+          IF ( .NOT. liquid_flag ) THEN
+             
+             WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
+             WRITE(*,*) 'RHEOLOGY_MODEL =' , rheology_model
+             WRITE(*,*) 'LIQUID FLAG = ' , liquid_flag
+             STOP
+             
+          END IF
+          
           IF ( ANY(sed_vol_perc .EQ. -1.D0 ) ) THEN
              
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
@@ -2317,7 +2372,9 @@ CONTAINS
 
     REAL*8 :: xl , xr , yl , yr 
     
-    REAL*8 :: rho_a , rho_m , mass_fract(n_solid)
+    REAL*8 :: rho_c , rho_m , mass_fract(n_solid)
+
+    REAL*8 :: sp_heat_c
 
     INTEGER :: solid_idx
 
@@ -2347,6 +2404,38 @@ CONTAINS
     check_file = restart_file(dot_idx+1:dot_idx+3)
 
     IF ( check_file .EQ. 'asc' ) THEN
+
+       IF ( liquid_flag .AND. gas_flag ) THEN
+
+          WRITE(*,*) 'ERROR: problem with namelist NEWRUN_PARAMETERS'
+          WRITE(*,*) 'When restarting from .asc file only'
+          WRITE(*,*) 'one of these parameters must be set to .TRUE.'          
+          WRITE(*,*) 'LIQUID_FLAG',liquid_flag
+          WRITE(*,*) 'GAS_FLAG',liquid_flag
+          WRITE(*,*) 'Please check the input file'
+          CLOSE(restart_unit)
+          STOP
+
+       ELSEIF ( ( .NOT.liquid_flag ) .AND. ( .NOT. gas_flag ) ) THEN
+
+          WRITE(*,*) 'ERROR: problem with namelist NEWRUN_PARAMETERS'
+          WRITE(*,*) 'When restarting from .asc file only one'
+          WRITE(*,*) 'of these parameters must be set to .TRUE.'
+          WRITE(*,*) 'LIQUID_FLAG',liquid_flag
+          WRITE(*,*) 'GAS_FLAG',liquid_flag
+          WRITE(*,*) 'Please check the input file'
+          CLOSE(restart_unit)
+          STOP
+
+       ELSEIF ( gas_flag ) THEN
+
+          WRITE(*,*) 'Carrier phase: gas'
+          
+       ELSEIF ( liquid_flag ) THEN
+
+          WRITE(*,*) 'Carrier phase: liquid'
+          
+       END IF
        
        READ(restart_unit,*) chara, ncols
        READ(restart_unit,*) chara, nrows
@@ -2488,10 +2577,20 @@ CONTAINS
        
        !----- END NEW INITIALIZATION OF THICKNESS FROM RESTART
 
-       rho_a = pres / ( sp_gas_const_a * T_init )
+       IF ( gas_flag ) THEN
+       
+          rho_c = pres / ( sp_gas_const_a * T_init )
+          sp_heat_c = sp_heat_a
 
+       ELSE
+
+          rho_c = rho_l
+          sp_heat_c = sp_heat_l
+
+       END IF
+          
        rho_m = SUM( rho_s(1:n_solid)*alphas_init(1:n_solid) ) + ( 1.D0 -        &
-            SUM( alphas_init(1:n_solid) ) ) * rho_a 
+            SUM( alphas_init(1:n_solid) ) ) * rho_c 
 
        mass_fract = rho_s * alphas_init / rho_m
 
@@ -2502,24 +2601,26 @@ CONTAINS
        WRITE(*,*) 'Total mass on computational grid =',cell_size**2 *           &
             SUM( q(1,:,:) )
 
+       ! rhom*h*u
        q(2,:,:) = 0.D0
+       ! rhom*h*v
        q(3,:,:) = 0.D0
-       
+
+       ! energy (total or internal)
        q(4,:,:) = 0.D0
        
        WHERE ( thickness_init .GT. 0.D0 )
 
           q(4,:,:) = q(1,:,:) * T_init *  ( SUM( mass_fract(1:n_solid) *        &
                sp_heat_s(1:n_solid) ) +    &
-               ( 1.D0 - SUM( mass_fract ) ) * sp_heat_a )
-
+               ( 1.D0 - SUM( mass_fract ) ) * sp_heat_l )
 
        END WHERE
 
        DO solid_idx=5,4+n_solid
 
-          q(solid_idx,:,:) = thickness_init(:,:) * alphas_ambient(solid_idx-4) *&
-               rho_s(solid_idx-4)
+          ! rhos*h*alphas
+          q(solid_idx,:,:) = 0.D0
 
           WHERE ( thickness_init .GT. 0.D0 )
 
@@ -2531,13 +2632,9 @@ CONTAINS
        END DO
 
        WRITE(*,*) 'MAXVAL(q(5,:,:))',MAXVAL(q(5:4+n_solid,:,:))
-       ! WRITE(*,*) 'alphas_ambient,alphas_init',alphas_ambient,alphas_init
-
 
        WRITE(*,*) 'Total sediment volume =',cell_size**2*SUM( thickness_init*   &
             SUM(alphas_init) )
-
-
 
        output_idx = 0
 
@@ -2726,7 +2823,8 @@ CONTAINS
 
              DO i=1,n_solid
 
-                IF ( dabs(REAL(alphas(i))) .LT. 1d-99) alphas(i) = DCMPLX(0.d0,0.d0) 
+                IF ( dabs(REAL(alphas(i))) .LT. 1d-99) alphas(i) =              &
+                     DCMPLX(0.d0,0.d0) 
                 IF ( dabs( DEPOSIT(j,k,i) ) .LT. 1d-99) DEPOSIT(j,k,i) = 0.d0 
 
              END DO

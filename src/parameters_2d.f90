@@ -66,6 +66,8 @@ MODULE parameters_2d
 
   LOGICAL :: liquid_flag
 
+  LOGICAL :: gas_flag
+  
   LOGICAL :: topo_change_flag
 
   LOGICAL :: radial_source_flag
@@ -113,9 +115,6 @@ MODULE parameters_2d
 
   !> Initial sediment concentration in the pile of material
   REAL*8, ALLOCATABLE :: alphas_init(:)
-
-  !> Ambient sediment concentration
-  REAL*8, ALLOCATABLE :: alphas_ambient(:)
 
   REAL*8, ALLOCATABLE :: sed_vol_perc(:)
 

@@ -2809,14 +2809,14 @@ CONTAINS
              qrec_stencil(2) = qp2recC(1)
              qrec_stencil(3) = qp2recR(1)
 
-             CALL limit( qrec_stencil , x_stencil , limiter(1) ,          &
-                        qp2rec_prime_x(1) )
-
-             qp2recW(1) = qp2recC(1) - reconstr_coeff * dx2 * qp2rec_prime_x(1)
-             qp2recE(1) = qp2recC(1) + reconstr_coeff * dx2 * qp2rec_prime_x(1)
-
-             !qrecW(1) = qp2recW(1) - B_interfaceR(j,k)
-             !qrecE(1) = qp2recE(1) - B_interfaceL(j+1,k)
+!!$             CALL limit( qrec_stencil , x_stencil , limiter(1) ,          &
+!!$                        qp2rec_prime_x(1) )
+!!$
+!!$             qp2recW(1) = qp2recC(1) - reconstr_coeff * dx2 * qp2rec_prime_x(1)
+!!$             qp2recE(1) = qp2recC(1) + reconstr_coeff * dx2 * qp2rec_prime_x(1)
+!!$
+!!$             qrecW(1) = qp2recW(1) - B_interfaceR(j,k)
+!!$             qrecE(1) = qp2recE(1) - B_interfaceL(j+1,k)
 
              CALL qp_to_qp2( qrecW(1:n_vars) , B_interfaceR(j,k), qp2recW ) 
              CALL qp_to_qp2( qrecE(1:n_vars) , B_interfaceL(j+1,k) , qp2recE ) 
