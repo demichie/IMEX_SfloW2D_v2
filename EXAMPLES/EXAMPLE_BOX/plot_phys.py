@@ -55,8 +55,6 @@ x_unique = np.unique(x_cent)
 n_cent = len(x_cent)
 n_unique = len(x_unique)
 
-print n_cent,n_unique
-
 # create a figure for the plot
 fig, ax = plt.subplots()
 
