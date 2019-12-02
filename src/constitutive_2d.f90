@@ -263,20 +263,7 @@ CONTAINS
 
     END IF
 
-    IF ( gas_flag ) THEN
-
-       ! carrier phase is gas
-       rho_c =  pres / ( sp_gas_const_a * T )
-       sp_heat_c = sp_heat_a
-
-    ELSE
-
-       ! carrier phase is liquid
-       rho_c = rho_l
-       sp_heat_c = sp_heat_l
-       
-    END IF
-       
+    ! compute solid mass fractions
     IF ( DBLE(qj(1)) .GT. 1.D-25 ) THEN
     
        xs(1:n_solid) = qj(5:4+n_solid) / qj(1)
@@ -291,6 +278,7 @@ CONTAINS
     
     IF ( gas_flag .AND. liquid_flag ) THEN
 
+       ! compute liquid mass fraction
        IF ( DBLE(qj(1)) .GT. 1.D-25 ) THEN
           
           xl = qj(n_vars) / qj(1)
@@ -301,39 +289,23 @@ CONTAINS
        
        END IF
 
+       ! compute carrier phase (gas) mass fraction
        xc =  DCMPLX(1.D0,0.D0) - xs_tot - xl
 
-       inv_rhom = ( SUM(xs(1:n_solid) / rho_s(1:n_solid)) + xl / rho_l + xc / rho_c )
-
-       rho_m = 1.D0 / inv_rhom
-
-       alphal = xl * rho_m / rho_l
-       
        ! specific heaf of the mixutre: mass average of sp. heat pf phases
        sp_heat_mix = SUM( xs(1:n_solid) * sp_heat_s(1:n_solid) ) + xl * sp_heat_l  &
             + xc * sp_heat_c
        
     ELSE
 
+       ! compute carrier phase (gas or liquid) mass fraction
        xc = DCMPLX(1.D0,0.D0) - xs_tot
 
-       inv_rhom = ( SUM(xs(1:n_solid) / rho_s(1:n_solid)) + xc / rho_c )
-
-       rho_m = 1.D0 / inv_rhom
-       
        ! specific heaf of the mixutre: mass average of sp. heat pf phases
        sp_heat_mix = SUM( xs(1:n_solid) * sp_heat_s(1:n_solid) ) + xc * sp_heat_c
        
     END IF
 
-    ! convert from mass fraction to volume fraction
-    alphas(1:n_solid) = xs(1:n_solid) * rho_m / rho_s(1:n_solid)
-
-    ! convert from mass fraction to volume fraction
-    alphac = xc * rho_m / rho_c
-
-    h = qj(1) / rho_m
-    
     IF ( DBLE(qj(1)) .GT. 1.D-25 ) THEN
 
        IF ( energy_flag ) THEN
@@ -355,6 +327,44 @@ CONTAINS
 
     END IF
 
+    IF ( gas_flag ) THEN
+
+       ! carrier phase is gas
+       rho_c =  pres / ( sp_gas_const_a * T )
+       sp_heat_c = sp_heat_a
+
+    ELSE
+
+       ! carrier phase is liquid
+       rho_c = rho_l
+       sp_heat_c = sp_heat_l
+       
+    END IF
+       
+    IF ( gas_flag .AND. liquid_flag ) THEN
+
+       inv_rhom = ( SUM(xs(1:n_solid) / rho_s(1:n_solid)) + xl / rho_l + xc / rho_c )
+
+       rho_m = 1.D0 / inv_rhom
+
+       alphal = xl * rho_m / rho_l
+       
+    ELSE
+
+       inv_rhom = ( SUM(xs(1:n_solid) / rho_s(1:n_solid)) + xc / rho_c )
+
+       rho_m = 1.D0 / inv_rhom
+       
+    END IF
+
+    ! convert from mass fraction to volume fraction
+    alphas(1:n_solid) = xs(1:n_solid) * rho_m / rho_s(1:n_solid)
+
+    ! convert from mass fraction to volume fraction
+    alphac = xc * rho_m / rho_c
+
+    h = qj(1) / rho_m
+    
     ! reduced gravity
     red_grav = ( rho_m - rho_a_amb ) / rho_m * grav
 
