@@ -1567,7 +1567,9 @@ CONTAINS
   !> \brief Internal boundary source fluxes
   !
   !> This subroutine evaluates the source terms at the interfaces when an
-  !> internal radial source is present, as for a base surge.
+  !> internal radial source is present, as for a base surge. The terms are 
+  !> applied as boundary conditions, and thus they have the units of the 
+  !> physical variable qp
   !> \date 2019/12/01
   !> \param[in]     vect_x       unit vector velocity x-component 
   !> \param[in]     vect_y       unit vector velocity y-component 
@@ -1580,7 +1582,8 @@ CONTAINS
   
   SUBROUTINE eval_source_bdry( vect_x , vect_y , source_bdry )
 
-    USE parameters_2d, ONLY : h_source , vel_source , T_source , alphas_source
+    USE parameters_2d, ONLY : h_source , vel_source , T_source , alphas_source ,&
+         alphal_source
 
     IMPLICIT NONE
 
@@ -1592,7 +1595,14 @@ CONTAINS
     source_bdry(2) = h_source * vel_source * vect_x
     source_bdry(3) = h_source * vel_source * vect_y
     source_bdry(4) = T_source
-    source_bdry(5:n_vars) = alphas_source(1:n_solid)
+    source_bdry(5:4+n_solid) = alphas_source(1:n_solid)
+
+    IF ( gas_flag .AND. liquid_flag ) THEN
+
+       source_bdry(n_vars) = alphal_source
+
+    END IF
+    
     
     RETURN
 

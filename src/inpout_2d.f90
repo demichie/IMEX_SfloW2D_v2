@@ -50,7 +50,7 @@ MODULE inpout_2d
 
   ! -- Variables for the namelist RADIAL_SOURCE_PARAMETERS
   USE parameters_2d, ONLY : x_source , y_source , r_source , vel_source ,       &
-       T_source , h_source , alphas_source
+       T_source , h_source , alphas_source , alphal_source
 
   ! -- Variables for the namelist COLLAPSING_VOLUME_PARAMETERS
   USE parameters_2d, ONLY : x_collapse , y_collapse , r_collapse , T_collapse , &
@@ -211,7 +211,7 @@ MODULE inpout_2d
   NAMELIST / expl_terms_parameters / grav
  
   NAMELIST / radial_source_parameters / x_source , y_source , r_source ,        &
-       vel_source , T_source , h_source , alphas_source
+       vel_source , T_source , h_source , alphas_source , alphal_source
 
   NAMELIST / collapsing_volume_parameters / x_collapse , y_collapse ,           &
        r_collapse , T_collapse , h_collapse , alphas_collapse
@@ -1488,6 +1488,8 @@ CONTAINS
 
     IF ( radial_source_flag ) THEN
 
+       alphal_source = -1.D0
+
        ALLOCATE( alphas_source(n_solid) )
 
        READ(input_unit,radial_source_parameters,IOSTAT=ios)
@@ -1571,6 +1573,18 @@ CONTAINS
 
           END IF
 
+          IF ( gas_flag .AND. liquid_flag ) THEN
+
+             IF ( alphal_source .LT. 0.D0 ) THEN
+             
+                WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+                WRITE(*,*) 'PLEASE CHECK VALUE OF ALPHAL_SOURCE',alphal_source
+                STOP
+                
+             END IF
+
+          END IF
+             
        END IF
            
     END IF
@@ -1811,10 +1825,11 @@ CONTAINS
 
        ELSEIF ( rheology_model .EQ. 4 ) THEN
 
-          IF ( .NOT. liquid_flag ) THEN
+          IF ( gas_flag .OR. ( .NOT. liquid_flag ) ) THEN
              
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'RHEOLOGY_MODEL =' , rheology_model
+             WRITE(*,*) 'GAS FLAG = ' , gas_flag
              WRITE(*,*) 'LIQUID FLAG = ' , liquid_flag
              STOP
              
