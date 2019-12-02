@@ -13,7 +13,7 @@ import matplotlib.tri as mtri
 import time
 import sys
 
-if len(sys.argv)==6: 
+if len(sys.argv)==4: 
 
     print('Number of cells')
     a = sys.argv[1]
@@ -34,19 +34,6 @@ if len(sys.argv)==6:
 
     a = sys.argv[3]
     try:
-        erosion_coeff = float(a)
-    except ValueError:
-        print("You must enter a float for erosion coefficient: "+a)
-
-    a = sys.argv[4]
-    try:
-        settling_vel = float(a)
-    except ValueError:
-        print("You must enter a float for settling velocity: "+a)
-
-
-    a = sys.argv[5]
-    try:
         T = float(a)
     except ValueError:
         print("You must enter a float for temperature: "+a)
@@ -56,9 +43,7 @@ else:
     print('Please provide three arguments:\n')
     print('1) Number of cells\n')
     print('2) Solid volume fraction (0,1)\n')
-    print('3) Erosion coefficient (>0)\n')
-    print('4) Settling velocity (>0)\n')
-    print('5) Temperature (>0)\n')
+    print('3) Temperature (>0)\n')
     sys.exit()
 
 
@@ -289,8 +274,6 @@ filedata = filedata.replace('y_min', str(y_min))
 filedata = filedata.replace('nx_cells', str(nx_cells))
 filedata = filedata.replace('ny_cells', str(ny_cells))
 filedata = filedata.replace('dx', str(dx))
-filedata = filedata.replace('erosionCoeff', str(erosion_coeff))
-filedata = filedata.replace('settlingVel', str(settling_vel))
 
 
 # Write the file out again

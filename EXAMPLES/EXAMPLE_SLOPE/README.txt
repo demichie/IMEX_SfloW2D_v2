@@ -1,4 +1,4 @@
-This example simulate a flow supercritical flow (Ri<1) entering from the left of the domain. An initial slope is followed by a flat topography and a discontinuity. There is no sedimentation and no entrainment.
+This example simulate a supercritical flow (Ri<1) entering from the left of the domain. An initial slope is followed by a flat topography and a discontinuity. There is no sedimentation and no entrainment.
 No friction is considered in this test (RHEOLOGY_FLAG=F).
 Instead of the total energy equation, a simpler transport equation (pure advection) for the temperature is solved (ENERGY_FLAG=F).
 
@@ -9,15 +9,11 @@ Please provide three arguments:
 
 2) Volume fraction of particles
 
-3) Erosion coefficient ( 0 => no erosion )
-
-4) Sedimentation coefficient ( 0 => no deposition )
-
-5) Flow temperature (Kelvin)
+3) Flow temperature (Kelvin)
 
 Usage example of the script:
 
->> ./create_example.py 400 1.0 0.0 0.0 300
+>> ./create_example.py 400 1.0 300
 
 Once the input file (SW_VAR_DENS_MODEL.inp) is created create a simbolic link of the executable 
 in this folder:

@@ -11,15 +11,11 @@ Please provide three arguments:
 
 2) Volume fraction of particles
 
-3) Erosion coefficient ( 0 => no erosion )
-
-4) Sedimentation coefficient ( 0 => no deposition )
-
 5) Flow temperature (Kelvin)
 
 Usage example of the script:
 
->> ./create_example.py 400 0.5 0.0 1.0 300
+>> ./create_example.py 400 0.5 300
 
 Once the input file (SW_VAR_DENS_MODEL.inp) is created create a simbolic link of the executable 
 in this folder:

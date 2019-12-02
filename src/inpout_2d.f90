@@ -617,7 +617,6 @@ CONTAINS
 
     OPEN(input_unit,FILE=input_file,STATUS='old')
 
-
     ! ------- READ run_parameters NAMELIST -----------------------------------
     READ(input_unit, run_parameters,IOSTAT=ios )
 

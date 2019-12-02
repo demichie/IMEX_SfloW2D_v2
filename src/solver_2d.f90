@@ -1882,7 +1882,7 @@ CONTAINS
     max_vel_old = 0.D0
     max_vel_new = 0.D0
     
-    IF ( ( erosion_coeff .EQ. 0.D0 ) .AND. ( settling_vel .EQ. 0.D0 ) ) RETURN
+    IF ( ( SUM(erosion_coeff) .EQ. 0.D0 ) .AND. ( settling_vel .EQ. 0.D0 ) ) RETURN
 
     DO k = 1,comp_cells_y
 
