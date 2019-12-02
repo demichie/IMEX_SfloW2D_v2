@@ -306,6 +306,7 @@ CONTAINS
        
     END IF
 
+    ! compute temperature from energy
     IF ( DBLE(qj(1)) .GT. 1.D-25 ) THEN
 
        IF ( energy_flag ) THEN
