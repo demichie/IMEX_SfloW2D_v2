@@ -117,16 +117,19 @@ MODULE constitutive_2d
   !--- Lahars rheology model parameters
 
   !> 1st param for yield strenght empirical relationship (O'Brian et al, 1993)
-  REAL*8 :: alpha2
+  REAL*8 :: alpha2    ! (units: kg m-1 s-2)
 
   !> 2nd param for yield strenght empirical relationship (O'Brian et al, 1993)
-  REAL*8 :: beta2
+  REAL*8 :: beta2     ! (units: nondimensional) 
+
+  !> ratio between reference value from input and computed values from eq.
+  REAL*8 :: alpha1_coeff ! (units: nondimensional )
 
   !> 1st param for fluid viscosity empirical relationship (O'Brian et al, 1993)
-  REAL*8 :: alpha1
+  COMPLEX*16 :: alpha1    ! (units: kg m-1 s-1 )
 
   !> 2nd param for fluid viscosity empirical relationship (O'Brian et al, 1993)
-  REAL*8 :: beta1
+  REAL*8 :: beta1     ! (units: nondimensional)
 
   !> Empirical resistance parameter (dimensionless)
   REAL*8 :: Kappa
@@ -1084,24 +1087,34 @@ CONTAINS
        ! Lahars rheology (O'Brien 1993, FLO2D)
        ELSEIF ( rheology_model .EQ. 4 ) THEN
 
+          ! alpha1 here has units: kg m-1 s-1
+          ! in Table 2 from O'Brien 1988, the values reported have different
+          ! units ( poises). 1poises = 0.1 kg m-1 s-1
+
           h_threshold = 1.D-20
 
           ! convert from Kelvin to Celsius
-          Tc = T - 273.15
+          Tc = T - 273.15D0
 
+          ! the dependance of viscosity on temperature is modeled with the
+          ! equation presented at:
+          ! https://onlinelibrary.wiley.com/doi/pdf/10.1002/9781118131473.app3
+          !
+          ! In addition, we use a reference value provided in input at a 
+          ! reference temperature. This value is used to scale the equation
           IF ( Tc .LT. 20.D0 ) THEN
           
              expA = 1301.D0 / ( 998.333D0 + 8.1855D0 * ( Tc - 20.D0 )           &
                   + 0.00585D0 * ( Tc - 20.D0 )**2 ) - 1.30223D0
              
-             alpha1 = 1.D-3 * 10.D0**expA
+             alpha1 = alpha1_coeff * 1.D-3 * 10.D0**expA
 
           ELSE
 
              expB = ( 1.3272D0 * ( 20.D0 - Tc ) - 0.001053D0 *                  &
                   ( Tc - 20.D0 )**2 ) / ( Tc + 105.0D0 )
              
-             alpha1 = 1.002D-3 * 10.D0**expB
+             alpha1 = alpha1_coeff * 1.002D-3 * 10.D0**expB 
 
           END IF
           

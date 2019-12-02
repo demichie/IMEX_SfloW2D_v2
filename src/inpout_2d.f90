@@ -63,7 +63,7 @@ MODULE inpout_2d
   ! -- Variables for the namelist RHEOLOGY_PARAMETERS
   USE parameters_2d, ONLY : rheology_model
   USE constitutive_2d, ONLY : mu , xi , tau , nu_ref , visc_par , T_ref
-  USE constitutive_2d, ONLY : alpha2 , beta2 , alpha1 , beta1 , Kappa , n_td
+  USE constitutive_2d, ONLY : alpha2 , beta2 , alpha1_coeff , beta1 , Kappa ,n_td
   USE constitutive_2d, ONLY : friction_factor
   
   ! --- Variables for the namelist SOLID_TRANSPORT_PARAMETERS
@@ -175,6 +175,7 @@ MODULE inpout_2d
 
   REAL*8 :: rho0_s(1000) , diam0_s(1000) , sp_heat0_s(1000)
 
+  REAL*8 :: alpha1_ref
 
   NAMELIST / run_parameters / run_name , restart , t_start , t_end , dt_output ,&
        output_cons_flag , output_esri_flag , output_phys_flag ,                 &
@@ -221,7 +222,7 @@ MODULE inpout_2d
        T_ground , rho
 
   NAMELIST / rheology_parameters / rheology_model , mu , xi , tau , nu_ref ,    &
-       visc_par , T_ref , alpha2 , beta2 , alpha1 , beta1 , Kappa , n_td ,      &
+       visc_par , T_ref , alpha2 , beta2 , alpha1_ref , beta1 , Kappa , n_td ,  &
        friction_factor
 
   NAMELIST / runout_parameters / x0_runout , y0_runout , dt_runout ,            &
@@ -233,7 +234,7 @@ MODULE inpout_2d
   NAMELIST / gas_transport_parameters / sp_heat_a , sp_gas_const_a , kin_visc_a,&
        pres , T_ambient , entrainment_flag
 
-  NAMELIST / liquid_transport_parameters / sp_heat_l , rho_l
+  NAMELIST / liquid_transport_parameters / sp_heat_l , rho_l , kin_visc_l
   
 CONTAINS
 
@@ -513,7 +514,7 @@ CONTAINS
     
     alpha2 = -1 
     beta2 = -1
-    alpha1 = -1
+    alpha1_ref = -1
     beta1 = -1
     Kappa = -1
     n_td = -1
@@ -610,6 +611,9 @@ CONTAINS
     CHARACTER(LEN=15) :: chara
 
     INTEGER :: ios
+    
+    REAL*8 :: expA , expB , Tc
+
 
     OPEN(input_unit,FILE=input_file,STATUS='old')
 
@@ -923,6 +927,8 @@ CONTAINS
           
        ELSE
   
+          dot_idx = SCAN(restart_file, ".", .TRUE.)
+
           check_file = restart_file(dot_idx+1:dot_idx+3)
 
           IF ( check_file .EQ. 'asc' ) THEN
@@ -937,27 +943,19 @@ CONTAINS
              END IF
              
              alphas_init = 1.D-2 * sed_vol_perc 
-             
+             WRITE(*,*) 'INITIAL VOLUME FRACTION OF SOLIDS:', alphas_init
              REWIND(input_unit)
+    
           
-          END IF
-
-       END IF
-
-       IF ( restart ) THEN
+             IF ( T_init*T_ambient .EQ. 0.D0 ) THEN
           
-          dot_idx = SCAN(restart_file, ".", .TRUE.)
-          
-          check_file = restart_file(dot_idx+1:dot_idx+3)
-          
-          IF ( ( check_file .EQ. 'asc' )  .AND.                                 &
-               ( T_init*T_ambient .EQ. 0.D0 ) ) THEN
-          
-             WRITE(*,*) 'T_init=',T_init
-             WRITE(*,*) 'T_ambient=',T_ambient
-             WRITE(*,*) 'Add the variables to the namelist RESTART_PARAMETERS'
-             STOP
-             
+                WRITE(*,*) 'T_init=',T_init
+                WRITE(*,*) 'T_ambient=',T_ambient
+                WRITE(*,*) 'Add the variables to the namelist RESTART_PARAMETERS'
+                STOP
+                
+             END IF
+      
           END IF
 
        END IF
@@ -1086,7 +1084,7 @@ CONTAINS
 
 
     WRITE(*,*) 'Linear reconstruction and b. c. applied to variables:'
-    WRITE(*,*) 'h+B,u,v,T,alphas'
+    WRITE(*,*) 'h,hu,hv,T,alphas'
 
     IF ( ( reconstr_coeff .GT. 1.0D0 ) .OR. ( reconstr_coeff .LT. 0.D0 ) ) THEN
        
@@ -1862,13 +1860,44 @@ CONTAINS
              
           END IF
 
-          IF ( alpha1 .EQ. -1.D0 ) THEN
+          IF ( T_ref .LE. 273.15D0 ) THEN
              
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
-             WRITE(*,*) 'ALPHA1 =' , alpha1 
+             WRITE(*,*) 'T_REF =' , T_ref
              WRITE(*,*) 'Please check the input file'
              STOP
              
+          END IF
+
+          IF ( alpha1_ref .EQ. -1.D0 ) THEN
+             
+             WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
+             WRITE(*,*) 'ALPHA1 =' , alpha1_ref 
+             WRITE(*,*) 'Please check the input file'
+             STOP
+             
+          ELSE
+
+             Tc = T_ref - 273.15D0
+             
+             IF ( Tc .LT. 20.D0 ) THEN
+                
+                expA = 1301.D0 / ( 998.333D0 + 8.1855D0 * ( Tc - 20.D0 )        &
+                     + 0.00585D0 * ( Tc - 20.D0 )**2 ) - 1.30223D0
+                
+                alpha1_coeff = alpha1_ref / ( 1.D-3 * 10.D0**expA )
+                
+             ELSE
+                
+                expB = ( 1.3272D0 * ( 20.D0 - Tc ) - 0.001053D0 *               &
+                     ( Tc - 20.D0 )**2 ) / ( Tc + 105.0D0 )
+                
+                alpha1_coeff = alpha1_ref / ( 1.002D-3 * 10.D0**expB )
+                
+             END IF
+             
+             WRITE(*,*) 'alpha1 coefficient:',alpha1_coeff
+
           END IF
 
           IF ( beta1 .EQ. -1.D0 ) THEN
@@ -2397,7 +2426,8 @@ CONTAINS
 
     INQUIRE (FILE=restart_file,exist=lexist)
 
-    WRITE(*,*) 'READ INIT',restart_file,lexist,restart_unit
+    WRITE(*,*)
+    ! WRITE(*,*) 'READ INIT',restart_file,lexist,restart_unit
 
     IF ( lexist .EQV. .FALSE.) THEN
 
@@ -2411,8 +2441,6 @@ CONTAINS
        WRITE(*,*) 'Restart: ',TRIM(restart_file), ' found'
 
     END IF
-
-    WRITE(*,*) 'READ 1'
 
     dot_idx = SCAN(restart_file, ".", .TRUE.)
 
