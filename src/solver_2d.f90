@@ -1853,7 +1853,7 @@ CONTAINS
 
   SUBROUTINE update_erosion_deposition_cell(dt)
 
-    USE constitutive_2d, ONLY : erosion_coeff , settling_vel , rho_s , red_grav
+    USE constitutive_2d, ONLY : erosion_coeff , settling_flag , rho_s , red_grav
 
     USE geometry_2d, ONLY : deposit
 
@@ -1882,7 +1882,7 @@ CONTAINS
     max_vel_old = 0.D0
     max_vel_new = 0.D0
     
-    IF ( ( SUM(erosion_coeff) .EQ. 0.D0 ) .AND. ( settling_vel .EQ. 0.D0 ) ) RETURN
+    IF ( ( SUM(erosion_coeff) .EQ. 0.D0 ) .AND. ( .NOT. settling_flag ) ) RETURN
 
     DO k = 1,comp_cells_y
 
@@ -1890,7 +1890,7 @@ CONTAINS
 
           CALL qc_to_qp(q(1:n_vars,j,k) , B_cent(j,k) , qp(1:n_vars,j,k) )
 
-          CALL eval_erosion_dep_term( qp(:,j,k) , B_cent(j,k) , dt ,            &
+          CALL eval_erosion_dep_term( qp(1:n_vars,j,k) , B_cent(j,k) , dt ,      &
                erosion_term(1:n_solid) , deposition_term(1:n_solid) )
 
           ! Limit the deposition during a single time step
@@ -1898,7 +1898,7 @@ CONTAINS
                q(5:4+n_solid,j,k) / ( rho_s(1:n_solid) * dt ) ))
 
           ! Compute the source terms for the equations
-          CALL eval_topo_term( q(1:n_vars,j,k) , deposition_term ,              &
+          CALL eval_topo_term( qp(1:n_vars,j,k) , deposition_term ,             &
                erosion_term , eqns_term , deposit_term )
 
           IF ( verbose_level .GE. 2 ) THEN

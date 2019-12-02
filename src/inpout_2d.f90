@@ -70,7 +70,7 @@ MODULE inpout_2d
   USE parameters_2d, ONLY : n_solid
   USE constitutive_2d, ONLY : rho_s , diam_s , sp_heat_s , alphas , r_alphas ,  &
        C_D_s , xs , r_xs
-  USE constitutive_2d, ONLY : settling_vel , erosion_coeff
+  USE constitutive_2d, ONLY : settling_flag , erosion_coeff
   USE constitutive_2d, ONLY : T_s_substrate
 
   ! --- Variables for the namelist GAS_TRANSPORT_PARAMETERS
@@ -229,7 +229,7 @@ MODULE inpout_2d
        eps_stop
 
   NAMELIST / solid_transport_parameters / n_solid , rho0_s , diam0_s ,          &
-       sp_heat0_s , erosion_coeff0 , settling_vel , T_s_substrate
+       sp_heat0_s , erosion_coeff0 , settling_flag , T_s_substrate
 
   NAMELIST / gas_transport_parameters / sp_heat_a , sp_gas_const_a , kin_visc_a,&
        pres , T_ambient , entrainment_flag
@@ -538,7 +538,7 @@ CONTAINS
 
     !- Variables for the namelist SOLID_TRANSPORT_PARAMETERS
     ! rho_s = -1.D0
-    settling_vel = -1.D0
+    settling_flag = .FALSE.
     erosion_coeff0 = -1.D0
     n_solid = -1
     T_s_substrate = -1.D0
@@ -869,16 +869,7 @@ CONTAINS
        STOP
        
     END IF
-    
-    IF ( settling_vel .LT. 0.D0 ) THEN
-       
-       WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
-       WRITE(*,*) 'SETTLING_VEL =' , settling_vel
-       WRITE(*,*) 'Please check the input file'
-       STOP
-       
-    END IF
-      
+          
     IF ( T_s_substrate .LT. 0.D0 ) THEN
        
        WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'

@@ -180,6 +180,8 @@ MODULE constitutive_2d
 
   REAL*8, ALLOCATABLE :: C_D_s(:)
 
+  LOGICAL :: settling_flag
+
   !> hindered settling 
   REAL*8 :: settling_vel
 
@@ -1448,7 +1450,7 @@ CONTAINS
     
     DO i_solid=1,n_solid
 
-       IF ( r_alphas(i_solid) .GT. 0.D0 ) THEN
+       IF ( ( r_alphas(i_solid) .GT. 0.D0 ) .AND. ( settling_flag ) ) THEN
 
           settling_vel = settling_velocity( diam_s(i_solid) , rho_s(i_solid) ,  &
                r_rho_c , i_solid )
@@ -1506,12 +1508,12 @@ CONTAINS
   !
   !******************************************************************************
 
-  SUBROUTINE eval_topo_term( qj , deposition_avg_term , erosion_avg_term ,      &
+  SUBROUTINE eval_topo_term( qpj , deposition_avg_term , erosion_avg_term ,      &
        eqns_term, deposit_term )
     
     IMPLICIT NONE
     
-    REAL*8, INTENT(IN) :: qj(n_eqns)                   !< conservative variables 
+    REAL*8, INTENT(IN) :: qpj(n_eqns)                  !< physical variables 
     REAL*8, INTENT(IN) :: deposition_avg_term(n_solid) !< deposition term
     REAL*8, INTENT(IN) :: erosion_avg_term(n_solid)    !< erosion term
 
@@ -1522,13 +1524,12 @@ CONTAINS
     REAL*8 :: air_entr
     REAL*8 :: mag_vel 
 
+    CALL mixt_var(qpj)
 
-    CALL phys_var(r_qj = qj)
-
-    mag_vel = DSQRT( DBLE(u)**2.D0 + DBLE(v)**2.D0 ) 
+    mag_vel = DSQRT( r_u**2.D0 + r_v**2.D0 ) 
     
     IF ( entrainment_flag .AND. ( mag_vel**2 .GT. 0.D0 ) .AND.                  &
-         ( DBLE(h) .GT. 0.D0 ) ) THEN
+         ( r_h .GT. 0.D0 ) ) THEN
 
        entr_coeff = 0.075D0 / DSQRT( 1.D0 + 718.D0 * MAX(0.D0,r_Ri)**2.4 )
        
@@ -1547,22 +1548,22 @@ CONTAINS
          rho_a_amb * air_entr
 
     ! x-momenutm equation
-    eqns_term(2) = - DBLE(u) * SUM( rho_s * deposition_avg_term )
+    eqns_term(2) = - r_u * SUM( rho_s * deposition_avg_term )
 
     ! y-momentum equation
-    eqns_term(3) = - DBLE(v) * SUM( rho_s * deposition_avg_term )
+    eqns_term(3) = - r_v * SUM( rho_s * deposition_avg_term )
 
     ! Temperature/Energy equation
     IF ( energy_flag ) THEN
 
-       eqns_term(4) = - DBLE(T) * SUM( rho_s * sp_heat_s * deposition_avg_term )&
+       eqns_term(4) = - r_T * SUM( rho_s * sp_heat_s * deposition_avg_term )    &
             - 0.5D0 * mag_vel**2 * SUM( rho_s * deposition_avg_term )           &
             + T_s_substrate * SUM( rho_s * sp_heat_s * erosion_avg_term )       &
             + T_ambient * sp_heat_a * rho_a_amb * air_entr
 
     ELSE
 
-       eqns_term(4) = - DBLE(T) * SUM( rho_s * sp_heat_s * deposition_avg_term )&
+       eqns_term(4) = - r_T * SUM( rho_s * sp_heat_s * deposition_avg_term )    &
             + T_s_substrate * SUM( rho_s * sp_heat_s * erosion_avg_term )       &
             + T_ambient * sp_heat_a * rho_a_amb * air_entr
 
