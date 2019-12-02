@@ -183,7 +183,7 @@ MODULE constitutive_2d
   !> hindered settling 
   REAL*8 :: settling_vel
 
-  !> erosion model coefficient
+  !> erosion model coefficient  ( units: m-1 )
   REAL*8 :: erosion_coeff
 
   !> temperature of solid substrate (K)
@@ -1452,7 +1452,7 @@ CONTAINS
 
           settling_vel = settling_velocity( diam_s(i_solid) , rho_s(i_solid) ,  &
                r_rho_c , i_solid )
-         
+
           deposition_term(i_solid) = r_alphas(i_solid) * settling_vel
           
           deposition_term(i_solid) = MIN( deposition_term(i_solid) ,            &
@@ -1470,9 +1470,13 @@ CONTAINS
 
        mod_vel = DSQRT( r_u**2 + r_v**2 )
   
-       IF ( DBLE(r_h) .GT. 1.D-2) THEN
+       IF ( r_h .GT. 1.D-2) THEN
     
-          erosion_term(i_solid) = 0.D0
+          ! empirical formulation (see Fagents & Baloga 2006, Eq. 5)
+          ! here we use the solid volume fraction instead of relative density
+          ! This term has units: m s-1
+          erosion_term(i_solid) = erosion_coeff * mod_vel * r_h                 &
+               * ( 1.D0 - SUM(r_alphas) )
 
        ELSE
           
