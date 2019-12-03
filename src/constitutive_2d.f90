@@ -1436,7 +1436,14 @@ CONTAINS
     
     REAL*8 :: mod_vel
 
+    REAL*8 :: hind_exp
+    REAL*8 :: alpha_max
+
     INTEGER :: i_solid
+
+    ! parameters for Michaels and Bolger (1962) sedimentation correction
+    alpha_max = 0.6D0
+    hind_exp = 4.65D0
 
     deposition_term(1:n_solid) = 0.D0
     erosion_term(1:n_solid) = 0.D0
@@ -1452,7 +1459,8 @@ CONTAINS
           settling_vel = settling_velocity( diam_s(i_solid) , rho_s(i_solid) ,  &
                r_rho_c , i_solid )
 
-          deposition_term(i_solid) = r_alphas(i_solid) * settling_vel
+          deposition_term(i_solid) = r_alphas(i_solid) * settling_vel *         &
+               ( 1.D0 - MIN( 1.D0 , SUM( r_alphas ) / alpha_max ) )**hind_exp
           
           deposition_term(i_solid) = MIN( deposition_term(i_solid) ,            &
                r_h * r_alphas(i_solid) / dt )
