@@ -876,7 +876,7 @@ CONTAINS
                    q_si(1:n_vars) = q_fv(1:n_vars,j,k ) + dt * a_diag *         &
                         SI_NH(1:n_eqns,j,k,i_RK)
                    
-                   IF ( q_fv(2,j,k)**2 + q_fv(3,j,k)**2 .EQ. 0.D0 ) THEN
+                   IF ( ( q_fv(2,j,k)**2 + q_fv(3,j,k)**2 ) .EQ. 0.D0 ) THEN
                       
                       !Case 1: if the velocity was null, then it must stay null
                       q_si(2:3) = 0.D0 
@@ -1013,7 +1013,7 @@ CONTAINS
 
           CALL cpu_time(t_imex1)
           ! WRITE(*,*) 'Time taken by explicit',t_imex1-t_imex2,'seconds'
-          
+         
           ! Eval and store the other explicit terms (e.g. gravity or viscous 
           ! forces)
           CALL eval_explicit_terms(                                             &

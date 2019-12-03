@@ -3301,7 +3301,6 @@ CONTAINS
     
     CLOSE(dakota_unit)
 
-    
     area0 = dx*dy*COUNT(q0(1,:,:).GT.1.D-7)
     area = dx*dy*COUNT(q(1,:,:).GT.1.D-7)
     
@@ -3316,24 +3315,27 @@ CONTAINS
     WHERE( q(1,:,:)  > 1.D-5 ) dist = ABS(q(1,:,:)-q0(1,:,:)) /                 &
          MAX(q(1,:,:),q0(1,:,:))
 
-    dareaRel_dt = ABS( area - area0 ) / ( area * dt )
-    dhRel_dt = SUM( dist / dt ) / COUNT(q(1,:,:).GT.1.D-5)
+    IF ( time .GT. t_start ) THEN
 
-    ! WRITE(*,*) 'area,darea_dt,dhRel_dt',area,dareaRel_dt,dhRel_dt
-    
-    t_runout = time + dt_runout
+       dareaRel_dt = ABS( area - area0 ) / ( area * dt )
 
-    IF ( ( time .GT. t_start ) .AND. ( MAX(dareaRel_dt,dhRel_dt) .LT.           &
-         eps_stop ) .AND. (.NOT.stop_flag) ) THEN
+       dhRel_dt = SUM( dist / dt ) / COUNT(q(1,:,:).GT.1.D-5)
 
-       WRITE(*,*) 'Steady solution reached'
-       WRITE(*,*) 'dareaRel_dt',dareaRel_dt
-       WRITE(*,*) 'dhRel_dt',dhRel_dt
-       stop_flag = .TRUE.
+       IF ( ( MAX(dareaRel_dt,dhRel_dt) .LT. eps_stop ) .AND.                   &
+            (.NOT.stop_flag) ) THEN
+
+          WRITE(*,*) 'Steady solution reached'
+          WRITE(*,*) 'dareaRel_dt',dareaRel_dt
+          WRITE(*,*) 'dhRel_dt',dhRel_dt
+          stop_flag = .TRUE.
+
+       END IF
 
     END IF
 
     DEALLOCATE( X , Y , dist )
+
+    t_runout = time + dt_runout
 
   END SUBROUTINE output_runout
 
