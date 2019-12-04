@@ -2705,6 +2705,8 @@ CONTAINS
              READ(restart_unit,'(2e20.12,*(e20.12))') xj , yk ,                 &
                   (q(i_vars,j,k),i_vars=1,n_vars) 
 
+             IF ( q(1,j,k) .LE. 0.D0 ) q(1:n_vars,j,k) = 0.D0 
+
           ENDDO
           
           READ(restart_unit,*)  

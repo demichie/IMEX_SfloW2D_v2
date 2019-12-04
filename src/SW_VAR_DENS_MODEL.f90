@@ -77,7 +77,8 @@ PROGRAM SW_VAR_DENS_MODEL
   
   USE constitutive_2d, ONLY : qc_to_qp
 
-  ! USE solver_2d, ONLY : solve_mask
+  USE solver_2d, ONLY : solve_mask
+  USE solver_2d, ONLY : reconstruction_mask
 
   IMPLICIT NONE
 
@@ -185,8 +186,14 @@ PROGRAM SW_VAR_DENS_MODEL
 
      CALL update_param
      
-     ! CALL check_solve
-     ! WRITE(*,*) 'cells to solve:',COUNT(solve_mask)
+     CALL check_solve
+
+     IF ( verbose_level .GE. 1 ) THEN
+
+        WRITE(*,*) 'cells to solve and reconstruct:' , COUNT(solve_mask) ,      &
+             COUNT(reconstruction_mask)
+
+     END IF
 
      CALL timestep
 
