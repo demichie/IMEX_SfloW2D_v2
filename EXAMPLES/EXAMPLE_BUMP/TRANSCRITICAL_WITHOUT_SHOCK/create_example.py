@@ -9,7 +9,7 @@ import matplotlib.animation as animation
 import time
 import sys
 
-if len(sys.argv)==6: 
+if len(sys.argv)==4: 
 
     print('Number of cells')
     a = sys.argv[1]
