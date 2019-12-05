@@ -39,7 +39,7 @@ with open(bakfile) as fp:
            t_end_str= line.replace('T_END=','')
            t_end_str= t_end_str.replace(',','')
            t_end = np.float(t_end_str)
-           print("t_start",t_start)
+           print("t_end",t_end)
 
        if "DT_OUTPUT" in line:
            dt_output_str = line.replace('DT_OUTPUT=','')
