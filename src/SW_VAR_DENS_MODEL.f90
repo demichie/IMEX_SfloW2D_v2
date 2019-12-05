@@ -78,7 +78,6 @@ PROGRAM SW_VAR_DENS_MODEL
   USE constitutive_2d, ONLY : qc_to_qp
 
   USE solver_2d, ONLY : solve_mask
-  USE solver_2d, ONLY : reconstruction_mask
 
   IMPLICIT NONE
 
@@ -190,8 +189,7 @@ PROGRAM SW_VAR_DENS_MODEL
 
      IF ( verbose_level .GE. 1 ) THEN
 
-        WRITE(*,*) 'cells to solve and reconstruct:' , COUNT(solve_mask) ,      &
-             COUNT(reconstruction_mask)
+        WRITE(*,*) 'cells to solve and reconstruct:' , COUNT(solve_mask)
 
      END IF
 

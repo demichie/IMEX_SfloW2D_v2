@@ -431,6 +431,7 @@ CONTAINS
        r_alphas(1:n_solid) = 0.D0
        r_red_grav = 0.D0
        r_Ri = 0.D0
+       r_rho_m = rho_a_amb
        IF ( gas_flag .AND. liquid_flag ) r_alphal = 0.D0
 
        RETURN
@@ -514,25 +515,25 @@ CONTAINS
   !******************************************************************************
   
   SUBROUTINE qc_to_qp(qc,B,qp)
-    
+
     IMPLICIT none
-    
+
     REAL*8, INTENT(IN) :: qc(n_vars)
     REAL*8, INTENT(IN) :: B
     REAL*8, INTENT(OUT) :: qp(n_vars)
-    
+
     IF ( qc(1) .GT. 0.D0 ) THEN
 
        CALL phys_var(r_qj = qc)
-       
+
        qp(1) = DBLE(h)
-       
+
        qp(2) = DBLE(h*u)
        qp(3) = DBLE(h*v)
-       
+
        qp(4) = DBLE(T)
        qp(5:4+n_solid) = DBLE(alphas(1:n_solid))
-       
+
        IF ( gas_flag .AND. liquid_flag ) qp(n_vars) = alphal
 
     ELSE
@@ -543,12 +544,14 @@ CONTAINS
        qp(4) = T_ambient
        qp(5:n_vars) = 0.D0
 
-       red_grav = DCMPLX(0.D0,0.D0)
+       r_red_grav = 0.D0
 
     END IF
 
+
+
     RETURN
-    
+
   END SUBROUTINE qc_to_qp
 
   !******************************************************************************
@@ -586,15 +589,20 @@ CONTAINS
     
     r_h = qp(1)
 
-    IF ( r_h .LE. 0.D0 ) THEN
+    IF ( r_h .GT. 0.D0 ) THEN
+
+       r_u = qp(2) / r_h
+       r_v = qp(3) / r_h
+
+    ELSE
+
+       r_u = 0.D0
+       r_v = 0.D0
 
        qc(1:n_vars) = 0.D0
        RETURN
 
     END IF
-
-    r_u = qp(2) / r_h
-    r_v = qp(3) / r_h
 
     r_T  = qp(4)
     
@@ -705,9 +713,9 @@ CONTAINS
     qc(5:4+n_solid) = r_h * r_alphas(1:n_solid) * rho_s(1:n_solid)
 
     IF ( gas_flag .AND. liquid_flag ) qc(n_vars) = r_h * r_alphal * rho_l
-
-    RETURN
     
+    RETURN
+
   END SUBROUTINE qp_to_qc
 
   
@@ -724,8 +732,6 @@ CONTAINS
   !******************************************************************************
  
   SUBROUTINE qp_to_qp2(qpj,Bj,qp2j)
-
-    USE parameters_2d, ONLY : eps_sing
 
     IMPLICIT none
 

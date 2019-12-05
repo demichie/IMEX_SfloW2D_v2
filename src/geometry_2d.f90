@@ -341,7 +341,7 @@ CONTAINS
              ! cells where equations are not solved
              source_cell(j,k) = 1 
 
-             ! check on x-faces
+             ! check on west cell
              IF ( ( x_comp(j-1) - x_source )**2 + ( y_comp(k) - y_source )**2   &
                   .GE. r_source**2 ) THEN
 
@@ -361,7 +361,8 @@ CONTAINS
          
              ELSEIF ( ( x_comp(j+1) - x_source )**2 + ( y_comp(k)-y_source )**2 &
                   .GE. r_source**2 ) THEN
-                
+                ! check on east cell
+       
                 ! cells where radial source boundary condition are applied
                 source_cell(j+1,k) = 2
                 sourceW(j+1,k) = .TRUE.
@@ -378,7 +379,7 @@ CONTAINS
 
              END IF
     
-             ! check on y-faces
+             ! check on south cell
              IF ( ( x_comp(j) - x_source )**2 + ( y_comp(k-1) - y_source )**2   &
                   .GE. r_source**2 ) THEN
 

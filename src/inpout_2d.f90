@@ -2705,7 +2705,7 @@ CONTAINS
              READ(restart_unit,'(2e20.12,*(e20.12))') xj , yk ,                 &
                   (q(i_vars,j,k),i_vars=1,n_vars) 
 
-             IF ( q(1,j,k) .LE. 0.D0 ) q(1:n_vars,j,k) = 0.D0 
+             IF ( q(1,j,k) .LE. 0.D0 ) q(1:n_vars,j,k) = 0.D0
 
           ENDDO
           
@@ -2762,10 +2762,11 @@ CONTAINS
   SUBROUTINE output_solution(time)
 
     ! external procedures
-    USE constitutive_2d, ONLY : qc_to_qp
+    USE constitutive_2d, ONLY : qc_to_qp, mixt_var
 
     ! external variables
-    USE constitutive_2d, ONLY : h , u , v , alphas , T , rho_m , red_grav
+    USE constitutive_2d, ONLY : r_h , r_u , r_v , r_alphas , r_T , r_rho_m ,    &
+         r_red_grav
 
     USE geometry_2d, ONLY : comp_cells_x , B_cent , comp_cells_y , x_comp,      &
          y_comp , deposit
@@ -2845,11 +2846,13 @@ CONTAINS
           DO j = 1,comp_cells_x
              
              CALL qc_to_qp(q(:,j,k),B_cent(j,k),qp(:))
+             CALL mixt_var(qp(:))
 
-             IF ( dabs(DBLE(h)) .LT. 1d-99) h = DCMPLX(0.d0,0.d0)
-             IF ( dabs(DBLE(u)) .LT. 1d-99) u = DCMPLX(0.d0,0.d0) 
-             IF ( dabs(DBLE(v)) .LT. 1d-99) v = DCMPLX(0.d0,0.d0) 
-             IF ( dabs(B_cent(j,k)) .LT. 1d-99) THEN 
+
+             IF ( DABS( r_h ) .LT. 1d-99) r_h = 0.D0
+             IF ( DABS( r_u ) .LT. 1d-99) r_u = 0.D0
+             IF ( DABS( r_v ) .LT. 1d-99) r_v = 0.D0
+             IF ( DABS(B_cent(j,k)) .LT. 1d-99) THEN 
 
                 B_out = 0.D0
                 
@@ -2861,19 +2864,17 @@ CONTAINS
 
              DO i=1,n_solid
 
-                IF ( dabs(REAL(alphas(i))) .LT. 1d-99) alphas(i) =              &
-                     DCMPLX(0.d0,0.d0) 
-                IF ( dabs( DEPOSIT(j,k,i) ) .LT. 1d-99) DEPOSIT(j,k,i) = 0.d0 
+                IF ( DABS( r_alphas(i) ) .LT. 1d-99) r_alphas(i) = 0.D0
+                IF ( DABS( DEPOSIT(j,k,i) ) .LT. 1d-99) DEPOSIT(j,k,i) = 0.d0 
 
              END DO
              
-             IF ( dabs(REAL(T)) .LT. 1d-99) T = DCMPLX(0.d0,0.d0) 
-             IF ( dabs(REAL(rho_m)) .LT. 1d-99) rho_m = DCMPLX(0.d0,0.d0) 
-             IF ( dabs(REAL(red_grav)) .LT. 1d-99) red_grav = DCMPLX(0.d0,0.d0) 
+             IF ( DABS( r_T ) .LT. 1d-99) r_T = 0.D0
+             IF ( DABS( r_rho_m ) .LT. 1d-99) r_rho_m = 0.D0
+             IF ( DABS( r_red_grav ) .LT. 1d-99) r_red_grav = 0.D0
 
-             WRITE(output_unit_2d,1010) x_comp(j), y_comp(k), REAL(h),          &
-                  REAL(u), REAL(v) , B_out , REAL(h) + B_out ,                  &
-                  REAL(alphas) , REAL(T) , REAL(rho_m) , REAL(red_grav) ,       &
+             WRITE(output_unit_2d,1010) x_comp(j), y_comp(k), r_h , r_u , r_v , &
+                  B_out , r_h + B_out , r_alphas , r_T , r_rho_m , r_red_grav , &
                   DEPOSIT(j,k,:)
 
           END DO
