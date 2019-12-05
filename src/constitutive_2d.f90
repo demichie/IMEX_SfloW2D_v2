@@ -543,6 +543,8 @@ CONTAINS
        qp(4) = T_ambient
        qp(5:n_vars) = 0.D0
 
+       red_grav = DCMPLX(0.D0,0.D0)
+
     END IF
 
     RETURN

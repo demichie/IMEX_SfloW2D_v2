@@ -2024,7 +2024,7 @@ CONTAINS
 
           CALL qc_to_qp(q(1:n_vars,j,k) , B_cent(j,k) , qp(1:n_vars,j,k) )
 
-          IF ( REAL(red_grav) .LT. 0.D0 ) THEN
+          IF ( REAL(red_grav) .LE. 0.D0 ) THEN
 
              q(1:n_vars,j,k) = 0.D0
 
