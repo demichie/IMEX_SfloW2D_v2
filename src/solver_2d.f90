@@ -1877,15 +1877,7 @@ CONTAINS
     REAL*8 :: eqns_term(n_eqns)
     REAL*8 :: deposit_term(n_solid)
 
-    REAL*8 :: u_old , u_new
-    REAL*8 :: v_old , v_new
-
-    REAL*8 :: max_vel_old , max_vel_new
-    
     INTEGER :: j ,k
-
-    max_vel_old = 0.D0
-    max_vel_new = 0.D0
     
     IF ( ( SUM(erosion_coeff) .EQ. 0.D0 ) .AND. ( .NOT. settling_flag ) ) RETURN
 
@@ -1913,45 +1905,8 @@ CONTAINS
 
           END IF
 
-          IF ( deposition_term(1) .GT. 0.D0 ) THEN
-             
-             CALL qc_to_qp(q(1:n_vars,j,k) , B_cent(j,k) , qp(1:n_vars,j,k))
-
-             u_old = qp(2,j,k)/qp(1,j,k)
-             v_old = qp(3,j,k)/qp(1,j,k)
-
-             max_vel_old = MAX(max_vel_old,DSQRT(u_old**2+v_old**2))
-             
-          END IF
-                
-
           ! Update the solution with erosion/deposition terms
           q(1:n_eqns,j,k) = q(1:n_eqns,j,k) + dt * eqns_term(1:n_eqns)
-
-          IF ( deposition_term(1) .GT. 0.D0 ) THEN
-             
-             CALL qc_to_qp(q(1:n_vars,j,k) , B_cent(j,k) , qp(1:n_vars,j,k))
-
-             u_new = qp(2,j,k)/qp(1,j,k)
-             v_new = qp(3,j,k)/qp(1,j,k)
-             
-             max_vel_new = MAX(max_vel_new,DSQRT(u_new**2+v_new**2))
-
-!!$             IF ( DABS( u_new - u_old ) .GT. 1.D-3) THEN
-!!$
-!!$                WRITE(*,*) 'u',qp(1,j,k),u_old,u_new
-!!$                READ(*,*)
-!!$
-!!$             END IF
-!!$
-!!$             IF ( DABS( v_new - v_old ) .GT. 1.D-3) THEN
-!!$
-!!$                WRITE(*,*) 'v',qp(1,j,k),u_old,u_new
-!!$                READ(*,*)
-!!$
-!!$             END IF
-
-          END IF
 
           deposit(j,k,1:n_solid) =  deposit(j,k,1:n_solid) + dt * deposit_term(1:n_solid)
 
@@ -1961,7 +1916,6 @@ CONTAINS
              B_cent(j,k) = B_cent(j,k) + dt * SUM( deposit_term(1:n_solid) )
 
           END IF
-
 
           ! Check for negative thickness
           IF ( q(1,j,k) .LT. 0.D0 ) THEN
@@ -1999,8 +1953,6 @@ CONTAINS
 
     END DO
 
-!!$    WRITE(*,*) 'max_vel',max_vel_old,max_vel_new
-    
     RETURN
 
   END SUBROUTINE update_erosion_deposition_cell
@@ -2565,8 +2517,8 @@ CONTAINS
     REAL*8 :: qrec_prime_x(n_vars)      !< recons variables slope
     REAL*8 :: qrec_prime_y(n_vars)      !< recons variables slope
 
-    REAL*8 :: qp2rec_prime_x(3)      !< recons variables slope
-    REAL*8 :: qp2rec_prime_y(3)      !< recons variables slope
+    ! REAL*8 :: qp2rec_prime_x(3)      !< recons variables slope
+    ! REAL*8 :: qp2rec_prime_y(3)      !< recons variables slope
 
     INTEGER :: j,k            !< loop counters (cells)
     INTEGER :: i              !< loop counter (variables)
