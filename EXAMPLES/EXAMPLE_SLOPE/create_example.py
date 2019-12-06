@@ -17,7 +17,7 @@ if len(sys.argv)==4:
     if a.isdigit():
 
         n_cells = int(a)
-        print n_cells
+        print(n_cells)
  
     else:
  
@@ -29,7 +29,7 @@ if len(sys.argv)==4:
     except ValueError:
         print("You must enter a float")
 
-    a = sys.argv[5]
+    a = sys.argv[3]
     try:
         T = float(a)
     except ValueError:
