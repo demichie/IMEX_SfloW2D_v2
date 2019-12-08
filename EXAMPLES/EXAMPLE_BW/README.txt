@@ -15,7 +15,7 @@ Please provide three arguments:
 
 Usage example of the script:
 
->> ./create_example.py 400 0.5 300
+>> ./create_example.py 400 0.1 900
 
 Once the input file (SW_VAR_DENS_MODEL.inp) is created create a simbolic link of the executable 
 in this folder:

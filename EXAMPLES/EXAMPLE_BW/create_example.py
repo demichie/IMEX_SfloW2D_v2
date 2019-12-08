@@ -176,6 +176,8 @@ filedata = filedata.replace('restartfile', 'exampleBW_0000.q_2d')
 filedata = filedata.replace('x_left', str(x_left))
 filedata = filedata.replace('n_cells', str(n_cells))
 filedata = filedata.replace('dx', str(dx))
+filedata = filedata.replace('alphas', str(alfas))
+filedata = filedata.replace('temp', str(T))
 
 # Write the file out again
 with open('SW_VAR_DENS_MODEL.inp', 'w') as file:
