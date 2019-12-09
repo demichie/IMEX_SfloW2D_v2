@@ -2762,25 +2762,12 @@ CONTAINS
              CALL qp_to_qp2( qrec(1:n_vars,j,k) , B_cent(j,k) , qp2recC ) 
              CALL qp_to_qp2( qrec(1:n_vars,j+1,k) , B_cent(j+1,k) , qp2recR ) 
 
-             qrec_stencil(1) = qp2recL(1)
-             qrec_stencil(2) = qp2recC(1)
-             qrec_stencil(3) = qp2recR(1)
-
-!!$             CALL limit( qrec_stencil , x_stencil , limiter(1) ,          &
-!!$                        qp2rec_prime_x(1) )
-!!$
-!!$             qp2recW(1) = qp2recC(1) - reconstr_coeff * dx2 * qp2rec_prime_x(1)
-!!$             qp2recE(1) = qp2recC(1) + reconstr_coeff * dx2 * qp2rec_prime_x(1)
-!!$
-!!$             qrecW(1) = qp2recW(1) - B_interfaceR(j,k)
-!!$             qrecE(1) = qp2recE(1) - B_interfaceL(j+1,k)
-
              CALL qp_to_qp2( qrecW(1:n_vars) , B_interfaceR(j,k), qp2recW ) 
              CALL qp_to_qp2( qrecE(1:n_vars) , B_interfaceL(j+1,k) , qp2recE ) 
 
              DO i=2,3
            
-                IF ( qp2recW(i) .GT. 0.D0 ) THEN
+                IF ( qp2recW(i) .NE. 0.D0 ) THEN
                    
                    gamma_W =  MAX( DABS( qp2recL(i) ) , DABS( qp2recC(i) ) )    &
                         / DABS( qp2recW(i) )
@@ -2791,7 +2778,7 @@ CONTAINS
 
                 END IF
 
-                IF ( qp2recE(i) .GT. 0.D0 ) THEN
+                IF ( qp2recE(i) .NE. 0.D0 ) THEN
 
                    gamma_E =  MAX( DABS( qp2recC(i) ) , DABS( qp2recR(i) ) )       &
                         / DABS( qp2recE(i) )
@@ -2814,8 +2801,8 @@ CONTAINS
           IF ( ( k.GT.1 ) .AND. ( k .LT. comp_cells_y ) ) THEN
 
              ! correction on the reconstruction slope in order to keep u,v at  
-             ! the S,N interfaces of internal cells limited (no new max and 
              ! min created) 
+             ! the S,N interfaces of internal cells limited (no new max and 
  
              ! compute the values of u,v at the cell centers and S,N interfaces
              CALL qp_to_qp2( qrec(1:n_vars,j,k-1) , B_cent(j,k-1) , qp2recB ) 
@@ -2826,7 +2813,7 @@ CONTAINS
 
              DO i=2,3
 
-                IF ( qp2recS(i) .GT. 0.D0 ) THEN
+                IF ( qp2recS(i) .NE. 0.D0 ) THEN
 
                    gamma_S =  MAX( DABS( qp2recB(i) ) , DABS( qp2recC(i) ) )    &
                         / DABS( qp2recS(i) )
@@ -2837,7 +2824,7 @@ CONTAINS
 
                 END IF
 
-                IF ( qp2recN(i) .GT. 0.D0 ) THEN
+                IF ( qp2recN(i) .NE. 0.D0 ) THEN
 
                    gamma_N =  MAX( DABS( qp2recC(i) ) , DABS( qp2recT(i) ) )    &
                         / DABS( qp2recN(i) )
