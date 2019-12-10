@@ -1625,20 +1625,74 @@ CONTAINS
   !
   !******************************************************************************
   
-  SUBROUTINE eval_source_bdry( vect_x , vect_y , source_bdry )
+  SUBROUTINE eval_source_bdry( time, vect_x , vect_y , source_bdry )
 
     USE parameters_2d, ONLY : h_source , vel_source , T_source , alphas_source ,&
-         alphal_source
+         alphal_source , time_param
 
     IMPLICIT NONE
 
+    REAL*8, INTENT(IN) :: time
     REAL*8, INTENT(IN) :: vect_x
     REAL*8, INTENT(IN) :: vect_y
     REAL*8, INTENT(OUT) :: source_bdry(n_vars)
 
-    source_bdry(1) = h_source
-    source_bdry(2) = h_source * vel_source * vect_x
-    source_bdry(3) = h_source * vel_source * vect_y
+    REAL*8 :: t_rem
+    REAL*8 :: t_coeff
+    REAL*8 :: pi_g
+
+    IF ( time .GE. time_param(4) ) THEN
+
+       ! The exponents of t_coeff are such that Ri does not depend on t_coeff
+       source_bdry(1) = 0.D0
+       source_bdry(2) = 0.D0
+       source_bdry(3) = 0.D0
+       source_bdry(4) = T_source
+       source_bdry(5:4+n_solid) = alphas_source(1:n_solid)
+
+       IF ( gas_flag .AND. liquid_flag ) THEN
+
+          source_bdry(n_vars) = alphal_source
+
+       END IF
+
+       RETURN
+
+    END IF
+
+    t_rem = DMOD( time , time_param(1) )
+
+    pi_g = 4.D0 * DATAN(1.D0) 
+
+    t_coeff = 0.D0
+
+    IF ( time_param(3) .EQ. 0.D0 ) THEN
+
+       IF ( t_rem .LE. time_param(2) ) t_coeff = 1.D0
+
+    ELSE
+
+       IF ( t_rem .LT. time_param(3) ) THEN
+
+          t_coeff = 0.5D0 * ( 1.D0 - DCOS( pi_g * t_rem / time_param(3) ) )
+
+       ELSEIF ( t_rem .LE. ( time_param(2) - time_param(3) ) ) THEN
+
+          t_coeff = 1.D0
+
+       ELSEIF ( t_rem .LE. time_param(2) ) THEN
+
+          t_coeff = 0.5D0 * ( 1.D0 + DCOS( pi_g * ( ( t_rem - time_param(2) )      &
+               / time_param(3) + 1.D0 ) ) )
+
+       END IF
+
+    END IF
+
+    ! The exponents of t_coeff are such that Ri does not depend on t_coeff
+    source_bdry(1) = t_coeff * h_source
+    source_bdry(2) = t_coeff**1.5D0 * h_source * vel_source * vect_x
+    source_bdry(3) = t_coeff**1.5D0 * h_source * vel_source * vect_y
     source_bdry(4) = T_source
     source_bdry(5:4+n_solid) = alphas_source(1:n_solid)
 
@@ -1647,8 +1701,8 @@ CONTAINS
        source_bdry(n_vars) = alphal_source
 
     END IF
-    
-    
+
+
     RETURN
 
   END SUBROUTINE eval_source_bdry

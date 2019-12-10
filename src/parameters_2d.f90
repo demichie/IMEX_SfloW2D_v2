@@ -80,6 +80,8 @@ MODULE parameters_2d
   REAL*8 :: h_source
   REAL*8, ALLOCATABLE :: alphas_source(:)
   REAL*8 :: alphal_source
+  REAL*8 :: time_param(4)
+  
 
   LOGICAL :: collapsing_volume_flag
 

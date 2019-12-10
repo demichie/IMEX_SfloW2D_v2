@@ -72,7 +72,7 @@ PROGRAM SW_VAR_DENS_MODEL
   USE parameters_2d, ONLY : radial_source_flag
   USE parameters_2d, ONLY : collapsing_volume_flag
 
-  USE solver_2d, ONLY : q , qp , dt
+  USE solver_2d, ONLY : q , qp , t, dt
   USE solver_2d, ONLY : q1max
   
   USE constitutive_2d, ONLY : qc_to_qp
@@ -81,7 +81,6 @@ PROGRAM SW_VAR_DENS_MODEL
 
   IMPLICIT NONE
 
-  REAL*8 :: t
   REAL*8 :: t1 , t2
   REAL*8 :: dt_old , dt_old_old
   LOGICAL :: stop_flag

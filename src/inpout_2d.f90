@@ -50,7 +50,7 @@ MODULE inpout_2d
 
   ! -- Variables for the namelist RADIAL_SOURCE_PARAMETERS
   USE parameters_2d, ONLY : x_source , y_source , r_source , vel_source ,       &
-       T_source , h_source , alphas_source , alphal_source
+       T_source , h_source , alphas_source , alphal_source , time_param
 
   ! -- Variables for the namelist COLLAPSING_VOLUME_PARAMETERS
   USE parameters_2d, ONLY : x_collapse , y_collapse , r_collapse , T_collapse , &
@@ -212,7 +212,7 @@ MODULE inpout_2d
   NAMELIST / expl_terms_parameters / grav
  
   NAMELIST / radial_source_parameters / x_source , y_source , r_source ,        &
-       vel_source , T_source , h_source , alphas_source , alphal_source
+       vel_source , T_source , h_source , alphas_source , alphal_source , time_param
 
   NAMELIST / collapsing_volume_parameters / x_collapse , y_collapse ,           &
        r_collapse , T_collapse , h_collapse , alphas_collapse
@@ -560,6 +560,7 @@ CONTAINS
     h_source = -1.D0
     r_source = -1.D0
     vel_source = -1.D0
+    time_param(1:4) = -1.D0
 
     !- Variables for the namelist COLLAPSING_VOLUME_PARAMETERS
     T_collapse = -1.D0
@@ -1575,7 +1576,43 @@ CONTAINS
              END IF
 
           END IF
+                 
+          IF ( ANY(time_param .LT. 0.D0 ) ) THEN
+
+             WRITE(*,*)
+             WRITE(*,*) 'WARNING: problem with namelist RADIAL_SOURCEPARAMETERS'
+             WRITE(*,*) 'time_param =' , time_param
+             time_param(1) = t_end
+             time_param(2) = t_end
+             time_param(3) = 0.D0
+             time_param(4) = t_end
+             WRITE(*,*) 'CHANGED TO time_param =',time_param
+             WRITE(*,*) 'Radial source now constant in time' 
+             WRITE(*,*)
+
+          ELSE
              
+             IF ( time_param(2) .GT. time_param(1) ) THEN
+                 
+                WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCEPARAMETERS'
+                WRITE(*,*) 'time_param(1),time_param(2) =' , time_param(1:2)
+                WRITE(*,*) 'time_param(1) must be larger than time_param(2)'
+                STOP         
+                
+             END IF
+
+             IF ( time_param(3) .GT. ( 0.5D0*time_param(2) ) ) THEN
+
+                WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+                WRITE(*,*) 'time_param(3) =', time_param(3)
+                WRITE(*,*) 'time_param(3) must be smaller than 0.5*time_param(2)'
+                STOP
+
+             END IF
+
+
+          END IF
+   
        END IF
            
     END IF

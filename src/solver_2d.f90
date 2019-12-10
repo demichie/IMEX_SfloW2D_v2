@@ -35,6 +35,9 @@ MODULE solver_2d
 
   IMPLICIT none
 
+  !> time
+  REAL*8 :: t
+
   !> Conservative variables
   REAL*8, ALLOCATABLE :: q(:,:,:)        
   !> Conservative variables
@@ -2517,8 +2520,8 @@ CONTAINS
     REAL*8 :: qrec_prime_x(n_vars)      !< recons variables slope
     REAL*8 :: qrec_prime_y(n_vars)      !< recons variables slope
 
-    ! REAL*8 :: qp2rec_prime_x(3)      !< recons variables slope
-    ! REAL*8 :: qp2rec_prime_y(3)      !< recons variables slope
+!!$    REAL*8 :: qp2rec_prime_x(3)      !< recons variables slope
+!!$    REAL*8 :: qp2rec_prime_y(3)      !< recons variables slope
 
     INTEGER :: j,k            !< loop counters (cells)
     INTEGER :: i              !< loop counter (variables)
@@ -2611,7 +2614,7 @@ CONTAINS
 
                    ELSEIF ( bcE(i)%flag .EQ. 2 ) THEN
 
-                      qrec_prime_x(i) = ( qrec(i,comp_cells_x,k) -                 &
+                      qrec_prime_x(i) = ( qrec(i,comp_cells_x,k) -              &
                            qrec(i,comp_cells_x-1,k) ) / dx
 
                    END IF
@@ -2628,7 +2631,7 @@ CONTAINS
 
                       IF ( sourceE(j,k) ) THEN
 
-                        CALL eval_source_bdry( sourceE_vect_x(j,k) ,            &
+                        CALL eval_source_bdry( t, sourceE_vect_x(j,k) ,         &
                              sourceE_vect_y(j,k) , source_bdry )
 
                         x_stencil(3) = x_stag(j+1)
@@ -2636,7 +2639,7 @@ CONTAINS
 
                       ELSEIF ( sourceW(j,k) ) THEN
 
-                        CALL eval_source_bdry( sourceW_vect_x(j,k) ,            &
+                        CALL eval_source_bdry( t , sourceW_vect_x(j,k) ,        &
                              sourceW_vect_y(j,k) , source_bdry )
 
                         x_stencil(1) = x_stag(j)
@@ -2720,7 +2723,7 @@ CONTAINS
 
                       IF ( sourceS(j,k) ) THEN
 
-                        CALL eval_source_bdry( sourceS_vect_x(j,k) ,            &
+                        CALL eval_source_bdry( t, sourceS_vect_x(j,k) ,         &
                              sourceS_vect_y(j,k) , source_bdry )
 
                         y_stencil(1) = y_stag(k)
@@ -2728,7 +2731,7 @@ CONTAINS
 
                       ELSEIF ( sourceN(j,k) ) THEN
 
-                        CALL eval_source_bdry( sourceN_vect_x(j,k) ,            &
+                        CALL eval_source_bdry( t, sourceN_vect_x(j,k) ,         &
                              sourceN_vect_y(j,k) , source_bdry )
 
                         x_stencil(3) = y_stag(k+1)
@@ -2762,32 +2765,53 @@ CONTAINS
              CALL qp_to_qp2( qrec(1:n_vars,j,k) , B_cent(j,k) , qp2recC ) 
              CALL qp_to_qp2( qrec(1:n_vars,j+1,k) , B_cent(j+1,k) , qp2recR ) 
 
+
              CALL qp_to_qp2( qrecW(1:n_vars) , B_interfaceR(j,k), qp2recW ) 
              CALL qp_to_qp2( qrecE(1:n_vars) , B_interfaceL(j+1,k) , qp2recE ) 
 
+             
+
              DO i=2,3
-           
-                IF ( qp2recW(i) .NE. 0.D0 ) THEN
+
+!!$                IF ( qp2recW(i) .NE. 0.D0 ) THEN
+!!$                   
+!!$                   gamma_W =  MAX( qp2recL(i)/qp2recW(i) , qp2recC(i) /qp2recW(i) , 0.D0 )
+!!$                
+!!$                ELSE
+!!$
+!!$                   gamma_W = 1.D0
+!!$
+!!$                END IF
+!!$
+!!$                IF ( qp2recE(i) .NE. 0.D0 ) THEN
+!!$
+!!$                   gamma_E =  MAX( qp2recC(i) / qp2recE(i) , qp2recR(i) / qp2recE(i) , 0.D0 )
+!!$                                
+!!$                ELSE
+!!$
+!!$                   gamma_E = 1.D0
+!!$
+!!$                END IF
+
+
+                IF ( qrec_prime_x(i) .NE. 0.D0 ) THEN
                    
-                   gamma_W =  MAX( DABS( qp2recL(i) ) , DABS( qp2recC(i) ) )    &
-                        / DABS( qp2recW(i) )
-                
+                   gamma_W = MAX( ( qrec(i,j,k)-qrecW(1)*qp2recC(i) ) / ( dx2*qrec_prime_x(i) ) , &
+                        ( qrec(i,j,k)-qrecW(1)*qp2recL(i) ) / ( dx2*qrec_prime_x(i) ) , 0.D0 )
+
+                   gamma_E = MAX( ( qp2recC(i)*qrecE(1)-qrec(i,j,k) ) / ( dx2*qrec_prime_x(i) ) , &
+                        ( qp2recR(i)*qrecE(1)-qrec(i,j,k) ) / ( dx2*qrec_prime_x(i) ) , 0.D0 )
+
                 ELSE
 
                    gamma_W = 1.D0
 
-                END IF
-
-                IF ( qp2recE(i) .NE. 0.D0 ) THEN
-
-                   gamma_E =  MAX( DABS( qp2recC(i) ) , DABS( qp2recR(i) ) )       &
-                        / DABS( qp2recE(i) )
-                
-                ELSE
-
                    gamma_E = 1.D0
 
                 END IF
+
+
+
 
                 gamma = MIN( gamma_W,gamma_E,1.D0)
                 
@@ -2813,27 +2837,42 @@ CONTAINS
 
              DO i=2,3
 
-                IF ( qp2recS(i) .NE. 0.D0 ) THEN
+!!$                IF ( qp2recS(i) .NE. 0.D0 ) THEN
+!!$
+!!$                   gamma_S =  MAX( qp2recB(i) / qp2recS(i) , qp2recC(i) / qp2recS(i) , 0.D0 )
+!!$                
+!!$                ELSE
+!!$
+!!$                   gamma_S = 1.D0
+!!$
+!!$                END IF
+!!$
+!!$                IF ( qp2recN(i) .NE. 0.D0 ) THEN
+!!$
+!!$                   gamma_N =  MAX( qp2recC(i) / qp2recS(i) , qp2recT(i) / qp2recN(i) , 0.D0 )
+!!$  
+!!$                ELSE
+!!$
+!!$                   gamma_N = 1.D0 
+!!$
+!!$                END IF
 
-                   gamma_S =  MAX( DABS( qp2recB(i) ) , DABS( qp2recC(i) ) )    &
-                        / DABS( qp2recS(i) )
-                
+                IF ( qrec_prime_y(i) .NE. 0.D0 ) THEN
+                   
+                   gamma_S = MAX( ( qrec(i,j,k)-qrecS(1)*qp2recC(i) ) / ( dy2*qrec_prime_y(i) ) , &
+                        ( qrec(i,j,k)-qrecS(1)*qp2recB(i) ) / ( dy2*qrec_prime_y(i) ) , 0.D0 )
+
+                   gamma_N = MAX( ( qp2recC(i)*qrecN(1)-qrec(i,j,k) ) / ( dy2*qrec_prime_y(i) ) , &
+                        ( qp2recT(i)*qrecN(1)-qrec(i,j,k) ) / ( dy2*qrec_prime_y(i) ) , 0.D0 )
+
                 ELSE
 
                    gamma_S = 1.D0
 
-                END IF
-
-                IF ( qp2recN(i) .NE. 0.D0 ) THEN
-
-                   gamma_N =  MAX( DABS( qp2recC(i) ) , DABS( qp2recT(i) ) )    &
-                        / DABS( qp2recN(i) )
- 
-                ELSE
-
-                   gamma_N = 1.D0 
+                   gamma_N = 1.D0
 
                 END IF
+
 
                 gamma = MIN( gamma_S,gamma_N,1.D0)
              
@@ -2909,14 +2948,14 @@ CONTAINS
 
                       IF ( sourceE(j,k) ) THEN
 
-                        CALL eval_source_bdry( sourceE_vect_x(j,k) ,            &
+                        CALL eval_source_bdry( t, sourceE_vect_x(j,k) ,         &
                              sourceE_vect_y(j,k) , source_bdry )
 
                         qrecE(1:n_vars) = source_bdry(1:n_vars)
 
                       ELSEIF ( sourceW(j,k) ) THEN
 
-                        CALL eval_source_bdry( sourceW_vect_x(j,k) ,            &
+                        CALL eval_source_bdry( t, sourceW_vect_x(j,k) ,         &
                              sourceW_vect_y(j,k) , source_bdry )
 
                         qrecW(1:n_vars) = source_bdry(1:n_vars)
@@ -3040,14 +3079,14 @@ CONTAINS
 
                       IF ( sourceS(j,k) ) THEN
 
-                        CALL eval_source_bdry( sourceS_vect_x(j,k) ,            &
+                        CALL eval_source_bdry( t, sourceS_vect_x(j,k) ,         &
                              sourceS_vect_y(j,k) , source_bdry )
 
                         qrecS(1:n_vars) = source_bdry(1:n_vars)
 
                       ELSEIF ( sourceN(j,k) ) THEN
 
-                        CALL eval_source_bdry( sourceN_vect_x(j,k) ,            &
+                        CALL eval_source_bdry( t, sourceN_vect_x(j,k) ,         &
                              sourceN_vect_y(j,k) , source_bdry )
 
                         qrecN(1:n_vars) = source_bdry(1:n_vars)
