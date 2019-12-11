@@ -204,6 +204,8 @@ CONTAINS
 
     USE constitutive_2d, ONLY : qp_to_qc
 
+    USE geometry_2d, ONLY : compute_cell_fract
+
     USE geometry_2d, ONLY : comp_cells_x , comp_cells_y , B_cent
     USE geometry_2d, ONLY : x_comp , y_comp
 
@@ -219,6 +221,10 @@ CONTAINS
     INTEGER :: j,k
 
     REAL*8 :: qp_init(n_vars+2) ,  qp0_init(n_vars+2)
+
+    REAL*8 :: cell_fract(comp_cells_x,comp_cells_y)
+
+    CALL compute_cell_fract(x_collapse,y_collapse,r_collapse,cell_fract)
 
     ! values outside the collapsing volume
     qp0_init(1) = 0.D0                  ! h
@@ -240,9 +246,10 @@ CONTAINS
        
        DO k = 1,comp_cells_y
           
-          IF ( ( x_comp(j) - x_collapse )**2 + ( y_comp(k) - y_collapse )**2 .LE. &
-               r_collapse ** 2 ) THEN
+          IF ( cell_fract(j,k) .GT. 0.D0 ) THEN
              
+             qp_init(1) = cell_fract(j,k) * h_collapse
+
              CALL qp_to_qc( qp_init(1:n_vars+2) , B_cent(j,k) , q(1:n_vars,j,k) )
              
           ELSE

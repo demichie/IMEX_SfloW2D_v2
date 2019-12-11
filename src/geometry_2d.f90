@@ -1052,5 +1052,83 @@ CONTAINS
 
   END function maxmod
 
+  SUBROUTINE compute_cell_fract(xs,ys,rs,cell_fract)
+
+    IMPLICIT NONE
+
+    REAL*8, INTENT(IN) :: xs,ys,rs
+
+    REAL*8, INTENT(OUT) :: cell_fract(comp_cells_x,comp_cells_y)
+
+    REAL*8, ALLOCATABLE :: x_subgrid(:) , y_subgrid(:)
+
+    INTEGER, ALLOCATABLE :: check_subgrid(:)
+
+    INTEGER n_points , n_points2
+
+    REAL*8 :: source_area
+    
+    INTEGER :: h ,j, k
+
+    n_points = 100
+    n_points2 = n_points**2
+
+    ALLOCATE( x_subgrid(n_points2) )
+    ALLOCATE( y_subgrid(n_points2) )
+    ALLOCATE( check_subgrid(n_points2) )
+
+    x_subgrid = 0.D0
+    y_subgrid = 0.D0
+    
+    DO h = 1,n_points
+
+       x_subgrid(h:n_points2:n_points) = h
+       y_subgrid((h-1)*n_points+1:h*n_points) = h
+
+    END DO
+
+    x_subgrid = x_subgrid / ( n_points +1 )
+    y_subgrid = y_subgrid / ( n_points +1 )
+    
+    x_subgrid = ( x_subgrid - 0.5D0 ) * dx
+    y_subgrid = ( y_subgrid - 0.5D0 ) * dy
+    
+    DO j=1,comp_cells_x
+
+      DO k=1,comp_cells_y
+
+         IF ( ( x_stag(j+1) .LT. ( xs - rs ) ) .OR.                             &
+              ( x_stag(j) .GT. ( xs + rs ) ) .OR.                               &
+              ( y_stag(k+1) .LT. ( ys - rs ) ) .OR.                             &
+              ( y_stag(k) .GT. ( ys + rs ) ) ) THEN
+
+            cell_fract(j,k) = 0.D0 
+
+         ELSE
+
+            check_subgrid = 0
+            
+            WHERE ( ( x_comp(j) + x_subgrid - xs )**2                           &
+                 + ( y_comp(k) + y_subgrid - ys )**2 < rs**2 )
+               
+               check_subgrid = 1
+               
+            END WHERE
+            
+            cell_fract(j,k) = REAL(SUM(check_subgrid))/n_points2
+            
+         END IF
+
+      ENDDO
+
+    ENDDO
+
+    source_area = dx*dy*SUM(cell_fract)
+    
+    WRITE(*,*) 'Source area =',source_area,' Error =',ABS( 1.D0 -      &
+         dx*dy*SUM(cell_fract) / ( 4.D0*ATAN(1.D0)*rs**2 ) )
+
+  END SUBROUTINE compute_cell_fract
+
 
 END MODULE geometry_2d
