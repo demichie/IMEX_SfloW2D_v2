@@ -1281,6 +1281,8 @@ CONTAINS
 
     coeff_f(1:n_eqns) = 1.D0
 
+    grad_f(1:n_eqns) = 0.D0
+
     qj_init = qj
 
     ! normalize the functions of the nonlinear system
@@ -1399,7 +1401,6 @@ CONTAINS
 
           left_matrix_small21 = reshape(pack(left_matrix, mask21),              &
                [n_eqns-n_nh,n_nh]) 
-
 
           desc_dir_small1 = pack( right_term, .NOT.implicit_flag )
           desc_dir_small2 = pack( right_term , implicit_flag )

@@ -59,13 +59,13 @@ with open(bakfile) as fp:
            ny = np.int(comp_cells_y_str)
            print("comp_cells_y",ny)
 
-       if ("X0" in line) and not("RUNOUT" in line):
+       if "X0" in line:
            x0_str= line.replace('X0=','')
            x0_str= x0_str.replace(',','')
            x0 = np.float(x0_str)
            print("x0",x0)
 
-       if ("Y0" in line) and not("RUNOUT" in line):
+       if "Y0" in line:
            y0_str= line.replace('Y0=','')
            y0_str= y0_str.replace(',','')
            y0 = np.float(y0_str)
@@ -159,6 +159,11 @@ Y = np.zeros((ny,nx))
 for i_output in range(0,n_output+1):
 
     filename = filename_fix+'_{0:04}'.format(i_output)+'.p_2d'
+
+    if not os.path.isfile(filename):
+
+        break
+
     print(filename)
 
     data = np.loadtxt(filename,skiprows=0)
