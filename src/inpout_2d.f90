@@ -368,7 +368,7 @@ CONTAINS
     solver_scheme = 'KT'
     n_RK = 2
     cfl = 0.24D0
-    limiter(1:n_vars) = 1
+    limiter(1:n_vars+2) = 1
     theta=1.0
     reconstr_coeff = 1.0
 
@@ -1066,6 +1066,9 @@ CONTAINS
     END IF
 
     IF ( verbose_level .GE. 1 ) WRITE(*,*) 'Limiters',limiter(1:n_vars)
+
+    limiter(n_vars+1) = limiter(2)
+    limiter(n_vars+2) = limiter(3)
 
     IF ( ( MAXVAL(limiter(1:n_vars)) .GT. 3 ) .OR.                              &
          ( MINVAL(limiter(1:n_vars)) .LT. 0 ) ) THEN
@@ -2820,7 +2823,7 @@ CONTAINS
 
     CHARACTER(LEN=4) :: idx_string
 
-    REAL*8 :: qp(n_vars)
+    REAL*8 :: qp(n_vars+2)
 
     REAL*8 :: B_out
 
@@ -2882,8 +2885,8 @@ CONTAINS
           
           DO j = 1,comp_cells_x
              
-             CALL qc_to_qp(q(:,j,k),B_cent(j,k),qp(:))
-             CALL mixt_var(qp(:))
+             CALL qc_to_qp(q(1:n_vars,j,k),B_cent(j,k),qp(1:n_vars+2))
+             CALL mixt_var(qp(1:n_vars+2))
 
 
              IF ( DABS( r_h ) .LT. 1d-99) r_h = 0.D0

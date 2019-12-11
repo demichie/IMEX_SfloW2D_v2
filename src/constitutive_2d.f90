@@ -43,6 +43,9 @@ MODULE constitutive_2d
   REAL*8 :: r_T          !< real-value temperature [K]
   REAL*8 :: r_red_grav   !< real-value reduced gravity
 
+  REAL*8 :: r_hu         !< real-value volumetric x-flow
+  REAL*8 :: r_hv         !< real-value volumetric y-flow
+
   REAL*8 :: r_rho_m      !< real-value mixture density [kg/m3]
   REAL*8 :: r_rho_c      !< real-value carrier phase density [kg/m3]
 
@@ -406,9 +409,9 @@ CONTAINS
   !******************************************************************************
   !> \brief Physical variables
   !
-  !> This subroutine evaluates from the physical local variables qpj, the
-  !> conservative local variables qcj and the local topography Bj a set of 
-  !> the local real-valued physical variables  (\f$h, u, v, xs , T \f$).
+  !> This subroutine evaluates from the physical real-value local variables qpj, 
+  !> all the (real-valued ) variables that define the physical state and that are
+  !> needed to compute the explicit equations terms.
   !> \param[in]    qpj    real-valued physical variables 
   !> @author 
   !> Mattia de' Michieli Vitturi
@@ -419,7 +422,7 @@ CONTAINS
 
     IMPLICIT none
 
-    REAL*8, INTENT(IN) :: qpj(n_vars)
+    REAL*8, INTENT(IN) :: qpj(n_vars+2)
 
     r_h = qpj(1)
 
@@ -427,6 +430,8 @@ CONTAINS
 
        r_u = 0.D0
        r_v = 0.D0
+       r_hu = 0.D0
+       r_hv = 0.D0
        r_T = T_ambient
        r_alphas(1:n_solid) = 0.D0
        r_red_grav = 0.D0
@@ -438,8 +443,11 @@ CONTAINS
 
     END IF
 
-    r_u = qpj(2) / r_h
-    r_v = qpj(3) / r_h
+    r_hu = qpj(2)
+    r_hv = qpj(3)
+
+    r_u = qpj(n_vars+1)
+    r_v = qpj(n_vars+2)
 
     r_T = qpj(4)
 
@@ -501,6 +509,8 @@ CONTAINS
   !> - qp(4) = \f$ T \f$
   !> - qp(5:4+n_solid) = \f$ alphas(1:n_solid) \f$
   !> - qp(n_vars) = \f$ alphal \f$
+  !> - qp(n_vars+1) = \f$ u \f$
+  !> - qp(n_vars+2) = \f$ v \f$
   !> .
   !> The physical variables are those used for the linear reconstruction at the
   !> cell interfaces. Limiters are applied to the reconstructed slopes.
@@ -520,7 +530,7 @@ CONTAINS
 
     REAL*8, INTENT(IN) :: qc(n_vars)
     REAL*8, INTENT(IN) :: B
-    REAL*8, INTENT(OUT) :: qp(n_vars)
+    REAL*8, INTENT(OUT) :: qp(n_vars+2)
 
     IF ( qc(1) .GT. 0.D0 ) THEN
 
@@ -536,19 +546,24 @@ CONTAINS
 
        IF ( gas_flag .AND. liquid_flag ) qp(n_vars) = alphal
 
+       qp(n_vars+1) = DBLE(u)
+       qp(n_vars+2) = DBLE(v)
+
+       r_red_grav = DBLE(red_grav)
+
     ELSE
 
-       qp(1) = 0.D0
-       qp(2) = 0.D0
-       qp(3) = 0.D0
-       qp(4) = T_ambient
-       qp(5:n_vars) = 0.D0
+       qp(1) = 0.D0           ! h
+       qp(2) = 0.D0           ! hu
+       qp(3) = 0.D0           ! hv
+       qp(4) = T_ambient      ! T
+       qp(5:n_vars) = 0.D0    ! alphas
+       qp(n_vars+1) = 0.D0    ! u
+       qp(n_vars+2) = 0.D0    ! v
 
        r_red_grav = 0.D0
 
     END IF
-
-
 
     RETURN
 
@@ -557,14 +572,16 @@ CONTAINS
   !******************************************************************************
   !> \brief Physical to conservative variables
   !
-  !> This subroutine evaluates the conservative variables qc from the 
-  !> array of physical variables qp:\n
+  !> This subroutine evaluates the conservative real_value variables qc from the 
+  !> array of real_valued physical variables qp:\n
   !> - qp(1) = \f$ h \f$
   !> - qp(2) = \f$ h*u \f$
   !> - qp(3) = \f$ h*v \f$
   !> - qp(4) = \f$ T \f$
   !> - qp(5:4+n_s) = \f$ alphas(1:n_s) \f$
   !> - qp(n_vars) = \f$ alphal \f$
+  !> - qp(n_vars+1) = \f$ u \f$
+  !> - qp(n_vars+2) = \f$ v \f$
   !> .
   !> \param[in]    qp      physical variables  
   !> \param[out]   qc      conservative variables 
@@ -580,7 +597,7 @@ CONTAINS
     USE COMPLEXIFY 
     IMPLICIT none
     
-    REAL*8, INTENT(IN) :: qp(n_vars)
+    REAL*8, INTENT(IN) :: qp(n_vars+2)
     REAL*8, INTENT(IN) :: B
     REAL*8, INTENT(OUT) :: qc(n_vars)
     
@@ -591,11 +608,17 @@ CONTAINS
 
     IF ( r_h .GT. 0.D0 ) THEN
 
-       r_u = qp(2) / r_h
-       r_v = qp(3) / r_h
+       r_hu = qp(2)
+       r_hv = qp(3)
+
+       r_u = qp(n_vars+1)
+       r_v = qp(n_vars+2)
 
     ELSE
-
+       
+       r_hu = 0.D0
+       r_hv = 0.D0
+       
        r_u = 0.D0
        r_v = 0.D0
 
@@ -693,15 +716,23 @@ CONTAINS
        
     END IF
     
-    qc(1) = r_h * r_rho_m
-    qc(2) = r_h * r_rho_m * r_u
-    qc(3) = r_h * r_rho_m * r_v
+    qc(1) = r_rho_m * r_h 
+    qc(2) = r_rho_m * r_hu
+    qc(3) = r_rho_m * r_hv
 
     IF ( energy_flag ) THEN
 
+       IF ( r_h .GT. 0.D0 ) THEN
+
        ! total energy (internal and kinetic)
-       qc(4) = r_h * r_rho_m * ( r_sp_heat_mix * r_T                            &
-            + 0.5D0 * ( r_u**2 + r_v**2 ) ) 
+          qc(4) = r_h * r_rho_m * ( r_sp_heat_mix * r_T                            &
+               + 0.5D0 * ( r_hu**2 + r_hv**2 ) / r_h**2 )
+
+       ELSE
+
+          qc(4) = 0.D0
+
+       END IF
 
     ELSE
 
@@ -748,8 +779,8 @@ CONTAINS
 
     ELSE
 
-       qp2j(2) = qpj(2) / qpj(1)
-       qp2j(3) = qpj(3) / qpj(1)
+       qp2j(2) = qpj(2)/qpj(1)
+       qp2j(3) = qpj(3)/qpj(1)
 
     END IF
 
@@ -774,7 +805,7 @@ CONTAINS
   
     IMPLICIT none
     
-    REAL*8, INTENT(IN) :: qpj(n_vars)
+    REAL*8, INTENT(IN) :: qpj(n_vars+2)
 
     REAL*8, INTENT(OUT) :: vel_min(n_vars) , vel_max(n_vars)
 
@@ -813,7 +844,7 @@ CONTAINS
     
     IMPLICIT none
     
-    REAL*8, INTENT(IN)  :: qpj(n_vars)
+    REAL*8, INTENT(IN)  :: qpj(n_vars+2)
     REAL*8, INTENT(OUT) :: vel_min(n_vars) , vel_max(n_vars)
     
     CALL mixt_var(qpj)
@@ -857,7 +888,7 @@ CONTAINS
     IMPLICIT none
 
     REAL*8, INTENT(IN) :: qcj(n_vars)
-    REAL*8, INTENT(IN) :: qpj(n_vars)
+    REAL*8, INTENT(IN) :: qpj(n_vars+2)
     REAL*8, INTENT(IN) :: Bj
     INTEGER, INTENT(IN) :: dir
 
@@ -865,7 +896,7 @@ CONTAINS
 
     CALL mixt_var(qpj)
 
-    pos_thick:IF ( qcj(1) .NE. 0.D0 ) THEN
+    pos_thick:IF ( qcj(1) .GT. 0.D0 ) THEN
 
        IF ( dir .EQ. 1 ) THEN
 
@@ -1400,8 +1431,8 @@ CONTAINS
     REAL*8, INTENT(IN) :: Bprimej_y
     REAL*8, INTENT(IN) :: source_xy
     
-    REAL*8, INTENT(IN) :: qpj(n_eqns)        !< local physical variables 
-    REAL*8, INTENT(IN) :: qcj(n_eqns)        !< local conservative variables 
+    REAL*8, INTENT(IN) :: qpj(n_vars+2)      !< local physical variables 
+    REAL*8, INTENT(IN) :: qcj(n_vars)        !< local conservative variables 
     REAL*8, INTENT(OUT) :: expl_term(n_eqns) !< local explicit forces 
 
     CALL mixt_var(qpj)
@@ -1449,7 +1480,7 @@ CONTAINS
     
     IMPLICIT NONE
     
-    REAL*8, INTENT(IN) :: qpj(n_eqns)                !< physical variables 
+    REAL*8, INTENT(IN) :: qpj(n_vars+2)              !< physical variables 
     REAL*8, INTENT(IN) :: Bj
     REAL*8, INTENT(IN) :: dt
 
@@ -1540,7 +1571,7 @@ CONTAINS
     
     IMPLICIT NONE
     
-    REAL*8, INTENT(IN) :: qpj(n_eqns)                  !< physical variables 
+    REAL*8, INTENT(IN) :: qpj(n_vars+2)                !< physical variables 
     REAL*8, INTENT(IN) :: deposition_avg_term(n_solid) !< deposition term
     REAL*8, INTENT(IN) :: erosion_avg_term(n_solid)    !< erosion term
 
@@ -1656,6 +1687,9 @@ CONTAINS
 
        END IF
 
+       source_bdry(n_vars+1) = 0.D0
+       source_bdry(n_vars+2) = 0.D0
+
        RETURN
 
     END IF
@@ -1702,6 +1736,8 @@ CONTAINS
 
     END IF
 
+    source_bdry(n_vars+1) = t_coeff**0.5D0 * vel_source * vect_x
+    source_bdry(n_vars+2) = t_coeff**0.5D0 * vel_source * vect_y 
 
     RETURN
 

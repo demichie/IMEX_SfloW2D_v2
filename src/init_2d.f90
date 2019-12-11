@@ -113,6 +113,9 @@ CONTAINS
 
     END DO
 
+    qp(n_vars+1,1:i1,:) = 0.D0
+    qp(n_vars+2,1:i1,:) = 0.D0
+
     IF ( verbose_level .GE. 1 ) WRITE(*,*) 'Left state'
 
     DO j = 1,i1
@@ -152,6 +155,10 @@ CONTAINS
 
     END DO
 
+    qp(n_vars+1,i1+1:comp_cells_x,:) = 0.D0
+    qp(n_vars+2,i1+1:comp_cells_x,:) = 0.D0
+
+
     IF ( verbose_level .GE. 1 ) WRITE(*,*) 'Right state'
 
     DO j = i1+1,comp_cells_x
@@ -180,7 +187,19 @@ CONTAINS
     RETURN
 
   END SUBROUTINE riemann_problem
-  
+
+  !******************************************************************************
+  !> \brief Collapsing volume initialization
+  !
+  !> This subroutine initialize the solution for a collpasing volume. Values for 
+  !>  the initial state (x, y, r, T, h, alphas) are read from the input file.
+  !> \date 2019_12_11
+  !
+  !> @author 
+  !> Mattia de' Michieli Vitturi
+  !
+  !******************************************************************************
+
   SUBROUTINE collapsing_volume
 
     USE constitutive_2d, ONLY : qp_to_qc
@@ -199,19 +218,23 @@ CONTAINS
 
     INTEGER :: j,k
 
-    REAL*8 :: qp_init(n_vars) ,  qp0_init(n_vars)
+    REAL*8 :: qp_init(n_vars+2) ,  qp0_init(n_vars+2)
 
-    qp0_init(1) = 0.D0
-    qp0_init(2) = 0.D0
-    qp0_init(3) = 0.D0
-    qp0_init(4) = T_collapse
-    qp0_init(5:4+n_solid) = 0.D0
+    ! values outside the collapsing volume
+    qp0_init(1) = 0.D0                  ! h
+    qp0_init(2) = 0.D0                  ! hu
+    qp0_init(3) = 0.D0                  ! hv
+    qp0_init(4) = T_collapse            ! T
+    qp0_init(5:4+n_solid) = 0.D0        ! alphas
+    qp0_init(n_vars+1:n_vars+2) = 0.D0  ! u,v
 
+    ! values within the collapsing volume
     qp_init(1) = h_collapse
     qp_init(2) = 0.D0
     qp_init(3) = 0.D0
     qp_init(4) = T_collapse
     qp_init(5:4+n_solid) = alphas_collapse(1:n_solid)
+    qp_init(n_vars+1:n_vars+2) = 0.D0
     
     DO j = 1,comp_cells_x
        
@@ -220,11 +243,11 @@ CONTAINS
           IF ( ( x_comp(j) - x_collapse )**2 + ( y_comp(k) - y_collapse )**2 .LE. &
                r_collapse ** 2 ) THEN
              
-             CALL qp_to_qc( qp_init(1:n_vars) , B_cent(j,k) , q(1:n_vars,j,k) )
+             CALL qp_to_qc( qp_init(1:n_vars+2) , B_cent(j,k) , q(1:n_vars,j,k) )
              
           ELSE
              
-             CALL qp_to_qc( qp0_init(1:n_vars) , B_cent(j,k) , q(1:n_vars,j,k) )
+             CALL qp_to_qc( qp0_init(1:n_vars+2) , B_cent(j,k) , q(1:n_vars,j,k) )
              
           END IF
           

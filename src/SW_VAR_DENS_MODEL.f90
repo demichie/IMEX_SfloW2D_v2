@@ -156,7 +156,6 @@ PROGRAM SW_VAR_DENS_MODEL
   t_steady = t_end
   stop_flag = .FALSE.
 
-
   DO k = 1,comp_cells_y
      
      DO j = 1,comp_cells_x
@@ -166,7 +165,7 @@ PROGRAM SW_VAR_DENS_MODEL
      END DO
      
   END DO
-  
+
   IF ( output_runout_flag ) CALL output_runout(t,stop_flag)
 
   CALL output_solution(t)
