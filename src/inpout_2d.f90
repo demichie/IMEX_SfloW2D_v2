@@ -885,8 +885,19 @@ CONTAINS
 
     ALLOCATE( alphas_bcW(n_solid) , alphas_bcE(n_solid) , alphas_bcS(n_solid) , &
          alphas_bcN(n_solid) ) 
+
+    alphas_bcW(1:n_solid)%flag = -1
+    alphas_bcE(1:n_solid)%flag = -1
+    alphas_bcS(1:n_solid)%flag = -1
+    alphas_bcN(1:n_solid)%flag = -1
+
        
     ALLOCATE( bcW(n_vars) , bcE(n_vars) , bcS(n_vars) , bcN(n_vars) )
+
+    bcW(1:n_vars)%flag = -1
+    bcE(1:n_vars)%flag = -1
+    bcS(1:n_vars)%flag = -1
+    bcN(1:n_vars)%flag = -1
 
     ALLOCATE( rho_s(n_solid) , alphas(n_solid) , r_alphas(n_solid) ,            &
          xs(n_solid) , r_xs(n_solid) , diam_s(n_solid) , sp_heat_s(n_solid) ,   &
@@ -1162,6 +1173,8 @@ CONTAINS
           WRITE(*,*) 'ERROR: problem with namelist WEST_BOUNDARY_CONDITIONS'
           WRITE(*,*) 'B.C. for sediment conentration not set properly'
           WRITE(*,*) 'Please check the input file'
+          WRITE(*,*) 'alphas_bcW'
+          WRITE(*,*) alphas_bcW
           STOP
           
        END IF
@@ -1250,6 +1263,8 @@ CONTAINS
           WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
           WRITE(*,*) 'B.C. for sediment concentration not set properly'
           WRITE(*,*) 'Please check the input file'
+          WRITE(*,*) 'alphas_bcE'
+          WRITE(*,*) alphas_bcE
           STOP
           
        END IF
@@ -1338,6 +1353,8 @@ CONTAINS
           WRITE(*,*) 'ERROR: problem with namelist SOUTH_BOUNDARY_CONDITIONS'
           WRITE(*,*) 'B.C. for sediment concentrations not set properly'
           WRITE(*,*) 'Please check the input file'
+          WRITE(*,*) 'alphas_bcS'
+          WRITE(*,*) alphas_bcS
           STOP
           
        END IF
@@ -1424,6 +1441,8 @@ CONTAINS
           WRITE(*,*) 'ERROR: problem with namelist NORTH_BOUNDARY_CONDITIONS'
           WRITE(*,*) 'B.C. for sediment concentrations not set properly'
           WRITE(*,*) 'Please check the input file'
+          WRITE(*,*) 'alphas_bcN'
+          WRITE(*,*) alphas_bcN
           STOP
           
        END IF
@@ -1453,6 +1472,8 @@ CONTAINS
     bcS(5:4+n_solid) = alphas_bcS(1:n_solid)
     bcN(5:4+n_solid) = alphas_bcN(1:n_solid)
        
+    WRITE(*,*) 'bcE',bcE
+
     ! ------- READ expl_terms_parameters NAMELIST -------------------------------
 
     READ(input_unit, expl_terms_parameters,IOSTAT=ios)

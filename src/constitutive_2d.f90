@@ -27,7 +27,7 @@ MODULE constitutive_2d
   COMPLEX*16, ALLOCATABLE :: xs(:)      !< sediment mass fractions
   COMPLEX*16 :: xl                      !< liquid mass fraction
   COMPLEX*16 :: xc                      !< carrier phase mass fraction
-  
+
   COMPLEX*16 :: xs_tot                  !< sum of solid mass fraction
   COMPLEX*16 :: rhos_tot                !< average density of solids [kg/m3]
 
@@ -50,7 +50,7 @@ MODULE constitutive_2d
   REAL*8 :: r_rho_c      !< real-value carrier phase density [kg/m3]
 
   REAL*8 :: r_Ri         !< real-value Richardson number
- 
+
   REAL*8, ALLOCATABLE :: r_alphas(:) !< real-value solid volume fractions
   REAL*8 :: r_alphal                 !< real-value liquid volume fraction
   REAL*8 :: r_alphac                 !< real-value carrier phase volume fraction
@@ -65,7 +65,7 @@ MODULE constitutive_2d
 
   !> drag coefficients (B&W model)
   REAL*8 :: friction_factor
-  
+
   !> drag coefficients (plastic model)
   REAL*8 :: tau
 
@@ -139,13 +139,13 @@ MODULE constitutive_2d
 
   !> Mannings roughness coefficient ( units: T L^(-1/3) )
   REAL*8 :: n_td
- 
+
   !> Density of air in the mixture ( units: kg/m^3 )
   COMPLEX*16 :: rho_c
 
   !> Specific heat of carrier phase (gas or liquid)
   REAL*8 :: sp_heat_c
-  
+
   !> Ambient density of air ( units: kg/m^3 )
   REAL*8 :: rho_a_amb
 
@@ -163,12 +163,12 @@ MODULE constitutive_2d
 
   !> Kinematic viscosity of carrier phase
   REAL*8 :: kin_visc_c
-  
+
   !> Temperature of ambient air 
   REAL*8 :: T_ambient
 
   LOGICAL :: entrainment_flag
-  
+
   !> Specific heat of mixture
   COMPLEX*16 :: sp_heat_mix
 
@@ -205,7 +205,7 @@ MODULE constitutive_2d
 
   !> liquid volume fraction
   COMPLEX*16 :: alpha_l
-  
+
 CONTAINS
 
   !******************************************************************************
@@ -242,6 +242,163 @@ CONTAINS
   !> This subroutine evaluates from the conservative local variables qj
   !> the local physical variables  (\f$h+B, u, v, xs , T \f$).
   !> \param[in]    r_qj     real conservative variables 
+  !> @author 
+  !> Mattia de' Michieli Vitturi
+  !> \date 15/08/2011
+  !******************************************************************************
+
+  SUBROUTINE r_phys_var(r_qj)
+
+    USE parameters_2d, ONLY : eps_sing
+    IMPLICIT none
+
+    REAL*8, INTENT(IN) :: r_qj(n_vars)
+
+    REAL*8 :: r_inv_rhom
+    REAL*8 :: r_xs_tot
+
+    ! compute solid mass fractions
+    IF ( r_qj(1) .GT. 1.D-25 ) THEN
+
+       r_xs(1:n_solid) = r_qj(5:4+n_solid) / r_qj(1)
+
+    ELSE
+
+       r_xs(1:n_solid) = 0.D0
+
+    END IF
+
+    r_xs_tot = SUM(r_xs)
+
+    IF ( gas_flag .AND. liquid_flag ) THEN
+
+       ! compute liquid mass fraction
+       IF ( r_qj(1) .GT. 1.D-25 ) THEN
+
+          r_xl = r_qj(n_vars) / r_qj(1)
+
+       ELSE
+
+          r_xl = 0.D0
+
+       END IF
+
+       ! compute carrier phase (gas) mass fraction
+       r_xc =  1.D0 - r_xs_tot - r_xl
+
+       ! specific heaf of the mixutre: mass average of sp. heat pf phases
+       sp_heat_mix = SUM( r_xs(1:n_solid) * sp_heat_s(1:n_solid) )              &
+            + r_xl * sp_heat_l + r_xc * sp_heat_c
+
+    ELSE
+
+       ! compute carrier phase (gas or liquid) mass fraction
+       r_xc = 1.D0 - r_xs_tot
+
+       ! specific heaf of the mixutre: mass average of sp. heat pf phases
+       sp_heat_mix = SUM( r_xs(1:n_solid) * sp_heat_s(1:n_solid) )              &
+            + r_xc * sp_heat_c
+
+    END IF
+
+    ! compute temperature from energy
+    IF ( r_qj(1) .GT. 1.D-25 ) THEN
+
+       IF ( energy_flag ) THEN
+
+          r_T = ( r_qj(4) - ( r_qj(2)**2 + r_qj(3)**2 ) / ( 2.D0*r_qj(1) ) ) /  &
+               ( r_qj(1) * sp_heat_mix ) 
+
+       ELSE
+
+          r_T = r_qj(4) / ( r_qj(1) * sp_heat_mix ) 
+
+       END IF
+
+       IF ( r_T .LE. 0.D0 ) r_T = T_ambient
+
+    ELSE
+
+       r_T = T_ambient
+
+    END IF
+
+    IF ( gas_flag ) THEN
+
+       ! carrier phase is gas
+       r_rho_c =  pres / ( sp_gas_const_a * r_T )
+       sp_heat_c = sp_heat_a
+
+    ELSE
+
+       ! carrier phase is liquid
+       r_rho_c = rho_l
+       sp_heat_c = sp_heat_l
+
+    END IF
+
+    IF ( gas_flag .AND. liquid_flag ) THEN
+
+       r_inv_rhom = ( SUM(r_xs(1:n_solid) / rho_s(1:n_solid)) + r_xl / rho_l    &
+            + r_xc / r_rho_c )
+
+       r_rho_m = 1.D0 / r_inv_rhom
+
+       r_alphal = r_xl * r_rho_m / rho_l
+
+    ELSE
+
+       r_inv_rhom = ( SUM(r_xs(1:n_solid) / rho_s(1:n_solid)) + r_xc / r_rho_c )
+
+       r_rho_m = 1.D0 / r_inv_rhom
+
+    END IF
+
+    ! convert from mass fraction to volume fraction
+    r_alphas(1:n_solid) = r_xs(1:n_solid) * r_rho_m / rho_s(1:n_solid)
+
+    ! convert from mass fraction to volume fraction
+    r_alphac = r_xc * r_rho_m / r_rho_c
+
+    r_h = r_qj(1) / r_rho_m
+
+    ! reduced gravity
+    r_red_grav = ( r_rho_m - rho_a_amb ) / r_rho_m * grav
+
+    ! velocity components
+    IF ( r_qj(1) .GT. eps_sing ) THEN
+
+       r_u = r_qj(2) / r_qj(1)
+       r_v = r_qj(3) / r_qj(1)
+
+    ELSE
+
+       r_u = DSQRT(2.D0) * r_qj(1) * r_qj(2) / DSQRT( r_qj(1)**4 + eps_sing**4 )
+       r_v = DSQRT(2.D0) * r_qj(1) * r_qj(3) / DSQRT( r_qj(1)**4 + eps_sing**4 )
+
+    END IF
+
+    ! Richardson number
+    IF ( ( r_u**2 + r_v**2 ) .GT. 0.D0 ) THEN
+
+       r_Ri = r_red_grav * r_h / ( r_u**2 + r_v**2 )
+
+    ELSE
+
+       r_Ri = 0.D0
+
+    END IF
+
+    RETURN
+
+  END SUBROUTINE r_phys_var
+
+  !******************************************************************************
+  !> \brief Physical variables
+  !
+  !> This subroutine evaluates from the conservative local variables qj
+  !> the local physical variables  (\f$h+B, u, v, xs , T \f$).
+  !> \param[in]    r_qj     real conservative variables 
   !> \param[in]    c_qj     complex conservative variables 
   !> @author 
   !> Mattia de' Michieli Vitturi
@@ -249,18 +406,18 @@ CONTAINS
   !******************************************************************************
 
   SUBROUTINE phys_var(r_qj,c_qj)
-    
+
     USE COMPLEXIFY
     USE parameters_2d, ONLY : eps_sing
     IMPLICIT none
-    
+
     REAL*8, INTENT(IN), OPTIONAL :: r_qj(n_vars)
     COMPLEX*16, INTENT(IN), OPTIONAL :: c_qj(n_vars)
 
     COMPLEX*16 :: qj(n_vars)
 
     COMPLEX*16 :: inv_rhom
-    
+
     IF ( present(c_qj) ) THEN
 
        qj = c_qj
@@ -273,7 +430,7 @@ CONTAINS
 
     ! compute solid mass fractions
     IF ( DBLE(qj(1)) .GT. 1.D-25 ) THEN
-    
+
        xs(1:n_solid) = qj(5:4+n_solid) / qj(1)
 
     ELSE
@@ -281,29 +438,29 @@ CONTAINS
        xs(1:n_solid) = DCMPLX(0.D0,0.D0)
 
     END IF
-    
+
     xs_tot = SUM(xs)
-    
+
     IF ( gas_flag .AND. liquid_flag ) THEN
 
        ! compute liquid mass fraction
        IF ( DBLE(qj(1)) .GT. 1.D-25 ) THEN
-          
+
           xl = qj(n_vars) / qj(1)
-          
+
        ELSE
-          
+
           xl = DCMPLX(0.D0,0.D0) 
-       
+
        END IF
 
        ! compute carrier phase (gas) mass fraction
        xc =  DCMPLX(1.D0,0.D0) - xs_tot - xl
 
        ! specific heaf of the mixutre: mass average of sp. heat pf phases
-       sp_heat_mix = SUM( xs(1:n_solid) * sp_heat_s(1:n_solid) ) + xl * sp_heat_l  &
-            + xc * sp_heat_c
-       
+       sp_heat_mix = SUM( xs(1:n_solid) * sp_heat_s(1:n_solid) )                &
+            + xl * sp_heat_l + xc * sp_heat_c
+
     ELSE
 
        ! compute carrier phase (gas or liquid) mass fraction
@@ -311,7 +468,7 @@ CONTAINS
 
        ! specific heaf of the mixutre: mass average of sp. heat pf phases
        sp_heat_mix = SUM( xs(1:n_solid) * sp_heat_s(1:n_solid) ) + xc * sp_heat_c
-       
+
     END IF
 
     ! compute temperature from energy
@@ -321,13 +478,13 @@ CONTAINS
 
           T = ( qj(4) - ( qj(2)**2 + qj(3)**2 ) / ( 2.D0*qj(1) ) ) /            &
                ( qj(1) * sp_heat_mix ) 
- 
+
        ELSE
 
           T = qj(4) / ( qj(1) * sp_heat_mix ) 
 
        END IF
-   
+
        IF ( DBLE(T) .LE. 0.D0 ) T = DCMPLX(T_ambient,0.D0)
 
     ELSE
@@ -347,23 +504,24 @@ CONTAINS
        ! carrier phase is liquid
        rho_c = rho_l
        sp_heat_c = sp_heat_l
-       
+
     END IF
-       
+
     IF ( gas_flag .AND. liquid_flag ) THEN
 
-       inv_rhom = ( SUM(xs(1:n_solid) / rho_s(1:n_solid)) + xl / rho_l + xc / rho_c )
+       inv_rhom = ( SUM(xs(1:n_solid) / rho_s(1:n_solid)) + xl / rho_l          &
+            + xc / rho_c )
 
        rho_m = 1.D0 / inv_rhom
 
        alphal = xl * rho_m / rho_l
-       
+
     ELSE
 
        inv_rhom = ( SUM(xs(1:n_solid) / rho_s(1:n_solid)) + xc / rho_c )
 
        rho_m = 1.D0 / inv_rhom
-       
+
     END IF
 
     ! convert from mass fraction to volume fraction
@@ -373,13 +531,13 @@ CONTAINS
     alphac = xc * rho_m / rho_c
 
     h = qj(1) / rho_m
-    
+
     ! reduced gravity
     red_grav = ( rho_m - rho_a_amb ) / rho_m * grav
 
     ! velocity components
     IF ( DBLE( qj(1) ) .GT. eps_sing ) THEN
-       
+
        u = qj(2) / qj(1)
        v = qj(3) / qj(1)
 
@@ -387,12 +545,12 @@ CONTAINS
 
        u = DSQRT(2.D0) * qj(1) * qj(2) / CDSQRT( qj(1)**4 + eps_sing**4 )
        v = DSQRT(2.D0) * qj(1) * qj(3) / CDSQRT( qj(1)**4 + eps_sing**4 )
-       
+
     END IF
 
     ! Richardson number
     IF ( DBLE( u**2 + v**2 ) .GT. 0.D0 ) THEN
-    
+
        Ri = red_grav * h / ( u**2 + v**2 )
 
     ELSE
@@ -405,7 +563,7 @@ CONTAINS
 
   END SUBROUTINE phys_var
 
-  
+
   !******************************************************************************
   !> \brief Physical variables
   !
@@ -417,7 +575,7 @@ CONTAINS
   !> Mattia de' Michieli Vitturi
   !> \date 10/10/2019
   !******************************************************************************
- 
+
   SUBROUTINE mixt_var(qpj)
 
     IMPLICIT none
@@ -464,15 +622,15 @@ CONTAINS
        r_rho_c = rho_l
 
     END IF
-       
+
     IF ( gas_flag .AND. liquid_flag ) THEN
-  
+
        r_alphal = qpj(n_vars)
 
        ! density of mixture of carrier (gas), liquid and solids
        r_rho_m = ( 1.D0 - SUM(r_alphas) - r_alphal ) * r_rho_c                  &
             + SUM( r_alphas * rho_s ) + r_alphal * rho_l
-       
+
     ELSE
 
        ! density of mixture of carrier phase and solids
@@ -485,7 +643,7 @@ CONTAINS
 
     ! Richardson number
     IF ( ( r_u**2 + r_v**2 ) .GT. 0.D0 ) THEN
-    
+
        r_Ri = r_red_grav * r_h / ( r_u**2 + r_v**2 )
 
     ELSE
@@ -523,7 +681,7 @@ CONTAINS
   !> Mattia de' Michieli Vitturi
   !
   !******************************************************************************
-  
+
   SUBROUTINE qc_to_qp(qc,B,qp)
 
     IMPLICIT none
@@ -593,17 +751,16 @@ CONTAINS
   !******************************************************************************
 
   SUBROUTINE qp_to_qc(qp,B,qc)
-    
-    USE COMPLEXIFY 
+
     IMPLICIT none
-    
+
     REAL*8, INTENT(IN) :: qp(n_vars+2)
     REAL*8, INTENT(IN) :: B
     REAL*8, INTENT(OUT) :: qc(n_vars)
-    
+
     REAL*8 :: r_sp_heat_mix
     REAL*8 :: sum_sl
-    
+
     r_h = qp(1)
 
     IF ( r_h .GT. 0.D0 ) THEN
@@ -615,10 +772,10 @@ CONTAINS
        r_v = qp(n_vars+2)
 
     ELSE
-       
+
        r_hu = 0.D0
        r_hv = 0.D0
-       
+
        r_u = 0.D0
        r_v = 0.D0
 
@@ -628,11 +785,11 @@ CONTAINS
     END IF
 
     r_T  = qp(4)
-    
+
     r_alphas(1:n_solid) = qp(5:4+n_solid)
 
     IF ( gas_flag ) THEN
-       
+
        ! carrier phase is gas
        r_rho_c = pres / ( sp_gas_const_a * r_T )
 
@@ -646,15 +803,15 @@ CONTAINS
        sp_heat_c = sp_heat_l
 
     END IF
-       
+
     IF ( gas_flag .AND. liquid_flag ) THEN
-       
+
        ! mixture of gas, liquid and solid
        r_alphal = qp(n_vars)
 
        ! check and correction on dispersed phases volume fractions
        IF ( ( SUM(r_alphas) + r_alphal ) .GT. 1.D0 ) THEN
-          
+
           sum_sl = SUM(r_alphas) + r_alphal
           r_alphas(1:n_solid) = r_alphas(1:n_solid) / sum_sl
           r_alphal = r_alphal / sum_sl
@@ -683,14 +840,14 @@ CONTAINS
 
        ! mass averaged mixture specific heat
        r_sp_heat_mix =  SUM( r_xs * sp_heat_s ) + r_xl*sp_heat_l + r_xc*sp_heat_c
-       
+
     ELSE
 
        ! mixture of carrier phase ( gas or liquid ) and solid
 
        ! check and corrections on dispersed phases
        IF ( SUM(r_alphas) .GT. 1.D0 ) THEN
-          
+
           r_alphas(1:n_solid) = r_alphas(1:n_solid) / SUM(r_alphas)
 
        ELSEIF ( SUM(r_alphas).LT. 0.D0 ) THEN
@@ -713,9 +870,9 @@ CONTAINS
 
        ! mass averaged mixture specific heat
        r_sp_heat_mix =  SUM( r_xs * sp_heat_s ) + r_xc * sp_heat_c
-       
+
     END IF
-    
+
     qc(1) = r_rho_m * r_h 
     qc(2) = r_rho_m * r_hu
     qc(3) = r_rho_m * r_hv
@@ -724,8 +881,8 @@ CONTAINS
 
        IF ( r_h .GT. 0.D0 ) THEN
 
-       ! total energy (internal and kinetic)
-          qc(4) = r_h * r_rho_m * ( r_sp_heat_mix * r_T                            &
+          ! total energy (internal and kinetic)
+          qc(4) = r_h * r_rho_m * ( r_sp_heat_mix * r_T                         &
                + 0.5D0 * ( r_hu**2 + r_hv**2 ) / r_h**2 )
 
        ELSE
@@ -744,12 +901,12 @@ CONTAINS
     qc(5:4+n_solid) = r_h * r_alphas(1:n_solid) * rho_s(1:n_solid)
 
     IF ( gas_flag .AND. liquid_flag ) qc(n_vars) = r_h * r_alphal * rho_l
-    
+
     RETURN
 
   END SUBROUTINE qp_to_qc
 
-  
+
   !******************************************************************************
   !> \brief Additional Physical variables
   !
@@ -761,7 +918,7 @@ CONTAINS
   !> Mattia de' Michieli Vitturi
   !> \date 10/10/2019
   !******************************************************************************
- 
+
   SUBROUTINE qp_to_qp2(qpj,Bj,qp2j)
 
     IMPLICIT none
@@ -771,7 +928,7 @@ CONTAINS
     REAL*8, INTENT(OUT) :: qp2j(3)
 
     qp2j(1) = qpj(1) + Bj
-    
+
     IF ( qpj(1) .LE. 0.D0 ) THEN
 
        qp2j(2) = 0.D0
@@ -802,25 +959,25 @@ CONTAINS
   !******************************************************************************
 
   SUBROUTINE eval_local_speeds_x(qpj,vel_min,vel_max)
-  
+
     IMPLICIT none
-    
+
     REAL*8, INTENT(IN) :: qpj(n_vars+2)
 
     REAL*8, INTENT(OUT) :: vel_min(n_vars) , vel_max(n_vars)
 
     CALL mixt_var(qpj)
-   
+
     IF ( r_red_grav * r_h .LT. 0.D0 ) THEN
 
        vel_min(1:n_eqns) = r_u
        vel_max(1:n_eqns) = r_u
-  
+
     ELSE
 
        vel_min(1:n_eqns) = r_u - DSQRT( r_red_grav * r_h )
        vel_max(1:n_eqns) = r_u + DSQRT( r_red_grav * r_h )
-    
+
     END IF
 
     RETURN
@@ -841,30 +998,30 @@ CONTAINS
   !******************************************************************************
 
   SUBROUTINE eval_local_speeds_y(qpj,vel_min,vel_max)
-    
+
     IMPLICIT none
-    
+
     REAL*8, INTENT(IN)  :: qpj(n_vars+2)
     REAL*8, INTENT(OUT) :: vel_min(n_vars) , vel_max(n_vars)
-    
+
     CALL mixt_var(qpj)
-    
+
     IF ( r_red_grav * r_h .LT. 0.D0 ) THEN
 
        vel_min(1:n_eqns) = r_v
        vel_max(1:n_eqns) = r_v
-  
+
     ELSE
-      
+
        vel_min(1:n_eqns) = r_v - DSQRT( r_red_grav * r_h )
        vel_max(1:n_eqns) = r_v + DSQRT( r_red_grav * r_h )
-       
+
     END IF
 
     RETURN
 
   END SUBROUTINE eval_local_speeds_y
-  
+
 
   !******************************************************************************
   !> \brief Hyperbolic Fluxes
@@ -884,7 +1041,7 @@ CONTAINS
   !******************************************************************************
 
   SUBROUTINE eval_fluxes(qcj,qpj,Bj,dir,flux)
-    
+
     IMPLICIT none
 
     REAL*8, INTENT(IN) :: qcj(n_vars)
@@ -894,15 +1051,16 @@ CONTAINS
 
     REAL*8, INTENT(OUT) :: flux(n_eqns)
 
-    CALL mixt_var(qpj)
 
     pos_thick:IF ( qcj(1) .GT. 0.D0 ) THEN
+
+       CALL mixt_var(qpj)
 
        IF ( dir .EQ. 1 ) THEN
 
           ! Mass flux in x-direction: u * ( rhom * h )
           flux(1) = r_u * qcj(1)
-          
+
           ! x-momentum flux in x-direction + hydrostatic pressure term
           flux(2) = r_u * qcj(2) + 0.5D0 * r_rho_m * r_red_grav * r_h**2
 
@@ -929,20 +1087,20 @@ CONTAINS
                .GT. 1.D0 ) ) THEN
 
              flux(5:4+n_solid) = &
-               flux(5:4+n_solid) / SUM(flux(5:4+n_solid)) * flux(1)
+                  flux(5:4+n_solid) / SUM(flux(5:4+n_solid)) * flux(1)
 
           END IF
 
           ! Mass flux of liquid in x-direction: u * ( h * alphal * rhol )
           IF ( gas_flag .AND. liquid_flag ) flux(n_vars) = r_u * qcj(n_vars)
-          
+
        ELSEIF ( dir .EQ. 2 ) THEN
 
           ! flux G (derivated wrt y in the equations)
           flux(1) = r_v * qcj(1)
-          
+
           flux(2) = r_v * qcj(2)
-          
+
           flux(3) = r_v * qcj(3) + 0.5D0 * r_rho_m * r_red_grav * r_h**2
 
           IF ( energy_flag ) THEN
@@ -954,32 +1112,32 @@ CONTAINS
 
              ! Temperature flux in y-direction
              flux(4) = r_v * qcj(4)
-          
+
           END IF
 
           ! Mass flux of solid in y-direction: v * ( h * alphas * rhos )
           flux(5:4+n_solid) = r_v * qcj(5:4+n_solid)
-          
+
           ! Solid flux can't be larger than total flux
           IF ( ( flux(1) .GT. 0.D0 ) .AND. ( SUM(flux(5:4+n_solid)) / flux(1)   &
                .GT. 1.D0 ) ) THEN
 
              flux(5:4+n_solid) = &
-               flux(5:4+n_solid) / SUM(flux(5:4+n_solid)) * flux(1)
+                  flux(5:4+n_solid) / SUM(flux(5:4+n_solid)) * flux(1)
 
           END IF
 
           ! Mass flux of liquid in x-direction: u * ( h * alphal * rhol )
           IF ( gas_flag .AND. liquid_flag ) flux(n_vars) = r_v * qcj(n_vars)
-  
+
        END IF
 
     ELSE
-       
+
        flux(1:n_eqns) = 0.D0
-       
+
     ENDIF pos_thick
- 
+
     RETURN
 
   END SUBROUTINE eval_fluxes
@@ -1025,7 +1183,7 @@ CONTAINS
     INTEGER :: i
 
     COMPLEX*16 :: mod_vel
-    
+
     COMPLEX*16 :: gamma
 
     REAL*8 :: h_threshold
@@ -1034,9 +1192,9 @@ CONTAINS
 
     !> Temperature in C
     COMPLEX*16 :: Tc
-    
+
     COMPLEX*16 :: expA , expB
-    
+
     !> Fluid dynamic viscosity (units: kg m-1 s-1 )
     COMPLEX*16 :: fluid_visc
 
@@ -1050,15 +1208,15 @@ CONTAINS
     COMPLEX*16 :: s_td
 
     IF ( ( thermal_conductivity .GT. 0.D0 ) .OR. ( emme .GT. 0.D0 ) ) THEN
-       
+
        h_threshold = 1.D-10
-       
+
     ELSE
-       
+
        h_threshold = 0.D0
-       
+
     END IF
-    
+
 
     IF ( present(c_qj) .AND. present(c_nh_term_impl) ) THEN
 
@@ -1085,39 +1243,39 @@ CONTAINS
     IF (rheology_flag) THEN
 
        CALL phys_var(c_qj = qj)
-    
+
        mod_vel = CDSQRT( u**2 + v**2 )
-       
+
        ! Voellmy Salm rheology
        IF ( rheology_model .EQ. 1 ) THEN
-       
+
           IF ( DBLE(mod_vel) .NE. 0.D0 ) THEN 
-          
+
              ! IMPORTANT: grav3_surv is always negative 
              forces_term(2) = forces_term(2) - rho_m * ( u / mod_vel ) *        &
                   ( grav / xi ) * mod_vel ** 2
-          
+
              forces_term(3) = forces_term(3) - rho_m * ( v / mod_vel ) *        &
                   ( grav / xi ) * mod_vel ** 2
-          
+
           ENDIF
-        
-       ! Plastic rheology
+
+          ! Plastic rheology
        ELSEIF ( rheology_model .EQ. 2 ) THEN
-       
+
           IF ( DBLE(mod_vel) .NE. 0.D0 ) THEN 
-          
+
              forces_term(2) = forces_term(2) - rho_m * tau * (u/mod_vel)
-          
+
              forces_term(3) = forces_term(3) - rho_m * tau * (v/mod_vel)
 
           ENDIF
 
-       ! Temperature dependent rheology
+          ! Temperature dependent rheology
        ELSEIF ( rheology_model .EQ. 3 ) THEN
 
           IF ( DBLE(h) .GT. h_threshold ) THEN
-    
+
              ! Equation 6 from Costa & Macedonio, 2005
              gamma = 3.D0 * nu_ref / h * CDEXP( - visc_par * ( T - T_ref ) )
 
@@ -1126,20 +1284,20 @@ CONTAINS
              ! Equation 6 from Costa & Macedonio, 2005
              gamma = 3.D0 * nu_ref / h_threshold * CDEXP( - visc_par            &
                   * ( T - T_ref ) )
-             
+
           END IF
-          
+
           IF ( DBLE(mod_vel) .NE. 0.D0 ) THEN 
-          
+
              ! Last R.H.S. term in equation 2 from Costa & Macedonio, 2005
              forces_term(2) = forces_term(2) - rho_m * gamma * u
-          
+
              ! Last R.H.S. term in equation 3 from Costa & Macedonio, 2005
              forces_term(3) = forces_term(3) - rho_m * gamma * v
 
           ENDIF
-          
-       ! Lahars rheology (O'Brien 1993, FLO2D)
+
+          ! Lahars rheology (O'Brien 1993, FLO2D)
        ELSEIF ( rheology_model .EQ. 4 ) THEN
 
           ! alpha1 here has units: kg m-1 s-1
@@ -1158,45 +1316,45 @@ CONTAINS
           ! In addition, we use a reference value provided in input at a 
           ! reference temperature. This value is used to scale the equation
           IF ( Tc .LT. 20.D0 ) THEN
-          
+
              expA = 1301.D0 / ( 998.333D0 + 8.1855D0 * ( Tc - 20.D0 )           &
                   + 0.00585D0 * ( Tc - 20.D0 )**2 ) - 1.30223D0
-             
+
              alpha1 = alpha1_coeff * 1.D-3 * 10.D0**expA
 
           ELSE
 
              expB = ( 1.3272D0 * ( 20.D0 - Tc ) - 0.001053D0 *                  &
                   ( Tc - 20.D0 )**2 ) / ( Tc + 105.0D0 )
-             
+
              alpha1 = alpha1_coeff * 1.002D-3 * 10.D0**expB 
 
           END IF
-          
+
           ! Fluid viscosity 
           fluid_visc = alpha1 * CDEXP( beta1 * SUM(alphas) )
 
           IF ( DBLE(h) .GT. h_threshold ) THEN
-             
+
              ! Viscous slope component (dimensionless)
              s_v = Kappa * fluid_visc * mod_vel / ( 8.D0 * rho_m * grav *h**2 )
-             
+
              ! Turbulent dispersive component (dimensionless)
              s_td = n_td**2 * mod_vel**2 / ( h**(4.D0/3.D0) )
-          
+
           ELSE
-             
+
              ! Viscous slope component (dimensionless)
              s_v = Kappa * fluid_visc * mod_vel / ( 8.D0 * h_threshold**2 )
-             
+
              ! Turbulent dispersive components (dimensionless)
              s_td = n_td**2 * (mod_vel**2) / ( h_threshold**(4.D0/3.D0) )
-             
+
           END IF
-          
+
           ! Total implicit friction slope (dimensionless)
           s_f = s_v + s_td
-         
+
           IF ( mod_vel .GT. 0.D0 ) THEN
 
              ! same units of dqc(2)/dt: kg m-1 s-1
@@ -1206,35 +1364,35 @@ CONTAINS
              ! same units of dqc(3)/dt: kg m-1 s-1
              forces_term(3) = forces_term(3) - grav * rho_m * h *               &
                   ( v / mod_vel ) * s_f
-  
+
           END IF
 
        ELSEIF ( rheology_model .EQ. 5 ) THEN
 
           tau = 1.D-3 / ( 1.D0 + 10.D0 * h ) * mod_vel
-          
+
           IF ( DBLE(mod_vel) .NE. 0.D0 ) THEN
-             
+
              forces_term(2) = forces_term(2) - rho_m * tau * ( u / mod_vel )
              forces_term(3) = forces_term(3) - rho_m * tau * ( v / mod_vel )
 
           END IF
-          
+
 
        ELSEIF ( rheology_model .EQ. 6 ) THEN
-          
+
           IF ( DBLE(mod_vel) .NE. 0.D0 ) THEN 
-             
+
              forces_term(2) = forces_term(2) - rho_m * ( u / mod_vel ) *        &
                   friction_factor * mod_vel ** 2
-             
+
              forces_term(3) = forces_term(3) - rho_m * ( v / mod_vel ) *        &
                   friction_factor * mod_vel ** 2
-             
+
           ENDIF
-          
+
        ENDIF
-       
+
     ENDIF
 
     nh_term = forces_term
@@ -1247,7 +1405,7 @@ CONTAINS
 
        r_nh_term_impl = DBLE( nh_term )
 
-    END IF 
+    END IF
 
   END SUBROUTINE eval_nonhyperbolic_terms
 
@@ -1268,141 +1426,102 @@ CONTAINS
   !
   !******************************************************************************
 
-  SUBROUTINE eval_nh_semi_impl_terms( grav3_surf , c_qj , c_nh_semi_impl_term , &
-       r_qj , r_nh_semi_impl_term )
-
-    USE COMPLEXIFY 
+  SUBROUTINE eval_nh_semi_impl_terms( grav3_surf , qcj , nh_semi_impl_term )
 
     IMPLICIT NONE
 
     REAL*8, INTENT(IN) :: grav3_surf
 
-    COMPLEX*16, INTENT(IN), OPTIONAL :: c_qj(n_vars)
-    COMPLEX*16, INTENT(OUT), OPTIONAL :: c_nh_semi_impl_term(n_eqns)
-    REAL*8, INTENT(IN), OPTIONAL :: r_qj(n_vars)
-    REAL*8, INTENT(OUT), OPTIONAL :: r_nh_semi_impl_term(n_eqns)
+    REAL*8, INTENT(IN) :: qcj(n_vars)
+    REAL*8, INTENT(OUT) :: nh_semi_impl_term(n_eqns)
 
-    COMPLEX*16 :: qj(n_vars)
+    REAL*8 :: forces_term(n_eqns)
 
-    COMPLEX*16 :: forces_term(n_eqns)
+    REAL*8 :: mod_vel
 
-    INTEGER :: i
-
-    COMPLEX*16 :: mod_vel
-    
     REAL*8 :: h_threshold
 
     !--- Lahars rheology model variables
-    
     !> Yield strenght
-    COMPLEX*8 :: tau_y
-
+    REAL*8 :: tau_y
     !> Yield slope component of total friction
-    COMPLEX*8 :: s_y
-
-    IF ( present(c_qj) .AND. present(c_nh_semi_impl_term) ) THEN
-
-       qj = c_qj
-
-    ELSEIF ( present(r_qj) .AND. present(r_nh_semi_impl_term) ) THEN
-
-       DO i = 1,n_vars
-
-          qj(i) = DCMPLX( r_qj(i) )
-
-       END DO
-
-    ELSE
-
-       WRITE(*,*) 'Constitutive, eval_fluxes: problem with arguments'
-       STOP
-
-    END IF
+    REAL*8 :: s_y
 
     ! initialize and evaluate the forces terms
-    forces_term(1:n_eqns) = DCMPLX(0.D0,0.D0)
+    forces_term(1:n_eqns) = 0.D0
 
     IF (rheology_flag) THEN
 
-       CALL phys_var(c_qj = qj)
-    
-       mod_vel = CDSQRT( u**2 + v**2 )
+       CALL r_phys_var(qcj)
+
+       mod_vel = DSQRT( r_u**2 + r_v**2 )
 
        ! Voellmy Salm rheology
        IF ( rheology_model .EQ. 1 ) THEN
 
           IF ( mod_vel .GT. 0.D0 ) THEN
 
-             forces_term(2) = forces_term(2) - rho_m * ( u / mod_vel ) *        &
-                  mu * h * ( - grav * grav3_surf )
-             
-             forces_term(3) = forces_term(3) - rho_m * ( v / mod_vel ) *        &
-                  mu * h * ( - grav * grav3_surf )
-             
+             forces_term(2) = forces_term(2) - r_rho_m * ( r_u / mod_vel ) *    &
+                  mu * r_h * ( - grav * grav3_surf )
+
+             forces_term(3) = forces_term(3) - r_rho_m * ( r_v / mod_vel ) *    &
+                  mu * r_h * ( - grav * grav3_surf )
+
           END IF
 
           ! Plastic rheology
        ELSEIF ( rheology_model .EQ. 2 ) THEN
-          
 
-       ! Temperature dependent rheology
+
+          ! Temperature dependent rheology
        ELSEIF ( rheology_model .EQ. 3 ) THEN
 
-          
-       ! Lahars rheology (O'Brien 1993, FLO2D)
+
+          ! Lahars rheology (O'Brien 1993, FLO2D)
        ELSEIF ( rheology_model .EQ. 4 ) THEN
 
           h_threshold = 1.D-20
 
           ! Yield strength
-          tau_y = alpha2 * CDEXP( beta2 * SUM(alphas) )
+          tau_y = alpha2 * DEXP( beta2 * SUM(r_alphas) )
 
-          IF ( h .GT. h_threshold ) THEN
-             
+          IF ( r_h .GT. h_threshold ) THEN
+
              ! Yield slope component (dimensionless)
-             s_y = tau_y / ( grav * rho_m * h )
-                       
+             s_y = tau_y / ( grav * r_rho_m * r_h )
+
           ELSE
-             
+
              ! Yield slope component
-             s_y = tau_y /  ( grav * rho_m * h_threshold )
-                          
+             s_y = tau_y / ( grav * r_rho_m * h_threshold )
+
           END IF
-  
+
           IF ( mod_vel .GT. 0.D0 ) THEN
 
              ! units of dqc(2)/dt
-             forces_term(2) = forces_term(2) - grav * rho_m * h *               &
-                  ( u / mod_vel ) * s_y
+             forces_term(2) = forces_term(2) - grav * r_rho_m * r_h *           &
+                  ( r_u / mod_vel ) * s_y
 
              ! units of dqc(3)/dt
-             forces_term(3) = forces_term(3) - grav * rho_m * h *               &
-                  ( v / mod_vel ) * s_y
-  
+             forces_term(3) = forces_term(3) - grav * r_rho_m * r_h *           &
+                  ( r_v / mod_vel ) * s_y
+
           END IF
 
        ELSEIF ( rheology_model .EQ. 5 ) THEN
 
-          
        ENDIF
-              
+
     ENDIF
-   
-    IF ( present(c_qj) .AND. present(c_nh_semi_impl_term) ) THEN
 
-       c_nh_semi_impl_term = forces_term
-
-    ELSEIF ( present(r_qj) .AND. present(r_nh_semi_impl_term) ) THEN
-
-       r_nh_semi_impl_term = DBLE( forces_term )
-
-    END IF
+    nh_semi_impl_term = forces_term
 
     RETURN
 
   END SUBROUTINE eval_nh_semi_impl_terms
 
-  
+
   !******************************************************************************
   !> \brief Explicit Forces term
   !
@@ -1430,17 +1549,20 @@ CONTAINS
     REAL*8, INTENT(IN) :: Bprimej_x
     REAL*8, INTENT(IN) :: Bprimej_y
     REAL*8, INTENT(IN) :: source_xy
-    
+
     REAL*8, INTENT(IN) :: qpj(n_vars+2)      !< local physical variables 
     REAL*8, INTENT(IN) :: qcj(n_vars)        !< local conservative variables 
     REAL*8, INTENT(OUT) :: expl_term(n_eqns) !< local explicit forces 
 
-    CALL mixt_var(qpj)
-    
+
     expl_term(1:n_eqns) = 0.D0
 
+    IF ( qpj(1) .LE. 0.D0 ) RETURN
+
+    CALL mixt_var(qpj)
+
     expl_term(2) = r_red_grav * r_rho_m * r_h * Bprimej_x
-   
+
     expl_term(3) = r_red_grav * r_rho_m * r_h * Bprimej_y
 
     IF ( energy_flag ) THEN
@@ -1477,16 +1599,16 @@ CONTAINS
 
   SUBROUTINE eval_erosion_dep_term( qpj , Bj , dt , erosion_term ,              &
        deposition_term )
-    
+
     IMPLICIT NONE
-    
+
     REAL*8, INTENT(IN) :: qpj(n_vars+2)              !< physical variables 
     REAL*8, INTENT(IN) :: Bj
     REAL*8, INTENT(IN) :: dt
 
     REAL*8, INTENT(OUT) :: erosion_term(n_solid)     !< erosion term
     REAL*8, INTENT(OUT) :: deposition_term(n_solid)  !< deposition term
-    
+
     REAL*8 :: mod_vel
 
     REAL*8 :: hind_exp
@@ -1500,11 +1622,11 @@ CONTAINS
 
     deposition_term(1:n_solid) = 0.D0
     erosion_term(1:n_solid) = 0.D0
- 
+
     IF ( qpj(1) .LE. 0.D0 ) RETURN
 
     CALL mixt_var(qpj)
-        
+
     DO i_solid=1,n_solid
 
        IF ( ( r_alphas(i_solid) .GT. 0.D0 ) .AND. ( settling_flag ) ) THEN
@@ -1514,7 +1636,7 @@ CONTAINS
 
           deposition_term(i_solid) = r_alphas(i_solid) * settling_vel *         &
                ( 1.D0 - MIN( 1.D0 , SUM( r_alphas ) / alpha_max ) )**hind_exp
-          
+
           deposition_term(i_solid) = MIN( deposition_term(i_solid) ,            &
                r_h * r_alphas(i_solid) / dt )
 
@@ -1525,13 +1647,13 @@ CONTAINS
              READ(*,*)
 
           END IF
-          
+
        END IF
 
        mod_vel = DSQRT( r_u**2 + r_v**2 )
-  
+
        IF ( r_h .GT. 1.D-2) THEN
-    
+
           ! empirical formulation (see Fagents & Baloga 2006, Eq. 5)
           ! here we use the solid volume fraction instead of relative density
           ! This term has units: m s-1
@@ -1539,15 +1661,15 @@ CONTAINS
                * ( 1.D0 - SUM(r_alphas) )
 
        ELSE
-          
+
           erosion_term(i_solid) = 0.D0
-          
+
        END IF
-           
+
     END DO
 
     RETURN
-  
+
   END SUBROUTINE eval_erosion_dep_term
 
 
@@ -1568,31 +1690,40 @@ CONTAINS
 
   SUBROUTINE eval_topo_term( qpj , deposition_avg_term , erosion_avg_term ,      &
        eqns_term, deposit_term )
-    
+
     IMPLICIT NONE
-    
+
     REAL*8, INTENT(IN) :: qpj(n_vars+2)                !< physical variables 
     REAL*8, INTENT(IN) :: deposition_avg_term(n_solid) !< deposition term
     REAL*8, INTENT(IN) :: erosion_avg_term(n_solid)    !< erosion term
 
     REAL*8, INTENT(OUT):: eqns_term(n_eqns)
     REAL*8, INTENT(OUT):: deposit_term(n_solid)
-   
+
     REAL*8 :: entr_coeff
     REAL*8 :: air_entr
     REAL*8 :: mag_vel 
 
+    IF ( qpj(1) .LE. 0.D0 ) THEN
+
+       eqns_term(1:n_eqns) = 0.D0
+       deposit_term(1:n_solid) = 0.D0
+
+       RETURN
+
+    END IF
+
     CALL mixt_var(qpj)
 
     mag_vel = DSQRT( r_u**2.D0 + r_v**2.D0 ) 
-    
+
     IF ( entrainment_flag .AND. ( mag_vel**2 .GT. 0.D0 ) .AND.                  &
          ( r_h .GT. 0.D0 ) ) THEN
 
        entr_coeff = 0.075D0 / DSQRT( 1.D0 + 718.D0 * MAX(0.D0,r_Ri)**2.4 )
-       
+
        air_entr = entr_coeff * mag_vel
-       
+
     ELSE
 
        air_entr = 0.D0
@@ -1626,7 +1757,7 @@ CONTAINS
             + T_ambient * sp_heat_a * rho_a_amb * air_entr
 
     END IF
-   
+
     ! solid phase thickness equation
     eqns_term(5:4+n_solid) = rho_s(1:n_solid) * ( erosion_avg_term(1:n_solid)   &
          - deposition_avg_term(1:n_solid) )
@@ -1655,7 +1786,7 @@ CONTAINS
   !> Mattia de' Michieli Vitturi
   !
   !******************************************************************************
-  
+
   SUBROUTINE eval_source_bdry( time, vect_x , vect_y , source_bdry )
 
     USE parameters_2d, ONLY : h_source , vel_source , T_source , alphas_source ,&
@@ -1758,7 +1889,7 @@ CONTAINS
   !> Mattia de' Michieli Vitturi
   !
   !------------------------------------------------------------------------------
-  
+
   REAL*8 FUNCTION settling_velocity(diam,rhos,rhoc,i_solid)
 
     IMPLICIT NONE
@@ -1776,13 +1907,13 @@ CONTAINS
     REAL*8 :: const_part    !< term not changing in iterative procedure
     REAL*8 :: C_D_old       !< previous iteration drag coefficient
     REAL*8 :: set_vel_old   !< previous iteration settling velocity
-    
+
     INTEGER :: dig          !< order of magnitude of settling velocity
 
     C_D = 1.D0
 
     const_part =  DSQRT( 0.75D0 * ( rhos / rhoc - 1.D0 ) * diam * grav )
-  
+
     settling_velocity = const_part / DSQRT( C_D )
 
     Rey = diam * settling_velocity / kin_visc_c
@@ -1794,9 +1925,9 @@ CONTAINS
           set_vel_old = settling_velocity
           C_D_old = C_D
           C_D = 24.D0 / Rey * ( 1.D0 + 0.15D0 * Rey**(0.687) )
-          
+
           settling_velocity = const_part / DSQRT( C_D )
-          
+
           IF ( DABS( set_vel_old - settling_velocity ) / set_vel_old            &
                .LT. 1.D-6 ) THEN
 
@@ -1812,7 +1943,7 @@ CONTAINS
           Rey = diam * settling_velocity / kin_visc_c
 
        END DO C_D_loop
-    
+
     END IF
 
     C_D_s(i_solid) = C_D
@@ -1821,7 +1952,6 @@ CONTAINS
 
   END FUNCTION settling_velocity
 
-
 END MODULE constitutive_2d
 
-    
+

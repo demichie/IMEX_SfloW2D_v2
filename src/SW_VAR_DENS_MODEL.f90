@@ -172,7 +172,7 @@ PROGRAM SW_VAR_DENS_MODEL
 
   IF ( SUM(q(1,:,:)) .EQ. 0.D0 ) t_steady = t_output
   
-  WRITE(*,FMT="(A3,F10.4,A5,F9.5,A9,ES10.3E3,A11,ES10.3E3,A9,ES10.3E3,A15,ES10.3E3)")   &
+  WRITE(*,FMT="(A3,F10.4,A5,F9.5,A9,ES11.3E3,A11,ES11.3E3,A9,ES11.3E3,A15,ES11.3E3)")   &
        't =',t,'dt =',dt0,                                                      &
        ' mass = ',dx*dy*SUM(q(1,:,:)) ,                                         &
        ' volume = ',dx*dy*SUM(qp(1,:,:)) ,                                      &
@@ -229,7 +229,7 @@ PROGRAM SW_VAR_DENS_MODEL
      END DO
   
 
-     WRITE(*,FMT="(A3,F10.4,A5,F9.5,A9,ES10.3E3,A11,ES10.3E3,A9,ES10.3E3,A15,ES10.3E3)")&
+     WRITE(*,FMT="(A3,F10.4,A5,F9.5,A9,ES11.3E3,A11,ES11.3E3,A9,ES11.3E3,A15,ES11.3E3)")&
           't =',t,'dt =',dt,                                                    &
           ' mass = ',dx*dy*SUM(q(1,:,:)) ,                                      &
           ' volume = ',dx*dy*SUM(qp(1,:,:)) ,                                   &
@@ -261,6 +261,10 @@ PROGRAM SW_VAR_DENS_MODEL
 
         CALL output_solution(t)
 
+        CALL cpu_time(t2)
+
+        WRITE(*,*) 'Time taken by the code is',t2-t1,'seconds'
+
      END IF
 
   END DO
@@ -271,7 +275,7 @@ PROGRAM SW_VAR_DENS_MODEL
 
   CALL cpu_time(t2)
 
-  WRITE(*,*) 'Time taken by the code was',t2-t1,'seconds'
+  WRITE(*,*) 'Time taken by the code is',t2-t1,'seconds'
 
 END PROGRAM SW_VAR_DENS_MODEL
 
