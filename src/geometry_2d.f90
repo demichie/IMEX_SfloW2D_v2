@@ -1070,7 +1070,7 @@ CONTAINS
     
     INTEGER :: h ,j, k
 
-    n_points = 100
+    n_points = 200
     n_points2 = n_points**2
 
     ALLOCATE( x_subgrid(n_points2) )
@@ -1082,13 +1082,13 @@ CONTAINS
     
     DO h = 1,n_points
 
-       x_subgrid(h:n_points2:n_points) = h
-       y_subgrid((h-1)*n_points+1:h*n_points) = h
+       x_subgrid(h:n_points2:n_points) = DBLE(h)
+       y_subgrid((h-1)*n_points+1:h*n_points) = DBLE(h)
 
     END DO
 
-    x_subgrid = x_subgrid / ( n_points +1 )
-    y_subgrid = y_subgrid / ( n_points +1 )
+    x_subgrid = ( 2.D0 * x_subgrid - 1.D0 ) / ( 2.D0 * DBLE(n_points) )
+    y_subgrid = ( 2.D0 * y_subgrid - 1.D0 ) / ( 2.D0 * DBLE(n_points) )
     
     x_subgrid = ( x_subgrid - 0.5D0 ) * dx
     y_subgrid = ( y_subgrid - 0.5D0 ) * dy
@@ -1127,6 +1127,12 @@ CONTAINS
     
     WRITE(*,*) 'Source area =',source_area,' Error =',ABS( 1.D0 -      &
          dx*dy*SUM(cell_fract) / ( 4.D0*ATAN(1.D0)*rs**2 ) )
+
+    DEALLOCATE( x_subgrid )
+    DEALLOCATE( y_subgrid )
+    DEALLOCATE( check_subgrid )
+
+    RETURN
 
   END SUBROUTINE compute_cell_fract
 
