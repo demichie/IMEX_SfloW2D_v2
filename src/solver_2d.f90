@@ -1989,6 +1989,8 @@ CONTAINS
     REAL*8 :: eqns_term(n_eqns)
     REAL*8 :: deposit_term(n_solid)
 
+    REAL*8 :: r_Ri
+
     INTEGER :: i , j ,k
 
     IF ( ( SUM(erosion_coeff) .EQ. 0.D0 ) .AND. ( .NOT. settling_flag ) ) RETURN
@@ -2060,7 +2062,7 @@ CONTAINS
        END IF
 
        CALL qc_to_qp(q(1:n_vars,j,k) , B_cent(j,k) , qp(1:n_vars+2,j,k) )
-       CALL mixt_var(qp(1:n_vars+2,j,k))
+       CALL mixt_var(qp(1:n_vars+2,j,k),r_Ri)
 
        IF ( r_red_grav .LE. 0.D0 ) THEN
 

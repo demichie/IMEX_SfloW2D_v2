@@ -68,8 +68,8 @@ MODULE inpout_2d
   
   ! --- Variables for the namelist SOLID_TRANSPORT_PARAMETERS
   USE parameters_2d, ONLY : n_solid
-  USE constitutive_2d, ONLY : rho_s , diam_s , sp_heat_s , alphas , r_alphas ,  &
-       C_D_s , xs , r_xs
+  USE constitutive_2d, ONLY : rho_s , diam_s , sp_heat_s , alphas , C_D_s , xs ,&
+       r_xs
   USE constitutive_2d, ONLY : settling_flag , erosion_coeff
   USE constitutive_2d, ONLY : T_s_substrate
 
@@ -899,9 +899,8 @@ CONTAINS
     bcS(1:n_vars)%flag = -1
     bcN(1:n_vars)%flag = -1
 
-    ALLOCATE( rho_s(n_solid) , alphas(n_solid) , r_alphas(n_solid) ,            &
-         xs(n_solid) , r_xs(n_solid) , diam_s(n_solid) , sp_heat_s(n_solid) ,   &
-         C_D_s(n_solid) )
+    ALLOCATE( rho_s(n_solid) , alphas(n_solid) , xs(n_solid) , r_xs(n_solid) ,  &
+         diam_s(n_solid) , sp_heat_s(n_solid) , C_D_s(n_solid) )
 
     ALLOCATE( alphas_init(n_solid) , sed_vol_perc(n_solid) )
 
@@ -2826,8 +2825,7 @@ CONTAINS
     USE constitutive_2d, ONLY : qc_to_qp, mixt_var
 
     ! external variables
-    USE constitutive_2d, ONLY : r_h , r_u , r_v , r_alphas , r_T , r_rho_m ,    &
-         r_red_grav
+    USE constitutive_2d, ONLY : r_T , r_rho_m , r_red_grav
 
     USE geometry_2d, ONLY : comp_cells_x , B_cent , comp_cells_y , x_comp,      &
          y_comp , deposit
@@ -2847,6 +2845,8 @@ CONTAINS
     REAL*8 :: qp(n_vars+2)
 
     REAL*8 :: B_out
+
+    REAL*8 :: r_u , r_v , r_h , r_alphas(n_solid) , r_Ri
 
     INTEGER :: j,k
     INTEGER :: i
@@ -2905,10 +2905,15 @@ CONTAINS
        DO k = 1,comp_cells_y
           
           DO j = 1,comp_cells_x
-             
+          
              CALL qc_to_qp(q(1:n_vars,j,k),B_cent(j,k),qp(1:n_vars+2))
-             CALL mixt_var(qp(1:n_vars+2))
 
+             CALL mixt_var(qp(1:n_vars+2),r_Ri)
+
+             r_h = qp(1)
+             r_u = qp(n_vars+1)
+             r_v = qp(n_vars+2)
+             r_alphas(1:n_solid) = qp(5:4+n_solid)
 
              IF ( DABS( r_h ) .LT. 1d-99) r_h = 0.D0
              IF ( DABS( r_u ) .LT. 1d-99) r_u = 0.D0
