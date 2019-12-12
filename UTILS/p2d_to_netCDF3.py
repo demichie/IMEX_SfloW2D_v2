@@ -30,49 +30,57 @@ with open(bakfile) as fp:
    for cnt, line in enumerate(fp):
 
        if "T_START" in line:
-           t_start_str= line.replace('T_START=','')
+           t_start_str= line.replace('T_START','')
+           t_start_str= t_start_str.replace('=','')
            t_start_str= t_start_str.replace(',','')
            t_start = np.float(t_start_str)
-           print("t_start",t_start)
+           print("t_start =",t_start)
 
        if "T_END" in line:
-           t_end_str= line.replace('T_END=','')
+           t_end_str= line.replace('T_END','')
+           t_end_str= t_end_str.replace('=','')
            t_end_str= t_end_str.replace(',','')
            t_end = np.float(t_end_str)
-           print("t_end",t_end)
+           print("t_end =",t_end)
 
        if "DT_OUTPUT" in line:
-           dt_output_str = line.replace('DT_OUTPUT=','')
+           dt_output_str = line.replace('DT_OUTPUT','')
+           dt_output_str = dt_output_str.replace('=','')
            dt_output_str = dt_output_str.replace(',','')
            dt_output = np.float(dt_output_str)
-           print("dt_output",dt_output)
+           print("dt_output =",dt_output)
 
        if "COMP_CELLS_X" in line:
-           comp_cells_x_str= line.replace('COMP_CELLS_X=','')
+           comp_cells_x_str= line.replace('COMP_CELLS_X','')
+           comp_cells_x_str= comp_cells_x_str.replace('=','')
            comp_cells_x_str= comp_cells_x_str.replace(',','')
            nx = np.int(comp_cells_x_str)
            print("comp_cells_x",nx)
 
        if "COMP_CELLS_Y" in line:
-           comp_cells_y_str= line.replace('COMP_CELLS_Y=','')
+           comp_cells_y_str= line.replace('COMP_CELLS_Y','')
+           comp_cells_y_str= comp_cells_y_str.replace('=','')
            comp_cells_y_str= comp_cells_y_str.replace(',','')
            ny = np.int(comp_cells_y_str)
            print("comp_cells_y",ny)
 
        if "X0" in line:
-           x0_str= line.replace('X0=','')
+           x0_str= line.replace('X0','')
+           x0_str= x0_str.replace('=','')
            x0_str= x0_str.replace(',','')
            x0 = np.float(x0_str)
            print("x0",x0)
 
        if "Y0" in line:
-           y0_str= line.replace('Y0=','')
+           y0_str= line.replace('Y0','')
+           y0_str= y0_str.replace('=','')
            y0_str= y0_str.replace(',','')
            y0 = np.float(y0_str)
            print("y0",y0)
 
        if "N_SOLID" in line:
-           nsolid_str= line.replace('N_SOLID=','')
+           nsolid_str= line.replace('N_SOLID','')
+           nsolid_str= nsolid_str.replace('=','')
            nsolid_str= nsolid_str.replace(',','')
            nsolid = np.int(nsolid_str)
            print("nsolid",nsolid)

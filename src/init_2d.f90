@@ -207,7 +207,6 @@ CONTAINS
     USE geometry_2d, ONLY : compute_cell_fract
 
     USE geometry_2d, ONLY : comp_cells_x , comp_cells_y , B_cent
-    USE geometry_2d, ONLY : x_comp , y_comp
 
     USE parameters_2d, ONLY : n_vars
 
