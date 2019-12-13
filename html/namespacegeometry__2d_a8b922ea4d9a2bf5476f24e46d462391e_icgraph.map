@@ -1,0 +1,7 @@
+<map id="geometry_2d::minmod" name="geometry_2d::minmod">
+<area shape="rect" id="node2" href="$namespacegeometry__2d.html#a508f9c43c26fea229532859de6a60994" title="Slope limiter. " alt="" coords="223,17,353,43"/>
+<area shape="rect" id="node4" href="$namespacesolver__2d.html#a2e63f69351675f01f87750814ac138dc" title="Linear reconstruction. " alt="" coords="204,71,372,98"/>
+<area shape="rect" id="node3" href="$namespacegeometry__2d.html#a0e2e031787aab53ee894a31ac6c00632" title="Linear reconstruction. " alt="" coords="423,5,593,47"/>
+<area shape="rect" id="node5" href="$namespacesolver__2d.html#a7f17c548fa0f025b2dc40b27605d4ef7" title="Time&#45;step computation. " alt="" coords="440,71,576,98"/>
+<area shape="rect" id="node6" href="$namespacesolver__2d.html#a36e350e26b1662156a7f5a120b151932" title="Semidiscrete finite volume central scheme. " alt="" coords="420,123,596,164"/>
+</map>

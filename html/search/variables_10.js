@@ -22,5 +22,6 @@ var searchData=
   ['qp_5finterfaceb',['qp_interfaceb',['../namespacesolver__2d.html#a242f16061be8c6d16d81acd3baf95120',1,'solver_2d']]],
   ['qp_5finterfacel',['qp_interfacel',['../namespacesolver__2d.html#aaba3e1fedcbded138ff77f360a22c7e3',1,'solver_2d']]],
   ['qp_5finterfacer',['qp_interfacer',['../namespacesolver__2d.html#afc23e78c3f1e6190c51d5388dc6265e7',1,'solver_2d']]],
-  ['qp_5finterfacet',['qp_interfacet',['../namespacesolver__2d.html#ad2209fa55e800f34e1acaa99804861bd',1,'solver_2d']]]
+  ['qp_5finterfacet',['qp_interfacet',['../namespacesolver__2d.html#ad2209fa55e800f34e1acaa99804861bd',1,'solver_2d']]],
+  ['qp_5frk',['qp_rk',['../namespacesolver__2d.html#a19def31e28f7b9f6cd799b92b0b31b41',1,'solver_2d']]]
 ];

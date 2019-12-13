@@ -99,110 +99,62 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:a614742a84ec4b746f0f66f98750fdc9b"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a614742a84ec4b746f0f66f98750fdc9b">init_problem_param</a></td></tr>
 <tr class="memdesc:a614742a84ec4b746f0f66f98750fdc9b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialization of relaxation flags.  <a href="#a614742a84ec4b746f0f66f98750fdc9b">More...</a><br /></td></tr>
 <tr class="separator:a614742a84ec4b746f0f66f98750fdc9b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab341fc1f18788ae2f9ff0c5ce45a297b"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#ab341fc1f18788ae2f9ff0c5ce45a297b">phys_var</a> (r_qj, c_qj)</td></tr>
-<tr class="memdesc:ab341fc1f18788ae2f9ff0c5ce45a297b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Physical variables.  <a href="#ab341fc1f18788ae2f9ff0c5ce45a297b">More...</a><br /></td></tr>
-<tr class="separator:ab341fc1f18788ae2f9ff0c5ce45a297b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a57a04a27296b87b6c3ffa6cff01b4afd"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a57a04a27296b87b6c3ffa6cff01b4afd">mixt_var</a> (qpj)</td></tr>
-<tr class="memdesc:a57a04a27296b87b6c3ffa6cff01b4afd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Physical variables.  <a href="#a57a04a27296b87b6c3ffa6cff01b4afd">More...</a><br /></td></tr>
-<tr class="separator:a57a04a27296b87b6c3ffa6cff01b4afd"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa38b7de1baa7a734227a0aa5bf9548bf"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#aa38b7de1baa7a734227a0aa5bf9548bf">qc_to_qp</a> (qc, B, qp)</td></tr>
-<tr class="memdesc:aa38b7de1baa7a734227a0aa5bf9548bf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Conservative to physical variables.  <a href="#aa38b7de1baa7a734227a0aa5bf9548bf">More...</a><br /></td></tr>
-<tr class="separator:aa38b7de1baa7a734227a0aa5bf9548bf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6c189afcf918d899b18a0fcbad26d407"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a6c189afcf918d899b18a0fcbad26d407">r_phys_var</a> (r_qj, r_h, r_u, r_v, r_alphas, r_rho_m, r_T, r_alphal)</td></tr>
+<tr class="memdesc:a6c189afcf918d899b18a0fcbad26d407"><td class="mdescLeft">&#160;</td><td class="mdescRight">Physical variables.  <a href="#a6c189afcf918d899b18a0fcbad26d407">More...</a><br /></td></tr>
+<tr class="separator:a6c189afcf918d899b18a0fcbad26d407"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a29a1dcc9b04355fda2b6955a9ada9e30"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a29a1dcc9b04355fda2b6955a9ada9e30">c_phys_var</a> (c_qj, h, u, v, T, rho_m, red_grav, alphas)</td></tr>
+<tr class="memdesc:a29a1dcc9b04355fda2b6955a9ada9e30"><td class="mdescLeft">&#160;</td><td class="mdescRight">Physical variables.  <a href="#a29a1dcc9b04355fda2b6955a9ada9e30">More...</a><br /></td></tr>
+<tr class="separator:a29a1dcc9b04355fda2b6955a9ada9e30"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae7098b718bcde0212fdb9a05cc9391a9"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#ae7098b718bcde0212fdb9a05cc9391a9">mixt_var</a> (qpj, r_Ri, r_rho_m, r_rho_c, r_red_grav)</td></tr>
+<tr class="memdesc:ae7098b718bcde0212fdb9a05cc9391a9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Physical variables.  <a href="#ae7098b718bcde0212fdb9a05cc9391a9">More...</a><br /></td></tr>
+<tr class="separator:ae7098b718bcde0212fdb9a05cc9391a9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6a80b31f16ccb2e20da2c7e693d95e4f"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a6a80b31f16ccb2e20da2c7e693d95e4f">qc_to_qp</a> (qc, qp)</td></tr>
+<tr class="memdesc:a6a80b31f16ccb2e20da2c7e693d95e4f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Conservative to physical variables.  <a href="#a6a80b31f16ccb2e20da2c7e693d95e4f">More...</a><br /></td></tr>
+<tr class="separator:a6a80b31f16ccb2e20da2c7e693d95e4f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3b66666c5794e7c491a3d915e600cbb4"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a3b66666c5794e7c491a3d915e600cbb4">qp_to_qc</a> (qp, B, qc)</td></tr>
 <tr class="memdesc:a3b66666c5794e7c491a3d915e600cbb4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Physical to conservative variables.  <a href="#a3b66666c5794e7c491a3d915e600cbb4">More...</a><br /></td></tr>
 <tr class="separator:a3b66666c5794e7c491a3d915e600cbb4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a14d19a8b10821844d7ea640264bb8914"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a14d19a8b10821844d7ea640264bb8914">eval_local_speeds_x</a> (qj, vel_min, vel_max)</td></tr>
-<tr class="memdesc:a14d19a8b10821844d7ea640264bb8914"><td class="mdescLeft">&#160;</td><td class="mdescRight">Local Characteristic speeds x direction.  <a href="#a14d19a8b10821844d7ea640264bb8914">More...</a><br /></td></tr>
-<tr class="separator:a14d19a8b10821844d7ea640264bb8914"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abb94b9fcc0fc9a586a5fc90b9f19b32b"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#abb94b9fcc0fc9a586a5fc90b9f19b32b">eval_local_speeds_y</a> (qj, vel_min, vel_max)</td></tr>
-<tr class="memdesc:abb94b9fcc0fc9a586a5fc90b9f19b32b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Local Characteristic speeds y direction.  <a href="#abb94b9fcc0fc9a586a5fc90b9f19b32b">More...</a><br /></td></tr>
-<tr class="separator:abb94b9fcc0fc9a586a5fc90b9f19b32b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae05934389cffe1105b32355fed21412b"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#ae05934389cffe1105b32355fed21412b">eval_local_speeds2_x</a> (qpj, vel_min, vel_max)</td></tr>
-<tr class="memdesc:ae05934389cffe1105b32355fed21412b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Local Characteristic speeds x direction.  <a href="#ae05934389cffe1105b32355fed21412b">More...</a><br /></td></tr>
-<tr class="separator:ae05934389cffe1105b32355fed21412b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a17b3dcea1eabac79c787d0e25dda9ac4"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a17b3dcea1eabac79c787d0e25dda9ac4">eval_local_speeds2_y</a> (qpj, vel_min, vel_max)</td></tr>
-<tr class="memdesc:a17b3dcea1eabac79c787d0e25dda9ac4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Local Characteristic speeds y direction.  <a href="#a17b3dcea1eabac79c787d0e25dda9ac4">More...</a><br /></td></tr>
-<tr class="separator:a17b3dcea1eabac79c787d0e25dda9ac4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac5016dc16d6b220f12dd2bfad5fa857c"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#ac5016dc16d6b220f12dd2bfad5fa857c">eval_fluxes</a> (qcj, qpj, Bj, dir, flux)</td></tr>
-<tr class="memdesc:ac5016dc16d6b220f12dd2bfad5fa857c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Hyperbolic Fluxes.  <a href="#ac5016dc16d6b220f12dd2bfad5fa857c">More...</a><br /></td></tr>
-<tr class="separator:ac5016dc16d6b220f12dd2bfad5fa857c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5841084f40a5248531c84399696f8540"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a5841084f40a5248531c84399696f8540">qp_to_qp2</a> (qpj, Bj, qp2j)</td></tr>
+<tr class="memdesc:a5841084f40a5248531c84399696f8540"><td class="mdescLeft">&#160;</td><td class="mdescRight">Additional Physical variables.  <a href="#a5841084f40a5248531c84399696f8540">More...</a><br /></td></tr>
+<tr class="separator:a5841084f40a5248531c84399696f8540"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5b631942dd2464fe5a63498f62042613"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a5b631942dd2464fe5a63498f62042613">eval_local_speeds_x</a> (qpj, vel_min, vel_max)</td></tr>
+<tr class="memdesc:a5b631942dd2464fe5a63498f62042613"><td class="mdescLeft">&#160;</td><td class="mdescRight">Local Characteristic speeds x direction.  <a href="#a5b631942dd2464fe5a63498f62042613">More...</a><br /></td></tr>
+<tr class="separator:a5b631942dd2464fe5a63498f62042613"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1d79f2dbfb0c9091b97daea78dfb5187"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a1d79f2dbfb0c9091b97daea78dfb5187">eval_local_speeds_y</a> (qpj, vel_min, vel_max)</td></tr>
+<tr class="memdesc:a1d79f2dbfb0c9091b97daea78dfb5187"><td class="mdescLeft">&#160;</td><td class="mdescRight">Local Characteristic speeds y direction.  <a href="#a1d79f2dbfb0c9091b97daea78dfb5187">More...</a><br /></td></tr>
+<tr class="separator:a1d79f2dbfb0c9091b97daea78dfb5187"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9e563ef51d3491590d9bd5e8e1ad1cd0"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a9e563ef51d3491590d9bd5e8e1ad1cd0">eval_fluxes</a> (qcj, qpj, dir, flux)</td></tr>
+<tr class="memdesc:a9e563ef51d3491590d9bd5e8e1ad1cd0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Hyperbolic Fluxes.  <a href="#a9e563ef51d3491590d9bd5e8e1ad1cd0">More...</a><br /></td></tr>
+<tr class="separator:a9e563ef51d3491590d9bd5e8e1ad1cd0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6c068d18fb13c82fe6876b2458dab32c"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a6c068d18fb13c82fe6876b2458dab32c">eval_nonhyperbolic_terms</a> (c_qj, c_nh_term_impl, r_qj, r_nh_term_impl)</td></tr>
 <tr class="memdesc:a6c068d18fb13c82fe6876b2458dab32c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Non-Hyperbolic terms.  <a href="#a6c068d18fb13c82fe6876b2458dab32c">More...</a><br /></td></tr>
 <tr class="separator:a6c068d18fb13c82fe6876b2458dab32c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6801b39926440d701fa6bbb83069b5b2"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a6801b39926440d701fa6bbb83069b5b2">eval_nh_semi_impl_terms</a> (grav3_surf, c_qj, c_nh_semi_impl_term, r_qj, r_nh_semi_impl_term)</td></tr>
-<tr class="memdesc:a6801b39926440d701fa6bbb83069b5b2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Non-Hyperbolic semi-implicit terms.  <a href="#a6801b39926440d701fa6bbb83069b5b2">More...</a><br /></td></tr>
-<tr class="separator:a6801b39926440d701fa6bbb83069b5b2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae4af85bff9eabce90224614ee82cd24f"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#ae4af85bff9eabce90224614ee82cd24f">eval_expl_terms</a> (Bprimej_x, Bprimej_y, source_xy, qj, expl_term)</td></tr>
-<tr class="memdesc:ae4af85bff9eabce90224614ee82cd24f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Explicit Forces term.  <a href="#ae4af85bff9eabce90224614ee82cd24f">More...</a><br /></td></tr>
-<tr class="separator:ae4af85bff9eabce90224614ee82cd24f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af52432188c3ec55f920da3f662efe2fa"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#af52432188c3ec55f920da3f662efe2fa">eval_expl_terms2</a> (Bprimej_x, Bprimej_y, source_xy, qpj, qcj, expl_term)</td></tr>
-<tr class="separator:af52432188c3ec55f920da3f662efe2fa"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a10bc7d7175b804fe9c56ba2a823d467b"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a10bc7d7175b804fe9c56ba2a823d467b">eval_erosion_dep_term</a> (qpj, Bj, dt, erosion_term, deposition_term)</td></tr>
-<tr class="memdesc:a10bc7d7175b804fe9c56ba2a823d467b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Deposition term.  <a href="#a10bc7d7175b804fe9c56ba2a823d467b">More...</a><br /></td></tr>
-<tr class="separator:a10bc7d7175b804fe9c56ba2a823d467b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aaf1fd052638a8607e1bc58275ddc316d"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#aaf1fd052638a8607e1bc58275ddc316d">eval_topo_term</a> (qj, deposition_avg_term, erosion_avg_term, eqns_term, topo_term)</td></tr>
-<tr class="memdesc:aaf1fd052638a8607e1bc58275ddc316d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Topography modification related term.  <a href="#aaf1fd052638a8607e1bc58275ddc316d">More...</a><br /></td></tr>
-<tr class="separator:aaf1fd052638a8607e1bc58275ddc316d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a87da78211ff2693e4244774245aec017"><td class="memItemLeft" align="right" valign="top">real *8 function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a87da78211ff2693e4244774245aec017">settling_velocity</a> (diam, rhos, rhoa, i_solid)</td></tr>
-<tr class="memdesc:a87da78211ff2693e4244774245aec017"><td class="mdescLeft">&#160;</td><td class="mdescRight">Settling velocity function.  <a href="#a87da78211ff2693e4244774245aec017">More...</a><br /></td></tr>
-<tr class="separator:a87da78211ff2693e4244774245aec017"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4cfddeb0dd3fae95145439d19cc350b3"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a4cfddeb0dd3fae95145439d19cc350b3">eval_nh_semi_impl_terms</a> (grav3_surf, qcj, nh_semi_impl_term)</td></tr>
+<tr class="memdesc:a4cfddeb0dd3fae95145439d19cc350b3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Non-Hyperbolic semi-implicit terms.  <a href="#a4cfddeb0dd3fae95145439d19cc350b3">More...</a><br /></td></tr>
+<tr class="separator:a4cfddeb0dd3fae95145439d19cc350b3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6dd166c02d9663a96663a638bb710543"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a6dd166c02d9663a96663a638bb710543">eval_expl_terms</a> (Bprimej_x, Bprimej_y, source_xy, qpj, qcj, expl_term)</td></tr>
+<tr class="memdesc:a6dd166c02d9663a96663a638bb710543"><td class="mdescLeft">&#160;</td><td class="mdescRight">Explicit Forces term.  <a href="#a6dd166c02d9663a96663a638bb710543">More...</a><br /></td></tr>
+<tr class="separator:a6dd166c02d9663a96663a638bb710543"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9eca1bca55c515cca6a54f65bfe31cd6"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a9eca1bca55c515cca6a54f65bfe31cd6">eval_erosion_dep_term</a> (qpj, dt, erosion_term, deposition_term)</td></tr>
+<tr class="memdesc:a9eca1bca55c515cca6a54f65bfe31cd6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Erosion/Deposition term.  <a href="#a9eca1bca55c515cca6a54f65bfe31cd6">More...</a><br /></td></tr>
+<tr class="separator:a9eca1bca55c515cca6a54f65bfe31cd6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a97b820cb551dc02376dfd536d36cf832"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a97b820cb551dc02376dfd536d36cf832">eval_topo_term</a> (qpj, deposition_avg_term, erosion_avg_term, eqns_term, deposit_term)</td></tr>
+<tr class="memdesc:a97b820cb551dc02376dfd536d36cf832"><td class="mdescLeft">&#160;</td><td class="mdescRight">Topography modification related term.  <a href="#a97b820cb551dc02376dfd536d36cf832">More...</a><br /></td></tr>
+<tr class="separator:a97b820cb551dc02376dfd536d36cf832"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab8b4c863c39a97a0c9c0e22fcc35d9e6"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#ab8b4c863c39a97a0c9c0e22fcc35d9e6">eval_source_bdry</a> (time, vect_x, vect_y, source_bdry)</td></tr>
+<tr class="memdesc:ab8b4c863c39a97a0c9c0e22fcc35d9e6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Internal boundary source fluxes.  <a href="#ab8b4c863c39a97a0c9c0e22fcc35d9e6">More...</a><br /></td></tr>
+<tr class="separator:ab8b4c863c39a97a0c9c0e22fcc35d9e6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a157867244819d0a9af3414289335d2e6"><td class="memItemLeft" align="right" valign="top">real *8 function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a157867244819d0a9af3414289335d2e6">settling_velocity</a> (diam, rhos, rhoc, i_solid)</td></tr>
+<tr class="memdesc:a157867244819d0a9af3414289335d2e6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Settling velocity function.  <a href="#a157867244819d0a9af3414289335d2e6">More...</a><br /></td></tr>
+<tr class="separator:a157867244819d0a9af3414289335d2e6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
 <tr class="memitem:a18500f572edf3bd02cf19c91294f4a16"><td class="memItemLeft" align="right" valign="top">logical, dimension(:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a18500f572edf3bd02cf19c91294f4a16">implicit_flag</a></td></tr>
 <tr class="separator:a18500f572edf3bd02cf19c91294f4a16"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a99d2758232254c2600d24418d0fde411"><td class="memItemLeft" align="right" valign="top">character(len=20)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a99d2758232254c2600d24418d0fde411">phase1_name</a></td></tr>
-<tr class="separator:a99d2758232254c2600d24418d0fde411"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a92fbd541533e8daa6264944b82e622d5"><td class="memItemLeft" align="right" valign="top">character(len=20)&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a92fbd541533e8daa6264944b82e622d5">phase2_name</a></td></tr>
-<tr class="separator:a92fbd541533e8daa6264944b82e622d5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af716369418ca4f36e8fd5bc101d0a049"><td class="memItemLeft" align="right" valign="top">complex *16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#af716369418ca4f36e8fd5bc101d0a049">h</a></td></tr>
-<tr class="memdesc:af716369418ca4f36e8fd5bc101d0a049"><td class="mdescLeft">&#160;</td><td class="mdescRight">height [m]  <a href="#af716369418ca4f36e8fd5bc101d0a049">More...</a><br /></td></tr>
-<tr class="separator:af716369418ca4f36e8fd5bc101d0a049"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af304ad44e53a727fa6865e6383f9d311"><td class="memItemLeft" align="right" valign="top">complex *16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#af304ad44e53a727fa6865e6383f9d311">u</a></td></tr>
-<tr class="memdesc:af304ad44e53a727fa6865e6383f9d311"><td class="mdescLeft">&#160;</td><td class="mdescRight">velocity (x direction)  <a href="#af304ad44e53a727fa6865e6383f9d311">More...</a><br /></td></tr>
-<tr class="separator:af304ad44e53a727fa6865e6383f9d311"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae99f05351225d6125c11edf12501444d"><td class="memItemLeft" align="right" valign="top">complex *16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#ae99f05351225d6125c11edf12501444d">v</a></td></tr>
-<tr class="memdesc:ae99f05351225d6125c11edf12501444d"><td class="mdescLeft">&#160;</td><td class="mdescRight">velocity (y direction)  <a href="#ae99f05351225d6125c11edf12501444d">More...</a><br /></td></tr>
-<tr class="separator:ae99f05351225d6125c11edf12501444d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae47ecb6e2d56dbe1ade5d4601f1931a0"><td class="memItemLeft" align="right" valign="top">complex *16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#ae47ecb6e2d56dbe1ade5d4601f1931a0">t</a></td></tr>
-<tr class="memdesc:ae47ecb6e2d56dbe1ade5d4601f1931a0"><td class="mdescLeft">&#160;</td><td class="mdescRight">temperature  <a href="#ae47ecb6e2d56dbe1ade5d4601f1931a0">More...</a><br /></td></tr>
-<tr class="separator:ae47ecb6e2d56dbe1ade5d4601f1931a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae743132c5b02e3f9d86c976f123e4943"><td class="memItemLeft" align="right" valign="top">complex *16, dimension(:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#ae743132c5b02e3f9d86c976f123e4943">alphas</a></td></tr>
-<tr class="memdesc:ae743132c5b02e3f9d86c976f123e4943"><td class="mdescLeft">&#160;</td><td class="mdescRight">sediment volume fraction  <a href="#ae743132c5b02e3f9d86c976f123e4943">More...</a><br /></td></tr>
-<tr class="separator:ae743132c5b02e3f9d86c976f123e4943"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a650bb06c8d62df4de24644fa4ee02c75"><td class="memItemLeft" align="right" valign="top">complex *16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a650bb06c8d62df4de24644fa4ee02c75">rho_m</a></td></tr>
-<tr class="memdesc:a650bb06c8d62df4de24644fa4ee02c75"><td class="mdescLeft">&#160;</td><td class="mdescRight">mixture density  <a href="#a650bb06c8d62df4de24644fa4ee02c75">More...</a><br /></td></tr>
-<tr class="separator:a650bb06c8d62df4de24644fa4ee02c75"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a511b956427417c241c562d39e5647004"><td class="memItemLeft" align="right" valign="top">complex *16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a511b956427417c241c562d39e5647004">ri</a></td></tr>
-<tr class="separator:a511b956427417c241c562d39e5647004"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a64f6ac9b56198030d798ba9e739dc198"><td class="memItemLeft" align="right" valign="top">complex *16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a64f6ac9b56198030d798ba9e739dc198">alphas_tot</a></td></tr>
-<tr class="separator:a64f6ac9b56198030d798ba9e739dc198"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa5ec75e5f9569e46127485ede8f8311d"><td class="memItemLeft" align="right" valign="top">complex *16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#aa5ec75e5f9569e46127485ede8f8311d">rhos_tot</a></td></tr>
-<tr class="separator:aa5ec75e5f9569e46127485ede8f8311d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af49d19b85d01ddf7865cda0b18d06840"><td class="memItemLeft" align="right" valign="top">real *8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#af49d19b85d01ddf7865cda0b18d06840">grav</a></td></tr>
 <tr class="memdesc:af49d19b85d01ddf7865cda0b18d06840"><td class="mdescLeft">&#160;</td><td class="mdescRight">gravitational acceleration  <a href="#af49d19b85d01ddf7865cda0b18d06840">More...</a><br /></td></tr>
 <tr class="separator:af49d19b85d01ddf7865cda0b18d06840"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a027862513736aa1236f4d51a75736d5f"><td class="memItemLeft" align="right" valign="top">complex *16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a027862513736aa1236f4d51a75736d5f">red_grav</a></td></tr>
-<tr class="memdesc:a027862513736aa1236f4d51a75736d5f"><td class="mdescLeft">&#160;</td><td class="mdescRight">reduced gravity  <a href="#a027862513736aa1236f4d51a75736d5f">More...</a><br /></td></tr>
-<tr class="separator:a027862513736aa1236f4d51a75736d5f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aaca512f0e5da37a2f726c8275d146031"><td class="memItemLeft" align="right" valign="top">real *8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#aaca512f0e5da37a2f726c8275d146031">r_h</a></td></tr>
-<tr class="separator:aaca512f0e5da37a2f726c8275d146031"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a57873975ca4869dd0644af2dba4d2293"><td class="memItemLeft" align="right" valign="top">real *8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a57873975ca4869dd0644af2dba4d2293">r_u</a></td></tr>
-<tr class="separator:a57873975ca4869dd0644af2dba4d2293"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aba149070fb724889d7771947b5f8689c"><td class="memItemLeft" align="right" valign="top">real *8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#aba149070fb724889d7771947b5f8689c">r_v</a></td></tr>
-<tr class="separator:aba149070fb724889d7771947b5f8689c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a399cd575264c175c6e1bfd39154ff702"><td class="memItemLeft" align="right" valign="top">real *8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a399cd575264c175c6e1bfd39154ff702">r_t</a></td></tr>
-<tr class="separator:a399cd575264c175c6e1bfd39154ff702"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5df2f0dded6b41e5e6686b3b7ae65018"><td class="memItemLeft" align="right" valign="top">real *8, dimension(:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a5df2f0dded6b41e5e6686b3b7ae65018">r_alphas</a></td></tr>
-<tr class="separator:a5df2f0dded6b41e5e6686b3b7ae65018"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8d1c5927d9032b048ff142e43f870e2b"><td class="memItemLeft" align="right" valign="top">real *8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a8d1c5927d9032b048ff142e43f870e2b">r_red_grav</a></td></tr>
-<tr class="separator:a8d1c5927d9032b048ff142e43f870e2b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a47c9cc2d89c8cfa9c137a6ff932b2cfa"><td class="memItemLeft" align="right" valign="top">real *8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a47c9cc2d89c8cfa9c137a6ff932b2cfa">r_rho_m</a></td></tr>
-<tr class="separator:a47c9cc2d89c8cfa9c137a6ff932b2cfa"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad468a1c65819d708c8df620b744593d7"><td class="memItemLeft" align="right" valign="top">real *8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#ad468a1c65819d708c8df620b744593d7">r_rho_a</a></td></tr>
-<tr class="separator:ad468a1c65819d708c8df620b744593d7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af4c1186ce33b3436be665626b80a2957"><td class="memItemLeft" align="right" valign="top">real *8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#af4c1186ce33b3436be665626b80a2957">r_ri</a></td></tr>
-<tr class="separator:af4c1186ce33b3436be665626b80a2957"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aabeb469009539442a6859e435f8172d3"><td class="memItemLeft" align="right" valign="top">real *8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#aabeb469009539442a6859e435f8172d3">mu</a></td></tr>
 <tr class="memdesc:aabeb469009539442a6859e435f8172d3"><td class="mdescLeft">&#160;</td><td class="mdescRight">drag coefficients (Voellmy-Salm model)  <a href="#aabeb469009539442a6859e435f8172d3">More...</a><br /></td></tr>
 <tr class="separator:aabeb469009539442a6859e435f8172d3"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -223,9 +175,6 @@ Variables</h2></td></tr>
 <tr class="memitem:a25b7a52367a57360cfb27f7390b40547"><td class="memItemLeft" align="right" valign="top">real *8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a25b7a52367a57360cfb27f7390b40547">frict_coeff</a></td></tr>
 <tr class="memdesc:a25b7a52367a57360cfb27f7390b40547"><td class="mdescLeft">&#160;</td><td class="mdescRight">friction coefficient  <a href="#a25b7a52367a57360cfb27f7390b40547">More...</a><br /></td></tr>
 <tr class="separator:a25b7a52367a57360cfb27f7390b40547"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a41862c959e293eefcc1c5cb390e39c16"><td class="memItemLeft" align="right" valign="top">real *8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a41862c959e293eefcc1c5cb390e39c16">rho</a></td></tr>
-<tr class="memdesc:a41862c959e293eefcc1c5cb390e39c16"><td class="mdescLeft">&#160;</td><td class="mdescRight">fluid density [kg/m3]  <a href="#a41862c959e293eefcc1c5cb390e39c16">More...</a><br /></td></tr>
-<tr class="separator:a41862c959e293eefcc1c5cb390e39c16"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2650b6bc0af18ed459a128cd14832299"><td class="memItemLeft" align="right" valign="top">real *8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a2650b6bc0af18ed459a128cd14832299">t_ref</a></td></tr>
 <tr class="memdesc:a2650b6bc0af18ed459a128cd14832299"><td class="mdescLeft">&#160;</td><td class="mdescRight">reference temperature [K]  <a href="#a2650b6bc0af18ed459a128cd14832299">More...</a><br /></td></tr>
 <tr class="separator:a2650b6bc0af18ed459a128cd14832299"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -263,28 +212,28 @@ Variables</h2></td></tr>
 <tr class="memdesc:a84f0cfa16af688d82cc37cc017f6d7dd"><td class="mdescLeft">&#160;</td><td class="mdescRight">thermal conductivity [W m-1 K-1] (k in Costa &amp; Macedonio, 2005)  <a href="#a84f0cfa16af688d82cc37cc017f6d7dd">More...</a><br /></td></tr>
 <tr class="separator:a84f0cfa16af688d82cc37cc017f6d7dd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ade00c26c18212ffe90ed265e8a713400"><td class="memItemLeft" align="right" valign="top">real *8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#ade00c26c18212ffe90ed265e8a713400">alpha2</a></td></tr>
-<tr class="memdesc:ade00c26c18212ffe90ed265e8a713400"><td class="mdescLeft">&#160;</td><td class="mdescRight">1st parameter for yield strenght empirical relationship (O'Brian et al, 1993)  <a href="#ade00c26c18212ffe90ed265e8a713400">More...</a><br /></td></tr>
+<tr class="memdesc:ade00c26c18212ffe90ed265e8a713400"><td class="mdescLeft">&#160;</td><td class="mdescRight">1st param for yield strenght empirical relationship (O'Brian et al, 1993)  <a href="#ade00c26c18212ffe90ed265e8a713400">More...</a><br /></td></tr>
 <tr class="separator:ade00c26c18212ffe90ed265e8a713400"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad1c1e730a3b0294bca3868779313d3a0"><td class="memItemLeft" align="right" valign="top">real *8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#ad1c1e730a3b0294bca3868779313d3a0">beta2</a></td></tr>
-<tr class="memdesc:ad1c1e730a3b0294bca3868779313d3a0"><td class="mdescLeft">&#160;</td><td class="mdescRight">2nd parameter for yield strenght empirical relationship (O'Brian et al, 1993)  <a href="#ad1c1e730a3b0294bca3868779313d3a0">More...</a><br /></td></tr>
+<tr class="memdesc:ad1c1e730a3b0294bca3868779313d3a0"><td class="mdescLeft">&#160;</td><td class="mdescRight">2nd param for yield strenght empirical relationship (O'Brian et al, 1993)  <a href="#ad1c1e730a3b0294bca3868779313d3a0">More...</a><br /></td></tr>
 <tr class="separator:ad1c1e730a3b0294bca3868779313d3a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6e4bb7f3788d8f9d39b2c07772d201b0"><td class="memItemLeft" align="right" valign="top">real *8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a6e4bb7f3788d8f9d39b2c07772d201b0">alpha1</a></td></tr>
-<tr class="memdesc:a6e4bb7f3788d8f9d39b2c07772d201b0"><td class="mdescLeft">&#160;</td><td class="mdescRight">1st parameter for fluid viscosity empirical relationship (O'Brian et al, 1993)  <a href="#a6e4bb7f3788d8f9d39b2c07772d201b0">More...</a><br /></td></tr>
-<tr class="separator:a6e4bb7f3788d8f9d39b2c07772d201b0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af79ad9ef45dfa26bfd7650efcb7877df"><td class="memItemLeft" align="right" valign="top">real *8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#af79ad9ef45dfa26bfd7650efcb7877df">alpha1_coeff</a></td></tr>
+<tr class="memdesc:af79ad9ef45dfa26bfd7650efcb7877df"><td class="mdescLeft">&#160;</td><td class="mdescRight">ratio between reference value from input and computed values from eq.  <a href="#af79ad9ef45dfa26bfd7650efcb7877df">More...</a><br /></td></tr>
+<tr class="separator:af79ad9ef45dfa26bfd7650efcb7877df"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab2da798eaf81eddc63e78bf1a593c182"><td class="memItemLeft" align="right" valign="top">real *8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#ab2da798eaf81eddc63e78bf1a593c182">beta1</a></td></tr>
-<tr class="memdesc:ab2da798eaf81eddc63e78bf1a593c182"><td class="mdescLeft">&#160;</td><td class="mdescRight">2nd parameter for fluid viscosity empirical relationship (O'Brian et al, 1993)  <a href="#ab2da798eaf81eddc63e78bf1a593c182">More...</a><br /></td></tr>
+<tr class="memdesc:ab2da798eaf81eddc63e78bf1a593c182"><td class="mdescLeft">&#160;</td><td class="mdescRight">2nd param for fluid viscosity empirical relationship (O'Brian et al, 1993)  <a href="#ab2da798eaf81eddc63e78bf1a593c182">More...</a><br /></td></tr>
 <tr class="separator:ab2da798eaf81eddc63e78bf1a593c182"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a39ed088fdd5015319aaa0431ebf6cad5"><td class="memItemLeft" align="right" valign="top">real *8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a39ed088fdd5015319aaa0431ebf6cad5">kappa</a></td></tr>
-<tr class="memdesc:a39ed088fdd5015319aaa0431ebf6cad5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Empirical resistance parameter.  <a href="#a39ed088fdd5015319aaa0431ebf6cad5">More...</a><br /></td></tr>
+<tr class="memdesc:a39ed088fdd5015319aaa0431ebf6cad5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Empirical resistance parameter (dimensionless, input parameter)  <a href="#a39ed088fdd5015319aaa0431ebf6cad5">More...</a><br /></td></tr>
 <tr class="separator:a39ed088fdd5015319aaa0431ebf6cad5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a409b3e243cfc9615c4a480c3631dcec6"><td class="memItemLeft" align="right" valign="top">real *8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a409b3e243cfc9615c4a480c3631dcec6">n_td</a></td></tr>
 <tr class="memdesc:a409b3e243cfc9615c4a480c3631dcec6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Mannings roughness coefficient ( units: T L^(-1/3) )  <a href="#a409b3e243cfc9615c4a480c3631dcec6">More...</a><br /></td></tr>
 <tr class="separator:a409b3e243cfc9615c4a480c3631dcec6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac2b98abbd046c95b6ab048d0bcbba60a"><td class="memItemLeft" align="right" valign="top">complex *16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#ac2b98abbd046c95b6ab048d0bcbba60a">rho_a</a></td></tr>
-<tr class="memdesc:ac2b98abbd046c95b6ab048d0bcbba60a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Density of air in the mixture.  <a href="#ac2b98abbd046c95b6ab048d0bcbba60a">More...</a><br /></td></tr>
-<tr class="separator:ac2b98abbd046c95b6ab048d0bcbba60a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9ccc7c67ba228db267895cbc4427752c"><td class="memItemLeft" align="right" valign="top">real *8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a9ccc7c67ba228db267895cbc4427752c">sp_heat_c</a></td></tr>
+<tr class="memdesc:a9ccc7c67ba228db267895cbc4427752c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Specific heat of carrier phase (gas or liquid)  <a href="#a9ccc7c67ba228db267895cbc4427752c">More...</a><br /></td></tr>
+<tr class="separator:a9ccc7c67ba228db267895cbc4427752c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac389d977c857177185023497095ed505"><td class="memItemLeft" align="right" valign="top">real *8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#ac389d977c857177185023497095ed505">rho_a_amb</a></td></tr>
-<tr class="memdesc:ac389d977c857177185023497095ed505"><td class="mdescLeft">&#160;</td><td class="mdescRight">Ambient density of air.  <a href="#ac389d977c857177185023497095ed505">More...</a><br /></td></tr>
+<tr class="memdesc:ac389d977c857177185023497095ed505"><td class="mdescLeft">&#160;</td><td class="mdescRight">Ambient density of air ( units: kg/m^3 )  <a href="#ac389d977c857177185023497095ed505">More...</a><br /></td></tr>
 <tr class="separator:ac389d977c857177185023497095ed505"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a582da65bd05d72a06d80e9393b656e8c"><td class="memItemLeft" align="right" valign="top">real *8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a582da65bd05d72a06d80e9393b656e8c">sp_heat_a</a></td></tr>
 <tr class="memdesc:a582da65bd05d72a06d80e9393b656e8c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Specific heat of air.  <a href="#a582da65bd05d72a06d80e9393b656e8c">More...</a><br /></td></tr>
@@ -295,14 +244,17 @@ Variables</h2></td></tr>
 <tr class="memitem:a95307086f82f750e9538144bfb62c5c6"><td class="memItemLeft" align="right" valign="top">real *8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a95307086f82f750e9538144bfb62c5c6">kin_visc_a</a></td></tr>
 <tr class="memdesc:a95307086f82f750e9538144bfb62c5c6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Kinematic viscosity of air.  <a href="#a95307086f82f750e9538144bfb62c5c6">More...</a><br /></td></tr>
 <tr class="separator:a95307086f82f750e9538144bfb62c5c6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aec6638a861394313fb10c55302d0a664"><td class="memItemLeft" align="right" valign="top">real *8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#aec6638a861394313fb10c55302d0a664">kin_visc_l</a></td></tr>
+<tr class="memdesc:aec6638a861394313fb10c55302d0a664"><td class="mdescLeft">&#160;</td><td class="mdescRight">Kinematic viscosity of liquid.  <a href="#aec6638a861394313fb10c55302d0a664">More...</a><br /></td></tr>
+<tr class="separator:aec6638a861394313fb10c55302d0a664"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1a399e94cfdda8661d41a7cd6dbe6410"><td class="memItemLeft" align="right" valign="top">real *8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a1a399e94cfdda8661d41a7cd6dbe6410">kin_visc_c</a></td></tr>
+<tr class="memdesc:a1a399e94cfdda8661d41a7cd6dbe6410"><td class="mdescLeft">&#160;</td><td class="mdescRight">Kinematic viscosity of carrier phase.  <a href="#a1a399e94cfdda8661d41a7cd6dbe6410">More...</a><br /></td></tr>
+<tr class="separator:a1a399e94cfdda8661d41a7cd6dbe6410"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aaa73288f1831b4777897a184120c9039"><td class="memItemLeft" align="right" valign="top">real *8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#aaa73288f1831b4777897a184120c9039">t_ambient</a></td></tr>
 <tr class="memdesc:aaa73288f1831b4777897a184120c9039"><td class="mdescLeft">&#160;</td><td class="mdescRight">Temperature of ambient air.  <a href="#aaa73288f1831b4777897a184120c9039">More...</a><br /></td></tr>
 <tr class="separator:aaa73288f1831b4777897a184120c9039"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aee9ef3578238e63f3aeca80d8e958815"><td class="memItemLeft" align="right" valign="top">logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#aee9ef3578238e63f3aeca80d8e958815">entrainment_flag</a></td></tr>
 <tr class="separator:aee9ef3578238e63f3aeca80d8e958815"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa744732eb781b94d526c3ad080581548"><td class="memItemLeft" align="right" valign="top">complex *16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#aa744732eb781b94d526c3ad080581548">sp_heat_mix</a></td></tr>
-<tr class="memdesc:aa744732eb781b94d526c3ad080581548"><td class="mdescLeft">&#160;</td><td class="mdescRight">Specific heat of mixture.  <a href="#aa744732eb781b94d526c3ad080581548">More...</a><br /></td></tr>
-<tr class="separator:aa744732eb781b94d526c3ad080581548"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8153d67dcfef2ae10cead73d54a200f2"><td class="memItemLeft" align="right" valign="top">real *8, dimension(:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a8153d67dcfef2ae10cead73d54a200f2">rho_s</a></td></tr>
 <tr class="memdesc:a8153d67dcfef2ae10cead73d54a200f2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Specific weight of sediments.  <a href="#a8153d67dcfef2ae10cead73d54a200f2">More...</a><br /></td></tr>
 <tr class="separator:a8153d67dcfef2ae10cead73d54a200f2"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -314,12 +266,14 @@ Variables</h2></td></tr>
 <tr class="separator:ad6a3ad38f6b421a302623244ad4c63e1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac4ee42939e447a3bc631d7ee91a2a7af"><td class="memItemLeft" align="right" valign="top">real *8, dimension(:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#ac4ee42939e447a3bc631d7ee91a2a7af">c_d_s</a></td></tr>
 <tr class="separator:ac4ee42939e447a3bc631d7ee91a2a7af"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac9b825b7b910b7a658c29c5bfbae1ad3"><td class="memItemLeft" align="right" valign="top">logical&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#ac9b825b7b910b7a658c29c5bfbae1ad3">settling_flag</a></td></tr>
+<tr class="separator:ac9b825b7b910b7a658c29c5bfbae1ad3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a07480738022450ecabd8f7c749906db3"><td class="memItemLeft" align="right" valign="top">real *8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a07480738022450ecabd8f7c749906db3">settling_vel</a></td></tr>
 <tr class="memdesc:a07480738022450ecabd8f7c749906db3"><td class="mdescLeft">&#160;</td><td class="mdescRight">hindered settling  <a href="#a07480738022450ecabd8f7c749906db3">More...</a><br /></td></tr>
 <tr class="separator:a07480738022450ecabd8f7c749906db3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aacd33add423c63fa4b579af7606aad57"><td class="memItemLeft" align="right" valign="top">real *8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#aacd33add423c63fa4b579af7606aad57">erosion_coeff</a></td></tr>
-<tr class="memdesc:aacd33add423c63fa4b579af7606aad57"><td class="mdescLeft">&#160;</td><td class="mdescRight">erosion model coefficient  <a href="#aacd33add423c63fa4b579af7606aad57">More...</a><br /></td></tr>
-<tr class="separator:aacd33add423c63fa4b579af7606aad57"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a366f977af7ea10d288426d68238f39e6"><td class="memItemLeft" align="right" valign="top">real *8, dimension(:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#a366f977af7ea10d288426d68238f39e6">erosion_coeff</a></td></tr>
+<tr class="memdesc:a366f977af7ea10d288426d68238f39e6"><td class="mdescLeft">&#160;</td><td class="mdescRight">erosion model coefficient ( units: m-1 )  <a href="#a366f977af7ea10d288426d68238f39e6">More...</a><br /></td></tr>
+<tr class="separator:a366f977af7ea10d288426d68238f39e6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad20221d3bcb128e6275de613619f42c0"><td class="memItemLeft" align="right" valign="top">real *8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#ad20221d3bcb128e6275de613619f42c0">t_s_substrate</a></td></tr>
 <tr class="memdesc:ad20221d3bcb128e6275de613619f42c0"><td class="mdescLeft">&#160;</td><td class="mdescRight">temperature of solid substrate (K)  <a href="#ad20221d3bcb128e6275de613619f42c0">More...</a><br /></td></tr>
 <tr class="separator:ad20221d3bcb128e6275de613619f42c0"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -332,28 +286,119 @@ Variables</h2></td></tr>
 <tr class="memitem:ad87f73bc972534665af80fdfd4cd6bb5"><td class="memItemLeft" align="right" valign="top">real *8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#ad87f73bc972534665af80fdfd4cd6bb5">sp_heat_l</a></td></tr>
 <tr class="memdesc:ad87f73bc972534665af80fdfd4cd6bb5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sepcific heat of liquid.  <a href="#ad87f73bc972534665af80fdfd4cd6bb5">More...</a><br /></td></tr>
 <tr class="separator:ad87f73bc972534665af80fdfd4cd6bb5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ade93c21c9793d1cce8fb0dc70d2549dc"><td class="memItemLeft" align="right" valign="top">complex *16&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceconstitutive__2d.html#ade93c21c9793d1cce8fb0dc70d2549dc">alpha_l</a></td></tr>
-<tr class="memdesc:ade93c21c9793d1cce8fb0dc70d2549dc"><td class="mdescLeft">&#160;</td><td class="mdescRight">liquid volume fraction  <a href="#ade93c21c9793d1cce8fb0dc70d2549dc">More...</a><br /></td></tr>
-<tr class="separator:ade93c21c9793d1cce8fb0dc70d2549dc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Constitutive equations. </p>
 </div><h2 class="groupheader">Function/Subroutine Documentation</h2>
-<a class="anchor" id="a10bc7d7175b804fe9c56ba2a823d467b"></a>
+<a class="anchor" id="a29a1dcc9b04355fda2b6955a9ada9e30"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">subroutine constitutive_2d::c_phys_var </td>
+          <td>(</td>
+          <td class="paramtype">complex*16, dimension(n_vars), intent(in)&#160;</td>
+          <td class="paramname"><em>c_qj</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">complex*16, intent(out)&#160;</td>
+          <td class="paramname"><em>h</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">complex*16, intent(out)&#160;</td>
+          <td class="paramname"><em>u</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">complex*16, intent(out)&#160;</td>
+          <td class="paramname"><em>v</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">complex*16, intent(out)&#160;</td>
+          <td class="paramname"><em>T</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">complex*16, intent(out)&#160;</td>
+          <td class="paramname"><em>rho_m</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">complex*16, intent(out)&#160;</td>
+          <td class="paramname"><em>red_grav</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">complex*16, dimension(n_solid), intent(out)&#160;</td>
+          <td class="paramname"><em>alphas</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Physical variables. </p>
+<p>This subroutine evaluates from the conservative local variables qj the local physical variables ( <img class="formulaInl" alt="$h+B, u, v, xs , T $" src="form_0.png"/>). </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">r_qj</td><td>real conservative variables </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">c_qj</td><td>complex conservative variables </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section author"><dt>Author</dt><dd>Mattia de' Michieli Vitturi </dd></dl>
+<dl class="section date"><dt>Date</dt><dd>15/08/2011</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[out]</td><td class="paramname">h</td><td>height [m]</td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">u</td><td>velocity (x direction) [m/s]</td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">v</td><td>velocity (y direction) [m/s]</td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">t</td><td>temperature [K]</td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">rho_m</td><td>mixture density [kg/m3]</td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">red_grav</td><td>reduced gravity</td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">alphas</td><td>sediment volume fractions </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00366">366</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+
+<p><div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="namespaceconstitutive__2d_a29a1dcc9b04355fda2b6955a9ada9e30_icgraph.png" border="0" usemap="#namespaceconstitutive__2d_a29a1dcc9b04355fda2b6955a9ada9e30_icgraph" alt=""/></div>
+<map name="namespaceconstitutive__2d_a29a1dcc9b04355fda2b6955a9ada9e30_icgraph" id="namespaceconstitutive__2d_a29a1dcc9b04355fda2b6955a9ada9e30_icgraph">
+<area shape="rect" id="node2" href="namespaceconstitutive__2d.html#a6c068d18fb13c82fe6876b2458dab32c" title="Non&#45;Hyperbolic terms. " alt="" coords="179,64,328,105"/>
+<area shape="rect" id="node3" href="namespacesolver__2d.html#aed3f7dbc437442d0fd6521af6eafc8cd" title="Runge&#45;Kutta integration. " alt="" coords="393,5,525,47"/>
+<area shape="rect" id="node4" href="namespacesolver__2d.html#a90ea736c3f392e0f3c0ee670d9c99679" title="Evaluate the nonlinear system. " alt="" coords="398,71,519,98"/>
+<area shape="rect" id="node5" href="namespacesolver__2d.html#a6008c239bc58088d547bde1298091805" title="Evaluate the jacobian. " alt="" coords="376,122,541,149"/>
+</map>
+</div>
+</p>
+
+</div>
+</div>
+<a class="anchor" id="a9eca1bca55c515cca6a54f65bfe31cd6"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
           <td class="memname">subroutine constitutive_2d::eval_erosion_dep_term </td>
           <td>(</td>
-          <td class="paramtype">real*8, dimension(n_eqns), intent(in)&#160;</td>
+          <td class="paramtype">real*8, dimension(n_vars+2), intent(in)&#160;</td>
           <td class="paramname"><em>qpj</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">real*8, intent(in)&#160;</td>
-          <td class="paramname"><em>Bj</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -381,13 +426,20 @@ Variables</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Deposition term. </p>
+<p>Erosion/Deposition term. </p>
 <p>This subroutine evaluates the deposition term. </p><dl class="section date"><dt>Date</dt><dd>03/010/2018 </dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">Bj</td><td>topography </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">qj</td><td>conservative variables </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">dep_term</td><td>explicit term</td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">qpj</td><td>local physical variables </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">dt</td><td>time step </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">erosion_term</td><td>erosion term for each solid phase </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">dep_term</td><td>deposition term for each solid phase </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section author"><dt>Author</dt><dd>Mattia de' Michieli Vitturi</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">qpj</td><td>physical variables</td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">erosion_term</td><td>erosion term</td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">deposition_term</td><td>deposition term </td></tr>
@@ -395,15 +447,15 @@ Variables</h2></td></tr>
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l01252">1252</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l01646">1646</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 <p><div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="namespaceconstitutive__2d_a10bc7d7175b804fe9c56ba2a823d467b_cgraph.png" border="0" usemap="#namespaceconstitutive__2d_a10bc7d7175b804fe9c56ba2a823d467b_cgraph" alt=""/></div>
-<map name="namespaceconstitutive__2d_a10bc7d7175b804fe9c56ba2a823d467b_cgraph" id="namespaceconstitutive__2d_a10bc7d7175b804fe9c56ba2a823d467b_cgraph">
-<area shape="rect" id="node2" href="namespaceconstitutive__2d.html#a57a04a27296b87b6c3ffa6cff01b4afd" title="Physical variables. " alt="" coords="196,5,364,32"/>
-<area shape="rect" id="node3" href="namespaceconstitutive__2d.html#a87da78211ff2693e4244774245aec017" title="Settling velocity function. " alt="" coords="200,57,360,98"/>
+<div class="center"><img src="namespaceconstitutive__2d_a9eca1bca55c515cca6a54f65bfe31cd6_cgraph.png" border="0" usemap="#namespaceconstitutive__2d_a9eca1bca55c515cca6a54f65bfe31cd6_cgraph" alt=""/></div>
+<map name="namespaceconstitutive__2d_a9eca1bca55c515cca6a54f65bfe31cd6_cgraph" id="namespaceconstitutive__2d_a9eca1bca55c515cca6a54f65bfe31cd6_cgraph">
+<area shape="rect" id="node2" href="namespaceconstitutive__2d.html#ae7098b718bcde0212fdb9a05cc9391a9" title="Physical variables. " alt="" coords="196,5,364,32"/>
+<area shape="rect" id="node3" href="namespaceconstitutive__2d.html#a157867244819d0a9af3414289335d2e6" title="Settling velocity function. " alt="" coords="200,57,360,98"/>
 </map>
 </div>
 </p>
@@ -411,8 +463,8 @@ Here is the call graph for this function:</div>
 <p><div class="dynheader">
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="namespaceconstitutive__2d_a10bc7d7175b804fe9c56ba2a823d467b_icgraph.png" border="0" usemap="#namespaceconstitutive__2d_a10bc7d7175b804fe9c56ba2a823d467b_icgraph" alt=""/></div>
-<map name="namespaceconstitutive__2d_a10bc7d7175b804fe9c56ba2a823d467b_icgraph" id="namespaceconstitutive__2d_a10bc7d7175b804fe9c56ba2a823d467b_icgraph">
+<div class="center"><img src="namespaceconstitutive__2d_a9eca1bca55c515cca6a54f65bfe31cd6_icgraph.png" border="0" usemap="#namespaceconstitutive__2d_a9eca1bca55c515cca6a54f65bfe31cd6_icgraph" alt=""/></div>
+<map name="namespaceconstitutive__2d_a9eca1bca55c515cca6a54f65bfe31cd6_icgraph" id="namespaceconstitutive__2d_a9eca1bca55c515cca6a54f65bfe31cd6_icgraph">
 <area shape="rect" id="node2" href="namespacesolver__2d.html#a6582ae40ece2e0da23db6828b8510208" title="Evaluate the eroion/deposition terms. " alt="" coords="196,5,371,47"/>
 <area shape="rect" id="node3" href="SW__VAR__DENS__MODEL_8f90.html#a97582f4cc38f0ee6b3117ca7cf96ccd7" title="Main Program. " alt="" coords="419,13,560,39"/>
 </map>
@@ -421,7 +473,7 @@ Here is the caller graph for this function:</div>
 
 </div>
 </div>
-<a class="anchor" id="ae4af85bff9eabce90224614ee82cd24f"></a>
+<a class="anchor" id="a6dd166c02d9663a96663a638bb710543"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -446,8 +498,14 @@ Here is the caller graph for this function:</div>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">real*8, dimension(n_eqns), intent(in)&#160;</td>
-          <td class="paramname"><em>qj</em>, </td>
+          <td class="paramtype">real*8, dimension(n_vars+2), intent(in)&#160;</td>
+          <td class="paramname"><em>qpj</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real*8, dimension(n_vars), intent(in)&#160;</td>
+          <td class="paramname"><em>qcj</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -464,89 +522,19 @@ Here is the caller graph for this function:</div>
 </div><div class="memdoc">
 
 <p>Explicit Forces term. </p>
-<p>This subroutine evaluates the non-hyperbolic terms to be treated explicitely in the DIRK numerical scheme (e.g. gravity,source of mass). The sign of the terms is taken with the terms on the left-hand side of the equations. </p><dl class="section date"><dt>Date</dt><dd>01/06/2012 </dd></dl>
+<p>This subroutine evaluates the non-hyperbolic terms to be treated explicitely in the DIRK numerical scheme (e.g. gravity,source of mass). The sign of the terms is taken with the terms on the left-hand side of the equations. </p><dl class="section date"><dt>Date</dt><dd>2019/12/13 </dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">qj</td><td>conservative variables </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">expl_term</td><td>explicit term</td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">qj</td><td>conservative variables</td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">expl_term</td><td>explicit forces </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">B_primej_x</td><td>local x-slope </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">B_primej_y</td><td>local y_slope </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">source_xy</td><td>local source </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">qpj</td><td>physical variables </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">qcj</td><td>conservative variables </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">expl_term</td><td>explicit term </td></tr>
   </table>
   </dd>
 </dl>
-
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l01170">1170</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
-
-<p><div class="dynheader">
-Here is the call graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="namespaceconstitutive__2d_ae4af85bff9eabce90224614ee82cd24f_cgraph.png" border="0" usemap="#namespaceconstitutive__2d_ae4af85bff9eabce90224614ee82cd24f_cgraph" alt=""/></div>
-<map name="namespaceconstitutive__2d_ae4af85bff9eabce90224614ee82cd24f_cgraph" id="namespaceconstitutive__2d_ae4af85bff9eabce90224614ee82cd24f_cgraph">
-<area shape="rect" id="node2" href="namespaceconstitutive__2d.html#ab341fc1f18788ae2f9ff0c5ce45a297b" title="Physical variables. " alt="" coords="196,13,367,39"/>
-</map>
-</div>
-</p>
-
-<p><div class="dynheader">
-Here is the caller graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="namespaceconstitutive__2d_ae4af85bff9eabce90224614ee82cd24f_icgraph.png" border="0" usemap="#namespaceconstitutive__2d_ae4af85bff9eabce90224614ee82cd24f_icgraph" alt=""/></div>
-<map name="namespaceconstitutive__2d_ae4af85bff9eabce90224614ee82cd24f_icgraph" id="namespaceconstitutive__2d_ae4af85bff9eabce90224614ee82cd24f_icgraph">
-<area shape="rect" id="node2" href="namespacesolver__2d.html#aa62b6d1efd000aaa23c7cd15e62d737a" title="Evaluate the explicit terms. " alt="" coords="196,5,355,47"/>
-<area shape="rect" id="node3" href="namespacesolver__2d.html#aed3f7dbc437442d0fd6521af6eafc8cd" title="Runge&#45;Kutta integration. " alt="" coords="403,5,535,47"/>
-</map>
-</div>
-</p>
-
-</div>
-</div>
-<a class="anchor" id="af52432188c3ec55f920da3f662efe2fa"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">subroutine constitutive_2d::eval_expl_terms2 </td>
-          <td>(</td>
-          <td class="paramtype">real*8, intent(in)&#160;</td>
-          <td class="paramname"><em>Bprimej_x</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">real*8, intent(in)&#160;</td>
-          <td class="paramname"><em>Bprimej_y</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">real*8, intent(in)&#160;</td>
-          <td class="paramname"><em>source_xy</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">real*8, dimension(n_eqns), intent(in)&#160;</td>
-          <td class="paramname"><em>qpj</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">real*8, dimension(n_eqns), intent(in)&#160;</td>
-          <td class="paramname"><em>qcj</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">real*8, dimension(n_eqns), intent(out)&#160;</td>
-          <td class="paramname"><em>expl_term</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
+<dl class="section author"><dt>Author</dt><dd>Mattia de' Michieli Vitturi</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">qpj</td><td>local physical variables</td></tr>
@@ -556,14 +544,14 @@ Here is the caller graph for this function:</div>
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l01205">1205</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l01582">1582</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 <p><div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="namespaceconstitutive__2d_af52432188c3ec55f920da3f662efe2fa_cgraph.png" border="0" usemap="#namespaceconstitutive__2d_af52432188c3ec55f920da3f662efe2fa_cgraph" alt=""/></div>
-<map name="namespaceconstitutive__2d_af52432188c3ec55f920da3f662efe2fa_cgraph" id="namespaceconstitutive__2d_af52432188c3ec55f920da3f662efe2fa_cgraph">
-<area shape="rect" id="node2" href="namespaceconstitutive__2d.html#a57a04a27296b87b6c3ffa6cff01b4afd" title="Physical variables. " alt="" coords="196,13,364,39"/>
+<div class="center"><img src="namespaceconstitutive__2d_a6dd166c02d9663a96663a638bb710543_cgraph.png" border="0" usemap="#namespaceconstitutive__2d_a6dd166c02d9663a96663a638bb710543_cgraph" alt=""/></div>
+<map name="namespaceconstitutive__2d_a6dd166c02d9663a96663a638bb710543_cgraph" id="namespaceconstitutive__2d_a6dd166c02d9663a96663a638bb710543_cgraph">
+<area shape="rect" id="node2" href="namespaceconstitutive__2d.html#ae7098b718bcde0212fdb9a05cc9391a9" title="Physical variables. " alt="" coords="196,13,364,39"/>
 </map>
 </div>
 </p>
@@ -571,9 +559,9 @@ Here is the call graph for this function:</div>
 <p><div class="dynheader">
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="namespaceconstitutive__2d_af52432188c3ec55f920da3f662efe2fa_icgraph.png" border="0" usemap="#namespaceconstitutive__2d_af52432188c3ec55f920da3f662efe2fa_icgraph" alt=""/></div>
-<map name="namespaceconstitutive__2d_af52432188c3ec55f920da3f662efe2fa_icgraph" id="namespaceconstitutive__2d_af52432188c3ec55f920da3f662efe2fa_icgraph">
-<area shape="rect" id="node2" href="namespacesolver__2d.html#aa62b6d1efd000aaa23c7cd15e62d737a" title="Evaluate the explicit terms. " alt="" coords="196,5,355,47"/>
+<div class="center"><img src="namespaceconstitutive__2d_a6dd166c02d9663a96663a638bb710543_icgraph.png" border="0" usemap="#namespaceconstitutive__2d_a6dd166c02d9663a96663a638bb710543_icgraph" alt=""/></div>
+<map name="namespaceconstitutive__2d_a6dd166c02d9663a96663a638bb710543_icgraph" id="namespaceconstitutive__2d_a6dd166c02d9663a96663a638bb710543_icgraph">
+<area shape="rect" id="node2" href="namespacesolver__2d.html#a0c6abee636dd6e87c1ee4e6cfbdc7d11" title="Evaluate the explicit terms. " alt="" coords="196,5,355,47"/>
 <area shape="rect" id="node3" href="namespacesolver__2d.html#aed3f7dbc437442d0fd6521af6eafc8cd" title="Runge&#45;Kutta integration. " alt="" coords="403,5,535,47"/>
 </map>
 </div>
@@ -581,7 +569,7 @@ Here is the caller graph for this function:</div>
 
 </div>
 </div>
-<a class="anchor" id="ac5016dc16d6b220f12dd2bfad5fa857c"></a>
+<a class="anchor" id="a9e563ef51d3491590d9bd5e8e1ad1cd0"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -594,14 +582,8 @@ Here is the caller graph for this function:</div>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">real*8, dimension(n_vars), intent(in)&#160;</td>
+          <td class="paramtype">real*8, dimension(n_vars+2), intent(in)&#160;</td>
           <td class="paramname"><em>qpj</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">real*8, intent(in)&#160;</td>
-          <td class="paramname"><em>Bj</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -627,23 +609,23 @@ Here is the caller graph for this function:</div>
 <p>This subroutine evaluates the numerical fluxes given the conservative variables qcj and physical variables qpj. </p><dl class="section date"><dt>Date</dt><dd>01/06/2012 </dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">qcj</td><td>real conservative variables </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">qpj</td><td>real physical variables </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">Bj</td><td>topography </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">qcj</td><td>real local conservative variables </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">qpj</td><td>real local physical variables </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">dir</td><td>direction of the flux (1=x,2=y) </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">flux</td><td>real fluxes </td></tr>
   </table>
   </dd>
 </dl>
+<dl class="section author"><dt>Author</dt><dd>Mattia de' Michieli Vitturi </dd></dl>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00676">676</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l01050">1050</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 <p><div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="namespaceconstitutive__2d_ac5016dc16d6b220f12dd2bfad5fa857c_cgraph.png" border="0" usemap="#namespaceconstitutive__2d_ac5016dc16d6b220f12dd2bfad5fa857c_cgraph" alt=""/></div>
-<map name="namespaceconstitutive__2d_ac5016dc16d6b220f12dd2bfad5fa857c_cgraph" id="namespaceconstitutive__2d_ac5016dc16d6b220f12dd2bfad5fa857c_cgraph">
-<area shape="rect" id="node2" href="namespaceconstitutive__2d.html#a57a04a27296b87b6c3ffa6cff01b4afd" title="Physical variables. " alt="" coords="196,13,364,39"/>
+<div class="center"><img src="namespaceconstitutive__2d_a9e563ef51d3491590d9bd5e8e1ad1cd0_cgraph.png" border="0" usemap="#namespaceconstitutive__2d_a9e563ef51d3491590d9bd5e8e1ad1cd0_cgraph" alt=""/></div>
+<map name="namespaceconstitutive__2d_a9e563ef51d3491590d9bd5e8e1ad1cd0_cgraph" id="namespaceconstitutive__2d_a9e563ef51d3491590d9bd5e8e1ad1cd0_cgraph">
+<area shape="rect" id="node2" href="namespaceconstitutive__2d.html#ae7098b718bcde0212fdb9a05cc9391a9" title="Physical variables. " alt="" coords="196,13,364,39"/>
 </map>
 </div>
 </p>
@@ -651,25 +633,25 @@ Here is the call graph for this function:</div>
 <p><div class="dynheader">
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="namespaceconstitutive__2d_ac5016dc16d6b220f12dd2bfad5fa857c_icgraph.png" border="0" usemap="#namespaceconstitutive__2d_ac5016dc16d6b220f12dd2bfad5fa857c_icgraph" alt=""/></div>
-<map name="namespaceconstitutive__2d_ac5016dc16d6b220f12dd2bfad5fa857c_icgraph" id="namespaceconstitutive__2d_ac5016dc16d6b220f12dd2bfad5fa857c_icgraph">
-<area shape="rect" id="node2" href="namespacesolver__2d.html#aaca9ed915d28af72abce4db206e45bdc" title="solver_2d::eval_flux_up" alt="" coords="196,5,355,32"/>
+<div class="center"><img src="namespaceconstitutive__2d_a9e563ef51d3491590d9bd5e8e1ad1cd0_icgraph.png" border="0" usemap="#namespaceconstitutive__2d_a9e563ef51d3491590d9bd5e8e1ad1cd0_icgraph" alt=""/></div>
+<map name="namespaceconstitutive__2d_a9e563ef51d3491590d9bd5e8e1ad1cd0_icgraph" id="namespaceconstitutive__2d_a9e563ef51d3491590d9bd5e8e1ad1cd0_icgraph">
+<area shape="rect" id="node2" href="namespacesolver__2d.html#aaca9ed915d28af72abce4db206e45bdc" title="Upwind numerical fluxes. " alt="" coords="196,5,355,32"/>
 <area shape="rect" id="node4" href="namespacesolver__2d.html#a79e24f76b5eccc03a5ba8844459e405a" title="Semidiscrete numerical fluxes. " alt="" coords="197,56,353,83"/>
-<area shape="rect" id="node3" href="namespacesolver__2d.html#a3490f633c5aa76cd08824229e0673ddd" title="Semidiscrete finite volume central scheme. " alt="" coords="403,23,579,65"/>
+<area shape="rect" id="node3" href="namespacesolver__2d.html#a36e350e26b1662156a7f5a120b151932" title="Semidiscrete finite volume central scheme. " alt="" coords="403,23,579,65"/>
 </map>
 </div>
 </p>
 
 </div>
 </div>
-<a class="anchor" id="ae05934389cffe1105b32355fed21412b"></a>
+<a class="anchor" id="a5b631942dd2464fe5a63498f62042613"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">subroutine constitutive_2d::eval_local_speeds2_x </td>
+          <td class="memname">subroutine constitutive_2d::eval_local_speeds_x </td>
           <td>(</td>
-          <td class="paramtype">real*8, dimension(n_vars), intent(in)&#160;</td>
+          <td class="paramtype">real*8, dimension(n_vars+2), intent(in)&#160;</td>
           <td class="paramname"><em>qpj</em>, </td>
         </tr>
         <tr>
@@ -695,7 +677,7 @@ Here is the caller graph for this function:</div>
 <p>Local Characteristic speeds x direction. </p>
 <p>This subroutine computes from the physical variable evaluates the largest positive and negative characteristic speed in the x-direction. </p><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">qpj</td><td>array of physical variables </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">qpj</td><td>array of local physical variables </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">vel_min</td><td>minimum x-velocity </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">vel_max</td><td>maximum x-velocity </td></tr>
   </table>
@@ -704,28 +686,40 @@ Here is the caller graph for this function:</div>
 <dl class="section author"><dt>Author</dt><dd>Mattia de' Michieli Vitturi </dd></dl>
 <dl class="section date"><dt>Date</dt><dd>05/12/2017 </dd></dl>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00621">621</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00945">945</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 <p><div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="namespaceconstitutive__2d_ae05934389cffe1105b32355fed21412b_cgraph.png" border="0" usemap="#namespaceconstitutive__2d_ae05934389cffe1105b32355fed21412b_cgraph" alt=""/></div>
-<map name="namespaceconstitutive__2d_ae05934389cffe1105b32355fed21412b_cgraph" id="namespaceconstitutive__2d_ae05934389cffe1105b32355fed21412b_cgraph">
-<area shape="rect" id="node2" href="namespaceconstitutive__2d.html#a57a04a27296b87b6c3ffa6cff01b4afd" title="Physical variables. " alt="" coords="196,13,364,39"/>
+<div class="center"><img src="namespaceconstitutive__2d_a5b631942dd2464fe5a63498f62042613_cgraph.png" border="0" usemap="#namespaceconstitutive__2d_a5b631942dd2464fe5a63498f62042613_cgraph" alt=""/></div>
+<map name="namespaceconstitutive__2d_a5b631942dd2464fe5a63498f62042613_cgraph" id="namespaceconstitutive__2d_a5b631942dd2464fe5a63498f62042613_cgraph">
+<area shape="rect" id="node2" href="namespaceconstitutive__2d.html#ae7098b718bcde0212fdb9a05cc9391a9" title="Physical variables. " alt="" coords="196,13,364,39"/>
+</map>
+</div>
+</p>
+
+<p><div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="namespaceconstitutive__2d_a5b631942dd2464fe5a63498f62042613_icgraph.png" border="0" usemap="#namespaceconstitutive__2d_a5b631942dd2464fe5a63498f62042613_icgraph" alt=""/></div>
+<map name="namespaceconstitutive__2d_a5b631942dd2464fe5a63498f62042613_icgraph" id="namespaceconstitutive__2d_a5b631942dd2464fe5a63498f62042613_icgraph">
+<area shape="rect" id="node2" href="namespacesolver__2d.html#a24f04d82aa0f418dce078ce469dc0542" title="Characteristic speeds. " alt="" coords="196,35,355,61"/>
+<area shape="rect" id="node3" href="namespacesolver__2d.html#a7f17c548fa0f025b2dc40b27605d4ef7" title="Time&#45;step computation. " alt="" coords="423,5,559,32"/>
+<area shape="rect" id="node4" href="namespacesolver__2d.html#a36e350e26b1662156a7f5a120b151932" title="Semidiscrete finite volume central scheme. " alt="" coords="403,57,579,98"/>
 </map>
 </div>
 </p>
 
 </div>
 </div>
-<a class="anchor" id="a17b3dcea1eabac79c787d0e25dda9ac4"></a>
+<a class="anchor" id="a1d79f2dbfb0c9091b97daea78dfb5187"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">subroutine constitutive_2d::eval_local_speeds2_y </td>
+          <td class="memname">subroutine constitutive_2d::eval_local_speeds_y </td>
           <td>(</td>
-          <td class="paramtype">real*8, dimension(n_vars), intent(in)&#160;</td>
+          <td class="paramtype">real*8, dimension(n_vars+2), intent(in)&#160;</td>
           <td class="paramname"><em>qpj</em>, </td>
         </tr>
         <tr>
@@ -751,7 +745,7 @@ Here is the call graph for this function:</div>
 <p>Local Characteristic speeds y direction. </p>
 <p>This subroutine computes from the physical variable evaluates the largest positive and negative characteristic speed in the y-direction. </p><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">qpj</td><td>array of physical variables </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">qpj</td><td>array of local physical variables </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">vel_min</td><td>minimum y-velocity </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">vel_max</td><td>maximum y-velocity </td></tr>
   </table>
@@ -760,71 +754,14 @@ Here is the call graph for this function:</div>
 <dl class="section author"><dt>Author</dt><dd>Mattia de' Michieli Vitturi </dd></dl>
 <dl class="section date"><dt>Date</dt><dd>05/12/2017 </dd></dl>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00649">649</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00996">996</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 <p><div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="namespaceconstitutive__2d_a17b3dcea1eabac79c787d0e25dda9ac4_cgraph.png" border="0" usemap="#namespaceconstitutive__2d_a17b3dcea1eabac79c787d0e25dda9ac4_cgraph" alt=""/></div>
-<map name="namespaceconstitutive__2d_a17b3dcea1eabac79c787d0e25dda9ac4_cgraph" id="namespaceconstitutive__2d_a17b3dcea1eabac79c787d0e25dda9ac4_cgraph">
-<area shape="rect" id="node2" href="namespaceconstitutive__2d.html#a57a04a27296b87b6c3ffa6cff01b4afd" title="Physical variables. " alt="" coords="196,13,364,39"/>
-</map>
-</div>
-</p>
-
-</div>
-</div>
-<a class="anchor" id="a14d19a8b10821844d7ea640264bb8914"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">subroutine constitutive_2d::eval_local_speeds_x </td>
-          <td>(</td>
-          <td class="paramtype">real*8, dimension(n_vars), intent(in)&#160;</td>
-          <td class="paramname"><em>qj</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">real*8, dimension(n_vars), intent(out)&#160;</td>
-          <td class="paramname"><em>vel_min</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">real*8, dimension(n_vars), intent(out)&#160;</td>
-          <td class="paramname"><em>vel_max</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Local Characteristic speeds x direction. </p>
-<p>This subroutine desingularize the velocities and then evaluates the largest positive and negative characteristic speed in the x-direction. </p><dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">qj</td><td>array of conservative variables </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">Bj</td><td>topography at the cell center </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">vel_min</td><td>minimum x-velocity </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">vel_max</td><td>maximum x-velocity </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section author"><dt>Author</dt><dd>Mattia de' Michieli Vitturi </dd></dl>
-<dl class="section date"><dt>Date</dt><dd>05/12/2017 </dd></dl>
-
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00547">547</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
-
-<p><div class="dynheader">
-Here is the call graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="namespaceconstitutive__2d_a14d19a8b10821844d7ea640264bb8914_cgraph.png" border="0" usemap="#namespaceconstitutive__2d_a14d19a8b10821844d7ea640264bb8914_cgraph" alt=""/></div>
-<map name="namespaceconstitutive__2d_a14d19a8b10821844d7ea640264bb8914_cgraph" id="namespaceconstitutive__2d_a14d19a8b10821844d7ea640264bb8914_cgraph">
-<area shape="rect" id="node2" href="namespaceconstitutive__2d.html#ab341fc1f18788ae2f9ff0c5ce45a297b" title="Physical variables. " alt="" coords="196,13,367,39"/>
+<div class="center"><img src="namespaceconstitutive__2d_a1d79f2dbfb0c9091b97daea78dfb5187_cgraph.png" border="0" usemap="#namespaceconstitutive__2d_a1d79f2dbfb0c9091b97daea78dfb5187_cgraph" alt=""/></div>
+<map name="namespaceconstitutive__2d_a1d79f2dbfb0c9091b97daea78dfb5187_cgraph" id="namespaceconstitutive__2d_a1d79f2dbfb0c9091b97daea78dfb5187_cgraph">
+<area shape="rect" id="node2" href="namespaceconstitutive__2d.html#ae7098b718bcde0212fdb9a05cc9391a9" title="Physical variables. " alt="" coords="196,13,364,39"/>
 </map>
 </div>
 </p>
@@ -832,91 +769,18 @@ Here is the call graph for this function:</div>
 <p><div class="dynheader">
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="namespaceconstitutive__2d_a14d19a8b10821844d7ea640264bb8914_icgraph.png" border="0" usemap="#namespaceconstitutive__2d_a14d19a8b10821844d7ea640264bb8914_icgraph" alt=""/></div>
-<map name="namespaceconstitutive__2d_a14d19a8b10821844d7ea640264bb8914_icgraph" id="namespaceconstitutive__2d_a14d19a8b10821844d7ea640264bb8914_icgraph">
-<area shape="rect" id="node2" href="namespacesolver__2d.html#a7f17c548fa0f025b2dc40b27605d4ef7" title="Time&#45;step computation. " alt="" coords="207,5,343,32"/>
-<area shape="rect" id="node4" href="namespacesolver__2d.html#a24f04d82aa0f418dce078ce469dc0542" title="Characteristic speeds. " alt="" coords="196,56,355,83"/>
-<area shape="rect" id="node3" href="SW__VAR__DENS__MODEL_8f90.html#a97582f4cc38f0ee6b3117ca7cf96ccd7" title="Main Program. " alt="" coords="627,31,768,57"/>
-<area shape="rect" id="node5" href="namespacesolver__2d.html#ae00e8a8f9cf604ed48c8a524e9d24ce7" title="Time&#45;step computation. " alt="" coords="419,56,562,83"/>
-<area shape="rect" id="node6" href="namespacesolver__2d.html#a3490f633c5aa76cd08824229e0673ddd" title="Semidiscrete finite volume central scheme. " alt="" coords="403,107,579,149"/>
+<div class="center"><img src="namespaceconstitutive__2d_a1d79f2dbfb0c9091b97daea78dfb5187_icgraph.png" border="0" usemap="#namespaceconstitutive__2d_a1d79f2dbfb0c9091b97daea78dfb5187_icgraph" alt=""/></div>
+<map name="namespaceconstitutive__2d_a1d79f2dbfb0c9091b97daea78dfb5187_icgraph" id="namespaceconstitutive__2d_a1d79f2dbfb0c9091b97daea78dfb5187_icgraph">
+<area shape="rect" id="node2" href="namespacesolver__2d.html#a24f04d82aa0f418dce078ce469dc0542" title="Characteristic speeds. " alt="" coords="196,35,355,61"/>
+<area shape="rect" id="node3" href="namespacesolver__2d.html#a7f17c548fa0f025b2dc40b27605d4ef7" title="Time&#45;step computation. " alt="" coords="423,5,559,32"/>
+<area shape="rect" id="node4" href="namespacesolver__2d.html#a36e350e26b1662156a7f5a120b151932" title="Semidiscrete finite volume central scheme. " alt="" coords="403,57,579,98"/>
 </map>
 </div>
 </p>
 
 </div>
 </div>
-<a class="anchor" id="abb94b9fcc0fc9a586a5fc90b9f19b32b"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">subroutine constitutive_2d::eval_local_speeds_y </td>
-          <td>(</td>
-          <td class="paramtype">real*8, dimension(n_vars), intent(in)&#160;</td>
-          <td class="paramname"><em>qj</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">real*8, dimension(n_vars), intent(out)&#160;</td>
-          <td class="paramname"><em>vel_min</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">real*8, dimension(n_vars), intent(out)&#160;</td>
-          <td class="paramname"><em>vel_max</em>&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Local Characteristic speeds y direction. </p>
-<p>This subroutine desingularize the velocities and then evaluates the largest positive and negative characteristic speed in the y-direction. </p><dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">qj</td><td>array of conservative variables </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">Bj</td><td>topography at the cell center </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">vel_min</td><td>minimum y-velocity </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">vel_max</td><td>maximum y-velocity </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section author"><dt>Author</dt><dd>Mattia de' Michieli Vitturi </dd></dl>
-<dl class="section date"><dt>Date</dt><dd>05/12/2017 </dd></dl>
-
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00585">585</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
-
-<p><div class="dynheader">
-Here is the call graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="namespaceconstitutive__2d_abb94b9fcc0fc9a586a5fc90b9f19b32b_cgraph.png" border="0" usemap="#namespaceconstitutive__2d_abb94b9fcc0fc9a586a5fc90b9f19b32b_cgraph" alt=""/></div>
-<map name="namespaceconstitutive__2d_abb94b9fcc0fc9a586a5fc90b9f19b32b_cgraph" id="namespaceconstitutive__2d_abb94b9fcc0fc9a586a5fc90b9f19b32b_cgraph">
-<area shape="rect" id="node2" href="namespaceconstitutive__2d.html#ab341fc1f18788ae2f9ff0c5ce45a297b" title="Physical variables. " alt="" coords="196,13,367,39"/>
-</map>
-</div>
-</p>
-
-<p><div class="dynheader">
-Here is the caller graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="namespaceconstitutive__2d_abb94b9fcc0fc9a586a5fc90b9f19b32b_icgraph.png" border="0" usemap="#namespaceconstitutive__2d_abb94b9fcc0fc9a586a5fc90b9f19b32b_icgraph" alt=""/></div>
-<map name="namespaceconstitutive__2d_abb94b9fcc0fc9a586a5fc90b9f19b32b_icgraph" id="namespaceconstitutive__2d_abb94b9fcc0fc9a586a5fc90b9f19b32b_icgraph">
-<area shape="rect" id="node2" href="namespacesolver__2d.html#a7f17c548fa0f025b2dc40b27605d4ef7" title="Time&#45;step computation. " alt="" coords="207,5,343,32"/>
-<area shape="rect" id="node4" href="namespacesolver__2d.html#a24f04d82aa0f418dce078ce469dc0542" title="Characteristic speeds. " alt="" coords="196,56,355,83"/>
-<area shape="rect" id="node3" href="SW__VAR__DENS__MODEL_8f90.html#a97582f4cc38f0ee6b3117ca7cf96ccd7" title="Main Program. " alt="" coords="627,31,768,57"/>
-<area shape="rect" id="node5" href="namespacesolver__2d.html#ae00e8a8f9cf604ed48c8a524e9d24ce7" title="Time&#45;step computation. " alt="" coords="419,56,562,83"/>
-<area shape="rect" id="node6" href="namespacesolver__2d.html#a3490f633c5aa76cd08824229e0673ddd" title="Semidiscrete finite volume central scheme. " alt="" coords="403,107,579,149"/>
-</map>
-</div>
-</p>
-
-</div>
-</div>
-<a class="anchor" id="a6801b39926440d701fa6bbb83069b5b2"></a>
+<a class="anchor" id="a4cfddeb0dd3fae95145439d19cc350b3"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -929,26 +793,14 @@ Here is the caller graph for this function:</div>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">complex*16, dimension(n_vars), intent(in), optional&#160;</td>
-          <td class="paramname"><em>c_qj</em>, </td>
+          <td class="paramtype">real*8, dimension(n_vars), intent(in)&#160;</td>
+          <td class="paramname"><em>qcj</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">complex*16, dimension(n_eqns), intent(out), optional&#160;</td>
-          <td class="paramname"><em>c_nh_semi_impl_term</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">real*8, dimension(n_vars), intent(in), optional&#160;</td>
-          <td class="paramname"><em>r_qj</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">real*8, dimension(n_eqns), intent(out), optional&#160;</td>
-          <td class="paramname"><em>r_nh_semi_impl_term</em>&#160;</td>
+          <td class="paramtype">real*8, dimension(n_eqns), intent(out)&#160;</td>
+          <td class="paramname"><em>nh_semi_impl_term</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -969,17 +821,18 @@ Here is the caller graph for this function:</div>
   </table>
   </dd>
 </dl>
+<dl class="section author"><dt>Author</dt><dd>Mattia de' Michieli Vitturi </dd></dl>
 <p>Yield strenght</p>
 <p>Yield slope component of total friction </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l01023">1023</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l01458">1458</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 <p><div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="namespaceconstitutive__2d_a6801b39926440d701fa6bbb83069b5b2_cgraph.png" border="0" usemap="#namespaceconstitutive__2d_a6801b39926440d701fa6bbb83069b5b2_cgraph" alt=""/></div>
-<map name="namespaceconstitutive__2d_a6801b39926440d701fa6bbb83069b5b2_cgraph" id="namespaceconstitutive__2d_a6801b39926440d701fa6bbb83069b5b2_cgraph">
-<area shape="rect" id="node2" href="namespaceconstitutive__2d.html#ab341fc1f18788ae2f9ff0c5ce45a297b" title="Physical variables. " alt="" coords="203,13,373,39"/>
+<div class="center"><img src="namespaceconstitutive__2d_a4cfddeb0dd3fae95145439d19cc350b3_cgraph.png" border="0" usemap="#namespaceconstitutive__2d_a4cfddeb0dd3fae95145439d19cc350b3_cgraph" alt=""/></div>
+<map name="namespaceconstitutive__2d_a4cfddeb0dd3fae95145439d19cc350b3_cgraph" id="namespaceconstitutive__2d_a4cfddeb0dd3fae95145439d19cc350b3_cgraph">
+<area shape="rect" id="node2" href="namespaceconstitutive__2d.html#a6c189afcf918d899b18a0fcbad26d407" title="Physical variables. " alt="" coords="203,5,325,47"/>
 </map>
 </div>
 </p>
@@ -987,8 +840,8 @@ Here is the call graph for this function:</div>
 <p><div class="dynheader">
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="namespaceconstitutive__2d_a6801b39926440d701fa6bbb83069b5b2_icgraph.png" border="0" usemap="#namespaceconstitutive__2d_a6801b39926440d701fa6bbb83069b5b2_icgraph" alt=""/></div>
-<map name="namespaceconstitutive__2d_a6801b39926440d701fa6bbb83069b5b2_icgraph" id="namespaceconstitutive__2d_a6801b39926440d701fa6bbb83069b5b2_icgraph">
+<div class="center"><img src="namespaceconstitutive__2d_a4cfddeb0dd3fae95145439d19cc350b3_icgraph.png" border="0" usemap="#namespaceconstitutive__2d_a4cfddeb0dd3fae95145439d19cc350b3_icgraph" alt=""/></div>
+<map name="namespaceconstitutive__2d_a4cfddeb0dd3fae95145439d19cc350b3_icgraph" id="namespaceconstitutive__2d_a4cfddeb0dd3fae95145439d19cc350b3_icgraph">
 <area shape="rect" id="node2" href="namespacesolver__2d.html#aed3f7dbc437442d0fd6521af6eafc8cd" title="Runge&#45;Kutta integration. " alt="" coords="203,5,335,47"/>
 <area shape="rect" id="node3" href="SW__VAR__DENS__MODEL_8f90.html#a97582f4cc38f0ee6b3117ca7cf96ccd7" title="Main Program. " alt="" coords="383,13,524,39"/>
 </map>
@@ -1044,19 +897,22 @@ Here is the caller graph for this function:</div>
   </table>
   </dd>
 </dl>
-<p>Fluid viscosity</p>
-<p>Total friction</p>
-<p>Viscous slope component of total Friction</p>
-<p>Turbulent dispersive slope component of total friction </p>
+<dl class="section author"><dt>Author</dt><dd>Mattia de' Michieli Vitturi </dd></dl>
+<p>Temperature in C</p>
+<p>1st param for fluid viscosity empirical relationship (O'Brian et al, 1993)</p>
+<p>Fluid dynamic viscosity (units: kg m-1 s-1 )</p>
+<p>Total friction (dimensionless)</p>
+<p>Viscous slope component of total Friction (dimensionless)</p>
+<p>Turbulent dispersive slope component of total friction (dimensionless) </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00790">790</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l01182">1182</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 <p><div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespaceconstitutive__2d_a6c068d18fb13c82fe6876b2458dab32c_cgraph.png" border="0" usemap="#namespaceconstitutive__2d_a6c068d18fb13c82fe6876b2458dab32c_cgraph" alt=""/></div>
 <map name="namespaceconstitutive__2d_a6c068d18fb13c82fe6876b2458dab32c_cgraph" id="namespaceconstitutive__2d_a6c068d18fb13c82fe6876b2458dab32c_cgraph">
-<area shape="rect" id="node2" href="namespaceconstitutive__2d.html#ab341fc1f18788ae2f9ff0c5ce45a297b" title="Physical variables. " alt="" coords="203,13,373,39"/>
+<area shape="rect" id="node2" href="namespaceconstitutive__2d.html#a29a1dcc9b04355fda2b6955a9ada9e30" title="Physical variables. " alt="" coords="203,5,328,47"/>
 </map>
 </div>
 </p>
@@ -1070,7 +926,7 @@ Here is the caller graph for this function:</div>
 <area shape="rect" id="node4" href="namespacesolver__2d.html#a90ea736c3f392e0f3c0ee670d9c99679" title="Evaluate the nonlinear system. " alt="" coords="203,50,324,77"/>
 <area shape="rect" id="node7" href="namespacesolver__2d.html#a6008c239bc58088d547bde1298091805" title="Evaluate the jacobian. " alt="" coords="372,139,537,166"/>
 <area shape="rect" id="node3" href="SW__VAR__DENS__MODEL_8f90.html#a97582f4cc38f0ee6b3117ca7cf96ccd7" title="Main Program. " alt="" coords="980,13,1121,39"/>
-<area shape="rect" id="node5" href="namespacesolver__2d.html#a42859f77b0c0574734af58a95ad4c340" title="Runge&#45;Kutta single step integration. " alt="" coords="585,63,752,90"/>
+<area shape="rect" id="node5" href="namespacesolver__2d.html#a3a9d0f50fedb8a18f7a7f05d2ecba353" title="Runge&#45;Kutta single step integration. " alt="" coords="585,63,752,90"/>
 <area shape="rect" id="node6" href="namespacesolver__2d.html#ac7650adc03cdfb5bd3b19804f3221623" title="Search the descent stepsize. " alt="" coords="394,89,515,115"/>
 </map>
 </div>
@@ -1078,15 +934,79 @@ Here is the caller graph for this function:</div>
 
 </div>
 </div>
-<a class="anchor" id="aaf1fd052638a8607e1bc58275ddc316d"></a>
+<a class="anchor" id="ab8b4c863c39a97a0c9c0e22fcc35d9e6"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">subroutine constitutive_2d::eval_source_bdry </td>
+          <td>(</td>
+          <td class="paramtype">real*8, intent(in)&#160;</td>
+          <td class="paramname"><em>time</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real*8, intent(in)&#160;</td>
+          <td class="paramname"><em>vect_x</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real*8, intent(in)&#160;</td>
+          <td class="paramname"><em>vect_y</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real*8, dimension(n_vars), intent(out)&#160;</td>
+          <td class="paramname"><em>source_bdry</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Internal boundary source fluxes. </p>
+<p>This subroutine evaluates the source terms at the interfaces when an internal radial source is present, as for a base surge. The terms are applied as boundary conditions, and thus they have the units of the physical variable qp </p><dl class="section date"><dt>Date</dt><dd>2019/12/01 </dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">vect_x</td><td>unit vector velocity x-component </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">vect_y</td><td>unit vector velocity y-component </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">source_bdry</td><td>source terms </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section author"><dt>Author</dt><dd>Mattia de' Michieli Vitturi </dd></dl>
+
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l01864">1864</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+
+<p><div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="namespaceconstitutive__2d_ab8b4c863c39a97a0c9c0e22fcc35d9e6_icgraph.png" border="0" usemap="#namespaceconstitutive__2d_ab8b4c863c39a97a0c9c0e22fcc35d9e6_icgraph" alt=""/></div>
+<map name="namespaceconstitutive__2d_ab8b4c863c39a97a0c9c0e22fcc35d9e6_icgraph" id="namespaceconstitutive__2d_ab8b4c863c39a97a0c9c0e22fcc35d9e6_icgraph">
+<area shape="rect" id="node2" href="namespacesolver__2d.html#a2e63f69351675f01f87750814ac138dc" title="Linear reconstruction. " alt="" coords="196,35,364,61"/>
+<area shape="rect" id="node3" href="namespacesolver__2d.html#a7f17c548fa0f025b2dc40b27605d4ef7" title="Time&#45;step computation. " alt="" coords="432,5,568,32"/>
+<area shape="rect" id="node4" href="namespacesolver__2d.html#a36e350e26b1662156a7f5a120b151932" title="Semidiscrete finite volume central scheme. " alt="" coords="412,57,588,98"/>
+</map>
+</div>
+</p>
+
+</div>
+</div>
+<a class="anchor" id="a97b820cb551dc02376dfd536d36cf832"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
           <td class="memname">subroutine constitutive_2d::eval_topo_term </td>
           <td>(</td>
-          <td class="paramtype">real*8, dimension(n_eqns), intent(in)&#160;</td>
-          <td class="paramname"><em>qj</em>, </td>
+          <td class="paramtype">real*8, dimension(n_vars+2), intent(in)&#160;</td>
+          <td class="paramname"><em>qpj</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -1109,8 +1029,8 @@ Here is the caller graph for this function:</div>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">real*8, intent(out)&#160;</td>
-          <td class="paramname"><em>topo_term</em>&#160;</td>
+          <td class="paramtype">real*8, dimension(n_solid), intent(out)&#160;</td>
+          <td class="paramname"><em>deposit_term</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -1127,22 +1047,28 @@ Here is the caller graph for this function:</div>
     <tr><td class="paramdir">[in]</td><td class="paramname">qj</td><td>conservative variables </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">deposition_avg_term</td><td>averaged deposition terms </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">erosion_avg_term</td><td>averaged deposition terms </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">topo_term</td><td>explicit term</td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">qj</td><td>conservative variables</td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">topo_term</td><td>explicit term </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section author"><dt>Author</dt><dd>Mattia de' Michieli Vitturi</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">qpj</td><td>physical variables</td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">deposition_avg_term</td><td>deposition term</td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">erosion_avg_term</td><td>erosion term </td></tr>
   </table>
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l01330">1330</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l01751">1751</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 <p><div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="namespaceconstitutive__2d_aaf1fd052638a8607e1bc58275ddc316d_cgraph.png" border="0" usemap="#namespaceconstitutive__2d_aaf1fd052638a8607e1bc58275ddc316d_cgraph" alt=""/></div>
-<map name="namespaceconstitutive__2d_aaf1fd052638a8607e1bc58275ddc316d_cgraph" id="namespaceconstitutive__2d_aaf1fd052638a8607e1bc58275ddc316d_cgraph">
-<area shape="rect" id="node2" href="namespaceconstitutive__2d.html#ab341fc1f18788ae2f9ff0c5ce45a297b" title="Physical variables. " alt="" coords="196,13,367,39"/>
+<div class="center"><img src="namespaceconstitutive__2d_a97b820cb551dc02376dfd536d36cf832_cgraph.png" border="0" usemap="#namespaceconstitutive__2d_a97b820cb551dc02376dfd536d36cf832_cgraph" alt=""/></div>
+<map name="namespaceconstitutive__2d_a97b820cb551dc02376dfd536d36cf832_cgraph" id="namespaceconstitutive__2d_a97b820cb551dc02376dfd536d36cf832_cgraph">
+<area shape="rect" id="node2" href="namespaceconstitutive__2d.html#ae7098b718bcde0212fdb9a05cc9391a9" title="Physical variables. " alt="" coords="196,13,364,39"/>
 </map>
 </div>
 </p>
@@ -1150,8 +1076,8 @@ Here is the call graph for this function:</div>
 <p><div class="dynheader">
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="namespaceconstitutive__2d_aaf1fd052638a8607e1bc58275ddc316d_icgraph.png" border="0" usemap="#namespaceconstitutive__2d_aaf1fd052638a8607e1bc58275ddc316d_icgraph" alt=""/></div>
-<map name="namespaceconstitutive__2d_aaf1fd052638a8607e1bc58275ddc316d_icgraph" id="namespaceconstitutive__2d_aaf1fd052638a8607e1bc58275ddc316d_icgraph">
+<div class="center"><img src="namespaceconstitutive__2d_a97b820cb551dc02376dfd536d36cf832_icgraph.png" border="0" usemap="#namespaceconstitutive__2d_a97b820cb551dc02376dfd536d36cf832_icgraph" alt=""/></div>
+<map name="namespaceconstitutive__2d_a97b820cb551dc02376dfd536d36cf832_icgraph" id="namespaceconstitutive__2d_a97b820cb551dc02376dfd536d36cf832_icgraph">
 <area shape="rect" id="node2" href="namespacesolver__2d.html#a6582ae40ece2e0da23db6828b8510208" title="Evaluate the eroion/deposition terms. " alt="" coords="196,5,371,47"/>
 <area shape="rect" id="node3" href="SW__VAR__DENS__MODEL_8f90.html#a97582f4cc38f0ee6b3117ca7cf96ccd7" title="Main Program. " alt="" coords="419,13,560,39"/>
 </map>
@@ -1176,7 +1102,7 @@ Here is the caller graph for this function:</div>
 <p>Initialization of relaxation flags. </p>
 <p>This subroutine set the number and the flags of the non-hyperbolic terms. </p><dl class="section date"><dt>Date</dt><dd>07/09/2012 </dd></dl>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00189">189</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00161">161</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 <p><div class="dynheader">
 Here is the caller graph for this function:</div>
@@ -1190,69 +1116,39 @@ Here is the caller graph for this function:</div>
 
 </div>
 </div>
-<a class="anchor" id="a57a04a27296b87b6c3ffa6cff01b4afd"></a>
+<a class="anchor" id="ae7098b718bcde0212fdb9a05cc9391a9"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
           <td class="memname">subroutine constitutive_2d::mixt_var </td>
           <td>(</td>
-          <td class="paramtype">real*8, dimension(n_vars), intent(in)&#160;</td>
-          <td class="paramname"><em>qpj</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Physical variables. </p>
-<p>This subroutine evaluates from the physical local variables qpj, the conservative local variables qcj and the local topography Bj a set of the local real-valued physical variables ( <img class="formulaInl" alt="$h, u, v, xs , T $" src="form_1.png"/>). </p><dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">qpj</td><td>real-valued physical variables </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">qcj</td><td>real-valued conservative variables </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">Bj</td><td>real-valued topography </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section author"><dt>Author</dt><dd>Mattia de' Michieli Vitturi </dd></dl>
-<dl class="section date"><dt>Date</dt><dd>10/10/2019 </dd></dl>
-
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00368">368</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
-
-<p><div class="dynheader">
-Here is the caller graph for this function:</div>
-<div class="dyncontent">
-<div class="center"><img src="namespaceconstitutive__2d_a57a04a27296b87b6c3ffa6cff01b4afd_icgraph.png" border="0" usemap="#namespaceconstitutive__2d_a57a04a27296b87b6c3ffa6cff01b4afd_icgraph" alt=""/></div>
-<map name="namespaceconstitutive__2d_a57a04a27296b87b6c3ffa6cff01b4afd_icgraph" id="namespaceconstitutive__2d_a57a04a27296b87b6c3ffa6cff01b4afd_icgraph">
-<area shape="rect" id="node2" href="namespaceconstitutive__2d.html#ae05934389cffe1105b32355fed21412b" title="Local Characteristic speeds x direction. " alt="" coords="221,5,364,47"/>
-<area shape="rect" id="node3" href="namespaceconstitutive__2d.html#a17b3dcea1eabac79c787d0e25dda9ac4" title="Local Characteristic speeds y direction. " alt="" coords="221,71,364,112"/>
-<area shape="rect" id="node4" href="namespaceconstitutive__2d.html#ac5016dc16d6b220f12dd2bfad5fa857c" title="Hyperbolic Fluxes. " alt="" coords="221,136,364,177"/>
-<area shape="rect" id="node7" href="namespaceconstitutive__2d.html#af52432188c3ec55f920da3f662efe2fa" title="constitutive_2d::eval\l_expl_terms2" alt="" coords="221,201,364,243"/>
-<area shape="rect" id="node9" href="namespaceconstitutive__2d.html#a10bc7d7175b804fe9c56ba2a823d467b" title="Deposition term. " alt="" coords="221,267,364,308"/>
-<area shape="rect" id="node5" href="namespacesolver__2d.html#aaca9ed915d28af72abce4db206e45bdc" title="solver_2d::eval_flux_up" alt="" coords="420,97,579,123"/>
-<area shape="rect" id="node6" href="namespacesolver__2d.html#a79e24f76b5eccc03a5ba8844459e405a" title="Semidiscrete numerical fluxes. " alt="" coords="421,147,577,174"/>
-<area shape="rect" id="node8" href="namespacesolver__2d.html#aa62b6d1efd000aaa23c7cd15e62d737a" title="Evaluate the explicit terms. " alt="" coords="420,201,579,243"/>
-<area shape="rect" id="node10" href="namespacesolver__2d.html#a6582ae40ece2e0da23db6828b8510208" title="Evaluate the eroion/deposition terms. " alt="" coords="412,267,587,308"/>
-</map>
-</div>
-</p>
-
-</div>
-</div>
-<a class="anchor" id="ab341fc1f18788ae2f9ff0c5ce45a297b"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">subroutine constitutive_2d::phys_var </td>
-          <td>(</td>
-          <td class="paramtype">real*8, dimension(n_vars), intent(in), optional&#160;</td>
-          <td class="paramname"><em>r_qj</em>, </td>
+          <td class="paramtype">real*8, dimension(n_vars+2), intent(in)&#160;</td>
+          <td class="paramname"><em>qpj</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">complex*16, dimension(n_vars), intent(in), optional&#160;</td>
-          <td class="paramname"><em>c_qj</em>&#160;</td>
+          <td class="paramtype">real*8, intent(out)&#160;</td>
+          <td class="paramname"><em>r_Ri</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real*8, intent(out)&#160;</td>
+          <td class="paramname"><em>r_rho_m</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real*8, intent(out)&#160;</td>
+          <td class="paramname"><em>r_rho_c</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real*8, intent(out)&#160;</td>
+          <td class="paramname"><em>r_red_grav</em>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -1263,47 +1159,51 @@ Here is the caller graph for this function:</div>
 </div><div class="memdoc">
 
 <p>Physical variables. </p>
-<p>This subroutine evaluates from the conservative local variables qj the local physical variables ( <img class="formulaInl" alt="$h+B, u, v, xs , T $" src="form_0.png"/>). </p><dl class="params"><dt>Parameters</dt><dd>
+<p>This subroutine evaluates from the physical real-value local variables qpj, all the (real-valued ) variables that define the physical state and that are needed to compute the explicit equations terms. </p><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">r_qj</td><td>real conservative variables </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">c_qj</td><td>complex conservative variables </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">qpj</td><td>real-valued physical variables </td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section author"><dt>Author</dt><dd>Mattia de' Michieli Vitturi </dd></dl>
-<dl class="section date"><dt>Date</dt><dd>15/08/2011 </dd></dl>
+<dl class="section date"><dt>Date</dt><dd>10/10/2019</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[out]</td><td class="paramname">r_ri</td><td>real-value Richardson number</td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">r_rho_m</td><td>real-value mixture density [kg/m3]</td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">r_rho_c</td><td>real-value carrier phase density [kg/m3]</td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">r_red_grav</td><td>real-value reduced gravity </td></tr>
+  </table>
+  </dd>
+</dl>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00221">221</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00541">541</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 <p><div class="dynheader">
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="namespaceconstitutive__2d_ab341fc1f18788ae2f9ff0c5ce45a297b_icgraph.png" border="0" usemap="#namespaceconstitutive__2d_ab341fc1f18788ae2f9ff0c5ce45a297b_icgraph" alt=""/></div>
-<map name="namespaceconstitutive__2d_ab341fc1f18788ae2f9ff0c5ce45a297b_icgraph" id="namespaceconstitutive__2d_ab341fc1f18788ae2f9ff0c5ce45a297b_icgraph">
-<area shape="rect" id="node2" href="namespaceconstitutive__2d.html#aa38b7de1baa7a734227a0aa5bf9548bf" title="Conservative to physical variables. " alt="" coords="233,133,365,174"/>
-<area shape="rect" id="node8" href="namespaceconstitutive__2d.html#a14d19a8b10821844d7ea640264bb8914" title="Local Characteristic speeds x direction. " alt="" coords="227,609,370,650"/>
-<area shape="rect" id="node11" href="namespaceconstitutive__2d.html#abb94b9fcc0fc9a586a5fc90b9f19b32b" title="Local Characteristic speeds y direction. " alt="" coords="227,543,370,585"/>
-<area shape="rect" id="node12" href="namespaceconstitutive__2d.html#a6c068d18fb13c82fe6876b2458dab32c" title="Non&#45;Hyperbolic terms. " alt="" coords="224,339,373,381"/>
-<area shape="rect" id="node15" href="namespaceconstitutive__2d.html#a6801b39926440d701fa6bbb83069b5b2" title="Non&#45;Hyperbolic semi&#45;implicit terms. " alt="" coords="653,423,802,465"/>
-<area shape="rect" id="node16" href="namespaceconstitutive__2d.html#ae4af85bff9eabce90224614ee82cd24f" title="Explicit Forces term. " alt="" coords="227,478,370,519"/>
-<area shape="rect" id="node18" href="namespaceconstitutive__2d.html#aaf1fd052638a8607e1bc58275ddc316d" title="Topography modification related term. " alt="" coords="227,227,370,269"/>
-<area shape="rect" id="node3" href="namespaceinpout__2d.html#a78e9782c7d8c6a80753bf069da7bb88f" title="Write the solution on the output unit. " alt="" coords="421,5,596,32"/>
-<area shape="rect" id="node4" href="namespacesolver__2d.html#aed3f7dbc437442d0fd6521af6eafc8cd" title="Runge&#45;Kutta integration. " alt="" coords="859,365,991,406"/>
-<area shape="rect" id="node5" href="namespacesolver__2d.html#a42859f77b0c0574734af58a95ad4c340" title="Runge&#45;Kutta single step integration. " alt="" coords="644,297,811,324"/>
-<area shape="rect" id="node6" href="namespacesolver__2d.html#a6582ae40ece2e0da23db6828b8510208" title="Evaluate the eroion/deposition terms. " alt="" coords="421,209,596,250"/>
-<area shape="rect" id="node7" href="namespacesolver__2d.html#afd826688c650c7003818593da5da0b88" title="Linear reconstruction. " alt="" coords="425,157,593,184"/>
-<area shape="rect" id="node9" href="namespacesolver__2d.html#a7f17c548fa0f025b2dc40b27605d4ef7" title="Time&#45;step computation. " alt="" coords="441,557,577,584"/>
-<area shape="rect" id="node10" href="namespacesolver__2d.html#a24f04d82aa0f418dce078ce469dc0542" title="Characteristic speeds. " alt="" coords="429,612,588,639"/>
-<area shape="rect" id="node13" href="namespacesolver__2d.html#a90ea736c3f392e0f3c0ee670d9c99679" title="Evaluate the nonlinear system. " alt="" coords="448,275,569,301"/>
-<area shape="rect" id="node14" href="namespacesolver__2d.html#a6008c239bc58088d547bde1298091805" title="Evaluate the jacobian. " alt="" coords="426,325,591,352"/>
-<area shape="rect" id="node17" href="namespacesolver__2d.html#aa62b6d1efd000aaa23c7cd15e62d737a" title="Evaluate the explicit terms. " alt="" coords="648,489,807,530"/>
+<div class="center"><img src="namespaceconstitutive__2d_ae7098b718bcde0212fdb9a05cc9391a9_icgraph.png" border="0" usemap="#namespaceconstitutive__2d_ae7098b718bcde0212fdb9a05cc9391a9_icgraph" alt=""/></div>
+<map name="namespaceconstitutive__2d_ae7098b718bcde0212fdb9a05cc9391a9_icgraph" id="namespaceconstitutive__2d_ae7098b718bcde0212fdb9a05cc9391a9_icgraph">
+<area shape="rect" id="node2" href="namespaceconstitutive__2d.html#a5b631942dd2464fe5a63498f62042613" title="Local Characteristic speeds x direction. " alt="" coords="221,5,364,47"/>
+<area shape="rect" id="node4" href="namespaceconstitutive__2d.html#a1d79f2dbfb0c9091b97daea78dfb5187" title="Local Characteristic speeds y direction. " alt="" coords="221,71,364,112"/>
+<area shape="rect" id="node5" href="namespaceconstitutive__2d.html#a9e563ef51d3491590d9bd5e8e1ad1cd0" title="Hyperbolic Fluxes. " alt="" coords="221,136,364,177"/>
+<area shape="rect" id="node8" href="namespaceconstitutive__2d.html#a6dd166c02d9663a96663a638bb710543" title="Explicit Forces term. " alt="" coords="221,201,364,243"/>
+<area shape="rect" id="node10" href="namespaceconstitutive__2d.html#a9eca1bca55c515cca6a54f65bfe31cd6" title="Erosion/Deposition term. " alt="" coords="221,267,364,308"/>
+<area shape="rect" id="node11" href="namespacesolver__2d.html#a6582ae40ece2e0da23db6828b8510208" title="Evaluate the eroion/deposition terms. " alt="" coords="412,355,587,396"/>
+<area shape="rect" id="node13" href="namespaceconstitutive__2d.html#a97b820cb551dc02376dfd536d36cf832" title="Topography modification related term. " alt="" coords="221,384,364,425"/>
+<area shape="rect" id="node14" href="namespaceinpout__2d.html#a78e9782c7d8c6a80753bf069da7bb88f" title="Write the solution on the output unit. " alt="" coords="412,435,587,462"/>
+<area shape="rect" id="node3" href="namespacesolver__2d.html#a24f04d82aa0f418dce078ce469dc0542" title="Characteristic speeds. " alt="" coords="420,30,579,57"/>
+<area shape="rect" id="node6" href="namespacesolver__2d.html#aaca9ed915d28af72abce4db206e45bdc" title="Upwind numerical fluxes. " alt="" coords="420,97,579,123"/>
+<area shape="rect" id="node7" href="namespacesolver__2d.html#a79e24f76b5eccc03a5ba8844459e405a" title="Semidiscrete numerical fluxes. " alt="" coords="421,147,577,174"/>
+<area shape="rect" id="node9" href="namespacesolver__2d.html#a0c6abee636dd6e87c1ee4e6cfbdc7d11" title="Evaluate the explicit terms. " alt="" coords="420,201,579,243"/>
+<area shape="rect" id="node12" href="SW__VAR__DENS__MODEL_8f90.html#a97582f4cc38f0ee6b3117ca7cf96ccd7" title="Main Program. " alt="" coords="635,399,776,426"/>
 </map>
 </div>
 </p>
 
 </div>
 </div>
-<a class="anchor" id="aa38b7de1baa7a734227a0aa5bf9548bf"></a>
+<a class="anchor" id="a6a80b31f16ccb2e20da2c7e693d95e4f"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
@@ -1316,13 +1216,7 @@ Here is the caller graph for this function:</div>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">real*8, intent(in)&#160;</td>
-          <td class="paramname"><em>B</em>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">real*8, dimension(n_vars), intent(out)&#160;</td>
+          <td class="paramtype">real*8, dimension(n_vars+2), intent(out)&#160;</td>
           <td class="paramname"><em>qp</em>&#160;</td>
         </tr>
         <tr>
@@ -1336,29 +1230,34 @@ Here is the caller graph for this function:</div>
 <p>Conservative to physical variables. </p>
 <p>This subroutine evaluates from the conservative variables qc the array of physical variables qp:<br />
 </p><ul>
-<li>qp(1) = <img class="formulaInl" alt="$ h+B $" src="form_2.png"/></li>
-<li>qp(2) = <img class="formulaInl" alt="$ u $" src="form_3.png"/></li>
-<li>qp(3) = <img class="formulaInl" alt="$ v $" src="form_4.png"/></li>
+<li>qp(1) = <img class="formulaInl" alt="$ h $" src="form_19.png"/></li>
+<li>qp(2) = <img class="formulaInl" alt="$ hu $" src="form_20.png"/></li>
+<li>qp(3) = <img class="formulaInl" alt="$ hv $" src="form_21.png"/></li>
 <li>qp(4) = <img class="formulaInl" alt="$ T $" src="form_5.png"/></li>
-<li>qp(5) = <img class="formulaInl" alt="$ alphas $" src="form_6.png"/></li>
+<li>qp(5:4+n_solid) = <img class="formulaInl" alt="$ alphas(1:n_solid) $" src="form_22.png"/></li>
+<li>qp(n_vars) = <img class="formulaInl" alt="$ alphal $" src="form_23.png"/></li>
+<li>qp(n_vars+1) = <img class="formulaInl" alt="$ u $" src="form_3.png"/></li>
+<li>qp(n_vars+2) = <img class="formulaInl" alt="$ v $" src="form_4.png"/></li>
 </ul>
 <p>The physical variables are those used for the linear reconstruction at the cell interfaces. Limiters are applied to the reconstructed slopes. </p><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">qc</td><td>conservative variables </td></tr>
-    <tr><td class="paramdir">[out]</td><td class="paramname">qp</td><td>physical variables </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">qc</td><td>local conservative variables </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">B</td><td>local topography </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">qp</td><td>local physical variables </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section date"><dt>Date</dt><dd>15/08/2011 </dd></dl>
+<dl class="section date"><dt>Date</dt><dd>2019/11/11 </dd></dl>
+<dl class="section author"><dt>Author</dt><dd>Mattia de' Michieli Vitturi </dd></dl>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00431">431</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00650">650</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 <p><div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="namespaceconstitutive__2d_aa38b7de1baa7a734227a0aa5bf9548bf_cgraph.png" border="0" usemap="#namespaceconstitutive__2d_aa38b7de1baa7a734227a0aa5bf9548bf_cgraph" alt=""/></div>
-<map name="namespaceconstitutive__2d_aa38b7de1baa7a734227a0aa5bf9548bf_cgraph" id="namespaceconstitutive__2d_aa38b7de1baa7a734227a0aa5bf9548bf_cgraph">
-<area shape="rect" id="node2" href="namespaceconstitutive__2d.html#ab341fc1f18788ae2f9ff0c5ce45a297b" title="Physical variables. " alt="" coords="185,13,356,39"/>
+<div class="center"><img src="namespaceconstitutive__2d_a6a80b31f16ccb2e20da2c7e693d95e4f_cgraph.png" border="0" usemap="#namespaceconstitutive__2d_a6a80b31f16ccb2e20da2c7e693d95e4f_cgraph" alt=""/></div>
+<map name="namespaceconstitutive__2d_a6a80b31f16ccb2e20da2c7e693d95e4f_cgraph" id="namespaceconstitutive__2d_a6a80b31f16ccb2e20da2c7e693d95e4f_cgraph">
+<area shape="rect" id="node2" href="namespaceconstitutive__2d.html#a6c189afcf918d899b18a0fcbad26d407" title="Physical variables. " alt="" coords="185,5,308,47"/>
 </map>
 </div>
 </p>
@@ -1366,16 +1265,16 @@ Here is the call graph for this function:</div>
 <p><div class="dynheader">
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="namespaceconstitutive__2d_aa38b7de1baa7a734227a0aa5bf9548bf_icgraph.png" border="0" usemap="#namespaceconstitutive__2d_aa38b7de1baa7a734227a0aa5bf9548bf_icgraph" alt=""/></div>
-<map name="namespaceconstitutive__2d_aa38b7de1baa7a734227a0aa5bf9548bf_icgraph" id="namespaceconstitutive__2d_aa38b7de1baa7a734227a0aa5bf9548bf_icgraph">
-<area shape="rect" id="node2" href="namespaceinpout__2d.html#a78e9782c7d8c6a80753bf069da7bb88f" title="Write the solution on the output unit. " alt="" coords="632,5,807,32"/>
-<area shape="rect" id="node4" href="namespacesolver__2d.html#aed3f7dbc437442d0fd6521af6eafc8cd" title="Runge&#45;Kutta integration. " alt="" coords="653,107,785,149"/>
-<area shape="rect" id="node5" href="namespacesolver__2d.html#a42859f77b0c0574734af58a95ad4c340" title="Runge&#45;Kutta single step integration. " alt="" coords="413,93,579,120"/>
-<area shape="rect" id="node6" href="namespacesolver__2d.html#a6582ae40ece2e0da23db6828b8510208" title="Evaluate the eroion/deposition terms. " alt="" coords="185,229,360,270"/>
-<area shape="rect" id="node7" href="namespacesolver__2d.html#afd826688c650c7003818593da5da0b88" title="Linear reconstruction. " alt="" coords="189,152,357,179"/>
-<area shape="rect" id="node3" href="SW__VAR__DENS__MODEL_8f90.html#a97582f4cc38f0ee6b3117ca7cf96ccd7" title="Main Program. " alt="" coords="855,157,996,184"/>
-<area shape="rect" id="node8" href="namespacesolver__2d.html#ae00e8a8f9cf604ed48c8a524e9d24ce7" title="Time&#45;step computation. " alt="" coords="648,199,791,225"/>
-<area shape="rect" id="node9" href="namespacesolver__2d.html#a3490f633c5aa76cd08824229e0673ddd" title="Semidiscrete finite volume central scheme. " alt="" coords="408,145,584,186"/>
+<div class="center"><img src="namespaceconstitutive__2d_a6a80b31f16ccb2e20da2c7e693d95e4f_icgraph.png" border="0" usemap="#namespaceconstitutive__2d_a6a80b31f16ccb2e20da2c7e693d95e4f_icgraph" alt=""/></div>
+<map name="namespaceconstitutive__2d_a6a80b31f16ccb2e20da2c7e693d95e4f_icgraph" id="namespaceconstitutive__2d_a6a80b31f16ccb2e20da2c7e693d95e4f_icgraph">
+<area shape="rect" id="node2" href="namespaceinpout__2d.html#a78e9782c7d8c6a80753bf069da7bb88f" title="Write the solution on the output unit. " alt="" coords="632,16,807,43"/>
+<area shape="rect" id="node3" href="SW__VAR__DENS__MODEL_8f90.html#a97582f4cc38f0ee6b3117ca7cf96ccd7" title="Main Program. " alt="" coords="855,118,996,144"/>
+<area shape="rect" id="node4" href="namespacesolver__2d.html#a7f17c548fa0f025b2dc40b27605d4ef7" title="Time&#45;step computation. " alt="" coords="428,118,564,144"/>
+<area shape="rect" id="node5" href="namespacesolver__2d.html#aed3f7dbc437442d0fd6521af6eafc8cd" title="Runge&#45;Kutta integration. " alt="" coords="653,198,785,240"/>
+<area shape="rect" id="node6" href="namespacesolver__2d.html#a3a9d0f50fedb8a18f7a7f05d2ecba353" title="Runge&#45;Kutta single step integration. " alt="" coords="413,286,579,312"/>
+<area shape="rect" id="node7" href="namespacesolver__2d.html#a6582ae40ece2e0da23db6828b8510208" title="Evaluate the eroion/deposition terms. " alt="" coords="185,337,360,378"/>
+<area shape="rect" id="node8" href="namespacesolver__2d.html#a2e63f69351675f01f87750814ac138dc" title="Linear reconstruction. " alt="" coords="189,172,357,199"/>
+<area shape="rect" id="node9" href="namespacesolver__2d.html#a36e350e26b1662156a7f5a120b151932" title="Semidiscrete finite volume central scheme. " alt="" coords="408,169,584,210"/>
 </map>
 </div>
 </p>
@@ -1389,7 +1288,7 @@ Here is the caller graph for this function:</div>
         <tr>
           <td class="memname">subroutine constitutive_2d::qp_to_qc </td>
           <td>(</td>
-          <td class="paramtype">real*8, dimension(n_vars), intent(in)&#160;</td>
+          <td class="paramtype">real*8, dimension(n_vars+2), intent(in)&#160;</td>
           <td class="paramname"><em>qp</em>, </td>
         </tr>
         <tr>
@@ -1413,13 +1312,16 @@ Here is the caller graph for this function:</div>
 </div><div class="memdoc">
 
 <p>Physical to conservative variables. </p>
-<p>This subroutine evaluates the conservative variables qc from the array of physical variables qp:<br />
+<p>This subroutine evaluates the conservative real_value variables qc from the array of real_valued physical variables qp:<br />
 </p><ul>
-<li>qp(1) = <img class="formulaInl" alt="$ h + B $" src="form_7.png"/></li>
-<li>qp(2) = <img class="formulaInl" alt="$ rho_m*u $" src="form_8.png"/></li>
-<li>qp(3) = <img class="formulaInl" alt="$ rho_m*v $" src="form_9.png"/></li>
+<li>qp(1) = <img class="formulaInl" alt="$ h $" src="form_19.png"/></li>
+<li>qp(2) = <img class="formulaInl" alt="$ h*u $" src="form_24.png"/></li>
+<li>qp(3) = <img class="formulaInl" alt="$ h*v $" src="form_25.png"/></li>
 <li>qp(4) = <img class="formulaInl" alt="$ T $" src="form_5.png"/></li>
 <li>qp(5:4+n_s) = <img class="formulaInl" alt="$ alphas(1:n_s) $" src="form_10.png"/></li>
+<li>qp(n_vars) = <img class="formulaInl" alt="$ alphal $" src="form_23.png"/></li>
+<li>qp(n_vars+1) = <img class="formulaInl" alt="$ u $" src="form_3.png"/></li>
+<li>qp(n_vars+2) = <img class="formulaInl" alt="$ v $" src="form_4.png"/></li>
 </ul>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -1428,52 +1330,216 @@ Here is the caller graph for this function:</div>
   </table>
   </dd>
 </dl>
-<dl class="section date"><dt>Date</dt><dd>15/08/2011 </dd></dl>
+<dl class="section date"><dt>Date</dt><dd>2019/11/18 </dd></dl>
+<dl class="section author"><dt>Author</dt><dd>Mattia de' Michieli Vitturi </dd></dl>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00476">476</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00722">722</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 <p><div class="dynheader">
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespaceconstitutive__2d_a3b66666c5794e7c491a3d915e600cbb4_icgraph.png" border="0" usemap="#namespaceconstitutive__2d_a3b66666c5794e7c491a3d915e600cbb4_icgraph" alt=""/></div>
 <map name="namespaceconstitutive__2d_a3b66666c5794e7c491a3d915e600cbb4_icgraph" id="namespaceconstitutive__2d_a3b66666c5794e7c491a3d915e600cbb4_icgraph">
-<area shape="rect" id="node2" href="namespaceinit__2d.html#a1325f28b7fce60d45d0e2214204c70dd" title="Riemann problem initialization. " alt="" coords="186,5,353,32"/>
-<area shape="rect" id="node4" href="namespacesolver__2d.html#afd826688c650c7003818593da5da0b88" title="Linear reconstruction. " alt="" coords="185,56,353,83"/>
-<area shape="rect" id="node3" href="SW__VAR__DENS__MODEL_8f90.html#a97582f4cc38f0ee6b3117ca7cf96ccd7" title="Main Program. " alt="" coords="625,31,767,57"/>
-<area shape="rect" id="node5" href="namespacesolver__2d.html#ae00e8a8f9cf604ed48c8a524e9d24ce7" title="Time&#45;step computation. " alt="" coords="418,56,561,83"/>
-<area shape="rect" id="node6" href="namespacesolver__2d.html#a3490f633c5aa76cd08824229e0673ddd" title="Semidiscrete finite volume central scheme. " alt="" coords="401,107,577,149"/>
+<area shape="rect" id="node2" href="namespaceinit__2d.html#a1325f28b7fce60d45d0e2214204c70dd" title="Riemann problem initialization. " alt="" coords="406,5,573,32"/>
+<area shape="rect" id="node4" href="namespaceinit__2d.html#aabc80a8d1ba5d29cccc69168ee8aed87" title="Collapsing volume initialization. " alt="" coords="206,53,333,94"/>
+<area shape="rect" id="node5" href="namespacesolver__2d.html#a2e63f69351675f01f87750814ac138dc" title="Linear reconstruction. " alt="" coords="185,119,353,145"/>
+<area shape="rect" id="node3" href="SW__VAR__DENS__MODEL_8f90.html#a97582f4cc38f0ee6b3117ca7cf96ccd7" title="Main Program. " alt="" coords="625,57,767,84"/>
+<area shape="rect" id="node6" href="namespacesolver__2d.html#a7f17c548fa0f025b2dc40b27605d4ef7" title="Time&#45;step computation. " alt="" coords="421,108,557,135"/>
+<area shape="rect" id="node7" href="namespacesolver__2d.html#a36e350e26b1662156a7f5a120b151932" title="Semidiscrete finite volume central scheme. " alt="" coords="401,159,577,201"/>
 </map>
 </div>
 </p>
 
 </div>
 </div>
-<a class="anchor" id="a87da78211ff2693e4244774245aec017"></a>
+<a class="anchor" id="a5841084f40a5248531c84399696f8540"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">subroutine constitutive_2d::qp_to_qp2 </td>
+          <td>(</td>
+          <td class="paramtype">real*8, dimension(n_vars), intent(in)&#160;</td>
+          <td class="paramname"><em>qpj</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real*8, intent(in)&#160;</td>
+          <td class="paramname"><em>Bj</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real*8, dimension(3), intent(out)&#160;</td>
+          <td class="paramname"><em>qp2j</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Additional Physical variables. </p>
+<p>This subroutine evaluates from the physical local variables qpj, the two additional local variables qp2j = (u,v). </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">qpj</td><td>real-valued physical variables </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">qp2j</td><td>real-valued physical variables </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section author"><dt>Author</dt><dd>Mattia de' Michieli Vitturi </dd></dl>
+<dl class="section date"><dt>Date</dt><dd>10/10/2019 </dd></dl>
+
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00906">906</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+
+<p><div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="namespaceconstitutive__2d_a5841084f40a5248531c84399696f8540_icgraph.png" border="0" usemap="#namespaceconstitutive__2d_a5841084f40a5248531c84399696f8540_icgraph" alt=""/></div>
+<map name="namespaceconstitutive__2d_a5841084f40a5248531c84399696f8540_icgraph" id="namespaceconstitutive__2d_a5841084f40a5248531c84399696f8540_icgraph">
+<area shape="rect" id="node2" href="namespacesolver__2d.html#a2e63f69351675f01f87750814ac138dc" title="Linear reconstruction. " alt="" coords="185,35,353,61"/>
+<area shape="rect" id="node3" href="namespacesolver__2d.html#a7f17c548fa0f025b2dc40b27605d4ef7" title="Time&#45;step computation. " alt="" coords="421,5,557,32"/>
+<area shape="rect" id="node4" href="namespacesolver__2d.html#a36e350e26b1662156a7f5a120b151932" title="Semidiscrete finite volume central scheme. " alt="" coords="401,57,577,98"/>
+</map>
+</div>
+</p>
+
+</div>
+</div>
+<a class="anchor" id="a6c189afcf918d899b18a0fcbad26d407"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">subroutine constitutive_2d::r_phys_var </td>
+          <td>(</td>
+          <td class="paramtype">real*8, dimension(n_vars), intent(in)&#160;</td>
+          <td class="paramname"><em>r_qj</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real*8, intent(out)&#160;</td>
+          <td class="paramname"><em>r_h</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real*8, intent(out)&#160;</td>
+          <td class="paramname"><em>r_u</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real*8, intent(out)&#160;</td>
+          <td class="paramname"><em>r_v</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real*8, dimension(n_solid), intent(out)&#160;</td>
+          <td class="paramname"><em>r_alphas</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real*8, intent(out)&#160;</td>
+          <td class="paramname"><em>r_rho_m</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real*8, intent(out)&#160;</td>
+          <td class="paramname"><em>r_T</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real*8, intent(out)&#160;</td>
+          <td class="paramname"><em>r_alphal</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Physical variables. </p>
+<p>This subroutine evaluates from the conservative local variables qj the local physical variables ( <img class="formulaInl" alt="$h+B, u, v, xs , T $" src="form_0.png"/>). </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">r_qj</td><td>real conservative variables </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section author"><dt>Author</dt><dd>Mattia de' Michieli Vitturi </dd></dl>
+<dl class="section date"><dt>Date</dt><dd>15/08/2011</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">r_qj</td><td>real-value conservative var</td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">r_h</td><td>real-value flow thickness</td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">r_u</td><td>real-value x-velocity</td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">r_v</td><td>real-value y-velocity</td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">r_alphas</td><td>real-value solid volume fractions</td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">r_rho_m</td><td>real-value mixture density</td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">r_t</td><td>real-value temperature</td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">r_alphal</td><td>real-value liquid volume fraction </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00192">192</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+
+<p><div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="namespaceconstitutive__2d_a6c189afcf918d899b18a0fcbad26d407_icgraph.png" border="0" usemap="#namespaceconstitutive__2d_a6c189afcf918d899b18a0fcbad26d407_icgraph" alt=""/></div>
+<map name="namespaceconstitutive__2d_a6c189afcf918d899b18a0fcbad26d407_icgraph" id="namespaceconstitutive__2d_a6c189afcf918d899b18a0fcbad26d407_icgraph">
+<area shape="rect" id="node2" href="namespaceconstitutive__2d.html#a6a80b31f16ccb2e20da2c7e693d95e4f" title="Conservative to physical variables. " alt="" coords="185,191,317,232"/>
+<area shape="rect" id="node10" href="namespaceconstitutive__2d.html#a4cfddeb0dd3fae95145439d19cc350b3" title="Non&#45;Hyperbolic semi&#45;implicit terms. " alt="" coords="176,299,325,340"/>
+<area shape="rect" id="node3" href="namespaceinpout__2d.html#a78e9782c7d8c6a80753bf069da7bb88f" title="Write the solution on the output unit. " alt="" coords="596,71,771,98"/>
+<area shape="rect" id="node4" href="SW__VAR__DENS__MODEL_8f90.html#a97582f4cc38f0ee6b3117ca7cf96ccd7" title="Main Program. " alt="" coords="819,122,960,149"/>
+<area shape="rect" id="node5" href="namespacesolver__2d.html#a7f17c548fa0f025b2dc40b27605d4ef7" title="Time&#45;step computation. " alt="" coords="615,173,751,199"/>
+<area shape="rect" id="node6" href="namespacesolver__2d.html#aed3f7dbc437442d0fd6521af6eafc8cd" title="Runge&#45;Kutta integration. " alt="" coords="617,292,749,333"/>
+<area shape="rect" id="node7" href="namespacesolver__2d.html#a3a9d0f50fedb8a18f7a7f05d2ecba353" title="Runge&#45;Kutta single step integration. " alt="" coords="377,325,544,351"/>
+<area shape="rect" id="node8" href="namespacesolver__2d.html#a6582ae40ece2e0da23db6828b8510208" title="Evaluate the eroion/deposition terms. " alt="" coords="373,5,548,47"/>
+<area shape="rect" id="node9" href="namespacesolver__2d.html#a2e63f69351675f01f87750814ac138dc" title="Linear reconstruction. " alt="" coords="377,223,545,250"/>
+</map>
+</div>
+</p>
+
+</div>
+</div>
+<a class="anchor" id="a157867244819d0a9af3414289335d2e6"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
           <td class="memname">real*8 function constitutive_2d::settling_velocity </td>
           <td>(</td>
-          <td class="paramtype">real*8&#160;</td>
+          <td class="paramtype">real*8, intent(in)&#160;</td>
           <td class="paramname"><em>diam</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">real*8&#160;</td>
+          <td class="paramtype">real*8, intent(in)&#160;</td>
           <td class="paramname"><em>rhos</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">real*8&#160;</td>
-          <td class="paramname"><em>rhoa</em>, </td>
+          <td class="paramtype">real*8, intent(in)&#160;</td>
+          <td class="paramname"><em>rhoc</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">integer&#160;</td>
+          <td class="paramtype">integer, intent(in)&#160;</td>
           <td class="paramname"><em>i_solid</em>&#160;</td>
         </tr>
         <tr>
@@ -1485,24 +1551,34 @@ Here is the caller graph for this function:</div>
 </div><div class="memdoc">
 
 <p>Settling velocity function. </p>
-<p>This subroutine compute the settling velocity of the particles, as a function of diameter, density. </p><dl class="section date"><dt>Date</dt><dd>OCTOBER 2016 </dd></dl>
+<p>This subroutine compute the settling velocity of the particles, as a function of diameter, density. </p><dl class="section date"><dt>Date</dt><dd>2019/11/11 </dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">diam</td><td>particle diameter (<b>input</b>) </td></tr>
-    <tr><td class="paramname">rhos</td><td>particle density (<b>input</b>) </td></tr>
-    <tr><td class="paramname">rhoa</td><td>atmospheric density (<b>input</b>)  i_solid particle class index (<b>input</b>) </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">diam</td><td>particle diameter </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">rhos</td><td>particle density </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">rhoa</td><td>atmospheric density [in] i_solid particle class index </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section author"><dt>Author</dt><dd>Mattia de' Michieli Vitturi</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">diam</td><td>particle diameter [m]</td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">rhos</td><td>particle density [kg/m3]</td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">rhoc</td><td>carrier phase density [kg/m3]</td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">i_solid</td><td>particle class index </td></tr>
   </table>
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l01423">1423</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l01967">1967</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 <p><div class="dynheader">
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
-<div class="center"><img src="namespaceconstitutive__2d_a87da78211ff2693e4244774245aec017_icgraph.png" border="0" usemap="#namespaceconstitutive__2d_a87da78211ff2693e4244774245aec017_icgraph" alt=""/></div>
-<map name="namespaceconstitutive__2d_a87da78211ff2693e4244774245aec017_icgraph" id="namespaceconstitutive__2d_a87da78211ff2693e4244774245aec017_icgraph">
-<area shape="rect" id="node2" href="namespaceconstitutive__2d.html#a10bc7d7175b804fe9c56ba2a823d467b" title="Deposition term. " alt="" coords="213,5,356,47"/>
+<div class="center"><img src="namespaceconstitutive__2d_a157867244819d0a9af3414289335d2e6_icgraph.png" border="0" usemap="#namespaceconstitutive__2d_a157867244819d0a9af3414289335d2e6_icgraph" alt=""/></div>
+<map name="namespaceconstitutive__2d_a157867244819d0a9af3414289335d2e6_icgraph" id="namespaceconstitutive__2d_a157867244819d0a9af3414289335d2e6_icgraph">
+<area shape="rect" id="node2" href="namespaceconstitutive__2d.html#a9eca1bca55c515cca6a54f65bfe31cd6" title="Erosion/Deposition term. " alt="" coords="213,5,356,47"/>
 <area shape="rect" id="node3" href="namespacesolver__2d.html#a6582ae40ece2e0da23db6828b8510208" title="Evaluate the eroion/deposition terms. " alt="" coords="404,5,579,47"/>
 </map>
 </div>
@@ -1511,19 +1587,19 @@ Here is the caller graph for this function:</div>
 </div>
 </div>
 <h2 class="groupheader">Variable Documentation</h2>
-<a class="anchor" id="a6e4bb7f3788d8f9d39b2c07772d201b0"></a>
+<a class="anchor" id="af79ad9ef45dfa26bfd7650efcb7877df"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">real*8 constitutive_2d::alpha1</td>
+          <td class="memname">real*8 constitutive_2d::alpha1_coeff</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>1st parameter for fluid viscosity empirical relationship (O'Brian et al, 1993) </p>
+<p>ratio between reference value from input and computed values from eq. </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00112">112</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00082">82</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1537,55 +1613,9 @@ Here is the caller graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p>1st parameter for yield strenght empirical relationship (O'Brian et al, 1993) </p>
+<p>1st param for yield strenght empirical relationship (O'Brian et al, 1993) </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00106">106</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
-
-</div>
-</div>
-<a class="anchor" id="ade93c21c9793d1cce8fb0dc70d2549dc"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">complex*16 constitutive_2d::alpha_l</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>liquid volume fraction </p>
-
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00176">176</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
-
-</div>
-</div>
-<a class="anchor" id="ae743132c5b02e3f9d86c976f123e4943"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">complex*16, dimension(:), allocatable constitutive_2d::alphas</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>sediment volume fraction </p>
-
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00021">21</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
-
-</div>
-</div>
-<a class="anchor" id="a64f6ac9b56198030d798ba9e739dc198"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">complex*16 constitutive_2d::alphas_tot</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00025">25</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00076">76</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1601,7 +1631,7 @@ Here is the caller graph for this function:</div>
 
 <p>atmospheric heat trasnfer coefficient [W m-2 K-1] (lambda in C&amp;M, 2005) </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00083">83</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00053">53</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1615,9 +1645,9 @@ Here is the caller graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p>2nd parameter for fluid viscosity empirical relationship (O'Brian et al, 1993) </p>
+<p>2nd param for fluid viscosity empirical relationship (O'Brian et al, 1993) </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00115">115</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00085">85</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1631,9 +1661,9 @@ Here is the caller graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p>2nd parameter for yield strenght empirical relationship (O'Brian et al, 1993) </p>
+<p>2nd param for yield strenght empirical relationship (O'Brian et al, 1993) </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00109">109</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00079">79</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1647,7 +1677,7 @@ Here is the caller graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00155">155</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00128">128</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1663,7 +1693,7 @@ Here is the caller graph for this function:</div>
 
 <p>specific heat [J kg-1 K-1] </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00080">80</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00050">50</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1679,7 +1709,7 @@ Here is the caller graph for this function:</div>
 
 <p>Diameter of sediments. </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00150">150</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00123">123</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1695,7 +1725,7 @@ Here is the caller graph for this function:</div>
 
 <p>emissivity (eps in Costa &amp; Macedonio, 2005) </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00092">92</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00062">62</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1711,7 +1741,7 @@ Here is the caller graph for this function:</div>
 
 <p>velocity boundary layer fraction of total thickness </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00077">77</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00047">47</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1727,7 +1757,7 @@ Here is the caller graph for this function:</div>
 
 <p>thermal boundary layer fraction of total thickness </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00095">95</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00065">65</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1741,23 +1771,23 @@ Here is the caller graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00141">141</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00117">117</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
-<a class="anchor" id="aacd33add423c63fa4b579af7606aad57"></a>
+<a class="anchor" id="a366f977af7ea10d288426d68238f39e6"></a>
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">real*8 constitutive_2d::erosion_coeff</td>
+          <td class="memname">real*8, dimension(:), allocatable constitutive_2d::erosion_coeff</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>erosion model coefficient </p>
+<p>erosion model coefficient ( units: m-1 ) </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00161">161</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00136">136</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1773,7 +1803,7 @@ Here is the caller graph for this function:</div>
 
 <p>fractional area of the exposed inner core (f in C&amp;M, 2005) </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00086">86</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00056">56</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1789,7 +1819,7 @@ Here is the caller graph for this function:</div>
 
 <p>friction coefficient </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00062">62</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00035">35</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1805,7 +1835,7 @@ Here is the caller graph for this function:</div>
 
 <p>drag coefficients (B&amp;W model) </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00050">50</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00023">23</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1821,23 +1851,7 @@ Here is the caller graph for this function:</div>
 
 <p>gravitational acceleration </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00029">29</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
-
-</div>
-</div>
-<a class="anchor" id="af716369418ca4f36e8fd5bc101d0a049"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">complex*16 constitutive_2d::h</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>height [m] </p>
-
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00017">17</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00016">16</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1851,7 +1865,7 @@ Here is the caller graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00012">12</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00013">13</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1865,9 +1879,9 @@ Here is the caller graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p>Empirical resistance parameter. </p>
+<p>Empirical resistance parameter (dimensionless, input parameter) </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00118">118</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00088">88</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1883,7 +1897,39 @@ Here is the caller graph for this function:</div>
 
 <p>Kinematic viscosity of air. </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00136">136</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00106">106</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a1a399e94cfdda8661d41a7cd6dbe6410"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">real*8 constitutive_2d::kin_visc_c</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Kinematic viscosity of carrier phase. </p>
+
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00112">112</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="aec6638a861394313fb10c55302d0a664"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">real*8 constitutive_2d::kin_visc_l</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Kinematic viscosity of liquid. </p>
+
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00109">109</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1899,7 +1945,7 @@ Here is the caller graph for this function:</div>
 
 <p>drag coefficients (Voellmy-Salm model) </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00046">46</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00019">19</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1915,7 +1961,7 @@ Here is the caller graph for this function:</div>
 
 <p>Mannings roughness coefficient ( units: T L^(-1/3) ) </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00121">121</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00091">91</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1931,35 +1977,7 @@ Here is the caller graph for this function:</div>
 
 <p>reference kinematic viscosity [m2/s] </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00071">71</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
-
-</div>
-</div>
-<a class="anchor" id="a99d2758232254c2600d24418d0fde411"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">character(len=20) constitutive_2d::phase1_name</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00014">14</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
-
-</div>
-</div>
-<a class="anchor" id="a92fbd541533e8daa6264944b82e622d5"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">character(len=20) constitutive_2d::phase2_name</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00015">15</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00041">41</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1975,133 +1993,7 @@ Here is the caller graph for this function:</div>
 
 <p>ambient pressure </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00167">167</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
-
-</div>
-</div>
-<a class="anchor" id="a5df2f0dded6b41e5e6686b3b7ae65018"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">real*8, dimension(:), allocatable constitutive_2d::r_alphas</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00038">38</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
-
-</div>
-</div>
-<a class="anchor" id="aaca512f0e5da37a2f726c8275d146031"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">real*8 constitutive_2d::r_h</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00034">34</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
-
-</div>
-</div>
-<a class="anchor" id="a8d1c5927d9032b048ff142e43f870e2b"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">real*8 constitutive_2d::r_red_grav</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00039">39</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
-
-</div>
-</div>
-<a class="anchor" id="ad468a1c65819d708c8df620b744593d7"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">real*8 constitutive_2d::r_rho_a</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00041">41</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
-
-</div>
-</div>
-<a class="anchor" id="a47c9cc2d89c8cfa9c137a6ff932b2cfa"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">real*8 constitutive_2d::r_rho_m</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00040">40</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
-
-</div>
-</div>
-<a class="anchor" id="af4c1186ce33b3436be665626b80a2957"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">real*8 constitutive_2d::r_ri</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00042">42</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
-
-</div>
-</div>
-<a class="anchor" id="a399cd575264c175c6e1bfd39154ff702"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">real*8 constitutive_2d::r_t</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00037">37</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
-
-</div>
-</div>
-<a class="anchor" id="a57873975ca4869dd0644af2dba4d2293"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">real*8 constitutive_2d::r_u</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00035">35</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
-
-</div>
-</div>
-<a class="anchor" id="aba149070fb724889d7771947b5f8689c"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">real*8 constitutive_2d::r_v</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00036">36</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00142">142</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -2117,55 +2009,7 @@ Here is the caller graph for this function:</div>
 
 <p>radiative coefficient </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00059">59</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
-
-</div>
-</div>
-<a class="anchor" id="a027862513736aa1236f4d51a75736d5f"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">complex*16 constitutive_2d::red_grav</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>reduced gravity </p>
-
 <p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00032">32</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
-
-</div>
-</div>
-<a class="anchor" id="a41862c959e293eefcc1c5cb390e39c16"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">real*8 constitutive_2d::rho</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>fluid density [kg/m3] </p>
-
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00065">65</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
-
-</div>
-</div>
-<a class="anchor" id="ac2b98abbd046c95b6ab048d0bcbba60a"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">complex*16 constitutive_2d::rho_a</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Density of air in the mixture. </p>
-
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00124">124</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -2179,9 +2023,9 @@ Here is the caller graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p>Ambient density of air. </p>
+<p>Ambient density of air ( units: kg/m^3 ) </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00127">127</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00097">97</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -2197,23 +2041,7 @@ Here is the caller graph for this function:</div>
 
 <p>liquid density </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00170">170</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
-
-</div>
-</div>
-<a class="anchor" id="a650bb06c8d62df4de24644fa4ee02c75"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">complex*16 constitutive_2d::rho_m</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>mixture density </p>
-
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00022">22</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00145">145</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -2229,35 +2057,7 @@ Here is the caller graph for this function:</div>
 
 <p>Specific weight of sediments. </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00147">147</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
-
-</div>
-</div>
-<a class="anchor" id="aa5ec75e5f9569e46127485ede8f8311d"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">complex*16 constitutive_2d::rhos_tot</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00026">26</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
-
-</div>
-</div>
-<a class="anchor" id="a511b956427417c241c562d39e5647004"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">complex*16 constitutive_2d::ri</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00023">23</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00120">120</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -2273,7 +2073,21 @@ Here is the caller graph for this function:</div>
 
 <p>Stephan-Boltzmann constant [W m-2 K-4]. </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00089">89</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00059">59</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="ac9b825b7b910b7a658c29c5bfbae1ad3"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">logical constitutive_2d::settling_flag</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00130">130</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -2289,7 +2103,7 @@ Here is the caller graph for this function:</div>
 
 <p>hindered settling </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00158">158</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00133">133</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -2305,7 +2119,7 @@ Here is the caller graph for this function:</div>
 
 <p>Specific gas constant of air. </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00133">133</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00103">103</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -2321,7 +2135,23 @@ Here is the caller graph for this function:</div>
 
 <p>Specific heat of air. </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00130">130</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00100">100</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a9ccc7c67ba228db267895cbc4427752c"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">real*8 constitutive_2d::sp_heat_c</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Specific heat of carrier phase (gas or liquid) </p>
+
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00094">94</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -2337,23 +2167,7 @@ Here is the caller graph for this function:</div>
 
 <p>Sepcific heat of liquid. </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00173">173</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
-
-</div>
-</div>
-<a class="anchor" id="aa744732eb781b94d526c3ad080581548"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">complex*16 constitutive_2d::sp_heat_mix</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Specific heat of mixture. </p>
-
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00144">144</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00148">148</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -2369,23 +2183,7 @@ Here is the caller graph for this function:</div>
 
 <p>Specific heat of sediments. </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00153">153</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
-
-</div>
-</div>
-<a class="anchor" id="ae47ecb6e2d56dbe1ade5d4601f1931a0"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">complex*16 constitutive_2d::t</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>temperature </p>
-
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00020">20</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00126">126</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -2401,7 +2199,7 @@ Here is the caller graph for this function:</div>
 
 <p>Temperature of ambient air. </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00139">139</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00115">115</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -2417,7 +2215,7 @@ Here is the caller graph for this function:</div>
 
 <p>evironment temperature [K] </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00056">56</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00029">29</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -2433,7 +2231,7 @@ Here is the caller graph for this function:</div>
 
 <p>temperature of lava-ground interface </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00098">98</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00068">68</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -2449,7 +2247,7 @@ Here is the caller graph for this function:</div>
 
 <p>reference temperature [K] </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00068">68</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00038">38</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -2465,7 +2263,7 @@ Here is the caller graph for this function:</div>
 
 <p>temperature of solid substrate (K) </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00164">164</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00139">139</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -2481,7 +2279,7 @@ Here is the caller graph for this function:</div>
 
 <p>drag coefficients (plastic model) </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00053">53</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00026">26</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -2497,39 +2295,7 @@ Here is the caller graph for this function:</div>
 
 <p>thermal conductivity [W m-1 K-1] (k in Costa &amp; Macedonio, 2005) </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00101">101</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
-
-</div>
-</div>
-<a class="anchor" id="af304ad44e53a727fa6865e6383f9d311"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">complex*16 constitutive_2d::u</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>velocity (x direction) </p>
-
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00018">18</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
-
-</div>
-</div>
-<a class="anchor" id="ae99f05351225d6125c11edf12501444d"></a>
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">complex*16 constitutive_2d::v</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>velocity (y direction) </p>
-
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00019">19</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00071">71</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -2545,7 +2311,7 @@ Here is the caller graph for this function:</div>
 
 <p>viscosity parameter [K-1] (b in Table 1 Costa &amp; Macedonio, 2005) </p>
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00074">74</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00044">44</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -2559,14 +2325,14 @@ Here is the caller graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00047">47</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="constitutive__2d_8f90_source.html#l00020">20</a> of file <a class="el" href="constitutive__2d_8f90_source.html">constitutive_2d.f90</a>.</p>
 
 </div>
 </div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Fri Nov 8 2019 15:23:55 for SW_VAR_DENS_MODEL by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Fri Dec 13 2019 15:50:46 for SW_VAR_DENS_MODEL by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

@@ -99,6 +99,9 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:a1325f28b7fce60d45d0e2214204c70dd"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceinit__2d.html#a1325f28b7fce60d45d0e2214204c70dd">riemann_problem</a></td></tr>
 <tr class="memdesc:a1325f28b7fce60d45d0e2214204c70dd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Riemann problem initialization.  <a href="#a1325f28b7fce60d45d0e2214204c70dd">More...</a><br /></td></tr>
 <tr class="separator:a1325f28b7fce60d45d0e2214204c70dd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aabc80a8d1ba5d29cccc69168ee8aed87"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespaceinit__2d.html#aabc80a8d1ba5d29cccc69168ee8aed87">collapsing_volume</a></td></tr>
+<tr class="memdesc:aabc80a8d1ba5d29cccc69168ee8aed87"><td class="mdescLeft">&#160;</td><td class="mdescRight">Collapsing volume initialization.  <a href="#aabc80a8d1ba5d29cccc69168ee8aed87">More...</a><br /></td></tr>
+<tr class="separator:aabc80a8d1ba5d29cccc69168ee8aed87"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
@@ -144,6 +147,48 @@ Variables</h2></td></tr>
 <div class="textblock"><p>Initial solution. </p>
 <p>This module contains the variables and the subroutine for the initialization of the solution for a Riemann problem. </p>
 </div><h2 class="groupheader">Function/Subroutine Documentation</h2>
+<a class="anchor" id="aabc80a8d1ba5d29cccc69168ee8aed87"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">subroutine init_2d::collapsing_volume </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Collapsing volume initialization. </p>
+<p>This subroutine initialize the solution for a collpasing volume. Values for the initial state (x, y, r, T, h, alphas) are read from the input file. </p><dl class="section date"><dt>Date</dt><dd>2019_12_11 </dd></dl>
+<dl class="section author"><dt>Author</dt><dd>Mattia de' Michieli Vitturi </dd></dl>
+
+<p>Definition at line <a class="el" href="init__2d_8f90_source.html#l00204">204</a> of file <a class="el" href="init__2d_8f90_source.html">init_2d.f90</a>.</p>
+
+<p><div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="namespaceinit__2d_aabc80a8d1ba5d29cccc69168ee8aed87_cgraph.png" border="0" usemap="#namespaceinit__2d_aabc80a8d1ba5d29cccc69168ee8aed87_cgraph" alt=""/></div>
+<map name="namespaceinit__2d_aabc80a8d1ba5d29cccc69168ee8aed87_cgraph" id="namespaceinit__2d_aabc80a8d1ba5d29cccc69168ee8aed87_cgraph">
+<area shape="rect" id="node2" href="namespaceconstitutive__2d.html#a3b66666c5794e7c491a3d915e600cbb4" title="Physical to conservative variables. " alt="" coords="191,5,323,47"/>
+<area shape="rect" id="node3" href="namespacegeometry__2d.html#a4488ab699fa421f3772dbd58f1c58600" title="geometry_2d::compute\l_cell_fract" alt="" coords="180,71,335,112"/>
+</map>
+</div>
+</p>
+
+<p><div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="namespaceinit__2d_aabc80a8d1ba5d29cccc69168ee8aed87_icgraph.png" border="0" usemap="#namespaceinit__2d_aabc80a8d1ba5d29cccc69168ee8aed87_icgraph" alt=""/></div>
+<map name="namespaceinit__2d_aabc80a8d1ba5d29cccc69168ee8aed87_icgraph" id="namespaceinit__2d_aabc80a8d1ba5d29cccc69168ee8aed87_icgraph">
+<area shape="rect" id="node2" href="SW__VAR__DENS__MODEL_8f90.html#a97582f4cc38f0ee6b3117ca7cf96ccd7" title="Main Program. " alt="" coords="180,13,321,39"/>
+</map>
+</div>
+</p>
+
+</div>
+</div>
 <a class="anchor" id="a1325f28b7fce60d45d0e2214204c70dd"></a>
 <div class="memitem">
 <div class="memproto">
@@ -160,7 +205,7 @@ Variables</h2></td></tr>
 <p>Riemann problem initialization. </p>
 <p>This subroutine initialize the solution for a Riemann problem. The values for the left and right states and the interface location are read from the input file.\ </p><dl class="section date"><dt>Date</dt><dd>26/08/2011 </dd></dl>
 
-<p>Definition at line <a class="el" href="init__2d_8f90_source.html#l00049">49</a> of file <a class="el" href="init__2d_8f90_source.html">init_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="init__2d_8f90_source.html#l00048">48</a> of file <a class="el" href="init__2d_8f90_source.html">init_2d.f90</a>.</p>
 
 <p><div class="dynheader">
 Here is the call graph for this function:</div>
@@ -392,7 +437,7 @@ Here is the caller graph for this function:</div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Fri Nov 8 2019 15:23:55 for SW_VAR_DENS_MODEL by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Fri Dec 13 2019 15:50:46 for SW_VAR_DENS_MODEL by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

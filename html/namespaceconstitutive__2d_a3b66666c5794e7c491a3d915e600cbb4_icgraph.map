@@ -1,7 +1,8 @@
 <map id="constitutive_2d::qp_to_qc" name="constitutive_2d::qp_to_qc">
-<area shape="rect" id="node2" href="$namespaceinit__2d.html#a1325f28b7fce60d45d0e2214204c70dd" title="Riemann problem initialization. " alt="" coords="186,5,353,32"/>
-<area shape="rect" id="node4" href="$namespacesolver__2d.html#afd826688c650c7003818593da5da0b88" title="Linear reconstruction. " alt="" coords="185,56,353,83"/>
-<area shape="rect" id="node3" href="$SW__VAR__DENS__MODEL_8f90.html#a97582f4cc38f0ee6b3117ca7cf96ccd7" title="Main Program. " alt="" coords="625,31,767,57"/>
-<area shape="rect" id="node5" href="$namespacesolver__2d.html#ae00e8a8f9cf604ed48c8a524e9d24ce7" title="Time&#45;step computation. " alt="" coords="418,56,561,83"/>
-<area shape="rect" id="node6" href="$namespacesolver__2d.html#a3490f633c5aa76cd08824229e0673ddd" title="Semidiscrete finite volume central scheme. " alt="" coords="401,107,577,149"/>
+<area shape="rect" id="node2" href="$namespaceinit__2d.html#a1325f28b7fce60d45d0e2214204c70dd" title="Riemann problem initialization. " alt="" coords="406,5,573,32"/>
+<area shape="rect" id="node4" href="$namespaceinit__2d.html#aabc80a8d1ba5d29cccc69168ee8aed87" title="Collapsing volume initialization. " alt="" coords="206,53,333,94"/>
+<area shape="rect" id="node5" href="$namespacesolver__2d.html#a2e63f69351675f01f87750814ac138dc" title="Linear reconstruction. " alt="" coords="185,119,353,145"/>
+<area shape="rect" id="node3" href="$SW__VAR__DENS__MODEL_8f90.html#a97582f4cc38f0ee6b3117ca7cf96ccd7" title="Main Program. " alt="" coords="625,57,767,84"/>
+<area shape="rect" id="node6" href="$namespacesolver__2d.html#a7f17c548fa0f025b2dc40b27605d4ef7" title="Time&#45;step computation. " alt="" coords="421,108,557,135"/>
+<area shape="rect" id="node7" href="$namespacesolver__2d.html#a36e350e26b1662156a7f5a120b151932" title="Semidiscrete finite volume central scheme. " alt="" coords="401,159,577,201"/>
 </map>

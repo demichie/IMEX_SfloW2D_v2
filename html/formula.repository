@@ -17,3 +17,10 @@
 \form#16:$ h \cdot T $
 \form#17:$\alpha_1, p_1, p_2, \rho u, w, T$
 \form#18:$ Q^{(i)} = Q^n - dt \sum_{j=1}^{i-1}\tilde{a}_{j}\partial_x F(Q^{(j)}) + dt \sum_{j=1}^{i-1} a_j NH(Q^{(j)}) + dt a_{diag} NH(Q^{(i)}) $
+\form#19:$ h $
+\form#20:$ hu $
+\form#21:$ hv $
+\form#22:$ alphas(1:n_solid) $
+\form#23:$ alphal $
+\form#24:$ h*u $
+\form#25:$ h*v $

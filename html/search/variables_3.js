@@ -2,8 +2,13 @@ var searchData=
 [
   ['dakota_5funit',['dakota_unit',['../namespaceinpout__2d.html#a0e177b5b0e440e69dd3541eebef91b84',1,'inpout_2d']]],
   ['dem_5fesri_5funit',['dem_esri_unit',['../namespaceinpout__2d.html#a61ee66608f1e8f95b72be0067ca50959',1,'inpout_2d']]],
+  ['deposit',['deposit',['../namespacegeometry__2d.html#a6b69d7677e12d3e4d55af7c85a36c432',1,'geometry_2d']]],
   ['diam0_5fs',['diam0_s',['../namespaceinpout__2d.html#a003aff976b4e276bd9edf52399e827ea',1,'inpout_2d']]],
   ['diam_5fs',['diam_s',['../namespaceconstitutive__2d.html#a8da668442f03a12e966288ec49db7db7',1,'constitutive_2d']]],
+  ['dist_5fsourcee',['dist_sourcee',['../namespacegeometry__2d.html#a2389b9a024067b57c1b60cdc2c937b03',1,'geometry_2d']]],
+  ['dist_5fsourcen',['dist_sourcen',['../namespacegeometry__2d.html#adb274327b16a38aa1723a3516aab21a1',1,'geometry_2d']]],
+  ['dist_5fsources',['dist_sources',['../namespacegeometry__2d.html#a53467c551faf4f0ffa01e0f7b8b9bde1',1,'geometry_2d']]],
+  ['dist_5fsourcew',['dist_sourcew',['../namespacegeometry__2d.html#a47a991abdc1a1639f6ae9a6d33e83e12',1,'geometry_2d']]],
   ['divflux',['divflux',['../namespacesolver__2d.html#a2dd5d73cba6e902344c9b768f64905e2',1,'solver_2d']]],
   ['divfluxj',['divfluxj',['../namespacesolver__2d.html#a28d4ac1ee1de582cb26e8af14611e799',1,'solver_2d']]],
   ['dt',['dt',['../namespacesolver__2d.html#aee9dcd60558c00603abe00274bb30d9c',1,'solver_2d']]],

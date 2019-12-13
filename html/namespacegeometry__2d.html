@@ -99,6 +99,8 @@ Functions/Subroutines</h2></td></tr>
 <tr class="memitem:aac4d5b367bcc8719c1bb55c41a221c1b"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegeometry__2d.html#aac4d5b367bcc8719c1bb55c41a221c1b">init_grid</a></td></tr>
 <tr class="memdesc:aac4d5b367bcc8719c1bb55c41a221c1b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Finite volume grid initialization.  <a href="#aac4d5b367bcc8719c1bb55c41a221c1b">More...</a><br /></td></tr>
 <tr class="separator:aac4d5b367bcc8719c1bb55c41a221c1b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6e606e0ecd3038cb9ffc8301286f71da"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegeometry__2d.html#a6e606e0ecd3038cb9ffc8301286f71da">init_source</a></td></tr>
+<tr class="separator:a6e606e0ecd3038cb9ffc8301286f71da"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abab6c7ba498d51dc92796575c49f40f9"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegeometry__2d.html#abab6c7ba498d51dc92796575c49f40f9">interp_1d_scalar</a> (x1, f1, x2, f2)</td></tr>
 <tr class="memdesc:abab6c7ba498d51dc92796575c49f40f9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Scalar interpolation.  <a href="#abab6c7ba498d51dc92796575c49f40f9">More...</a><br /></td></tr>
 <tr class="separator:abab6c7ba498d51dc92796575c49f40f9"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -124,6 +126,8 @@ Functions/Subroutines</h2></td></tr>
 <tr class="separator:a8b922ea4d9a2bf5476f24e46d462391e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af81198be6329618f08e2213724a334ef"><td class="memItemLeft" align="right" valign="top">real *8 function&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegeometry__2d.html#af81198be6329618f08e2213724a334ef">maxmod</a> (a, b)</td></tr>
 <tr class="separator:af81198be6329618f08e2213724a334ef"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4488ab699fa421f3772dbd58f1c58600"><td class="memItemLeft" align="right" valign="top">subroutine&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegeometry__2d.html#a4488ab699fa421f3772dbd58f1c58600">compute_cell_fract</a> (xs, ys, rs, cell_fract)</td></tr>
+<tr class="separator:a4488ab699fa421f3772dbd58f1c58600"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
@@ -139,6 +143,9 @@ Variables</h2></td></tr>
 <tr class="memitem:adf1bab7ca9f9164c68b6a03fdc0eef42"><td class="memItemLeft" align="right" valign="top">real *8, dimension(:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegeometry__2d.html#adf1bab7ca9f9164c68b6a03fdc0eef42">y_stag</a></td></tr>
 <tr class="memdesc:adf1bab7ca9f9164c68b6a03fdc0eef42"><td class="mdescLeft">&#160;</td><td class="mdescRight">Location of the boundaries (x) of the control volumes of the domain.  <a href="#adf1bab7ca9f9164c68b6a03fdc0eef42">More...</a><br /></td></tr>
 <tr class="separator:adf1bab7ca9f9164c68b6a03fdc0eef42"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4989ace15ccaeb3d9c6f1d22bba250c2"><td class="memItemLeft" align="right" valign="top">real *8, dimension(:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegeometry__2d.html#a4989ace15ccaeb3d9c6f1d22bba250c2">b_ver</a></td></tr>
+<tr class="memdesc:a4989ace15ccaeb3d9c6f1d22bba250c2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Topography at the vertices of the control volumes.  <a href="#a4989ace15ccaeb3d9c6f1d22bba250c2">More...</a><br /></td></tr>
+<tr class="separator:a4989ace15ccaeb3d9c6f1d22bba250c2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a42ac0f75e2ad30ed7b8ccd761a450769"><td class="memItemLeft" align="right" valign="top">real *8, dimension(:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegeometry__2d.html#a42ac0f75e2ad30ed7b8ccd761a450769">b_interfacel</a></td></tr>
 <tr class="memdesc:a42ac0f75e2ad30ed7b8ccd761a450769"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reconstructed value at the left of the x-interface.  <a href="#a42ac0f75e2ad30ed7b8ccd761a450769">More...</a><br /></td></tr>
 <tr class="separator:a42ac0f75e2ad30ed7b8ccd761a450769"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -169,8 +176,47 @@ Variables</h2></td></tr>
 <tr class="memitem:a0deb90cdfe5c7e70f3c02cc9caa9750d"><td class="memItemLeft" align="right" valign="top">real *8, dimension(:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegeometry__2d.html#a0deb90cdfe5c7e70f3c02cc9caa9750d">curv_xy</a></td></tr>
 <tr class="memdesc:a0deb90cdfe5c7e70f3c02cc9caa9750d"><td class="mdescLeft">&#160;</td><td class="mdescRight">curvature wrt mixed directions for each cell  <a href="#a0deb90cdfe5c7e70f3c02cc9caa9750d">More...</a><br /></td></tr>
 <tr class="separator:a0deb90cdfe5c7e70f3c02cc9caa9750d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6b69d7677e12d3e4d55af7c85a36c432"><td class="memItemLeft" align="right" valign="top">real *8, dimension(:,:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegeometry__2d.html#a6b69d7677e12d3e4d55af7c85a36c432">deposit</a></td></tr>
+<tr class="memdesc:a6b69d7677e12d3e4d55af7c85a36c432"><td class="mdescLeft">&#160;</td><td class="mdescRight">deposit for the different classes  <a href="#a6b69d7677e12d3e4d55af7c85a36c432">More...</a><br /></td></tr>
+<tr class="separator:a6b69d7677e12d3e4d55af7c85a36c432"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a04e6bd543a578d5ae9138806a0a84932"><td class="memItemLeft" align="right" valign="top">real *8, dimension(:,:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegeometry__2d.html#a04e6bd543a578d5ae9138806a0a84932">topography_profile</a></td></tr>
 <tr class="separator:a04e6bd543a578d5ae9138806a0a84932"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af39bc45aec48f28d7b6a56ab62f3ab26"><td class="memItemLeft" align="right" valign="top">integer, dimension(:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegeometry__2d.html#af39bc45aec48f28d7b6a56ab62f3ab26">source_cell</a></td></tr>
+<tr class="separator:af39bc45aec48f28d7b6a56ab62f3ab26"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a487d3f74e581feb1ef1cea824e9901bc"><td class="memItemLeft" align="right" valign="top">logical, dimension(:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegeometry__2d.html#a487d3f74e581feb1ef1cea824e9901bc">sourcee</a></td></tr>
+<tr class="separator:a487d3f74e581feb1ef1cea824e9901bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aede4f24555283a50b5d5b72b6a09f6f4"><td class="memItemLeft" align="right" valign="top">logical, dimension(:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegeometry__2d.html#aede4f24555283a50b5d5b72b6a09f6f4">sourcew</a></td></tr>
+<tr class="separator:aede4f24555283a50b5d5b72b6a09f6f4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af05bf7e2ae6a5cc0cffeb4d0805d5a58"><td class="memItemLeft" align="right" valign="top">logical, dimension(:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegeometry__2d.html#af05bf7e2ae6a5cc0cffeb4d0805d5a58">sources</a></td></tr>
+<tr class="separator:af05bf7e2ae6a5cc0cffeb4d0805d5a58"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a060f75ab457417d78bf4b4f1067363b0"><td class="memItemLeft" align="right" valign="top">logical, dimension(:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegeometry__2d.html#a060f75ab457417d78bf4b4f1067363b0">sourcen</a></td></tr>
+<tr class="separator:a060f75ab457417d78bf4b4f1067363b0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2389b9a024067b57c1b60cdc2c937b03"><td class="memItemLeft" align="right" valign="top">real *8, dimension(:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegeometry__2d.html#a2389b9a024067b57c1b60cdc2c937b03">dist_sourcee</a></td></tr>
+<tr class="separator:a2389b9a024067b57c1b60cdc2c937b03"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a47a991abdc1a1639f6ae9a6d33e83e12"><td class="memItemLeft" align="right" valign="top">real *8, dimension(:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegeometry__2d.html#a47a991abdc1a1639f6ae9a6d33e83e12">dist_sourcew</a></td></tr>
+<tr class="separator:a47a991abdc1a1639f6ae9a6d33e83e12"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a53467c551faf4f0ffa01e0f7b8b9bde1"><td class="memItemLeft" align="right" valign="top">real *8, dimension(:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegeometry__2d.html#a53467c551faf4f0ffa01e0f7b8b9bde1">dist_sources</a></td></tr>
+<tr class="separator:a53467c551faf4f0ffa01e0f7b8b9bde1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adb274327b16a38aa1723a3516aab21a1"><td class="memItemLeft" align="right" valign="top">real *8, dimension(:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegeometry__2d.html#adb274327b16a38aa1723a3516aab21a1">dist_sourcen</a></td></tr>
+<tr class="separator:adb274327b16a38aa1723a3516aab21a1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aeed7558361b0c98d1a2f67cd6a0edf09"><td class="memItemLeft" align="right" valign="top">real *8, dimension(:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegeometry__2d.html#aeed7558361b0c98d1a2f67cd6a0edf09">sourcee_vect_x</a></td></tr>
+<tr class="separator:aeed7558361b0c98d1a2f67cd6a0edf09"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3bd832256d3b4058cd1f2a30b2553950"><td class="memItemLeft" align="right" valign="top">real *8, dimension(:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegeometry__2d.html#a3bd832256d3b4058cd1f2a30b2553950">sourcee_vect_y</a></td></tr>
+<tr class="separator:a3bd832256d3b4058cd1f2a30b2553950"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adbb30b93f5ed9d6060ae625ee25f8849"><td class="memItemLeft" align="right" valign="top">real *8, dimension(:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegeometry__2d.html#adbb30b93f5ed9d6060ae625ee25f8849">sourcew_vect_x</a></td></tr>
+<tr class="separator:adbb30b93f5ed9d6060ae625ee25f8849"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5a98460ea6b884f21d3326a38f5b8d19"><td class="memItemLeft" align="right" valign="top">real *8, dimension(:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegeometry__2d.html#a5a98460ea6b884f21d3326a38f5b8d19">sourcew_vect_y</a></td></tr>
+<tr class="separator:a5a98460ea6b884f21d3326a38f5b8d19"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aff945fac5c8e137757eb84f5ab9fab12"><td class="memItemLeft" align="right" valign="top">real *8, dimension(:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegeometry__2d.html#aff945fac5c8e137757eb84f5ab9fab12">sources_vect_x</a></td></tr>
+<tr class="separator:aff945fac5c8e137757eb84f5ab9fab12"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a269240761d9433fd1aa8a7755d89c5bc"><td class="memItemLeft" align="right" valign="top">real *8, dimension(:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegeometry__2d.html#a269240761d9433fd1aa8a7755d89c5bc">sources_vect_y</a></td></tr>
+<tr class="separator:a269240761d9433fd1aa8a7755d89c5bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a52ac97436777cc2776efbff06c804427"><td class="memItemLeft" align="right" valign="top">real *8, dimension(:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegeometry__2d.html#a52ac97436777cc2776efbff06c804427">sourcen_vect_x</a></td></tr>
+<tr class="separator:a52ac97436777cc2776efbff06c804427"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abb90b35e7b16ef39c859b91c4347cec3"><td class="memItemLeft" align="right" valign="top">real *8, dimension(:,:), allocatable&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegeometry__2d.html#abb90b35e7b16ef39c859b91c4347cec3">sourcen_vect_y</a></td></tr>
+<tr class="separator:abb90b35e7b16ef39c859b91c4347cec3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acb299e2418936d89a88a490ab997705d"><td class="memItemLeft" align="right" valign="top">real *8&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegeometry__2d.html#acb299e2418936d89a88a490ab997705d">pi_g</a></td></tr>
+<tr class="separator:acb299e2418936d89a88a490ab997705d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa1af6bfa27ed27015af431be02a373ea"><td class="memItemLeft" align="right" valign="top">integer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegeometry__2d.html#aa1af6bfa27ed27015af431be02a373ea">n_topography_profile_x</a></td></tr>
 <tr class="separator:aa1af6bfa27ed27015af431be02a373ea"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af940a6dfb6555aad20ddce95e1481766"><td class="memItemLeft" align="right" valign="top">integer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegeometry__2d.html#af940a6dfb6555aad20ddce95e1481766">n_topography_profile_y</a></td></tr>
@@ -220,6 +266,57 @@ Variables</h2></td></tr>
 <div class="textblock"><p>Grid module. </p>
 <p>This module contains the variables and the subroutines related to the computational grid </p>
 </div><h2 class="groupheader">Function/Subroutine Documentation</h2>
+<a class="anchor" id="a4488ab699fa421f3772dbd58f1c58600"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">subroutine geometry_2d::compute_cell_fract </td>
+          <td>(</td>
+          <td class="paramtype">real*8, intent(in)&#160;</td>
+          <td class="paramname"><em>xs</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real*8, intent(in)&#160;</td>
+          <td class="paramname"><em>ys</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real*8, intent(in)&#160;</td>
+          <td class="paramname"><em>rs</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">real*8, dimension(<a class="el" href="namespacegeometry__2d.html#adb1761612b66101ff030f7a4097958fe">comp_cells_x</a>,<a class="el" href="namespacegeometry__2d.html#a5ca8eaedbb918dafef85f58e6fe55288">comp_cells_y</a>), intent(out)&#160;</td>
+          <td class="paramname"><em>cell_fract</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l01056">1056</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+
+<p><div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="namespacegeometry__2d_a4488ab699fa421f3772dbd58f1c58600_icgraph.png" border="0" usemap="#namespacegeometry__2d_a4488ab699fa421f3772dbd58f1c58600_icgraph" alt=""/></div>
+<map name="namespacegeometry__2d_a4488ab699fa421f3772dbd58f1c58600_icgraph" id="namespacegeometry__2d_a4488ab699fa421f3772dbd58f1c58600_icgraph">
+<area shape="rect" id="node2" href="namespaceinit__2d.html#aabc80a8d1ba5d29cccc69168ee8aed87" title="Collapsing volume initialization. " alt="" coords="208,5,335,47"/>
+<area shape="rect" id="node3" href="SW__VAR__DENS__MODEL_8f90.html#a97582f4cc38f0ee6b3117ca7cf96ccd7" title="Main Program. " alt="" coords="383,13,524,39"/>
+</map>
+</div>
+</p>
+
+</div>
+</div>
 <a class="anchor" id="aac4d5b367bcc8719c1bb55c41a221c1b"></a>
 <div class="memitem">
 <div class="memproto">
@@ -236,7 +333,7 @@ Variables</h2></td></tr>
 <p>Finite volume grid initialization. </p>
 <p>This subroutine initialize the grids for the finite volume solver. </p><dl class="section date"><dt>Date</dt><dd>16/08/2011 </dd></dl>
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00084">84</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00115">115</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 <p><div class="dynheader">
 Here is the call graph for this function:</div>
@@ -255,6 +352,33 @@ Here is the caller graph for this function:</div>
 <div class="center"><img src="namespacegeometry__2d_aac4d5b367bcc8719c1bb55c41a221c1b_icgraph.png" border="0" usemap="#namespacegeometry__2d_aac4d5b367bcc8719c1bb55c41a221c1b_icgraph" alt=""/></div>
 <map name="namespacegeometry__2d_aac4d5b367bcc8719c1bb55c41a221c1b_icgraph" id="namespacegeometry__2d_aac4d5b367bcc8719c1bb55c41a221c1b_icgraph">
 <area shape="rect" id="node2" href="SW__VAR__DENS__MODEL_8f90.html#a97582f4cc38f0ee6b3117ca7cf96ccd7" title="Main Program. " alt="" coords="204,5,345,32"/>
+</map>
+</div>
+</p>
+
+</div>
+</div>
+<a class="anchor" id="a6e606e0ecd3038cb9ffc8301286f71da"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">subroutine geometry_2d::init_source </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00307">307</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+
+<p><div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="namespacegeometry__2d_a6e606e0ecd3038cb9ffc8301286f71da_icgraph.png" border="0" usemap="#namespacegeometry__2d_a6e606e0ecd3038cb9ffc8301286f71da_icgraph" alt=""/></div>
+<map name="namespacegeometry__2d_a6e606e0ecd3038cb9ffc8301286f71da_icgraph" id="namespacegeometry__2d_a6e606e0ecd3038cb9ffc8301286f71da_icgraph">
+<area shape="rect" id="node2" href="SW__VAR__DENS__MODEL_8f90.html#a97582f4cc38f0ee6b3117ca7cf96ccd7" title="Main Program. " alt="" coords="221,5,363,32"/>
 </map>
 </div>
 </p>
@@ -309,7 +433,7 @@ Here is the caller graph for this function:</div>
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00218">218</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00442">442</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -375,7 +499,7 @@ Here is the caller graph for this function:</div>
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00277">277</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00501">501</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 <p><div class="dynheader">
 Here is the caller graph for this function:</div>
@@ -452,7 +576,7 @@ Here is the caller graph for this function:</div>
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00346">346</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00570">570</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 <p><div class="dynheader">
 Here is the caller graph for this function:</div>
@@ -537,7 +661,7 @@ Here is the caller graph for this function:</div>
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00427">427</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00651">651</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 <p><div class="dynheader">
 Here is the caller graph for this function:</div>
@@ -608,7 +732,7 @@ Here is the caller graph for this function:</div>
 <dl class="section date"><dt>Date</dt><dd>07/10/2016 </dd></dl>
 <dl class="section author"><dt>Author</dt><dd>Mattia de' Michieli Vitturi </dd></dl>
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00725">725</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00946">946</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 <p><div class="dynheader">
 Here is the call graph for this function:</div>
@@ -658,7 +782,7 @@ Here is the caller graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00803">803</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l01035">1035</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 <p><div class="dynheader">
 Here is the caller graph for this function:</div>
@@ -697,15 +821,18 @@ Here is the caller graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00782">782</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l01014">1014</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 <p><div class="dynheader">
 Here is the caller graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="namespacegeometry__2d_a8b922ea4d9a2bf5476f24e46d462391e_icgraph.png" border="0" usemap="#namespacegeometry__2d_a8b922ea4d9a2bf5476f24e46d462391e_icgraph" alt=""/></div>
 <map name="namespacegeometry__2d_a8b922ea4d9a2bf5476f24e46d462391e_icgraph" id="namespacegeometry__2d_a8b922ea4d9a2bf5476f24e46d462391e_icgraph">
-<area shape="rect" id="node2" href="namespacegeometry__2d.html#a508f9c43c26fea229532859de6a60994" title="Slope limiter. " alt="" coords="204,13,333,39"/>
-<area shape="rect" id="node3" href="namespacegeometry__2d.html#a0e2e031787aab53ee894a31ac6c00632" title="Linear reconstruction. " alt="" coords="381,5,551,47"/>
+<area shape="rect" id="node2" href="namespacegeometry__2d.html#a508f9c43c26fea229532859de6a60994" title="Slope limiter. " alt="" coords="223,17,353,43"/>
+<area shape="rect" id="node4" href="namespacesolver__2d.html#a2e63f69351675f01f87750814ac138dc" title="Linear reconstruction. " alt="" coords="204,71,372,98"/>
+<area shape="rect" id="node3" href="namespacegeometry__2d.html#a0e2e031787aab53ee894a31ac6c00632" title="Linear reconstruction. " alt="" coords="423,5,593,47"/>
+<area shape="rect" id="node5" href="namespacesolver__2d.html#a7f17c548fa0f025b2dc40b27605d4ef7" title="Time&#45;step computation. " alt="" coords="440,71,576,98"/>
+<area shape="rect" id="node6" href="namespacesolver__2d.html#a36e350e26b1662156a7f5a120b151932" title="Semidiscrete finite volume central scheme. " alt="" coords="420,123,596,164"/>
 </map>
 </div>
 </p>
@@ -788,7 +915,7 @@ Here is the caller graph for this function:</div>
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00661">661</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00882">882</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 <p><div class="dynheader">
 Here is the caller graph for this function:</div>
@@ -820,7 +947,7 @@ Here is the caller graph for this function:</div>
 <p>In this subroutine a linear reconstruction with slope limiters is applied to a set of variables describing the state of the system. </p><dl class="section author"><dt>Author</dt><dd>Mattia de' Michieli Vitturi </dd></dl>
 <dl class="section date"><dt>Date</dt><dd>2019/11/08 </dd></dl>
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00515">515</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00739">739</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 <p><div class="dynheader">
 Here is the call graph for this function:</div>
@@ -859,7 +986,7 @@ Here is the caller graph for this function:</div>
 
 <p>Topography at the centers of the control volumes. </p>
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00038">38</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00041">41</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -875,7 +1002,7 @@ Here is the caller graph for this function:</div>
 
 <p>Reconstructed value at the bottom of the y-interface. </p>
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00032">32</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00035">35</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -891,7 +1018,7 @@ Here is the caller graph for this function:</div>
 
 <p>Reconstructed value at the left of the x-interface. </p>
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00026">26</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00029">29</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -907,7 +1034,7 @@ Here is the caller graph for this function:</div>
 
 <p>Reconstructed value at the right of the x-interface. </p>
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00029">29</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00032">32</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -923,7 +1050,7 @@ Here is the caller graph for this function:</div>
 
 <p>Reconstructed value at the top of the y-interface. </p>
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00035">35</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00038">38</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -939,7 +1066,7 @@ Here is the caller graph for this function:</div>
 
 <p>Topography slope (x direction) at the centers of the control volumes. </p>
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00041">41</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00044">44</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -955,7 +1082,23 @@ Here is the caller graph for this function:</div>
 
 <p>Topography slope (y direction) at the centers of the control volumes. </p>
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00044">44</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00047">47</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a4989ace15ccaeb3d9c6f1d22bba250c2"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">real*8, dimension(:,:), allocatable geometry_2d::b_ver</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Topography at the vertices of the control volumes. </p>
+
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00026">26</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -969,7 +1112,7 @@ Here is the caller graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00071">71</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00102">102</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -985,7 +1128,7 @@ Here is the caller graph for this function:</div>
 
 <p>Number of control volumes x in the comp. domain. </p>
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00067">67</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00098">98</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -999,7 +1142,7 @@ Here is the caller graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00072">72</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00103">103</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1015,7 +1158,7 @@ Here is the caller graph for this function:</div>
 
 <p>Number of control volumes y in the comp. domain. </p>
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00069">69</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00100">100</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1031,7 +1174,7 @@ Here is the caller graph for this function:</div>
 
 <p>Number of interfaces (comp_cells_x+1) </p>
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00068">68</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00099">99</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1047,7 +1190,7 @@ Here is the caller graph for this function:</div>
 
 <p>Number of interfaces (comp_cells_y+1) </p>
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00070">70</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00101">101</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1063,7 +1206,79 @@ Here is the caller graph for this function:</div>
 
 <p>curvature wrt mixed directions for each cell </p>
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00053">53</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00056">56</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a6b69d7677e12d3e4d55af7c85a36c432"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">real*8, dimension(:,:,:), allocatable geometry_2d::deposit</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>deposit for the different classes </p>
+
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00059">59</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a2389b9a024067b57c1b60cdc2c937b03"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">real*8, dimension(:,:), allocatable geometry_2d::dist_sourcee</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00069">69</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="adb274327b16a38aa1723a3516aab21a1"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">real*8, dimension(:,:), allocatable geometry_2d::dist_sourcen</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00072">72</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a53467c551faf4f0ffa01e0f7b8b9bde1"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">real*8, dimension(:,:), allocatable geometry_2d::dist_sources</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00071">71</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a47a991abdc1a1639f6ae9a6d33e83e12"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">real*8, dimension(:,:), allocatable geometry_2d::dist_sourcew</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00070">70</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1079,7 +1294,7 @@ Here is the caller graph for this function:</div>
 
 <p>Control volumes size. </p>
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00059">59</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00090">90</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1095,7 +1310,7 @@ Here is the caller graph for this function:</div>
 
 <p>Half x Control volumes size. </p>
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00065">65</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00096">96</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1111,7 +1326,7 @@ Here is the caller graph for this function:</div>
 
 <p>Control volumes size. </p>
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00062">62</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00093">93</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1127,7 +1342,7 @@ Here is the caller graph for this function:</div>
 
 <p>Half y Control volumes size. </p>
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00066">66</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00097">97</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1143,7 +1358,7 @@ Here is the caller graph for this function:</div>
 
 <p>gravity vector wrt surface coordinates for each cell </p>
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00050">50</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00053">53</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1159,7 +1374,7 @@ Here is the caller graph for this function:</div>
 
 <p>Solution in ascii grid format (ESRI) </p>
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00047">47</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00050">50</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1173,7 +1388,7 @@ Here is the caller graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00057">57</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00088">88</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1187,7 +1402,203 @@ Here is the caller graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00057">57</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00088">88</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="acb299e2418936d89a88a490ab997705d"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">real*8 geometry_2d::pi_g</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00086">86</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="af39bc45aec48f28d7b6a56ab62f3ab26"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">integer, dimension(:,:), allocatable geometry_2d::source_cell</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00063">63</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a487d3f74e581feb1ef1cea824e9901bc"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">logical, dimension(:,:), allocatable geometry_2d::sourcee</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00064">64</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="aeed7558361b0c98d1a2f67cd6a0edf09"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">real*8, dimension(:,:), allocatable geometry_2d::sourcee_vect_x</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00074">74</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a3bd832256d3b4058cd1f2a30b2553950"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">real*8, dimension(:,:), allocatable geometry_2d::sourcee_vect_y</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00075">75</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a060f75ab457417d78bf4b4f1067363b0"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">logical, dimension(:,:), allocatable geometry_2d::sourcen</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00067">67</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a52ac97436777cc2776efbff06c804427"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">real*8, dimension(:,:), allocatable geometry_2d::sourcen_vect_x</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00083">83</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="abb90b35e7b16ef39c859b91c4347cec3"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">real*8, dimension(:,:), allocatable geometry_2d::sourcen_vect_y</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00084">84</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="af05bf7e2ae6a5cc0cffeb4d0805d5a58"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">logical, dimension(:,:), allocatable geometry_2d::sources</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00066">66</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="aff945fac5c8e137757eb84f5ab9fab12"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">real*8, dimension(:,:), allocatable geometry_2d::sources_vect_x</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00080">80</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a269240761d9433fd1aa8a7755d89c5bc"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">real*8, dimension(:,:), allocatable geometry_2d::sources_vect_y</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00081">81</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="aede4f24555283a50b5d5b72b6a09f6f4"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">logical, dimension(:,:), allocatable geometry_2d::sourcew</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00065">65</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="adbb30b93f5ed9d6060ae625ee25f8849"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">real*8, dimension(:,:), allocatable geometry_2d::sourcew_vect_x</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00077">77</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+
+</div>
+</div>
+<a class="anchor" id="a5a98460ea6b884f21d3326a38f5b8d19"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">real*8, dimension(:,:), allocatable geometry_2d::sourcew_vect_y</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00078">78</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1201,7 +1612,7 @@ Here is the caller graph for this function:</div>
       </table>
 </div><div class="memdoc">
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00055">55</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00061">61</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1217,7 +1628,7 @@ Here is the caller graph for this function:</div>
 
 <p>Left of the physical domain. </p>
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00060">60</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00091">91</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1265,7 +1676,7 @@ Here is the caller graph for this function:</div>
 
 <p>Right of the physical domain. </p>
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00061">61</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00092">92</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1281,7 +1692,7 @@ Here is the caller graph for this function:</div>
 
 <p>Bottom of the physical domain. </p>
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00063">63</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00094">94</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 </div>
 </div>
@@ -1329,14 +1740,14 @@ Here is the caller graph for this function:</div>
 
 <p>Top of the physical domain. </p>
 
-<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00064">64</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
+<p>Definition at line <a class="el" href="geometry__2d_8f90_source.html#l00095">95</a> of file <a class="el" href="geometry__2d_8f90_source.html">geometry_2d.f90</a>.</p>
 
 </div>
 </div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Fri Nov 8 2019 15:23:55 for SW_VAR_DENS_MODEL by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Fri Dec 13 2019 15:50:46 for SW_VAR_DENS_MODEL by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.11
 </small></address>

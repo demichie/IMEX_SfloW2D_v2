@@ -7,6 +7,7 @@ var searchData=
   ['b_5finterfacet',['b_interfacet',['../namespacegeometry__2d.html#afacb2daf21e470f652a1d9dac1543da4',1,'geometry_2d']]],
   ['b_5fprime_5fx',['b_prime_x',['../namespacegeometry__2d.html#a66729d52a6c861edef73bfd3b867bc74',1,'geometry_2d']]],
   ['b_5fprime_5fy',['b_prime_y',['../namespacegeometry__2d.html#a9a21014133fa6f740b04d75fea034a0f',1,'geometry_2d']]],
+  ['b_5fver',['b_ver',['../namespacegeometry__2d.html#a4989ace15ccaeb3d9c6f1d22bba250c2',1,'geometry_2d']]],
   ['backup_5funit',['backup_unit',['../namespaceinpout__2d.html#aedce764bf7b500ba6a31562134d92f95',1,'inpout_2d']]],
   ['bak_5fname',['bak_name',['../namespaceinpout__2d.html#af1fccdf10e33ffd8e3967063d403fac7',1,'inpout_2d']]],
   ['bc',['bc',['../structparameters__2d_1_1bc.html',1,'parameters_2d']]],

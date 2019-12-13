@@ -5,6 +5,7 @@ var searchData=
   ['cell_5fsize',['cell_size',['../namespacegeometry__2d.html#a99eca856d462a742635e55d64c071768',1,'geometry_2d']]],
   ['cellsize',['cellsize',['../namespaceinpout__2d.html#af260b06f71bcb4d69f75a648a45ecf2b',1,'inpout_2d']]],
   ['cfl',['cfl',['../namespaceparameters__2d.html#af929e80d8aa7bc5ea03d1551ca229375',1,'parameters_2d']]],
+  ['collapsing_5fvolume_5fflag',['collapsing_volume_flag',['../namespaceparameters__2d.html#aa79a01f87a6d8d37cf42f878966eab6c',1,'parameters_2d']]],
   ['comp_5fcells_5fx',['comp_cells_x',['../namespacegeometry__2d.html#adb1761612b66101ff030f7a4097958fe',1,'geometry_2d']]],
   ['comp_5fcells_5fxy',['comp_cells_xy',['../namespacegeometry__2d.html#ae06612f4b42473950862a79dd45b7147',1,'geometry_2d']]],
   ['comp_5fcells_5fy',['comp_cells_y',['../namespacegeometry__2d.html#a5ca8eaedbb918dafef85f58e6fe55288',1,'geometry_2d']]],
