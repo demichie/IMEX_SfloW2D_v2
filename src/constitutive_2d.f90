@@ -175,6 +175,8 @@ CONTAINS
 
     n_nh = COUNT( implicit_flag )
 
+    RETURN
+    
   END SUBROUTINE init_problem_param
 
   !******************************************************************************

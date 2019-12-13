@@ -432,6 +432,8 @@ CONTAINS
     ALLOCATE( j_stag_y( comp_cells_x * comp_interfaces_y ) )
     ALLOCATE( k_stag_y( comp_cells_x * comp_interfaces_y ) )
 
+    RETURN
+    
   END SUBROUTINE allocate_solver_variables
 
   !******************************************************************************
@@ -524,6 +526,8 @@ CONTAINS
     DEALLOCATE ( j_stag_x , k_stag_x )
     DEALLOCATE ( j_stag_y , k_stag_y )
 
+    RETURN
+    
   END SUBROUTINE deallocate_solver_variables
 
 
@@ -1508,6 +1512,8 @@ CONTAINS
 
     END DO newton_raphson_loop
 
+    RETURN
+    
   END SUBROUTINE solve_rk_step
 
   !******************************************************************************
@@ -1726,6 +1732,8 @@ CONTAINS
 
     END DO optimal_step_search
 
+    RETURN
+    
   END SUBROUTINE lnsrch
 
   !******************************************************************************
@@ -1778,6 +1786,8 @@ CONTAINS
 
     scal_f = 0.5D0 * DOT_PRODUCT( f_nl , f_nl )
 
+    RETURN
+    
   END SUBROUTINE eval_f
 
   !******************************************************************************
@@ -1849,6 +1859,8 @@ CONTAINS
 
     END DO
 
+    RETURN
+    
   END SUBROUTINE eval_jacobian
 
   !******************************************************************************
@@ -2016,6 +2028,8 @@ CONTAINS
 
     END DO
 
+    RETURN
+    
   END SUBROUTINE eval_explicit_terms
 
   !******************************************************************************
@@ -2373,6 +2387,8 @@ CONTAINS
 
     END IF
 
+    RETURN
+    
   END SUBROUTINE eval_flux_KT
 
   !******************************************************************************
@@ -2418,6 +2434,8 @@ CONTAINS
 
     END DO
 
+    RETURN
+    
   END SUBROUTINE average_KT
 
   !******************************************************************************
@@ -3231,6 +3249,8 @@ CONTAINS
 
     END IF
 
+    RETURN
+    
   END SUBROUTINE eval_speeds
 
 END MODULE solver_2d
