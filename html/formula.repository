@@ -24,3 +24,5 @@
 \form#23:$ alphal $
 \form#24:$ h*u $
 \form#25:$ h*v $
+\form#26:$h,u,v,\alpha_s,\rho_m,T,\alpha_l $
+\form#27:$h,u,v,T,\rho_m,red grav,\alpha_s $
