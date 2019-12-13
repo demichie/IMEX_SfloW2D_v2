@@ -10,8 +10,12 @@ MODULE constitutive_2d
 
   IMPLICIT none
 
+  !> flag used for size of implicit non linear-system
   LOGICAL, ALLOCATABLE :: implicit_flag(:)
 
+  !> flag to activate air entrainment
+  LOGICAL :: entrainment_flag
+  
   !> gravitational acceleration 
   REAL*8 :: grav
 
@@ -70,7 +74,7 @@ MODULE constitutive_2d
   !> thermal conductivity [W m-1 K-1] (k in Costa & Macedonio, 2005)
   REAL*8 :: thermal_conductivity
 
-  !--- Lahars rheology model parameters
+  !--- START Lahars rheology model parameters
 
   !> 1st param for yield strenght empirical relationship (O'Brian et al, 1993)
   REAL*8 :: alpha2    ! (units: kg m-1 s-2)
@@ -90,61 +94,63 @@ MODULE constitutive_2d
   !> Mannings roughness coefficient ( units: T L^(-1/3) )
   REAL*8 :: n_td
 
+  !--- END Lahars rheology model parameters
+
   !> Specific heat of carrier phase (gas or liquid)
   REAL*8 :: sp_heat_c  ! ( initialized from input)   
 
-  !> Ambient density of air ( units: kg/m^3 )
+  !> Ambient density of air ( units: kg m-3 )
   REAL*8 :: rho_a_amb
 
-  !> Specific heat of air
+  !> Specific heat of air (units: J K-1 kg-1)
   REAL*8 :: sp_heat_a
 
-  !> Specific gas constant of air
+  !> Specific gas constant of air (units: J kg-1 K-1)
   REAL*8 :: sp_gas_const_a
 
-  !> Kinematic viscosity of air
+  !> Kinematic viscosity of air (units: m2 s-1)
   REAL*8 :: kin_visc_a
 
-  !> Kinematic viscosity of liquid
+  !> Kinematic viscosity of liquid (units: m2 s-1)
   REAL*8 :: kin_visc_l
 
-  !> Kinematic viscosity of carrier phase
+  !> Kinematic viscosity of carrier phase (units: m2 s-1)
   REAL*8 :: kin_visc_c
 
-  !> Temperature of ambient air 
+  !> Temperature of ambient air (units: K)
   REAL*8 :: T_ambient
 
-  LOGICAL :: entrainment_flag
-
-  !> Specific weight of sediments
+  !> Density of sediments ( units: kg m-3 )
   REAL*8, ALLOCATABLE :: rho_s(:)
 
-  !> Diameter of sediments
+  !> Diameter of sediments ( units: m )
   REAL*8, ALLOCATABLE :: diam_s(:)
 
-  !> Specific heat of sediments
+  !> Specific heat of solids (units: J K-1 kg-1)
   REAL*8, ALLOCATABLE :: sp_heat_s(:)
 
+  !> Drag coefficient of solids (nondimensional)
   REAL*8, ALLOCATABLE :: C_D_s(:)
 
+  !> Flag to determine if sedimentation is active
   LOGICAL :: settling_flag
 
-  !> hindered settling 
+  !> Hindered settling velocity (units: m s-1 )
   REAL*8 :: settling_vel
 
-  !> erosion model coefficient  ( units: m-1 )
+  !> erosion model coefficient  (units: m-1 )
   REAL*8, ALLOCATABLE :: erosion_coeff(:)
 
-  !> temperature of solid substrate (K)
+  !> temperature of solid substrate (units: K)
   REAL*8 :: T_s_substrate
 
-  !> ambient pressure
+  !> ambient pressure (units: Pa)
   REAL*8 :: pres
 
-  !> liquid density
+  !> liquid density (units: kg m-3)
   REAL*8 :: rho_l
 
-  !> Sepcific heat of liquid
+  !> Sepcific heat of liquid (units: J K-1 kg-1)
   REAL*8 :: sp_heat_l
 
 CONTAINS
@@ -1270,8 +1276,6 @@ CONTAINS
 
        CALL c_phys_var(qj,h,u,v,T,rho_m,red_grav,alphas)
 
-
-       
        mod_vel = CDSQRT( u**2 + v**2 )
 
        ! Voellmy Salm rheology
@@ -1279,7 +1283,7 @@ CONTAINS
 
           IF ( DBLE(mod_vel) .NE. 0.D0 ) THEN 
 
-             ! IMPORTANT: grav3_surv is always negative 
+             ! IMPORTANT: grav3_surf is always negative 
              forces_term(2) = forces_term(2) - rho_m * ( u / mod_vel ) *        &
                   ( grav / xi ) * mod_vel ** 2
 
@@ -1385,11 +1389,11 @@ CONTAINS
 
           IF ( mod_vel .GT. 0.D0 ) THEN
 
-             ! same units of dqc(2)/dt: kg m-1 s-1
+             ! same units of dqc(2)/dt: kg m-1 s-2
              forces_term(2) = forces_term(2) - grav * rho_m * h *               &
                   ( u / mod_vel ) * s_f
 
-             ! same units of dqc(3)/dt: kg m-1 s-1
+             ! same units of dqc(3)/dt: kg m-1 s-2
              forces_term(3) = forces_term(3) - grav * rho_m * h *               &
                   ( v / mod_vel ) * s_f
 
@@ -1472,9 +1476,9 @@ CONTAINS
     REAL*8 :: h_threshold
 
     !--- Lahars rheology model variables
-    !> Yield strenght
+    !> Yield strenght (units: kg m−1 s−2)
     REAL*8 :: tau_y
-    !> Yield slope component of total friction
+    !> Yield slope component of total friction (dimensionless)
     REAL*8 :: s_y
 
     REAL*8 :: r_h               !< real-value flow thickness
@@ -1500,9 +1504,11 @@ CONTAINS
 
           IF ( mod_vel .GT. 0.D0 ) THEN
 
+             ! units of dqc(2)/dt=d(rho h v)/dt (kg m−1 s−2)
              forces_term(2) = forces_term(2) - r_rho_m * ( r_u / mod_vel ) *    &
                   mu * r_h * ( - grav * grav3_surf )
 
+             ! units of dqc(3)/dt=d(rho h v)/dt (kg m−1 s−2)
              forces_term(3) = forces_term(3) - r_rho_m * ( r_v / mod_vel ) *    &
                   mu * r_h * ( - grav * grav3_surf )
 
@@ -1521,7 +1527,7 @@ CONTAINS
 
           h_threshold = 1.D-20
 
-          ! Yield strength
+          ! Yield strength (units: kg m−1 s−2)
           tau_y = alpha2 * DEXP( beta2 * SUM(r_alphas) )
 
           IF ( r_h .GT. h_threshold ) THEN
@@ -1531,18 +1537,18 @@ CONTAINS
 
           ELSE
 
-             ! Yield slope component
+             ! Yield slope component (dimensionless)
              s_y = tau_y / ( grav * r_rho_m * h_threshold )
 
           END IF
 
           IF ( mod_vel .GT. 0.D0 ) THEN
 
-             ! units of dqc(2)/dt
+             ! units of dqc(2)/dt (kg m−1 s−2)
              forces_term(2) = forces_term(2) - grav * r_rho_m * r_h *           &
                   ( r_u / mod_vel ) * s_y
 
-             ! units of dqc(3)/dt
+             ! units of dqc(3)/dt (kg m−1 s−2)
              forces_term(3) = forces_term(3) - grav * r_rho_m * r_h *           &
                   ( r_v / mod_vel ) * s_y
 
