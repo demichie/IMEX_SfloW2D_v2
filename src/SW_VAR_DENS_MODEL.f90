@@ -48,7 +48,6 @@ PROGRAM SW_VAR_DENS_MODEL
 
   USE inpout_2d, ONLY : output_runout_flag
 
-
   USE solver_2d, ONLY : allocate_solver_variables
   USE solver_2d, ONLY : deallocate_solver_variables
   USE solver_2d, ONLY : imex_RK_solver
@@ -160,7 +159,7 @@ PROGRAM SW_VAR_DENS_MODEL
      
      DO j = 1,comp_cells_x
         
-        CALL qc_to_qp(q(1:n_vars,j,k) , B_cent(j,k) , qp(1:n_vars,j,k) )
+        CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars,j,k) )
         
      END DO
      
@@ -222,7 +221,7 @@ PROGRAM SW_VAR_DENS_MODEL
         
         DO j = 1,comp_cells_x
            
-           CALL qc_to_qp(q(1:n_vars,j,k) , B_cent(j,k) , qp(1:n_vars,j,k) )
+           CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars,j,k) )
            
         END DO
 

@@ -520,11 +520,9 @@ CONTAINS
 
     DEALLOCATE( residual_term )
 
-    DEALLOCATE( j_cent )
-    ! DEALLOCATE( k_cent )
-    ! DEALLOCATE( j_cent , k_cent )
-    ! DEALLOCATE ( j_stag_x , k_stag_x )
-    ! DEALLOCATE ( j_stag_y , k_stag_y )
+    DEALLOCATE( j_cent , k_cent )
+    DEALLOCATE ( j_stag_x , k_stag_x )
+    DEALLOCATE ( j_stag_y , k_stag_y )
 
   END SUBROUTINE deallocate_solver_variables
 
@@ -602,12 +600,10 @@ CONTAINS
 
     END IF
 
-
     solve_mask_x(1:comp_interfaces_x,1:comp_cells_y) = .FALSE.
     solve_mask_y(1:comp_cells_x,1:comp_interfaces_y) = .FALSE.
 
-
-
+    !----- check for cells where computation is needed
     i = 0
         
     DO k = 1,comp_cells_y
@@ -633,10 +629,8 @@ CONTAINS
 
     solve_cells = i
 
- 
-    i = 0
-
     !----- check for y-interfaces where computation is needed
+    i = 0
         
     DO k = 1,comp_cells_y
 
@@ -728,7 +722,7 @@ CONTAINS
           j = j_cent(l)
           k = k_cent(l)
 
-          CALL qc_to_qp( q(1:n_vars,j,k), B_cent(j,k) , qp(1:n_vars+2,j,k) )
+          CALL qc_to_qp( q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) )
 
        END DO
 
@@ -755,7 +749,7 @@ CONTAINS
           k = k_cent(l)
 
 
-          max_a =  MAX( MAXVAL(a_interface_x_max(:,j,k)) ,                   &
+          max_a =  MAX( MAXVAL(a_interface_x_max(:,j,k)) ,                      &
                MAXVAL(a_interface_x_max(:,j+1,k)) )
 
           IF ( max_a .GT. max_vel) THEN 
@@ -777,7 +771,7 @@ CONTAINS
 
           END IF
 
-          max_a =  MAX( MAXVAL(a_interface_y_max(:,j,k)) ,                   &
+          max_a =  MAX( MAXVAL(a_interface_y_max(:,j,k)) ,                      &
                MAXVAL(a_interface_y_max(:,j,k+1)) )
 
           IF ( max_a .GT. max_vel) THEN 
@@ -915,16 +909,16 @@ CONTAINS
 
           ! New solution at the i_RK step without the implicit  and
           ! semi-implicit term
-          q_fv( 1:n_vars , j , k ) = q0( 1:n_vars , j , k )                  &
-               - dt * (MATMUL( divFluxj(1:n_eqns,1:i_RK)                     &
-               + Expl_terms_j(1:n_eqns,1:i_RK) , a_tilde(1:i_RK) )           &
-               - MATMUL( NHj(1:n_eqns,1:i_RK) + SI_NHj(1:n_eqns,1:i_RK) ,    &
+          q_fv( 1:n_vars , j , k ) = q0( 1:n_vars , j , k )                     &
+               - dt * (MATMUL( divFluxj(1:n_eqns,1:i_RK)                        &
+               + Expl_terms_j(1:n_eqns,1:i_RK) , a_tilde(1:i_RK) )              &
+               - MATMUL( NHj(1:n_eqns,1:i_RK) + SI_NHj(1:n_eqns,1:i_RK) ,       &
                a_dirk(1:i_RK) ) )
 
           IF ( verbose_level .GE. 2 ) THEN
 
              WRITE(*,*) 'q_guess',q_guess
-             CALL qc_to_qp( q_guess , B_cent(j,k) , qp(1:n_vars+2,j,k) )
+             CALL qc_to_qp( q_guess , qp(1:n_vars+2,j,k) )
              WRITE(*,*) 'q_guess: qp',qp(1:n_vars+2,j,k)
 
           END IF
@@ -935,13 +929,13 @@ CONTAINS
 
                 ! Eval the semi-implicit terms
                 ! (terms which non depend on velocity magnitude)
-                CALL eval_nh_semi_impl_terms( grav_surf(j,k) ,               &
+                CALL eval_nh_semi_impl_terms( grav_surf(j,k) ,                  &
                      q_fv( 1:n_vars , j , k ) , SI_NH(1:n_eqns,j,k,i_RK) ) 
 
                 SI_NHj(1:n_eqns,i_RK) = SI_NH( 1:n_eqns,j,k,i_RK )
 
                 ! Assemble the initial guess for the implicit solver
-                q_si(1:n_vars) = q_fv(1:n_vars,j,k ) + dt * a_diag *         &
+                q_si(1:n_vars) = q_fv(1:n_vars,j,k ) + dt * a_diag *            &
                      SI_NH(1:n_eqns,j,k,i_RK)
 
                 IF ( ( q_fv(2,j,k)**2 + q_fv(3,j,k)**2 ) .EQ. 0.D0 ) THEN
@@ -949,7 +943,7 @@ CONTAINS
                    !Case 1: if the velocity was null, then it must stay null
                    q_si(2:3) = 0.D0 
 
-                ELSEIF ( ( q_si(2)*q_fv(2,j,k) .LT. 0.D0 ) .OR.              &
+                ELSEIF ( ( q_si(2)*q_fv(2,j,k) .LT. 0.D0 ) .OR.                 &
                      ( q_si(3)*q_fv(3,j,k) .LT. 0.D0 ) ) THEN
 
                    ! If the semi-impl. friction term changed the sign of the 
@@ -959,15 +953,15 @@ CONTAINS
                 ELSE
 
                    ! Align the velocity vector with previous one
-                   q_si(2:3) = DSQRT( q_si(2)**2 + q_si(3)**2 ) *            &
-                        q_fv(2:3,j,k) / DSQRT( q_fv(2,j,k)**2                &
+                   q_si(2:3) = DSQRT( q_si(2)**2 + q_si(3)**2 ) *               &
+                        q_fv(2:3,j,k) / DSQRT( q_fv(2,j,k)**2                   &
                         + q_fv(3,j,k)**2 ) 
 
                 END IF
 
                 ! Update the semi-implicit term accordingly with the
                 ! corrections above
-                SI_NH(1:n_eqns,j,k,i_RK) = ( q_si(1:n_vars) -                &
+                SI_NH(1:n_eqns,j,k,i_RK) = ( q_si(1:n_vars) -                   &
                      q_fv(1:n_vars,j,k ) ) / ( dt*a_diag )
 
                 SI_NHj(1:n_eqns,i_RK) = SI_NH( 1:n_eqns,j,k,i_RK )
@@ -977,8 +971,8 @@ CONTAINS
 
                 ! Solve the implicit system to find the solution at the 
                 ! i_RK step of the IMEX RK procedure
-                CALL solve_rk_step( B_cent(j,k) , q_guess(1:n_vars) ,        &
-                     q0(1:n_vars,j,k ) , a_tilde , a_dirk , a_diag )
+                CALL solve_rk_step( q_guess(1:n_vars) , q0(1:n_vars,j,k ) ,     &
+                     a_tilde , a_dirk , a_diag )
 
                 IF ( comp_cells_y .EQ. 1 ) THEN
 
@@ -993,14 +987,14 @@ CONTAINS
                 END IF
 
                 ! Eval and store the implicit term at the i_RK step
-                CALL eval_nonhyperbolic_terms( r_qj =q_guess ,               &
+                CALL eval_nonhyperbolic_terms( r_qj =q_guess ,                  &
                      r_nh_term_impl = NH(1:n_eqns,j,k,i_RK) )
 
                 IF ( q_si(2)**2 + q_si(3)**2 .EQ. 0.D0 ) THEN
 
                    q_guess(2:3) = 0.D0 
 
-                ELSEIF ( ( q_guess(2)*q_si(2) .LE. 0.D0 ) .AND.              &
+                ELSEIF ( ( q_guess(2)*q_si(2) .LE. 0.D0 ) .AND.                 &
                      ( q_guess(3)*q_si(3) .LE. 0.D0 ) ) THEN
 
                    ! If the impl. friction term changed the sign of the 
@@ -1010,7 +1004,7 @@ CONTAINS
                 ELSE
 
                    ! Align the velocity vector with previous one
-                   q_guess(2:3) = DSQRT( q_guess(2)**2 + q_guess(3)**2 ) *   &
+                   q_guess(2:3) = DSQRT( q_guess(2)**2 + q_guess(3)**2 ) *      &
                         q_si(2:3) / DSQRT( q_si(2)**2 + q_si(3)**2 ) 
 
                 END IF
@@ -1033,7 +1027,7 @@ CONTAINS
           IF ( a_diag .NE. 0.D0 ) THEN
 
              ! Update the implicit term with correction on the new velocity
-             NH(1:n_vars,j,k,i_RK) = ( q_guess(1:n_vars) - q_si(1:n_vars))   &
+             NH(1:n_vars,j,k,i_RK) = ( q_guess(1:n_vars) - q_si(1:n_vars))      &
                   / ( dt*a_diag ) 
 
           END IF
@@ -1044,7 +1038,7 @@ CONTAINS
           IF ( verbose_level .GE. 2 ) THEN
 
              WRITE(*,*) 'imex_RK_solver: qc',q_guess
-             CALL qc_to_qp( q_guess, B_cent(j,k) , qp(1:n_vars+2,j,k) )
+             CALL qc_to_qp( q_guess , qp(1:n_vars+2,j,k) )
              WRITE(*,*) 'imex_RK_solver: qp',qp(1:n_vars+2,j,k)
              READ(*,*)
 
@@ -1063,7 +1057,7 @@ CONTAINS
              j = j_cent(l)
              k = k_cent(l)
 
-             CALL qc_to_qp( q_rk(1:n_vars,j,k,i_RK) , B_cent(j,k) ,       &
+             CALL qc_to_qp( q_rk(1:n_vars,j,k,i_RK) ,                           &
                   qp_rk(1:n_vars+2,j,k,i_RK) )
 
           END DO
@@ -1097,9 +1091,9 @@ CONTAINS
        j = j_cent(l)
        k = k_cent(l)
 
-       residual_term(1:n_vars,j,k) = MATMUL( divFlux(1:n_eqns,j,k,1:n_RK)    &
-            + expl_terms(1:n_eqns,j,k,1:n_RK) , omega_tilde ) -              &
-            MATMUL( NH(1:n_eqns,j,k,1:n_RK) + SI_NH(1:n_eqns,j,k,1:n_RK) ,   &
+       residual_term(1:n_vars,j,k) = MATMUL( divFlux(1:n_eqns,j,k,1:n_RK)       &
+            + expl_terms(1:n_eqns,j,k,1:n_RK) , omega_tilde ) -                 &
+            MATMUL( NH(1:n_eqns,j,k,1:n_RK) + SI_NH(1:n_eqns,j,k,1:n_RK) ,      &
             omega )
 
     END DO
@@ -1113,12 +1107,12 @@ CONTAINS
 
           WRITE(*,*) 'cell jk =',j,k
           WRITE(*,*) 'before imex_RK_solver: qc',q0(1:n_vars,j,k)
-          CALL qc_to_qp(q0(1:n_vars,j,k) , B_cent(j,k) , qp(1:n_vars+2,j,k))
+          CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k))
           WRITE(*,*) 'before imex_RK_solver: qp',qp(1:n_vars+2,j,k)
 
        END IF
 
-       IF ( ( SUM(ABS( omega_tilde(:)-a_tilde_ij(n_RK,:))) .EQ. 0.D0  )      &
+       IF ( ( SUM(ABS( omega_tilde(:)-a_tilde_ij(n_RK,:))) .EQ. 0.D0  )         &
             .AND. ( SUM(ABS(omega(:)-a_dirk_ij(n_RK,:))) .EQ. 0.D0 ) ) THEN
 
           ! The assembling coeffs are equal to the last step of the RK scheme
@@ -1148,7 +1142,7 @@ CONTAINS
              WRITE(*,*) 'source_cell top',source_cell(j,k+1)
              WRITE(*,*) 'source_cell bottom',source_cell(j,k-1)
              WRITE(*,*) 'before imex_RK_solver: qc',q0(1:n_vars,j,k)
-             CALL qc_to_qp(q0(1:n_vars,j,k) , B_cent(j,k) , qp(1:n_vars+2,j,k))
+             CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k))
              WRITE(*,*) 'before imex_RK_solver: qp',qp(1:n_vars+2,j,k)
              WRITE(*,*) 'h old',q0(1,j,k)
              WRITE(*,*) 'h new',q(1,j,k)
@@ -1171,7 +1165,7 @@ CONTAINS
 
           IF ( SUM(q(5:4+n_solid,j,k))-q(1,j,k) .LT. 1.D-10 ) THEN
 
-             q(5:4+n_solid,j,k) = q(5:4+n_solid,j,k)                         &
+             q(5:4+n_solid,j,k) = q(5:4+n_solid,j,k)                            &
                   / SUM(q(5:4+n_solid,j,k)) * q(1,j,k)
 
           ELSE
@@ -1179,21 +1173,12 @@ CONTAINS
              WRITE(*,*) 'j,k,n_RK',j,k,n_RK
              WRITE(*,*) 'dt',dt
              WRITE(*,*) ' B_cent(j,k)', B_cent(j,k)
-
              WRITE(*,*) 'before imex_RK_solver: qc',q0(1:n_vars,j,k)
-             CALL qc_to_qp(q0(1:n_vars,j,k) , B_cent(j,k) , qp(1:n_vars+2,j,k))
+             CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k))
              WRITE(*,*) 'before imex_RK_solver: qp',qp(1:n_vars+2,j,k)
-
-             CALL qc_to_qp(q(1:n_vars,j,k) , B_cent(j,k) , qp(1:n_vars+2,j,k))
-
              WRITE(*,*) 'after imex_RK_solver: qc',q(1:n_vars,j,k)
+             CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k))
              WRITE(*,*) 'after imex_RK_solver: qp',qp(1:n_vars+2,j,k)
-
-
-             WRITE(*,*) 'h old',q0(1,j,k)
-             WRITE(*,*) 'h new',q(1,j,k)
-             WRITE(*,*) 'alphas old', q0(5:4+n_solid,j,k) / q0(1,j,k)
-             WRITE(*,*) 'alphas new', q(5:4+n_solid,j,k) / q(1,j,k) 
              READ(*,*)
 
           END IF
@@ -1223,8 +1208,6 @@ CONTAINS
   !> F(Q^{(j)}) +  dt \sum_{j=1}^{i-1} a_j  NH(Q^{(j)}) 
   !> + dt a_{diag} NH(Q^{(i)}) \f$\n
   !
-  !> \param[in]     Bj        topography at the cell center
-  !> \param[in]     Bprimej   topography slope at the cell center
   !> \param[in,out] qj        conservative variables 
   !> \param[in]     qj_old    conservative variables at the old time step
   !> \param[in]     a_tilde   explicit coefficents for the fluxes
@@ -1237,7 +1220,7 @@ CONTAINS
   !
   !******************************************************************************
 
-  SUBROUTINE solve_rk_step( Bj, qj, qj_old, a_tilde , a_dirk , a_diag )
+  SUBROUTINE solve_rk_step( qj, qj_old, a_tilde , a_dirk , a_diag )
 
     USE parameters_2d, ONLY : max_nl_iter , tol_rel , tol_abs
 
@@ -1245,7 +1228,6 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL*8, INTENT(IN) :: Bj
     REAL*8, INTENT(INOUT) :: qj(n_vars)
     REAL*8, INTENT(IN) :: qj_old(n_vars)
     REAL*8, INTENT(IN) :: a_tilde(n_RK)
@@ -1267,7 +1249,7 @@ CONTAINS
     REAL*8 :: scal_f_old
     REAL*8 :: desc_dir(n_vars)
     REAL*8 :: grad_f(n_vars)
-    REAL*8 :: mod_desc_dir
+    ! REAL*8 :: mod_desc_dir
 
     INTEGER :: pivot(n_vars)
 
@@ -1446,8 +1428,8 @@ CONTAINS
 
        END IF
 
-       mod_desc_dir = DSQRT( desc_dir(2)**2 + desc_dir(3)**2 )
-
+       !mod_desc_dir = DSQRT( desc_dir(2)**2 + desc_dir(3)**2 )
+       !
        !IF (  qj(2)**2 + qj(3)**2 .GT. 0.D0 ) THEN 
        !
        !   desc_dir(2) = mod_desc_dir * qj(2) / ( qj(2)**2 + qj(3)**2 ) 
@@ -1492,7 +1474,7 @@ CONTAINS
        IF ( verbose_level .GE. 3 ) THEN
 
           WRITE(*,*) 'qj',qj
-          CALL qc_to_qp( qj , Bj , qpj)
+          CALL qc_to_qp( qj , qpj)
           WRITE(*,*) 'qp',qpj
 
        END IF
@@ -1533,9 +1515,6 @@ CONTAINS
   !
   !> This subroutine search for the lenght of the descent step in order to have
   !> a decrease in the nonlinear function.
-  !> \param[in]     Bj               topography at the cell center
-  !> \param[in]     Bprimej_x        topography x-slope at the cell center
-  !> \param[in]     Bprimej_y        topography y-slope at the cell center
   !> \param[in]     qj_rel_NR_old  
   !> \param[in]     qj_org
   !> \param[in]     qj_old
@@ -1754,8 +1733,6 @@ CONTAINS
   !
   !> This subroutine evaluate the value of the nonlinear system in the state 
   !> defined by the variables qj.
-  !> \param[in]    Bj          topography at the cell center
-  !> \param[in]    Bprimej     topography slope at the cell center
   !> \param[in]    qj          conservative variables 
   !> \param[in]    qj_old      conservative variables at the old time step
   !> \param[in]    a_tilde     explicit coefficients for the hyperbolic terms 
@@ -1809,10 +1786,6 @@ CONTAINS
   !> This subroutine evaluate the jacobian of the non-linear system
   !> with respect to the conservative variables.
   !
-  !> \param[in]    Bj            topography at the cell center
-  !> \param[in]    Bprimej_x     topography x-slope at the cell center
-  !> \param[in]    Bprimej_y     topography y-slope at the cell center
-  !> \param[in]    grav3_surf
   !> \param[in]    qj_rel        relative variation (qj=qj_rel*qj_org)
   !> \param[in]    qj_org        conservative variables at the old time step
   !> \param[in]    coeff_f       coefficient to rescale the nonlinear functions
@@ -1925,9 +1898,9 @@ CONTAINS
        j = j_cent(l)
        k = k_cent(l)
 
-       CALL qc_to_qp(q(1:n_vars,j,k) , B_cent(j,k) , qp(1:n_vars+2,j,k) )
+       CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) )
 
-       CALL eval_erosion_dep_term( qp(1:n_vars+2,j,k) , B_cent(j,k) , dt ,      &
+       CALL eval_erosion_dep_term( qp(1:n_vars+2,j,k) ,  dt ,                   &
             erosion_term(1:n_solid) , deposition_term(1:n_solid) )
 
        ! Limit the deposition during a single time step
@@ -1972,7 +1945,7 @@ CONTAINS
              WRITE(*,*) 'qp',qp(1:n_eqns+2,j,k)
              WRITE(*,*) 'deposition_term',deposition_term
              WRITE(*,*) 'erosion_term',erosion_term
-             CALL qc_to_qp(q(1:n_vars,j,k) , B_cent(j,k) , qp(1:n_vars+2,j,k))
+             CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k))
              WRITE(*,*) 'qp',qp(1:n_eqns+2,j,k)
              READ(*,*)
 
@@ -1980,7 +1953,7 @@ CONTAINS
 
        END IF
 
-       CALL qc_to_qp(q(1:n_vars,j,k) , B_cent(j,k) , qp(1:n_vars+2,j,k) )
+       CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) )
        CALL mixt_var(qp(1:n_vars+2,j,k),r_Ri,r_rho_m,r_rho_c,r_red_grav)
 
        IF ( r_red_grav .LE. 0.D0 ) THEN
@@ -2001,7 +1974,8 @@ CONTAINS
   !> This subroutine evaluate the explicit terms (non-fluxes) of the non-linear 
   !> system with respect to the conservative variables.
   !
-  !> \param[in]    q_expl          conservative variables 
+  !> \param[in]    qc_expl          conservative variables 
+  !> \param[in]    qp_expl          conservative variables 
   !> \param[out]   expl_terms      explicit terms
   !
   !> \date 07/10/2016
@@ -2053,6 +2027,7 @@ CONTAINS
   !> set of physical variables derived from the conservative vriables.
   !
   !> \param[in]     q_expl        conservative variables
+  !> \param[in]     qp_expl        conservative variables
   !> \param[out]    divFlux           divergence term
   !
   !> \date 07/10/2016
@@ -2072,34 +2047,24 @@ CONTAINS
     REAL*8, INTENT(IN) :: qp_expl(n_vars+2,comp_cells_x,comp_cells_y)
     REAL*8, INTENT(OUT) :: divFlux(n_eqns,comp_cells_x,comp_cells_y)
 
-    REAL*8, ALLOCATABLE :: q_old(:,:,:)
-
     REAL*8 :: h_new , h_old
 
-    REAL*8 :: tcpu0,tcpu1,tcpu2,tcpu3,tcpu4
+    ! REAL*8 :: tcpu0,tcpu1,tcpu2,tcpu3,tcpu4
 
     INTEGER :: l , i, j, k      !< loop counters
 
-    ALLOCATE ( q_old(n_vars,comp_cells_x,comp_cells_y) )
-
-
-    q_old = q
-
-    q = q_expl
-
-    CALL cpu_time(tcpu0)
+    ! CALL cpu_time(tcpu0)
 
     ! Linear reconstruction of the physical variables at the interfaces
     CALL reconstruction(q_expl,qp_expl)
 
-    CALL cpu_time(tcpu1)
+    ! CALL cpu_time(tcpu1)
     !WRITE(*,*) 'eval_hyperbolic_terms: Time taken by the code was',tcpu1-tcpu0,'seconds'
-
 
     ! Evaluation of the maximum local speeds at the interfaces
     CALL eval_speeds
 
-    CALL cpu_time(tcpu2)
+    ! CALL cpu_time(tcpu2)
     !WRITE(*,*) 'eval_hyperbolic_terms: Time taken by the code was',tcpu2-tcpu1,'seconds'
 
     ! Evaluation of the numerical fluxes
@@ -2123,7 +2088,7 @@ CONTAINS
 
     END SELECT
 
-    CALL cpu_time(tcpu3)
+    ! CALL cpu_time(tcpu3)
     !WRITE(*,*) 'eval_hyperbolic_terms: Time taken by the code was',tcpu3-tcpu2,'seconds'
 
     ! Advance in time the solution
@@ -2157,12 +2122,8 @@ CONTAINS
 
     END DO
 
-    CALL cpu_time(tcpu4)
+    ! CALL cpu_time(tcpu4)
     !WRITE(*,*) 'eval_hyperbolic_terms: Time taken by the code was',tcpu4-tcpu4,'seconds'
-
-    q = q_old
-
-    DEALLOCATE( q_old )
 
     RETURN
 
@@ -2203,18 +2164,18 @@ CONTAINS
           k = k_stag_x(l)
 
 
-          CALL eval_fluxes( q_interfaceL(1:n_vars,j,k) ,                     &
-               qp_interfaceL(1:n_vars+2,j,k) , B_interfaceL(j,k) , 1 , fluxL)
+          CALL eval_fluxes( q_interfaceL(1:n_vars,j,k) ,                        &
+               qp_interfaceL(1:n_vars+2,j,k) , 1 , fluxL)
 
-          CALL eval_fluxes( q_interfaceR(1:n_vars,j,k) ,                     &
-               qp_interfaceR(1:n_vars+2,j,k) , B_interfaceR(j,k) , 1 , fluxR)
+          CALL eval_fluxes( q_interfaceR(1:n_vars,j,k) ,                        &
+               qp_interfaceR(1:n_vars+2,j,k) , 1 , fluxR)
 
-          IF ( ( q_interfaceL(2,j,k) .GT. 0.D0 ) .AND.                       &
+          IF ( ( q_interfaceL(2,j,k) .GT. 0.D0 ) .AND.                          &
                ( q_interfaceR(2,j,k) .GE. 0.D0 ) ) THEN
 
              H_interface_x(:,j,k) = fluxL
 
-          ELSEIF ( ( q_interfaceL(2,j,k) .LE. 0.D0 ) .AND.                   &
+          ELSEIF ( ( q_interfaceL(2,j,k) .LE. 0.D0 ) .AND.                      &
                ( q_interfaceR(2,j,k) .LT. 0.D0 ) ) THEN
 
              H_interface_x(:,j,k) = fluxR
@@ -2225,7 +2186,7 @@ CONTAINS
 
           END IF
 
-          IF ( (  q_interfaceL(2,j,k) .EQ. 0.D0 ) .AND.                      &
+          IF ( (  q_interfaceL(2,j,k) .EQ. 0.D0 ) .AND.                         &
                (  q_interfaceR(2,j,k) .EQ. 0.D0 ) ) THEN
 
              H_interface_x(1,j,k) = 0.D0
@@ -2245,18 +2206,18 @@ CONTAINS
           j = j_stag_y(l)
           k = k_stag_y(l)
 
-          CALL eval_fluxes( q_interfaceB(1:n_vars,j,k) ,                     &
-               qp_interfaceB(1:n_vars+2,j,k) , B_interfaceB(j,k) , 2 , fluxB)
+          CALL eval_fluxes( q_interfaceB(1:n_vars,j,k) ,                        &
+               qp_interfaceB(1:n_vars+2,j,k) , 2 , fluxB)
 
-          CALL eval_fluxes( q_interfaceT(1:n_vars,j,k) ,                     &
-               qp_interfaceT(1:n_vars+2,j,k) , B_interfaceT(j,k) , 2 , fluxT)
+          CALL eval_fluxes( q_interfaceT(1:n_vars,j,k) ,                        &
+               qp_interfaceT(1:n_vars+2,j,k) ,2 , fluxT)
 
-          IF ( ( q_interfaceB(3,j,k) .GT. 0.D0 ) .AND.                       &
+          IF ( ( q_interfaceB(3,j,k) .GT. 0.D0 ) .AND.                          &
                ( q_interfaceT(3,j,k) .GE. 0.D0 ) ) THEN
 
              H_interface_y(:,j,k) = fluxB
 
-          ELSEIF ( ( q_interfaceB(3,j,k) .LE. 0.D0 ) .AND.                   &
+          ELSEIF ( ( q_interfaceB(3,j,k) .LE. 0.D0 ) .AND.                      &
                ( q_interfaceT(3,j,k) .LT. 0.D0 ) ) THEN
 
              H_interface_y(:,j,k) = fluxT
@@ -2269,7 +2230,7 @@ CONTAINS
 
           ! In the equation for mass and for trasnport (T,alphas) if the 
           ! velocities at the interfaces are null, then the flux is null
-          IF ( (  q_interfaceB(3,j,k) .EQ. 0.D0 ) .AND.                      &
+          IF ( (  q_interfaceB(3,j,k) .EQ. 0.D0 ) .AND.                         &
                (  q_interfaceT(3,j,k) .EQ. 0.D0 ) ) THEN
 
              H_interface_y(1,j,k) = 0.D0
@@ -2324,13 +2285,13 @@ CONTAINS
           k = k_stag_x(l)
 
 
-          CALL eval_fluxes( q_interfaceL(1:n_vars,j,k) ,                     &
-               qp_interfaceL(1:n_vars+2,j,k) , B_interfaceL(j,k) , 1 , fluxL)
+          CALL eval_fluxes( q_interfaceL(1:n_vars,j,k) ,                        &
+               qp_interfaceL(1:n_vars+2,j,k) , 1 , fluxL)
 
-          CALL eval_fluxes( q_interfaceR(1:n_vars,j,k) ,                     &
-               qp_interfaceR(1:n_vars+2,j,k) , B_interfaceR(j,k) , 1 , fluxR)
+          CALL eval_fluxes( q_interfaceR(1:n_vars,j,k) ,                        &
+               qp_interfaceR(1:n_vars+2,j,k) , 1 , fluxR)
 
-          CALL average_KT( a_interface_xNeg(:,j,k), a_interface_xPos(:,j,k) ,&
+          CALL average_KT( a_interface_xNeg(:,j,k), a_interface_xPos(:,j,k) ,   &
                fluxL , fluxR , flux_avg_x )
 
           eqns_loop:DO i=1,n_eqns
@@ -2341,9 +2302,9 @@ CONTAINS
 
              ELSE
 
-                H_interface_x(i,j,k) = flux_avg_x(i)                         &
-                     + ( a_interface_xPos(i,j,k) * a_interface_xNeg(i,j,k) ) &
-                     / ( a_interface_xPos(i,j,k) - a_interface_xNeg(i,j,k) ) &
+                H_interface_x(i,j,k) = flux_avg_x(i)                            &
+                     + ( a_interface_xPos(i,j,k) * a_interface_xNeg(i,j,k) )    &
+                     / ( a_interface_xPos(i,j,k) - a_interface_xNeg(i,j,k) )    &
                      * ( q_interfaceR(i,j,k) - q_interfaceL(i,j,k) )             
 
              END IF
@@ -2352,7 +2313,7 @@ CONTAINS
 
           ! In the equation for mass and for trasnport (T,alphas) if the 
           ! velocities at the interfaces are null, then the flux is null
-          IF ( (  qp_interfaceL(2,j,k) .EQ. 0.D0 ) .AND.                     &
+          IF ( (  qp_interfaceL(2,j,k) .EQ. 0.D0 ) .AND.                        &
                (  qp_interfaceR(2,j,k) .EQ. 0.D0 ) ) THEN
 
              H_interface_x(1,j,k) = 0.D0
@@ -2372,13 +2333,13 @@ CONTAINS
           j = j_stag_y(l)
           k = k_stag_y(l)
 
-          CALL eval_fluxes( q_interfaceB(1:n_vars,j,k) ,                     &
-               qp_interfaceB(1:n_vars+2,j,k) , B_interfaceB(j,k) , 2 , fluxB)    
+          CALL eval_fluxes( q_interfaceB(1:n_vars,j,k) ,                        &
+               qp_interfaceB(1:n_vars+2,j,k) , 2 , fluxB)    
 
-          CALL eval_fluxes( q_interfaceT(1:n_vars,j,k) ,                     &
-               qp_interfaceT(1:n_vars+2,j,k) , B_interfaceT(j,k) , 2 , fluxT)
+          CALL eval_fluxes( q_interfaceT(1:n_vars,j,k) ,                        &
+               qp_interfaceT(1:n_vars+2,j,k) , 2 , fluxT)
 
-          CALL average_KT( a_interface_yNeg(:,j,k) ,                         &
+          CALL average_KT( a_interface_yNeg(:,j,k) ,                            &
                a_interface_yPos(:,j,k) , fluxB , fluxT , flux_avg_y )
 
           DO i=1,n_eqns
@@ -2389,9 +2350,9 @@ CONTAINS
 
              ELSE
 
-                H_interface_y(i,j,k) = flux_avg_y(i)                         &
-                     + ( a_interface_yPos(i,j,k) * a_interface_yNeg(i,j,k) ) &
-                     / ( a_interface_yPos(i,j,k) - a_interface_yNeg(i,j,k) ) &
+                H_interface_y(i,j,k) = flux_avg_y(i)                            &
+                     + ( a_interface_yPos(i,j,k) * a_interface_yNeg(i,j,k) )    &
+                     / ( a_interface_yPos(i,j,k) - a_interface_yNeg(i,j,k) )    &
                      * ( q_interfaceT(i,j,k) - q_interfaceB(i,j,k) )             
 
              END IF
@@ -2400,7 +2361,7 @@ CONTAINS
 
           ! In the equation for mass and for trasnport (T,alphas) if the 
           ! velocities at the interfaces are null, then the flux is null
-          IF ( (  q_interfaceB(3,j,k) .EQ. 0.D0 ) .AND.                      &
+          IF ( (  q_interfaceB(3,j,k) .EQ. 0.D0 ) .AND.                         &
                (  q_interfaceT(3,j,k) .EQ. 0.D0 ) ) THEN
 
              H_interface_y(1,j,k) = 0.D0
@@ -2419,16 +2380,15 @@ CONTAINS
   !
   !> This subroutine compute n averaged flux from the fluxes at the two sides of
   !> a cell interface and the max an min speed at the two sides.
-  !> \param[in]     aL            speed at one side of the interface
-  !> \param[in]     aR            speed at the other side of the interface
-  !> \param[in]     wL            fluxes at one side of the interface
-  !> \param[in]     wR            fluxes at the other side of the interface
+  !> \param[in]     a1            speed at one side of the interface
+  !> \param[in]     a2            speed at the other side of the interface
+  !> \param[in]     w1            fluxes at one side of the interface
+  !> \param[in]     w2            fluxes at the other side of the interface
   !> \param[out]    w_avg         array of averaged fluxes
-  !> \date 07/10/2016
+  !> \date 2019/12/13
   !> @author 
   !> Mattia de' Michieli Vitturi
   !******************************************************************************
-
 
   SUBROUTINE average_KT( a1 , a2 , w1 , w2 , w_avg )
 
@@ -2535,10 +2495,10 @@ CONTAINS
     REAL*8, INTENT(IN) :: qp_expl(:,:,:)
 
     REAL*8, ALLOCATABLE :: qrec(:,:,:) 
-    REAL*8, ALLOCATABLE :: qrecW(:)     !< recons var at the west edge of the cells
-    REAL*8, ALLOCATABLE :: qrecE(:)     !< recons var at the east edge of the cells
-    REAL*8, ALLOCATABLE :: qrecS(:)     !< recons var at the south edge of the cells
-    REAL*8, ALLOCATABLE :: qrecN(:)     !< recons var at the north edge of the cells
+    REAL*8, ALLOCATABLE :: qrecW(:) !< recons var at the west edge of the cells
+    REAL*8, ALLOCATABLE :: qrecE(:) !< recons var at the east edge of the cells
+    REAL*8, ALLOCATABLE :: qrecS(:) !< recons var at the south edge of the cells
+    REAL*8, ALLOCATABLE :: qrecN(:) !< recons var at the north edge of the cells
 
     REAL*8, ALLOCATABLE :: source_bdry(:)
     REAL*8, ALLOCATABLE :: qrec_prime_x(:)      !< recons variables slope
@@ -2565,7 +2525,6 @@ CONTAINS
 
     ALLOCATE ( qrec_prime_x(n_vars+2) )
     ALLOCATE ( qrec_prime_y(n_vars+2) )
-
 
     ! Compute the variable to reconstruct (phys or cons)
     DO k = 1,comp_cells_y
@@ -3034,7 +2993,16 @@ CONTAINS
 
        END IF
 
-       IF ( comp_cells_y .GT. 1 ) THEN
+       IF ( comp_cells_y .EQ. 1 ) THEN
+
+          ! comp_cells_y = 1
+          q_interfaceT(:,j,k) = q_expl(:,j,k)
+          q_interfaceB(:,j,k+1) = q_expl(:,j,k)
+
+          qp_interfaceT(:,j,k) = qrec(:,j,k)
+          qp_interfaceB(:,j,k+1) = qrec(:,j,k)
+
+       ELSE
 
           IF ( ( k .GT. 1 ) .AND. ( k .LT. comp_cells_y ) ) THEN
 
@@ -3174,15 +3142,6 @@ CONTAINS
 
           END IF
 
-       ELSE
-
-          ! comp_cells_y = 1
-          q_interfaceT(:,j,k) = q_expl(:,j,k)
-          q_interfaceB(:,j,k+1) = q_expl(:,j,k)
-
-          qp_interfaceT(:,j,k) = qrec(:,j,k)
-          qp_interfaceB(:,j,k+1) = qrec(:,j,k)
-
        END IF
 
     END DO
@@ -3192,12 +3151,9 @@ CONTAINS
     DEALLOCATE ( qrecE )
     DEALLOCATE ( qrecS )
     DEALLOCATE ( qrecN )
-
     DEALLOCATE ( source_bdry )
-
     DEALLOCATE ( qrec_prime_x )
     DEALLOCATE ( qrec_prime_y )
-
 
     RETURN
 
@@ -3231,7 +3187,7 @@ CONTAINS
 
     IF ( comp_cells_x .GT. 1 ) THEN
 
-       DO l = 1,solve_interfaces_x
+       x_interfaces_loop:DO l = 1,solve_interfaces_x
 
           j = j_stag_x(l)
           k = k_stag_x(l)
@@ -3248,13 +3204,13 @@ CONTAINS
           a_interface_xNeg(:,j,k) = min_r
           a_interface_xPos(:,j,k) = max_r
 
-       END DO
+       END DO x_interfaces_loop
 
     END IF
 
     IF ( comp_cells_y .GT. 1 ) THEN
 
-       DO l = 1,solve_interfaces_y
+       y_interfaces_loop:DO l = 1,solve_interfaces_y
 
           j = j_stag_y(l)
           k = k_stag_y(l)
@@ -3271,7 +3227,7 @@ CONTAINS
           a_interface_yNeg(:,j,k) = min_r
           a_interface_yPos(:,j,k) = max_r
 
-       END DO
+       END DO y_interfaces_loop
 
     END IF
 

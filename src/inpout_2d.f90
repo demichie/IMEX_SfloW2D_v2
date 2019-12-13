@@ -2905,7 +2905,7 @@ CONTAINS
           
           DO j = 1,comp_cells_x
           
-             CALL qc_to_qp(q(1:n_vars,j,k),B_cent(j,k),qp(1:n_vars+2))
+             CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2))
 
              CALL mixt_var(qp(1:n_vars+2),r_Ri,r_rho_m,r_rho_c,r_red_grav)
 

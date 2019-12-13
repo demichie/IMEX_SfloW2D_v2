@@ -646,12 +646,11 @@ CONTAINS
   !
   !******************************************************************************
 
-  SUBROUTINE qc_to_qp(qc,B,qp)
+  SUBROUTINE qc_to_qp(qc,qp)
 
     IMPLICIT none
 
     REAL*8, INTENT(IN) :: qc(n_vars)
-    REAL*8, INTENT(IN) :: B
     REAL*8, INTENT(OUT) :: qp(n_vars+2)
 
     REAL*8 :: r_h               !< real-value flow thickness
@@ -1039,7 +1038,6 @@ CONTAINS
   !> \date 01/06/2012
   !> \param[in]     qcj      real local conservative variables 
   !> \param[in]     qpj      real local physical variables 
-  !> \param[in]     Bj       topography
   !> \param[in]     dir      direction of the flux (1=x,2=y)
   !> \param[out]    flux     real  fluxes    
   !
@@ -1048,13 +1046,12 @@ CONTAINS
   !
   !******************************************************************************
 
-  SUBROUTINE eval_fluxes(qcj,qpj,Bj,dir,flux)
+  SUBROUTINE eval_fluxes(qcj,qpj,dir,flux)
 
     IMPLICIT none
 
     REAL*8, INTENT(IN) :: qcj(n_vars)
     REAL*8, INTENT(IN) :: qpj(n_vars+2)
-    REAL*8, INTENT(IN) :: Bj
     INTEGER, INTENT(IN) :: dir
 
     REAL*8, INTENT(OUT) :: flux(n_eqns)
@@ -1561,17 +1558,16 @@ CONTAINS
 
   END SUBROUTINE eval_nh_semi_impl_terms
 
-
   !******************************************************************************
   !> \brief Explicit Forces term
   !
   !> This subroutine evaluates the non-hyperbolic terms to be treated explicitely
   !> in the DIRK numerical scheme (e.g. gravity,source of mass). The sign of the
   !> terms is taken with the terms on the left-hand side of the equations.
-  !> \date 01/06/2012
+  !> \date 2019/12/13
   !> \param[in]     B_primej_x         local x-slope
   !> \param[in]     B_primej_y         local y_slope
-  !> \param[in]     qj                 local source
+  !> \param[in]     source_xy          local source
   !> \param[in]     qpj                physical variables 
   !> \param[in]     qcj                conservative variables 
   !> \param[out]    expl_term          explicit term
@@ -1631,14 +1627,12 @@ CONTAINS
 
   END SUBROUTINE eval_expl_terms
 
-
   !******************************************************************************
   !> \brief Erosion/Deposition term
   !
   !> This subroutine evaluates the deposition term.
   !> \date 03/010/2018
   !> \param[in]     qpj                local physical variables 
-  !> \param[in]     Bj                 local topography
   !> \param[in]     dt                 time step
   !> \param[out]    erosion_term       erosion term for each solid phase
   !> \param[out]    dep_term           deposition term for each solid phase
@@ -1648,13 +1642,11 @@ CONTAINS
   !
   !******************************************************************************
 
-  SUBROUTINE eval_erosion_dep_term( qpj , Bj , dt , erosion_term ,              &
-       deposition_term )
+  SUBROUTINE eval_erosion_dep_term( qpj , dt , erosion_term , deposition_term )
 
     IMPLICIT NONE
 
     REAL*8, INTENT(IN) :: qpj(n_vars+2)              !< physical variables 
-    REAL*8, INTENT(IN) :: Bj
     REAL*8, INTENT(IN) :: dt
 
     REAL*8, INTENT(OUT) :: erosion_term(n_solid)     !< erosion term
