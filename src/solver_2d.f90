@@ -709,7 +709,7 @@ CONTAINS
 
     REAL*8 :: dt_interface_x, dt_interface_y
 
-    INTEGER :: i,j,k          !< loop counter
+    INTEGER :: i,j,k,l          !< loop counter
 
     REAL*8 :: max_a
 
@@ -723,25 +723,10 @@ CONTAINS
 
     IF ( cfl .NE. -1.d0 ) THEN
 
-       ! Compute the physical variables at the cell centers
-!!$       DO k = 1,comp_cells_y
-!!$       
-!!$          DO j = 1,comp_cells_x
-!!$
-!!$             IF ( solve_mask(j,k) ) THEN
-!!$
-!!$                CALL qc_to_qp( q(1:n_vars,j,k), B_cent(j,k) , qp(1:n_vars+2,j,k) )
-!!$                
-!!$             END IF
-!!$
-!!$          END DO
-!!$
-!!$       END DO
+       DO l = 1,solve_cells
 
-       DO i = 1,solve_cells
-
-          j = j_cent(i)
-          k = k_cent(i)
+          j = j_cent(l)
+          k = k_cent(l)
 
           CALL qc_to_qp( q(1:n_vars,j,k), B_cent(j,k) , qp(1:n_vars+2,j,k) )
 
@@ -764,16 +749,10 @@ CONTAINS
 
        END DO
 
-!!$       DO k = 1,comp_cells_y
-!!$
-!!$          DO j = 1,comp_cells_x
-!!$
-!!$             IF ( solve_mask(j,k) ) THEN
+       DO l = 1,solve_cells
 
-       DO i = 1,solve_cells
-
-          j = j_cent(i)
-          k = k_cent(i)
+          j = j_cent(l)
+          k = k_cent(l)
 
 
           max_a =  MAX( MAXVAL(a_interface_x_max(:,j,k)) ,                   &
@@ -827,14 +806,6 @@ CONTAINS
 
        END DO
 
-
-!!$
-!!$             END IF
-!!$
-!!$          ENDDO
-!!$
-!!$       END DO
-
     END IF
 
     RETURN
@@ -867,7 +838,7 @@ CONTAINS
 
     REAL*8 :: q_si(n_vars) !< solution after the semi-implicit step
     REAL*8 :: q_guess(n_vars) !< initial guess for the solution of the RK step
-    INTEGER :: i,j,k            !< loop counter over the grid volumes
+    INTEGER :: j,k,l            !< loop counter over the grid volumes
 
     REAL*8 :: h_new
 
@@ -906,16 +877,10 @@ CONTAINS
 
        CALL cpu_time(t_imex1)
 
-!!$       loop_over_ycells:DO k = 1,comp_cells_y
-!!$
-!!$          loop_over_xcells:DO j = 1,comp_cells_x
-!!$
-!!$             IF ( solve_mask(j,k) ) THEN
+       DO l = 1,solve_cells
 
-       DO i = 1,solve_cells
-
-          j = j_cent(i)
-          k = k_cent(i)
+          j = j_cent(l)
+          k = k_cent(l)
 
           IF ( verbose_level .GE. 2 ) THEN
 
@@ -1087,39 +1052,22 @@ CONTAINS
 
        END DO
 
-!!$             END IF
-!!$
-!!$          END DO loop_over_xcells
-!!$
-!!$       ENDDO loop_over_ycells
-
        CALL cpu_time(t_imex2)
        ! WRITE(*,*) 'Time taken by implicit',t_imex2-t_imex1,'seconds'
 
        IF ( omega_tilde(i_RK) .GT. 0.D0 ) THEN
 
           ! Compute the physical variables at the cell centers 
-!!$          DO k = 1,comp_cells_y
-!!$
-!!$             DO j = 1,comp_cells_x
-!!$
-!!$                IF ( solve_mask(j,k) ) THEN
+          DO l = 1,solve_cells
 
-          DO i = 1,solve_cells
-
-             j = j_cent(i)
-             k = k_cent(i)
+             j = j_cent(l)
+             k = k_cent(l)
 
              CALL qc_to_qp( q_rk(1:n_vars,j,k,i_RK) , B_cent(j,k) ,       &
                   qp_rk(1:n_vars+2,j,k,i_RK) )
 
           END DO
 
-!!$                END IF
-!!$
-!!$             END DO
-!!$
-!!$          END DO
 
           ! Eval and store the explicit hyperbolic (fluxes) terms
           CALL eval_hyperbolic_terms(                                           &
@@ -1144,16 +1092,10 @@ CONTAINS
 
     END DO runge_kutta
 
-!!$    DO k = 1,comp_cells_y
-!!$
-!!$       DO j = 1,comp_cells_x
-!!$
-!!$          IF ( solve_mask(j,k) ) THEN
+    DO l = 1,solve_cells
 
-    DO i = 1,solve_cells
-
-       j = j_cent(i)
-       k = k_cent(i)
+       j = j_cent(l)
+       k = k_cent(l)
 
        residual_term(1:n_vars,j,k) = MATMUL( divFlux(1:n_eqns,j,k,1:n_RK)    &
             + expl_terms(1:n_eqns,j,k,1:n_RK) , omega_tilde ) -              &
@@ -1162,22 +1104,10 @@ CONTAINS
 
     END DO
 
-!!$          END IF
-!!$
-!!$       ENDDO
-!!$
-!!$    END DO
+    assemble_sol:DO l = 1,solve_cells
 
-!!$    assemble_sol_loop_x:DO k = 1,comp_cells_y
-!!$
-!!$       assemble_sol_loop_y:DO j = 1,comp_cells_x
-!!$
-!!$          IF ( solve_mask(j,k) ) THEN
-
-    DO i = 1,solve_cells
-
-       j = j_cent(i)
-       k = k_cent(i)
+       j = j_cent(l)
+       k = k_cent(l)
 
        IF ( verbose_level .GE. 1 ) THEN
 
@@ -1277,13 +1207,7 @@ CONTAINS
 
        END IF
 
-    END DO
-
-!!$          END IF
-!!$
-!!$       ENDDO assemble_sol_loop_y
-!!$
-!!$    END DO assemble_sol_loop_x
+    END DO assemble_sol
 
     RETURN
 
@@ -1992,20 +1916,14 @@ CONTAINS
     REAL*8 :: r_rho_c      !< real-value carrier phase density [kg/m3]
     REAL*8 :: r_red_grav   !< real-value reduced gravity
 
-    INTEGER :: i , j ,k
+    INTEGER :: j ,k , l 
 
     IF ( ( SUM(erosion_coeff) .EQ. 0.D0 ) .AND. ( .NOT. settling_flag ) ) RETURN
 
-!!$    DO k = 1,comp_cells_y
-!!$
-!!$       DO j = 1,comp_cells_x
-!!$
-!!$          IF ( solve_mask(j,k) ) THEN
+    DO l = 1,solve_cells
 
-    DO i = 1,solve_cells
-
-       j = j_cent(i)
-       k = k_cent(i)
+       j = j_cent(l)
+       k = k_cent(l)
 
        CALL qc_to_qp(q(1:n_vars,j,k) , B_cent(j,k) , qp(1:n_vars+2,j,k) )
 
@@ -2073,12 +1991,6 @@ CONTAINS
 
     END DO
 
-!!$          END IF
-!!$
-!!$       END DO
-!!$
-!!$    END DO
-
     RETURN
 
   END SUBROUTINE update_erosion_deposition_cell
@@ -2111,21 +2023,14 @@ CONTAINS
     REAL*8 :: qpj(n_vars+2)     !< local physical variables
     REAL*8 :: expl_forces_term(n_eqns)      !< conservative variables 
 
-    INTEGER :: i,j,k
+    INTEGER :: j,k,l
 
     expl_terms = 0.D0
 
-!!$    DO k = 1,comp_cells_y
-!!$
-!!$       DO j = 1,comp_cells_x
-!!$
-!!$          IF ( solve_mask(j,k) ) THEN
+    DO l = 1,solve_cells
 
-
-    DO i = 1,solve_cells
-
-       j = j_cent(i)
-       k = k_cent(i)
+       j = j_cent(l)
+       k = k_cent(l)
 
        qcj(1:n_vars) = qc_expl(1:n_vars,j,k)
        qpj(1:n_vars+2) = qp_expl(1:n_vars+2,j,k)
@@ -2136,12 +2041,6 @@ CONTAINS
        expl_terms(1:n_eqns,j,k) =  expl_forces_term
 
     END DO
-
-!!$          END IF
-!!$
-!!$       ENDDO
-!!$
-!!$    END DO
 
   END SUBROUTINE eval_explicit_terms
 
@@ -2228,11 +2127,6 @@ CONTAINS
     !WRITE(*,*) 'eval_hyperbolic_terms: Time taken by the code was',tcpu3-tcpu2,'seconds'
 
     ! Advance in time the solution
-!!$    DO k = 1,comp_cells_y
-!!$
-!!$       DO j = 1,comp_cells_x
-
-
     DO l = 1,solve_cells
 
        j = j_cent(l)
@@ -2262,10 +2156,6 @@ CONTAINS
        h_new = h_old - dt * divFlux(1,j,k)
 
     END DO
-
-!!$       ENDDO
-!!$
-!!$    END DO
 
     CALL cpu_time(tcpu4)
     !WRITE(*,*) 'eval_hyperbolic_terms: Time taken by the code was',tcpu4-tcpu4,'seconds'
@@ -2307,10 +2197,6 @@ CONTAINS
 
     IF ( comp_cells_x .GT. 1 ) THEN
 
-!!$       DO k = 1,comp_cells_y
-!!$
-!!$          DO j = 1,comp_interfaces_x
-
        DO l = 1,solve_interfaces_x
 
           j = j_stag_x(l)
@@ -2349,18 +2235,10 @@ CONTAINS
 
        END DO
 
-!!$          END DO
-!!$
-!!$       END DO
-
     END IF
 
 
     IF ( comp_cells_y .GT. 1 ) THEN
-
-!!$       DO k = 1,comp_interfaces_y
-!!$
-!!$          DO j = 1,comp_cells_x
 
        DO l = 1,solve_interfaces_y
 
@@ -2401,10 +2279,6 @@ CONTAINS
 
        END DO
 
-!!$          ENDDO
-!!$
-!!$       END DO
-
     END IF
 
     RETURN
@@ -2443,10 +2317,6 @@ CONTAINS
     H_interface_y = 0.D0
 
     IF ( comp_cells_x .GT. 1 ) THEN
-
-!!$       DO k = 1,comp_cells_y
-!!$
-!!$          DO j = 1,comp_interfaces_x
 
        DO l = 1,solve_interfaces_x
 
@@ -2492,19 +2362,10 @@ CONTAINS
 
        END DO
 
-!!$          END DO
-!!$
-!!$       END DO
-
     END IF
 
-    !READ(*,*)
 
     IF ( comp_cells_y .GT. 1 ) THEN
-
-!!$       DO k = 1,comp_interfaces_y
-!!$
-!!$          DO j = 1,comp_cells_x
 
        DO l = 1,solve_interfaces_y
 
@@ -2548,10 +2409,6 @@ CONTAINS
           END IF
 
        END DO
-
-!!$          ENDDO
-!!$
-!!$       END DO
 
     END IF
 
@@ -2732,14 +2589,6 @@ CONTAINS
     END DO
 
     ! Linear reconstruction
-
-!!$    y_cells_loop:DO k = 1,comp_cells_y
-!!$
-!!$       x_cells_loop:DO j = 1,comp_cells_x
-!!$
-!!$          IF ( solve_mask(j,k) ) THEN
-
-
     DO l = 1,solve_cells
 
        j = j_cent(l)
@@ -3336,12 +3185,6 @@ CONTAINS
 
        END IF
 
-!!$             END IF
-!!$
-!!$          END IF
-!!$
-!!$       END DO x_cells_loop
-
     END DO
 
     DEALLOCATE ( qrec )
@@ -3388,10 +3231,6 @@ CONTAINS
 
     IF ( comp_cells_x .GT. 1 ) THEN
 
-!!$       DO k = 1, comp_cells_y
-!!$
-!!$          DO j = 1,comp_interfaces_x
-
        DO l = 1,solve_interfaces_x
 
           j = j_stag_x(l)
@@ -3411,17 +3250,9 @@ CONTAINS
 
        END DO
 
-!!$          ENDDO
-!!$
-!!$       END DO
-
     END IF
 
     IF ( comp_cells_y .GT. 1 ) THEN
-
-!!$       DO k = 1,comp_interfaces_y
-!!$
-!!$          DO j = 1,comp_cells_x
 
        DO l = 1,solve_interfaces_y
 
@@ -3441,10 +3272,6 @@ CONTAINS
           a_interface_yPos(:,j,k) = max_r
 
        END DO
-
-!!$          ENDDO
-!!$
-!!$       END DO
 
     END IF
 
