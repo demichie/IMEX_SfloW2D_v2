@@ -1969,8 +1969,7 @@ CONTAINS
 
   SUBROUTINE update_erosion_deposition_cell(dt)
 
-    USE constitutive_2d, ONLY : erosion_coeff , settling_flag , rho_s ,         &
-         r_red_grav
+    USE constitutive_2d, ONLY : erosion_coeff , settling_flag , rho_s
 
     USE geometry_2d, ONLY : deposit
 
@@ -1989,7 +1988,9 @@ CONTAINS
     REAL*8 :: eqns_term(n_eqns)
     REAL*8 :: deposit_term(n_solid)
 
-    REAL*8 :: r_Ri
+    REAL*8 :: r_Ri , r_rho_m
+    REAL*8 :: r_rho_c      !< real-value carrier phase density [kg/m3]
+    REAL*8 :: r_red_grav   !< real-value reduced gravity
 
     INTEGER :: i , j ,k
 
@@ -2062,7 +2063,7 @@ CONTAINS
        END IF
 
        CALL qc_to_qp(q(1:n_vars,j,k) , B_cent(j,k) , qp(1:n_vars+2,j,k) )
-       CALL mixt_var(qp(1:n_vars+2,j,k),r_Ri)
+       CALL mixt_var(qp(1:n_vars+2,j,k),r_Ri,r_rho_m,r_rho_c,r_red_grav)
 
        IF ( r_red_grav .LE. 0.D0 ) THEN
 

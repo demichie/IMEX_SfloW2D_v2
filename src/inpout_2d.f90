@@ -57,7 +57,7 @@ MODULE inpout_2d
        h_collapse , alphas_collapse
   
   ! -- Variables for the namelist TEMPERATURE_PARAMETERS
-  USE constitutive_2d, ONLY : rho , emissivity , exp_area_fract , enne , emme , &
+  USE constitutive_2d, ONLY : emissivity , exp_area_fract , enne , emme ,       &
        atm_heat_transf_coeff , thermal_conductivity , T_env , T_ground , c_p
     
   ! -- Variables for the namelist RHEOLOGY_PARAMETERS
@@ -68,8 +68,7 @@ MODULE inpout_2d
   
   ! --- Variables for the namelist SOLID_TRANSPORT_PARAMETERS
   USE parameters_2d, ONLY : n_solid
-  USE constitutive_2d, ONLY : rho_s , diam_s , sp_heat_s , alphas , C_D_s , xs ,&
-       r_xs
+  USE constitutive_2d, ONLY : rho_s , diam_s , sp_heat_s , C_D_s
   USE constitutive_2d, ONLY : settling_flag , erosion_coeff
   USE constitutive_2d, ONLY : T_s_substrate
 
@@ -219,7 +218,7 @@ MODULE inpout_2d
  
   NAMELIST / temperature_parameters / emissivity ,  atm_heat_transf_coeff ,     &
        thermal_conductivity , exp_area_fract , c_p , enne , emme , T_env ,      &
-       T_ground , rho
+       T_ground
 
   NAMELIST / rheology_parameters / rheology_model , mu , xi , tau , nu_ref ,    &
        visc_par , T_ref , alpha2 , beta2 , alpha1_ref , beta1 , Kappa , n_td ,  &
@@ -385,7 +384,6 @@ CONTAINS
     T_env = 300.0D0
     T_ground = 1200.0D0
     c_p = 1200.D0
-    rho = 0.D0
     
     !-- Inizialization of the Variables for the namelist RHEOLOGY_PARAMETERS
     rheology_model = 0
@@ -529,7 +527,6 @@ CONTAINS
     T_env = -1.D0
     T_ground = -1.D0
     c_p = -1.D0
-    rho = -1.D0
 
     grav = -1.D0
 
@@ -719,6 +716,7 @@ CONTAINS
        IF ( gas_flag ) THEN
 
           WRITE(*,*) 'CARRIER PHASE: gas'
+          WRITE(*,*) 'Carrier phase kinematic viscosity:',kin_visc_a
           kin_visc_c = kin_visc_a
 
        END IF
@@ -808,8 +806,9 @@ CONTAINS
 
           IF ( .NOT. gas_flag ) THEN
 
-          WRITE(*,*) 'CARRIER PHASE: liquid'
-          kin_visc_c = kin_visc_l
+             WRITE(*,*) 'CARRIER PHASE: liquid'
+             WRITE(*,*) 'Carrier phase kinematic viscosity:',kin_visc_l
+             kin_visc_c = kin_visc_l
 
        END IF
 
@@ -899,8 +898,8 @@ CONTAINS
     bcS(1:n_vars)%flag = -1
     bcN(1:n_vars)%flag = -1
 
-    ALLOCATE( rho_s(n_solid) , alphas(n_solid) , xs(n_solid) , r_xs(n_solid) ,  &
-         diam_s(n_solid) , sp_heat_s(n_solid) , C_D_s(n_solid) )
+    ALLOCATE( rho_s(n_solid) , diam_s(n_solid) , sp_heat_s(n_solid) ,           &
+         C_D_s(n_solid) )
 
     ALLOCATE( alphas_init(n_solid) , sed_vol_perc(n_solid) )
 
@@ -2824,9 +2823,6 @@ CONTAINS
     ! external procedures
     USE constitutive_2d, ONLY : qc_to_qp, mixt_var
 
-    ! external variables
-    USE constitutive_2d, ONLY : r_T , r_rho_m , r_red_grav
-
     USE geometry_2d, ONLY : comp_cells_x , B_cent , comp_cells_y , x_comp,      &
          y_comp , deposit
 
@@ -2846,7 +2842,10 @@ CONTAINS
 
     REAL*8 :: B_out
 
-    REAL*8 :: r_u , r_v , r_h , r_alphas(n_solid) , r_Ri
+    REAL*8 :: r_u , r_v , r_h , r_alphas(n_solid) , r_T , r_Ri , r_rho_m
+    REAL*8 :: r_rho_c      !< real-value carrier phase density [kg/m3]
+    REAL*8 :: r_red_grav   !< real-value reduced gravity
+
 
     INTEGER :: j,k
     INTEGER :: i
@@ -2908,11 +2907,12 @@ CONTAINS
           
              CALL qc_to_qp(q(1:n_vars,j,k),B_cent(j,k),qp(1:n_vars+2))
 
-             CALL mixt_var(qp(1:n_vars+2),r_Ri)
+             CALL mixt_var(qp(1:n_vars+2),r_Ri,r_rho_m,r_rho_c,r_red_grav)
 
              r_h = qp(1)
              r_u = qp(n_vars+1)
              r_v = qp(n_vars+2)
+             r_T = qp(4)
              r_alphas(1:n_solid) = qp(5:4+n_solid)
 
              IF ( DABS( r_h ) .LT. 1d-99) r_h = 0.D0
