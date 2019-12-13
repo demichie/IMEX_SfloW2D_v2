@@ -129,9 +129,6 @@ MODULE constitutive_2d
   !> Specific heat of solids (units: J K-1 kg-1)
   REAL*8, ALLOCATABLE :: sp_heat_s(:)
 
-  !> Drag coefficient of solids (nondimensional)
-  REAL*8, ALLOCATABLE :: C_D_s(:)
-
   !> Flag to determine if sedimentation is active
   LOGICAL :: settling_flag
 
@@ -189,11 +186,20 @@ CONTAINS
   !> \brief Physical variables
   !
   !> This subroutine evaluates from the conservative local variables qj
-  !> the local physical variables  (\f$h+B, u, v, xs , T \f$).
+  !> the local physical variables  (\f$h,u,v,\alpha_s,\rho_m,T,\alpha_l \f$).
   !> \param[in]    r_qj     real conservative variables 
+  !> \param[out]   r_h      real-value flow thickness 
+  !> \param[out]   r_u      real-value flow x-velocity 
+  !> \param[out]   r_v      real-value flow y-velocity
+  !> \param[out]   r_alphas real-value solid volume fractions
+  !> \param[out]   r_rho_m  real-value flow density
+  !> \param[out]   r_T      real-value flow temperature 
+  !> \param[out]   r_alphal real-value liquid volume fraction
+  !
   !> @author 
   !> Mattia de' Michieli Vitturi
-  !> \date 15/08/2011
+  !
+  !> \date 2019/12/13
   !******************************************************************************
 
   SUBROUTINE r_phys_var(r_qj,r_h,r_u,r_v,r_alphas,r_rho_m,r_T,r_alphal)
@@ -362,12 +368,20 @@ CONTAINS
   !> \brief Physical variables
   !
   !> This subroutine evaluates from the conservative local variables qj
-  !> the local physical variables  (\f$h+B, u, v, xs , T \f$).
-  !> \param[in]    r_qj     real conservative variables 
-  !> \param[in]    c_qj     complex conservative variables 
+  !> the local physical variables  (\f$h,u,v,T,\rho_m,red grav,\alpha_s \f$).
+  !> \param[in]    c_qj      complex conservative variables 
+  !> \param[out]   h         complex-value flow thickness 
+  !> \param[out]   u         complex-value flow x-velocity 
+  !> \param[out]   v         complex-value flow y-velocity
+  !> \param[out]   T         complex-value flow temperature 
+  !> \param[out]   rho_m     complex-value flow density
+  !> \param[out]   red_grav  complex-value flow density
+  !> \param[out]   alphas    complex-value solid volume fractions
+  !
   !> @author 
   !> Mattia de' Michieli Vitturi
-  !> \date 15/08/2011
+  !
+  !> \date 2019/12/13
   !******************************************************************************
 
   SUBROUTINE c_phys_var(c_qj,h,u,v,T,rho_m,red_grav,alphas)
@@ -377,13 +391,13 @@ CONTAINS
     IMPLICIT none
 
     COMPLEX*16, INTENT(IN) :: c_qj(n_vars)
-    COMPLEX*16, INTENT(OUT) :: h                       !< height [m]
-    COMPLEX*16, INTENT(OUT) :: u                       !< velocity (x direction) [m/s]
-    COMPLEX*16, INTENT(OUT) :: v                       !< velocity (y direction) [m/s]
-    COMPLEX*16, INTENT(OUT) :: T                       !< temperature [K]
-    COMPLEX*16, INTENT(OUT) :: rho_m                   !< mixture density [kg/m3]
-    COMPLEX*16, INTENT(OUT) :: red_grav                !< reduced gravity
-    COMPLEX*16, INTENT(OUT) :: alphas(n_solid)     !< sediment volume fractions
+    COMPLEX*16, INTENT(OUT) :: h               !< height [m]
+    COMPLEX*16, INTENT(OUT) :: u               !< velocity (x direction) [m s-1]
+    COMPLEX*16, INTENT(OUT) :: v               !< velocity (y direction) [m s-1]
+    COMPLEX*16, INTENT(OUT) :: T               !< temperature [K]
+    COMPLEX*16, INTENT(OUT) :: rho_m           !< mixture density [kg m-3]
+    COMPLEX*16, INTENT(OUT) :: red_grav        !< reduced gravity
+    COMPLEX*16, INTENT(OUT) :: alphas(n_solid) !< sediment volume fractions
 
     COMPLEX*16 :: inv_rhom
     COMPLEX*16 :: xs(n_solid)             !< sediment mass fractions
@@ -539,9 +553,15 @@ CONTAINS
   !> This subroutine evaluates from the physical real-value local variables qpj, 
   !> all the (real-valued ) variables that define the physical state and that are
   !> needed to compute the explicit equations terms.
-  !> \param[in]    qpj    real-valued physical variables 
+  !> \param[in]    qpj          real-valued physical variables 
+  !> \param[out]   r_Ri         real-valued Richardson number 
+  !> \param[out]   r_rho_m      real-valued mixture density 
+  !> \param[out]   r_rho_c      real-valued carrier phase density 
+  !> \param[out]   r_red_grav   real-valued reduced gravity
+  !
   !> @author 
   !> Mattia de' Michieli Vitturi
+  !
   !> \date 10/10/2019
   !******************************************************************************
 
@@ -549,17 +569,17 @@ CONTAINS
 
     IMPLICIT none
 
-    REAL*8, INTENT(IN) :: qpj(n_vars+2)
+    REAL*8, INTENT(IN) :: qpj(n_vars+2) !< real-value physical variables
     REAL*8, INTENT(OUT) :: r_Ri         !< real-value Richardson number
     REAL*8, INTENT(OUT) :: r_rho_m      !< real-value mixture density [kg/m3]
     REAL*8, INTENT(OUT) :: r_rho_c      !< real-value carrier phase density [kg/m3]
     REAL*8, INTENT(OUT) :: r_red_grav   !< real-value reduced gravity
-    REAL*8 :: r_u          !< real-value x-velocity
-    REAL*8 :: r_v          !< real-value y-velocity
-    REAL*8 :: r_h          !< real-value flow thickness
-    REAL*8 :: r_alphas(n_solid) !< real-value solid volume fractions
-    REAL*8 :: r_T          !< real-value temperature [K]
-    REAL*8 :: r_alphal                 !< real-value liquid volume fraction
+    REAL*8 :: r_u                       !< real-value x-velocity
+    REAL*8 :: r_v                       !< real-value y-velocity
+    REAL*8 :: r_h                       !< real-value flow thickness
+    REAL*8 :: r_alphas(n_solid)         !< real-value solid volume fractions
+    REAL*8 :: r_T                       !< real-value temperature [K]
+    REAL*8 :: r_alphal                  !< real-value liquid volume fraction
 
     r_h = qpj(1)
 
@@ -645,8 +665,8 @@ CONTAINS
   !> The physical variables are those used for the linear reconstruction at the
   !> cell interfaces. Limiters are applied to the reconstructed slopes.
   !> \param[in]     qc     local conservative variables 
-  !> \param[in]     B      local topography
   !> \param[out]    qp     local physical variables  
+  !
   !> \date 2019/11/11
   !
   !> @author 
@@ -718,7 +738,9 @@ CONTAINS
   !> - qp(n_vars+2) = \f$ v \f$
   !> .
   !> \param[in]    qp      physical variables  
-  !> \param[out]   qc      conservative variables 
+  !> \param[in]    B       local topography
+  !> \param[out]   qc      conservative variables
+  !
   !> \date 2019/11/18
   !
   !> @author 
@@ -783,14 +805,12 @@ CONTAINS
 
        ! carrier phase is gas
        r_rho_c = pres / ( sp_gas_const_a * r_T )
-
        sp_heat_c = sp_heat_a
 
     ELSE
 
        ! carrier phase is liquid
        r_rho_c = rho_l
-
        sp_heat_c = sp_heat_l
 
     END IF
@@ -830,7 +850,7 @@ CONTAINS
        r_xc = r_alphac * r_rho_c / r_rho_m
 
        ! mass averaged mixture specific heat
-       r_sp_heat_mix =  SUM( r_xs * sp_heat_s ) + r_xl*sp_heat_l + r_xc*sp_heat_c
+       r_sp_heat_mix =  SUM( r_xs*sp_heat_s ) + r_xl*sp_heat_l + r_xc*sp_heat_c
 
     ELSE
 
@@ -897,13 +917,13 @@ CONTAINS
 
   END SUBROUTINE qp_to_qc
 
-
   !******************************************************************************
   !> \brief Additional Physical variables
   !
   !> This subroutine evaluates from the physical local variables qpj, the two
-  !> additional local variables qp2j = (u,v). 
+  !> additional local variables qp2j = (h+B,u,v). 
   !> \param[in]    qpj    real-valued physical variables 
+  !> \param[in]    Bj     real-valued local topography 
   !> \param[out]   qp2j   real-valued physical variables 
   !> @author 
   !> Mattia de' Michieli Vitturi
@@ -1037,7 +1057,6 @@ CONTAINS
 
   END SUBROUTINE eval_local_speeds_y
 
-
   !******************************************************************************
   !> \brief Hyperbolic Fluxes
   !
@@ -1166,7 +1185,6 @@ CONTAINS
 
   END SUBROUTINE eval_fluxes
 
-
   !******************************************************************************
   !> \brief Non-Hyperbolic terms
   !
@@ -1193,7 +1211,6 @@ CONTAINS
     IMPLICIT NONE
 
     COMPLEX*16, INTENT(IN), OPTIONAL :: c_qj(n_vars)
-
     COMPLEX*16, INTENT(OUT), OPTIONAL :: c_nh_term_impl(n_eqns)
     REAL*8, INTENT(IN), OPTIONAL :: r_qj(n_vars)
     REAL*8, INTENT(OUT), OPTIONAL :: r_nh_term_impl(n_eqns)
@@ -1205,8 +1222,7 @@ CONTAINS
     COMPLEX*16 :: rho_m                   !< mixture density [kg/m3]
     COMPLEX*16 :: red_grav                !< reduced gravity
     COMPLEX*16 :: alphas(n_solid)         !< sediment volume fractions
-
-    
+ 
     COMPLEX*16 :: qj(n_vars)
     COMPLEX*16 :: nh_term(n_eqns)
     COMPLEX*16 :: forces_term(n_eqns)
@@ -1248,7 +1264,6 @@ CONTAINS
        h_threshold = 0.D0
 
     END IF
-
 
     IF ( present(c_qj) .AND. present(c_nh_term_impl) ) THEN
 
@@ -1450,10 +1465,9 @@ CONTAINS
   !> semi-implicitely by the solver. For example, any discontinuous term that
   !> appears in the friction terms.
   !> \date 20/01/2018
-  !> \param[in]     c_qj            complex conservative variables 
-  !> \param[in]     r_qj            real conservative variables 
-  !> \param[out]    c_nh_term_impl  complex non-hyperbolic terms     
-  !> \param[out]    r_nh_term_impl  real non-hyperbolic terms
+  !> \param[in]     grav3_surf         gravity correction 
+  !> \param[in]     qcj                real conservative variables 
+  !> \param[out]    nh_semi_impl_term  real non-hyperbolic terms
   !
   !> @author 
   !> Mattia de' Michieli Vitturi
@@ -1744,10 +1758,11 @@ CONTAINS
   !
   !> This subroutine evaluates the deposition term.
   !> \date 2019/11/08
-  !> \param[in]     qj                  conservative variables 
-  !> \param[in]     deposition_avg_term averaged deposition terms 
-  !> \param[in]     erosion_avg_term    averaged deposition terms 
-  !> \param[out]    topo_term           explicit term
+  !> \param[in]     qpj                   physical variables 
+  !> \param[in]     deposition_avg_term   averaged deposition terms 
+  !> \param[in]     erosion_avg_term      averaged deposition terms 
+  !> \param[out]    eqns_term             source terms for cons equations
+  !> \param[out]    deposit_term          deposition rates for solids
   !
   !> @author 
   !> Mattia de' Michieli Vitturi
@@ -1859,6 +1874,7 @@ CONTAINS
   !> applied as boundary conditions, and thus they have the units of the 
   !> physical variable qp
   !> \date 2019/12/01
+  !> \param[in]     time         time 
   !> \param[in]     vect_x       unit vector velocity x-component 
   !> \param[in]     vect_y       unit vector velocity y-component 
   !> \param[out]    source_bdry  source terms  
@@ -2026,8 +2042,6 @@ CONTAINS
        END DO C_D_loop
 
     END IF
-
-    C_D_s(i_solid) = C_D
 
     RETURN
 

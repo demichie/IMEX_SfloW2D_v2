@@ -68,7 +68,7 @@ MODULE inpout_2d
   
   ! --- Variables for the namelist SOLID_TRANSPORT_PARAMETERS
   USE parameters_2d, ONLY : n_solid
-  USE constitutive_2d, ONLY : rho_s , diam_s , sp_heat_s , C_D_s
+  USE constitutive_2d, ONLY : rho_s , diam_s , sp_heat_s
   USE constitutive_2d, ONLY : settling_flag , erosion_coeff
   USE constitutive_2d, ONLY : T_s_substrate
 
@@ -898,8 +898,7 @@ CONTAINS
     bcS(1:n_vars)%flag = -1
     bcN(1:n_vars)%flag = -1
 
-    ALLOCATE( rho_s(n_solid) , diam_s(n_solid) , sp_heat_s(n_solid) ,           &
-         C_D_s(n_solid) )
+    ALLOCATE( rho_s(n_solid) , diam_s(n_solid) , sp_heat_s(n_solid) )
 
     ALLOCATE( alphas_init(n_solid) , sed_vol_perc(n_solid) )
 
@@ -909,12 +908,10 @@ CONTAINS
     diam_s(1:n_solid) = diam0_s(1:n_solid)
     sp_heat_s(1:n_solid) = sp_heat0_s(1:n_solid)
     erosion_coeff(1:n_solid) = erosion_coeff0(1:n_solid)
-    C_D_s(1:n_solid) = 0.44D0
     
-
     ALLOCATE( deposit( comp_cells_x , comp_cells_y , n_solid ) )
     
-    deposit = 0.D0
+    deposit(1:comp_cells_x,1:comp_cells_y,1:n_solid ) = 0.D0
 
     IF ( restart ) THEN
 
