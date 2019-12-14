@@ -1467,8 +1467,6 @@ CONTAINS
     bcS(5:4+n_solid) = alphas_bcS(1:n_solid)
     bcN(5:4+n_solid) = alphas_bcN(1:n_solid)
        
-    WRITE(*,*) 'bcE',bcE
-
     ! ------- READ expl_terms_parameters NAMELIST -------------------------------
 
     READ(input_unit, expl_terms_parameters,IOSTAT=ios)
@@ -2461,8 +2459,6 @@ CONTAINS
 
     REAL*8, ALLOCATABLE :: x1(:) , y1(:)
 
-    REAL*8 :: x2 , y2
-
     REAL*8 :: xl , xr , yl , yr 
     
     REAL*8 :: rho_c , rho_m , mass_fract(n_solid)
@@ -2600,41 +2596,8 @@ CONTAINS
           thickness_init = 0.D0
           
        END WHERE
-
-
-       
-       ALLOCATE( x1(ncols) , y1(nrows) )
-
-       DO j=1,ncols
-
-          x1(j) = xllcorner + (j-1)*cellsize
-
-       END DO
-       
-       DO k=1,nrows
-
-          y1(k) = yllcorner + (k-1)*cellsize
-
-       END DO
-       
-       DO j=1,comp_cells_x
-          
-          x2 = x0 + (j-1)*cell_size
-          
-          DO k=1,comp_cells_y
-             
-             y2 = y0 + (k-1)*cell_size
-             
-             CALL interp_2d_scalarB( x1 , y1 , thickness_input , x2 , y2 ,      &
-                  thickness_init(j,k) )
-
-          END DO
-
-       END DO
-
+              
        !----- NEW INITIALIZATION OF THICKNESS FROM RESTART
-       DEALLOCATE( x1 , y1 )
-
        ALLOCATE( x1(ncols+1) , y1(nrows+1) )
        
        DO j=1,ncols+1
@@ -2665,7 +2628,6 @@ CONTAINS
           END DO
 
        END DO
-
        
        !----- END NEW INITIALIZATION OF THICKNESS FROM RESTART
 
@@ -2692,7 +2654,7 @@ CONTAINS
             SUM( thickness_init(:,:) )
        WRITE(*,*) 'Total mass on computational grid =',cell_size**2 *           &
             SUM( q(1,:,:) )
-
+       
        ! rhom*h*u
        q(2,:,:) = 0.D0
        ! rhom*h*v
