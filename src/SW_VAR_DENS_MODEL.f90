@@ -78,16 +78,54 @@ PROGRAM SW_VAR_DENS_MODEL
 
   USE solver_2d, ONLY : solve_mask
 
+  USE OMP_LIB
+
   IMPLICIT NONE
 
   REAL*8 :: t1 , t2
+
+  REAL*8 :: rate
+  INTEGER :: st1 , st2 , cr , cm
+
   REAL*8 :: dt_old , dt_old_old
   LOGICAL :: stop_flag
   LOGICAL :: stop_flag_old
 
   INTEGER j,k
+  INTEGER n_threads
+
+  LOGICAL :: use_openmp = .false.
+
+  !$ use_openmp = .true.
+  !$ print *, "OpenMP program"
+
+  IF ( .NOT. use_openmp) THEN
+
+     PRINT *, "Non-OpenMP program"
+
+  ELSE
+     
+     !$ n_threads = omp_get_max_threads()
+     !$ CALL OMP_SET_NUM_THREADS(n_threads)
+     
+     WRITE(*,*) 'Number of threads used', n_threads
+     !$OMP PARALLEL
+     
+     !$ PRINT *, "Hello from process", OMP_GET_THREAD_NUM()
+     
+     !$OMP END PARALLEL
+
+  END IF
+
 
   CALL cpu_time(t1)
+
+ ! First initialize the system_clock
+  CALL system_clock(count_rate=cr)
+  CALL system_clock(count_max=cm)
+  rate = DBLE(cr)
+
+  CALL system_clock (st1)
 
   CALL init_param
 
@@ -215,7 +253,8 @@ PROGRAM SW_VAR_DENS_MODEL
      q1max(:,:) = MAX( q1max(:,:) , q(1,:,:) )
      
      t = t+dt
-     
+
+     !$OMP PARALLEL DO private(j,k)
 
      DO k = 1,comp_cells_y
         
@@ -227,6 +266,7 @@ PROGRAM SW_VAR_DENS_MODEL
 
      END DO
   
+     !OMP END PARALLEL DO 
 
      WRITE(*,FMT="(A3,F10.4,A5,F9.5,A9,ES11.3E3,A11,ES11.3E3,A9,ES11.3E3,A15,ES11.3E3)")&
           't =',t,'dt =',dt,                                                    &
@@ -261,8 +301,10 @@ PROGRAM SW_VAR_DENS_MODEL
         CALL output_solution(t)
 
         CALL cpu_time(t2)
+        CALL system_clock(st2)
 
         WRITE(*,*) 'Time taken by the code is',t2-t1,'seconds'
+        WRITE(*,*) 'Elapsed real time = ', DBLE( st2 - st1 ) / rate
 
      END IF
 

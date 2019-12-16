@@ -163,18 +163,6 @@ MODULE solver_2d
   !> Intermediate explicit terms of the Runge-Kutta scheme
   REAL*8, ALLOCATABLE :: expl_terms(:,:,:,:)
 
-  !> Local Intermediate hyperbolic terms of the Runge-Kutta scheme
-  REAL*8, ALLOCATABLE :: divFluxj(:,:)
-
-  !> Local Intermediate non-hyperbolic terms of the Runge-Kutta scheme
-  REAL*8, ALLOCATABLE :: NHj(:,:)
-
-  !> Local Intermediate explicit terms of the Runge-Kutta scheme
-  REAL*8, ALLOCATABLE :: expl_terms_j(:,:)
-
-  !> Local Intermediate semi-impl non-hyperbolic terms of the Runge-Kutta scheme
-  REAL*8, ALLOCATABLE :: SI_NHj(:,:)
-
   !> Flag for the normalization of the array q in the implicit solution scheme
   LOGICAL :: normalize_q
 
@@ -195,8 +183,6 @@ MODULE solver_2d
 
   INTEGER, ALLOCATABLE :: j_stag_y(:)
   INTEGER, ALLOCATABLE :: k_stag_y(:)
-
-  REAL*8 :: t_imex1,t_imex2
 
 CONTAINS
 
@@ -413,12 +399,6 @@ CONTAINS
 
     ALLOCATE( expl_terms( n_eqns , comp_cells_x , comp_cells_y , n_RK ) )
 
-    ALLOCATE( divFluxj(n_eqns,n_RK) )
-    ALLOCATE( NHj(n_eqns,n_RK) )
-    ALLOCATE( SI_NHj(n_eqns,n_RK) )
-
-    ALLOCATE( expl_terms_j(n_eqns,n_RK) )
-
     ALLOCATE( residual_term( n_vars , comp_cells_x , comp_cells_y ) )
 
     comp_cells_xy = comp_cells_x * comp_cells_y
@@ -512,11 +492,6 @@ CONTAINS
     DEALLOCATE( NH )
     DEALLOCATE( SI_NH )
     DEALLOCATE( expl_terms )
-
-    DEALLOCATE( divFluxj )
-    DEALLOCATE( NHj )
-    DEALLOCATE( SI_NHj )
-    DEALLOCATE( expl_terms_j )
 
     DEALLOCATE( mask22 , mask21 , mask11 , mask12 )
 
@@ -721,6 +696,8 @@ CONTAINS
 
     IF ( cfl .NE. -1.d0 ) THEN
 
+       !$OMP PARALLEL DO private(j,k)
+
        DO l = 1,solve_cells
 
           j = j_cent(l)
@@ -730,6 +707,7 @@ CONTAINS
 
        END DO
 
+       !$OMP END PARALLEL DO
 
        ! Compute the physical and conservative variables at the interfaces
        CALL reconstruction( q , qp )
@@ -837,8 +815,7 @@ CONTAINS
     REAL*8 :: q_si(n_vars) !< solution after the semi-implicit step
     REAL*8 :: q_guess(n_vars) !< initial guess for the solution of the RK step
     INTEGER :: j,k,l            !< loop counter over the grid volumes
-
-    REAL*8 :: h_new
+    REAL*8 :: Rj_not_impl(n_eqns)
 
     ! Initialization of the solution guess
     q0( 1:n_vars , 1:comp_cells_x , 1:comp_cells_y ) =                          &
@@ -873,9 +850,9 @@ CONTAINS
        ! define the implicit coefficient for the i-th step of the Runge-Kutta
        a_diag = a_dirk_ij(i_RK,i_RK)
 
-       CALL cpu_time(t_imex1)
+       !$OMP PARALLEL DO private(j,k,q_guess,q_si,Rj_not_impl)
 
-       DO l = 1,solve_cells
+       solve_cells_loop:DO l = 1,solve_cells
 
           j = j_cent(l)
           k = k_cent(l)
@@ -899,24 +876,12 @@ CONTAINS
 
           END IF
 
-          ! RK explicit hyperbolic terms for the volume (i,j)
-          divFluxj(1:n_eqns,1:n_RK) = divFlux( 1:n_eqns , j , k , 1:n_RK )
-
-          ! RK implicit terms for the volume (i,j)
-          NHj(1:n_eqns,1:n_RK) = NH( 1:n_eqns , j , k , 1:n_RK )
-
-          ! RK semi-implicit terms for the volume (i,j)
-          SI_NHj(1:n_eqns,1:n_RK) = SI_NH( 1:n_eqns , j , k , 1:n_RK )
-
-          ! RK additional explicit terms for the volume (i,j)
-          Expl_terms_j(1:n_eqns,1:n_RK) = expl_terms( 1:n_eqns,j,k,1:n_RK )
-
           ! New solution at the i_RK step without the implicit  and
           ! semi-implicit term
           q_fv( 1:n_vars , j , k ) = q0( 1:n_vars , j , k )                     &
-               - dt * (MATMUL( divFluxj(1:n_eqns,1:i_RK)                        &
-               + Expl_terms_j(1:n_eqns,1:i_RK) , a_tilde(1:i_RK) )              &
-               - MATMUL( NHj(1:n_eqns,1:i_RK) + SI_NHj(1:n_eqns,1:i_RK) ,       &
+               - dt * (MATMUL( divFlux(1:n_eqns,j,k,1:i_RK)                     &
+               + expl_terms(1:n_eqns,j,k,1:i_RK) , a_tilde(1:i_RK) )            &
+               - MATMUL( NH(1:n_eqns,j,k,1:i_RK) + SI_NH(1:n_eqns,j,k,1:i_RK) , &
                a_dirk(1:i_RK) ) )
 
           IF ( verbose_level .GE. 2 ) THEN
@@ -935,8 +900,6 @@ CONTAINS
                 ! (terms which non depend on velocity magnitude)
                 CALL eval_nh_semi_impl_terms( grav_surf(j,k) ,                  &
                      q_fv( 1:n_vars , j , k ) , SI_NH(1:n_eqns,j,k,i_RK) ) 
-
-                SI_NHj(1:n_eqns,i_RK) = SI_NH( 1:n_eqns,j,k,i_RK )
 
                 ! Assemble the initial guess for the implicit solver
                 q_si(1:n_vars) = q_fv(1:n_vars,j,k ) + dt * a_diag *            &
@@ -968,15 +931,24 @@ CONTAINS
                 SI_NH(1:n_eqns,j,k,i_RK) = ( q_si(1:n_vars) -                   &
                      q_fv(1:n_vars,j,k ) ) / ( dt*a_diag )
 
-                SI_NHj(1:n_eqns,i_RK) = SI_NH( 1:n_eqns,j,k,i_RK )
-
                 ! Initialize the guess for the NR solver
                 q_guess(1:n_vars) = q_si(1:n_vars)
+
+
+                Rj_not_impl =  ( MATMUL( divFlux(1:n_eqns,j,k,1:i_RK-1) +       &
+                     expl_terms(1:n_eqns,j,k,1:i_RK-1), a_tilde(1:i_RK-1) )     &
+                     - MATMUL( NH(1:n_eqns,j,k,1:i_RK-1)                        &
+                     + SI_NH(1:n_eqns,j,k,1:i_RK-1) , a_dirk(1:i_RK-1) ) )      &
+                     - a_diag * SI_NH(1:n_eqns,j,k,i_RK)
+
 
                 ! Solve the implicit system to find the solution at the 
                 ! i_RK step of the IMEX RK procedure
                 CALL solve_rk_step( q_guess(1:n_vars) , q0(1:n_vars,j,k ) ,     &
-                     a_tilde , a_dirk , a_diag )
+                     a_tilde , a_dirk , a_diag , Rj_not_impl ,                  &
+                     divFlux( 1:n_eqns , j , k , 1:n_RK ) ,                     &
+                      expl_terms( 1:n_eqns,j,k,1:n_RK ) ,                       &
+                      NH( 1:n_eqns , j , k , 1:n_RK ) )
 
                 IF ( comp_cells_y .EQ. 1 ) THEN
 
@@ -991,7 +963,7 @@ CONTAINS
                 END IF
 
                 ! Eval and store the implicit term at the i_RK step
-                CALL eval_nonhyperbolic_terms( r_qj =q_guess ,                  &
+                CALL eval_nonhyperbolic_terms( r_qj = q_guess ,                 &
                      r_nh_term_impl = NH(1:n_eqns,j,k,i_RK) )
 
                 IF ( q_si(2)**2 + q_si(3)**2 .EQ. 0.D0 ) THEN
@@ -1025,9 +997,6 @@ CONTAINS
 
           END IF adiag_pos
 
-          ! Check the sign of the flow thickness
-          h_new = q_guess(1)
-
           IF ( a_diag .NE. 0.D0 ) THEN
 
              ! Update the implicit term with correction on the new velocity
@@ -1048,12 +1017,13 @@ CONTAINS
 
           END IF
 
-       END DO
+       END DO solve_cells_loop
 
-       CALL cpu_time(t_imex2)
-       ! WRITE(*,*) 'Time taken by implicit',t_imex2-t_imex1,'seconds'
-
+       !$OMP END PARALLEL DO
+  
        IF ( omega_tilde(i_RK) .GT. 0.D0 ) THEN
+
+          !$OMP PARALLEL DO private(j,k)
 
           ! Compute the physical variables at the cell centers 
           DO l = 1,solve_cells
@@ -1066,15 +1036,13 @@ CONTAINS
 
           END DO
 
+          !$OMP END PARALLEL DO
 
           ! Eval and store the explicit hyperbolic (fluxes) terms
           CALL eval_hyperbolic_terms(                                           &
                q_rk(1:n_vars,1:comp_cells_x,1:comp_cells_y,i_RK) ,              &
                qp_rk(1:n_vars+2,1:comp_cells_x,1:comp_cells_y,i_RK) ,           &
                divFlux(1:n_eqns,1:comp_cells_x,1:comp_cells_y,i_RK) )
-
-          CALL cpu_time(t_imex1)
-          ! WRITE(*,*) 'Time taken by explicit',t_imex1-t_imex2,'seconds'
 
           ! Eval and store the other explicit terms (e.g. gravity or viscous 
           ! forces)
@@ -1083,12 +1051,11 @@ CONTAINS
                qp_rk(1:n_vars+2,1:comp_cells_x,1:comp_cells_y,i_RK) ,           &
                expl_terms(1:n_eqns,1:comp_cells_x,1:comp_cells_y,i_RK) )
 
-          CALL cpu_time(t_imex1)
-          ! WRITE(*,*) 'Time taken by explicit',t_imex1-t_imex2,'seconds'
-
        END IF
 
     END DO runge_kutta
+
+    !$OMP PARALLEL DO private(j,k)
 
     DO l = 1,solve_cells
 
@@ -1101,6 +1068,10 @@ CONTAINS
             omega )
 
     END DO
+
+    !$OMP END PARALLEL DO
+
+    !$OMP PARALLEL DO private(j,k)
 
     assemble_sol:DO l = 1,solve_cells
 
@@ -1198,6 +1169,8 @@ CONTAINS
 
     END DO assemble_sol
 
+    !$OMP END PARALLEL DO
+
     RETURN
 
   END SUBROUTINE imex_RK_solver
@@ -1224,7 +1197,8 @@ CONTAINS
   !
   !******************************************************************************
 
-  SUBROUTINE solve_rk_step( qj, qj_old, a_tilde , a_dirk , a_diag )
+  SUBROUTINE solve_rk_step( qj, qj_old, a_tilde, a_dirk, a_diag, Rj_not_impl,   &
+       divFluxj, Expl_terms_j , NHj )
 
     USE parameters_2d, ONLY : max_nl_iter , tol_rel , tol_abs
 
@@ -1237,6 +1211,10 @@ CONTAINS
     REAL*8, INTENT(IN) :: a_tilde(n_RK)
     REAL*8, INTENT(IN) :: a_dirk(n_RK)
     REAL*8, INTENT(IN) :: a_diag
+    REAL*8, INTENT(IN) :: Rj_not_impl(n_eqns)
+    REAL*8, INTENT(IN) :: divFluxj(n_eqns,n_RK)
+    REAL*8, INTENT(IN) :: expl_terms_j(n_eqns,n_RK)
+    REAL*8, INTENT(IN) :: NHj(n_eqns,n_RK)
 
     REAL*8 :: qj_init(n_vars)
 
@@ -1253,7 +1231,6 @@ CONTAINS
     REAL*8 :: scal_f_old
     REAL*8 :: desc_dir(n_vars)
     REAL*8 :: grad_f(n_vars)
-    ! REAL*8 :: mod_desc_dir
 
     INTEGER :: pivot(n_vars)
 
@@ -1301,8 +1278,8 @@ CONTAINS
        qj = qj_old - dt * ( MATMUL(divFluxj+ Expl_terms_j,a_tilde)              &
             - MATMUL(NHj,a_dirk) )
 
-       CALL eval_f( qj , qj_old , a_tilde , a_dirk , a_diag , coeff_f ,         &
-            right_term ,  scal_f )
+       CALL eval_f( qj , qj_old , a_diag , coeff_f , Rj_not_impl , right_term , &
+            scal_f )
 
        IF ( verbose_level .GE. 3 ) THEN
 
@@ -1352,8 +1329,8 @@ CONTAINS
 
        IF ( verbose_level .GE. 2 ) WRITE(*,*) 'solve_rk_step: nl_iter',nl_iter
 
-       CALL eval_f( qj , qj_old , a_tilde , a_dirk , a_diag , coeff_f ,         &
-            right_term , scal_f )
+       CALL eval_f( qj , qj_old , a_diag , coeff_f , Rj_not_impl , right_term , &
+            scal_f )
 
        IF ( verbose_level .GE. 2 ) THEN
 
@@ -1432,15 +1409,6 @@ CONTAINS
 
        END IF
 
-       !mod_desc_dir = DSQRT( desc_dir(2)**2 + desc_dir(3)**2 )
-       !
-       !IF (  qj(2)**2 + qj(3)**2 .GT. 0.D0 ) THEN 
-       !
-       !   desc_dir(2) = mod_desc_dir * qj(2) / ( qj(2)**2 + qj(3)**2 ) 
-       !   desc_dir(3) = mod_desc_dir * qj(3) / ( qj(2)**2 + qj(3)**2 ) 
-       !
-       !END IF
-
        IF ( verbose_level .GE. 3 ) WRITE(*,*) 'desc_dir',desc_dir
 
        qj_rel_NR_old = qj_rel
@@ -1458,7 +1426,7 @@ CONTAINS
 
           CALL lnsrch( qj_rel_NR_old , qj_org , qj_old , scal_f_old , grad_f ,  &
                desc_dir , coeff_f , qj_rel , scal_f , right_term , stpmax ,     &
-               check )
+               check , Rj_not_impl )
 
        ELSE
 
@@ -1466,7 +1434,7 @@ CONTAINS
 
           qj = qj_rel * qj_org
 
-          CALL eval_f( qj , qj_old , a_tilde , a_dirk , a_diag , coeff_f ,      &
+          CALL eval_f( qj , qj_old , a_diag , coeff_f , Rj_not_impl ,           &
                right_term , scal_f )
 
        END IF
@@ -1539,7 +1507,7 @@ CONTAINS
   !******************************************************************************
 
   SUBROUTINE lnsrch( qj_rel_NR_old , qj_org , qj_old , scal_f_old , grad_f ,    &
-       desc_dir , coeff_f , qj_rel , scal_f , right_term , stpmax , check )
+       desc_dir , coeff_f , qj_rel , scal_f , right_term , stpmax , check , Rj_not_impl )
 
     IMPLICIT NONE
 
@@ -1577,6 +1545,8 @@ CONTAINS
 
     !> Output quantity check is false on a normal exit 
     LOGICAL, INTENT(OUT) :: check
+
+    REAL*8, INTENT(IN) :: Rj_not_impl(n_eqns)
 
     REAL*8, PARAMETER :: TOLX=epsilon(qj_rel)
 
@@ -1638,8 +1608,8 @@ CONTAINS
 
        qj = qj_rel * qj_org
 
-       CALL eval_f( qj , qj_old , a_tilde , a_dirk , a_diag , coeff_f ,         &
-            right_term , scal_f )
+       CALL eval_f( qj , qj_old , a_diag , coeff_f , Rj_not_impl , right_term , &
+            scal_f )
 
        IF ( verbose_level .GE. 4 ) THEN
 
@@ -1754,7 +1724,7 @@ CONTAINS
   !> Mattia de' Michieli Vitturi
   !******************************************************************************
 
-  SUBROUTINE eval_f( qj , qj_old , a_tilde , a_dirk , a_diag , coeff_f , f_nl , &
+  SUBROUTINE eval_f( qj , qj_old , a_diag , coeff_f , Rj_not_impl , f_nl , &
        scal_f )
 
     USE constitutive_2d, ONLY : eval_nonhyperbolic_terms
@@ -1763,10 +1733,10 @@ CONTAINS
 
     REAL*8, INTENT(IN) :: qj(n_vars)
     REAL*8, INTENT(IN) :: qj_old(n_vars)
-    REAL*8, INTENT(IN) :: a_tilde(n_RK)
-    REAL*8, INTENT(IN) :: a_dirk(n_RK)
     REAL*8, INTENT(IN) :: a_diag
     REAL*8, INTENT(IN) :: coeff_f(n_eqns)
+    REAL*8, INTENT(IN) :: Rj_not_impl(n_eqns)
+
     REAL*8, INTENT(OUT) :: f_nl(n_eqns)
     REAL*8, INTENT(OUT) :: scal_f
 
@@ -1775,10 +1745,7 @@ CONTAINS
 
     CALL eval_nonhyperbolic_terms( r_qj = qj , r_nh_term_impl=nh_term_impl ) 
 
-    Rj = ( MATMUL( divFluxj(1:n_eqns,1:i_RK-1)+Expl_terms_j(1:n_eqns,1:i_RK-1), &
-         a_tilde(1:i_RK-1) ) - MATMUL( NHj(1:n_eqns,1:i_RK-1)                   &
-         + SI_NHj(1:n_eqns,1:i_RK-1) , a_dirk(1:i_RK-1) ) )                     &
-         - a_diag * ( nh_term_impl + SI_NHj(1:n_eqns,i_RK) )
+    Rj = Rj_not_impl - a_diag * nh_term_impl
 
     f_nl = qj - qj_old + dt * Rj
 
@@ -1901,9 +1868,12 @@ CONTAINS
     REAL*8 :: r_rho_c      !< real-value carrier phase density [kg/m3]
     REAL*8 :: r_red_grav   !< real-value reduced gravity
 
-    INTEGER :: j ,k , l 
+    INTEGER :: j,k,l 
 
     IF ( ( SUM(erosion_coeff) .EQ. 0.D0 ) .AND. ( .NOT. settling_flag ) ) RETURN
+
+    !$OMP PARALLEL DO private(j,k,erosion_term,deposition_term,eqns_term,       &
+    !$OMP & deposit_term,r_Ri,r_rho_m,r_rho_c,r_red_grav)
 
     DO l = 1,solve_cells
 
@@ -1976,6 +1946,8 @@ CONTAINS
 
     END DO
 
+    !$OMP END PARALLEL DO
+
     RETURN
 
   END SUBROUTINE update_erosion_deposition_cell
@@ -1988,14 +1960,14 @@ CONTAINS
   !
   !> \param[in]    qc_expl          conservative variables 
   !> \param[in]    qp_expl          conservative variables 
-  !> \param[out]   expl_terms      explicit terms
+  !> \param[out]   expl_terms_RK    explicit terms
   !
   !> \date 07/10/2016
   !> @author 
   !> Mattia de' Michieli Vitturi
   !******************************************************************************
 
-  SUBROUTINE eval_explicit_terms( qc_expl , qp_expl , expl_terms )
+  SUBROUTINE eval_explicit_terms( qc_expl , qp_expl , expl_terms_RK )
 
     USE constitutive_2d, ONLY : eval_expl_terms
 
@@ -2003,7 +1975,7 @@ CONTAINS
 
     REAL*8, INTENT(IN) :: qc_expl(n_vars,comp_cells_x,comp_cells_y)
     REAL*8, INTENT(IN) :: qp_expl(n_vars+2,comp_cells_x,comp_cells_y)
-    REAL*8, INTENT(OUT) :: expl_terms(n_eqns,comp_cells_x,comp_cells_y)
+    REAL*8, INTENT(OUT) :: expl_terms_RK(n_eqns,comp_cells_x,comp_cells_y)
 
     REAL*8 :: qcj(n_vars)     !< local conservative variables 
     REAL*8 :: qpj(n_vars+2)     !< local physical variables
@@ -2011,7 +1983,9 @@ CONTAINS
 
     INTEGER :: j,k,l
 
-    expl_terms = 0.D0
+    expl_terms_RK(1:n_eqns,1:comp_cells_x,1:comp_cells_y) = 0.D0
+
+    !$OMP PARALLEL DO private(j,k,qcj,qpj,expl_forces_term)
 
     DO l = 1,solve_cells
 
@@ -2024,9 +1998,11 @@ CONTAINS
        CALL eval_expl_terms( B_prime_x(j,k), B_prime_y(j,k), source_xy(j,k) ,&
             qpj(1:n_vars+2) , qcj(1:n_vars) , expl_forces_term )
 
-       expl_terms(1:n_eqns,j,k) =  expl_forces_term
+       expl_terms_RK(1:n_eqns,j,k) =  expl_forces_term
 
     END DO
+
+    !$OMP END PARALLEL DO
 
     RETURN
     
@@ -2061,25 +2037,13 @@ CONTAINS
     REAL*8, INTENT(IN) :: qp_expl(n_vars+2,comp_cells_x,comp_cells_y)
     REAL*8, INTENT(OUT) :: divFlux(n_eqns,comp_cells_x,comp_cells_y)
 
-    REAL*8 :: h_new , h_old
-
-    ! REAL*8 :: tcpu0,tcpu1,tcpu2,tcpu3,tcpu4
-
     INTEGER :: l , i, j, k      !< loop counters
-
-    ! CALL cpu_time(tcpu0)
 
     ! Linear reconstruction of the physical variables at the interfaces
     CALL reconstruction(q_expl,qp_expl)
 
-    ! CALL cpu_time(tcpu1)
-    !WRITE(*,*) 'eval_hyperbolic_terms: Time taken by the code was',tcpu1-tcpu0,'seconds'
-
     ! Evaluation of the maximum local speeds at the interfaces
     CALL eval_speeds
-
-    ! CALL cpu_time(tcpu2)
-    !WRITE(*,*) 'eval_hyperbolic_terms: Time taken by the code was',tcpu2-tcpu1,'seconds'
 
     ! Evaluation of the numerical fluxes
     SELECT CASE ( solver_scheme )
@@ -2102,11 +2066,11 @@ CONTAINS
 
     END SELECT
 
-    ! CALL cpu_time(tcpu3)
-    !WRITE(*,*) 'eval_hyperbolic_terms: Time taken by the code was',tcpu3-tcpu2,'seconds'
+
+    !$OMP PARALLEL DO private(j,k,i)
 
     ! Advance in time the solution
-    DO l = 1,solve_cells
+    cells_loop:DO l = 1,solve_cells
 
        j = j_cent(l)
        k = k_cent(l)
@@ -2131,13 +2095,9 @@ CONTAINS
 
        END DO
 
-       h_old = q_expl(1,j,k)
-       h_new = h_old - dt * divFlux(1,j,k)
+    END DO cells_loop
 
-    END DO
-
-    ! CALL cpu_time(tcpu4)
-    !WRITE(*,*) 'eval_hyperbolic_terms: Time taken by the code was',tcpu4-tcpu4,'seconds'
+    !$OMP END PARALLEL DO
 
     RETURN
 
@@ -2293,7 +2253,9 @@ CONTAINS
 
     IF ( comp_cells_x .GT. 1 ) THEN
 
-       DO l = 1,solve_interfaces_x
+       !$OMP PARALLEL DO private(j,k,i,fluxL,fluxR,flux_avg_x)
+
+       interfaces_x_loop:DO l = 1,solve_interfaces_x
 
           j = j_stag_x(l)
           k = k_stag_x(l)
@@ -2335,14 +2297,18 @@ CONTAINS
 
           END IF
 
-       END DO
+       END DO interfaces_x_loop
+
+       !$OMP END PARALLEL DO
 
     END IF
 
 
     IF ( comp_cells_y .GT. 1 ) THEN
 
-       DO l = 1,solve_interfaces_y
+       !$OMP PARALLEL DO private(j,k,i,fluxB,fluxT,flux_avg_y)
+       
+       intercafes_y_loop:DO l = 1,solve_interfaces_y
 
           j = j_stag_y(l)
           k = k_stag_y(l)
@@ -2383,7 +2349,9 @@ CONTAINS
 
           END IF
 
-       END DO
+       END DO intercafes_y_loop
+
+       !$OMP END PARALLEL DO
 
     END IF
 
@@ -2565,12 +2533,15 @@ CONTAINS
 
     END DO
 
+    !$OMP PARALLEL DO private(j,k,i,qrecW,qrecE,qrecS,qrecN,x_stencil,y_stencil,&
+    !$OMP & qrec_stencil,qrec_prime_x,qrec_prime_y,qp2recW,qp2recE,qp2recS,     &
+    !$OMP & qp2recN,source_bdry)
+
     ! Linear reconstruction
     DO l = 1,solve_cells
 
        j = j_cent(l)
        k = k_cent(l)
-
 
        qrecW(1:n_vars+2) =  qp_expl(1:n_vars+2,j,k)
        qrecE(1:n_vars+2) =  qp_expl(1:n_vars+2,j,k)
@@ -3164,6 +3135,8 @@ CONTAINS
 
     END DO
 
+    !$OMP END PARALLEL DO
+
     DEALLOCATE ( qrec )
     DEALLOCATE ( qrecW )
     DEALLOCATE ( qrecE )
@@ -3205,6 +3178,9 @@ CONTAINS
 
     IF ( comp_cells_x .GT. 1 ) THEN
 
+       !$OMP PARALLEL DO private(j , k , abslambdaL_min , abslambdaL_max ,      &
+       !$OMP & abslambdaR_min , abslambdaR_max , min_r , max_r )
+
        x_interfaces_loop:DO l = 1,solve_interfaces_x
 
           j = j_stag_x(l)
@@ -3224,9 +3200,14 @@ CONTAINS
 
        END DO x_interfaces_loop
 
+       !$OMP END PARALLEL DO
+
     END IF
 
     IF ( comp_cells_y .GT. 1 ) THEN
+
+       !$OMP PARALLEL DO private(j , k , abslambdaB_min , abslambdaB_max ,      &
+       !$OMP & abslambdaT_min , abslambdaT_max , min_r , max_r )
 
        y_interfaces_loop:DO l = 1,solve_interfaces_y
 
@@ -3246,6 +3227,8 @@ CONTAINS
           a_interface_yPos(:,j,k) = max_r
 
        END DO y_interfaces_loop
+
+       !$OMP END PARALLEL DO
 
     END IF
 
