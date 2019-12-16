@@ -4,11 +4,15 @@ Shallow water model for multiphase flow (gas+particles) with density of gas temp
 
 To compile:
 
-./configure
+> ./configure
 
-make
+To compile the code with OpenMP add the following flag in src/Makefile:
+1) with gfortran: -fopenmp
+2) with intel: -qopenmp
 
-make install
+> make
+
+> make install
 
 
 The executable is copied in the bin folder.
