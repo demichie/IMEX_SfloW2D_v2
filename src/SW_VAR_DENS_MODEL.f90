@@ -304,7 +304,7 @@ PROGRAM SW_VAR_DENS_MODEL
         CALL system_clock(st2)
 
         WRITE(*,*) 'Time taken by the code is',t2-t1,'seconds'
-        WRITE(*,*) 'Elapsed real time = ', DBLE( st2 - st1 ) / rate
+        WRITE(*,*) 'Elapsed real time = ', DBLE( st2 - st1 ) / rate,'seconds'
 
      END IF
 
