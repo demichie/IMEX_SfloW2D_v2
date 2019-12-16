@@ -16,10 +16,28 @@ if len(sys.argv)==2:
 
     os.path.isfile(bakfile) 
 
+elif len(sys.argv)==3:
+
+    bakfile = sys.argv[1]
+
+    os.path.isfile(bakfile) 
+
+    output_indexes = sys.argv[2]
+    output_indexes = output_indexes.split('-')
+    output_first = np.int(output_indexes[0])
+    output_last = np.int(output_indexes[-1])+1
+
 else:
 
     print('Please provide bak file name:\n')
     print('1) File name\n')
+    print('2) Index range for outputs (optional)\n')
+    print('Examples:')
+    print()
+    print('> python p2d_to_netCDF3.py example.bak')
+    print('> python p2d_to_netCDF3.py example.bak 5')
+    print('> python p2d_to_netCDF3.py example.bak 2-10')
+    print()
     sys.exit()
 
 
@@ -163,8 +181,12 @@ X = np.zeros((ny,nx))
 Y = np.zeros((ny,nx))
 
 
+if len(sys.argv)==2: 
 
-for i_output in range(0,n_output+1):
+    output_first=0
+    output_last=n_output+1
+
+for i_output in range(output_first,output_last):
 
     filename = filename_fix+'_{0:04}'.format(i_output)+'.p_2d'
 
@@ -176,19 +198,21 @@ for i_output in range(0,n_output+1):
 
     data = np.loadtxt(filename,skiprows=0)
 
-    time[i_output] = dt_output*(i_output)
+    nc_output = i_output - output_first
 
-    h[i_output,:,:] = data[:,2].reshape((ny,nx))
-    ux[i_output,:,:] = data[:,3].reshape((ny,nx))
-    uy[i_output,:,:] = data[:,4].reshape((ny,nx))
-    b[i_output,:,:] = data[:,5].reshape((ny,nx))
-    W[i_output,:,:] = data[:,6].reshape((ny,nx))
+    time[nc_output] = dt_output*(i_output)
+
+    h[nc_output,:,:] = data[:,2].reshape((ny,nx))
+    ux[nc_output,:,:] = data[:,3].reshape((ny,nx))
+    uy[nc_output,:,:] = data[:,4].reshape((ny,nx))
+    b[nc_output,:,:] = data[:,5].reshape((ny,nx))
+    W[nc_output,:,:] = data[:,6].reshape((ny,nx))
     for i in range(nsolid):
-        globals()['alphas'+'_{0:04}'.format(i)][i_output,:,:] = data[:,7+i].reshape((ny,nx))
-    T[i_output,:,:] = data[:,7+nsolid].reshape((ny,nx))
-    rhom[i_output,:,:] = data[:,8+nsolid].reshape((ny,nx))
+        globals()['alphas'+'_{0:04}'.format(i)][nc_output,:,:] = data[:,7+i].reshape((ny,nx))
+    T[nc_output,:,:] = data[:,7+nsolid].reshape((ny,nx))
+    rhom[nc_output,:,:] = data[:,8+nsolid].reshape((ny,nx))
     for i in range(nsolid):
-        globals()['dep'+'_{0:04}'.format(i)][i_output,:,:] = data[:,10+nsolid+i].reshape((ny,nx))
+        globals()['dep'+'_{0:04}'.format(i)][nc_output,:,:] = data[:,10+nsolid+i].reshape((ny,nx))
 
 
 X[:,:] = data[:,0].reshape((ny,nx))
