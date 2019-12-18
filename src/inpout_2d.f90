@@ -191,7 +191,7 @@ MODULE inpout_2d
   NAMELIST / initial_conditions /  released_volume , x_release , y_release ,    &
        velocity_mod_release , velocity_ang_release , T_init , T_ambient
 
-  NAMELIST / left_state / riemann_interface , hB_W , u_W , v_W , alphas_W , T_W
+  NAMELIST / left_state / riemann_interface , hB_W , u_W , v_W , alphas0_W , T_W
 
   NAMELIST / right_state / hB_E , u_E , v_E , alphas0_E , T_E
 
@@ -213,7 +213,8 @@ MODULE inpout_2d
   NAMELIST / expl_terms_parameters / grav
  
   NAMELIST / radial_source_parameters / x_source , y_source , r_source ,        &
-       vel_source , T_source , h_source , alphas_source , alphal_source , time_param
+       vel_source , T_source , h_source , alphas_source , alphal_source ,       &
+       time_param
 
   NAMELIST / collapsing_volume_parameters / x_collapse , y_collapse ,           &
        r_collapse , T_collapse , h_collapse , alphas_collapse
@@ -1505,8 +1506,6 @@ CONTAINS
 
        alphal_source = -1.D0
 
-       ALLOCATE( alphas_source(n_solid) )
-
        READ(input_unit,radial_source_parameters,IOSTAT=ios)
 
        IF ( ios .NE. 0 ) THEN
@@ -1599,6 +1598,16 @@ CONTAINS
              END IF
 
           END IF
+
+          IF ( ANY(alphas_source(1:n_solid) .EQ. -1.D0 ) ) THEN
+       
+             WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
+             WRITE(*,*) 'alphas_source =' , alphas_source(1:n_solid)
+             WRITE(*,*) 'Please check the input file'
+             STOP
+             
+          END IF
+
                  
           IF ( ANY(time_param .LT. 0.D0 ) ) THEN
 
@@ -1646,8 +1655,6 @@ CONTAINS
     ! ------- READ collapsing_volume_parameters NAMELIST ------------------------
 
     IF ( collapsing_volume_flag ) THEN
-
-       ALLOCATE( alphas_collapse(n_solid) )
 
        READ(input_unit,collapsing_volume_parameters,IOSTAT=ios)
 
@@ -1722,6 +1729,16 @@ CONTAINS
 
           END IF
 
+          IF ( ANY(alphas_collapse(1:n_solid) .EQ. -1.D0 ) ) THEN
+       
+             WRITE(*,*) 'ERROR: problem with namelist COLLAPSING_VOLUME_PARAMETERS'
+             WRITE(*,*) 'alphas_collpase =' , alphas_collapse(1:n_solid)
+             WRITE(*,*) 'Please check the input file'
+             STOP
+             
+          END IF
+
+          
        END IF
            
     END IF

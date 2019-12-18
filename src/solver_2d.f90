@@ -1980,7 +1980,7 @@ CONTAINS
 
     expl_terms_RK(1:n_eqns,1:comp_cells_x,1:comp_cells_y) = 0.D0
 
-    !$OMP PARALLEL DO private(j,k,qcj,qpj,expl_forces_term)
+    !$OMP PARALLEL DO private(j,k,expl_forces_term)
 
     DO l = 1,solve_cells
 

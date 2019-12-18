@@ -6,7 +6,6 @@ MODULE constitutive_2d
   USE parameters_2d, ONLY : n_eqns , n_vars , n_solid
   USE parameters_2d, ONLY : rheology_flag , rheology_model , energy_flag ,      &
        liquid_flag , gas_flag
-  USE parameters_2d, ONLY : sed_vol_perc
 
   IMPLICIT none
 
