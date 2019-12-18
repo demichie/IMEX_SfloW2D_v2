@@ -140,19 +140,19 @@ MODULE inpout_2d
 
   ! -- Variables for the namelists WEST_BOUNDARY_CONDITIONS
   TYPE(bc) :: h_bcW , hu_bcW , hv_bcW , T_bcW
-  TYPE(bc), ALLOCATABLE :: alphas_bcW(:)
+  TYPE(bc) :: alphas_bcW(100)
 
   ! -- Variables for the namelists EAST_BOUNDARY_CONDITIONS
   TYPE(bc) :: h_bcE , hu_bcE , hv_bcE , T_bcE
-  TYPE(bc), ALLOCATABLE :: alphas_bcE(:)
+  TYPE(bc):: alphas_bcE(100)
 
   ! -- Variables for the namelists SOUTH_BOUNDARY_CONDITIONS
   TYPE(bc) :: h_bcS , hu_bcS , hv_bcS , T_bcS
-  TYPE(bc), ALLOCATABLE :: alphas_bcS(:)
+  TYPE(bc) :: alphas_bcS(100)
 
   ! -- Variables for the namelists NORTH_BOUNDARY_CONDITIONS
   TYPE(bc) :: h_bcN , hu_bcN , hv_bcN , T_bcN
-  TYPE(bc), ALLOCATABLE :: alphas_bcN(:)
+  TYPE(bc) :: alphas_bcN(100)
 
 
   ! parameters to read a dem file
@@ -172,6 +172,8 @@ MODULE inpout_2d
 
   REAL*8 :: x0_runout, y0_runout , init_runout , eps_stop
 
+  REAL*8 :: sed_vol_perc0(1000) , alphas0_E(1000) , alphas0_W(1000)
+  
   REAL*8 :: rho0_s(1000) , diam0_s(1000) , sp_heat0_s(1000), erosion_coeff0(1000)
 
   REAL*8 :: alpha1_ref
@@ -180,7 +182,7 @@ MODULE inpout_2d
        output_cons_flag , output_esri_flag , output_phys_flag ,                 &
        output_runout_flag , verbose_level
 
-  NAMELIST / restart_parameters / restart_file, T_init, T_ambient , sed_vol_perc
+  NAMELIST / restart_parameters / restart_file, T_init, T_ambient , sed_vol_perc0
 
   NAMELIST / newrun_parameters / x0 , y0 , comp_cells_x , comp_cells_y ,        &
        cell_size , rheology_flag , riemann_flag , energy_flag , liquid_flag ,   &
@@ -191,7 +193,7 @@ MODULE inpout_2d
 
   NAMELIST / left_state / riemann_interface , hB_W , u_W , v_W , alphas_W , T_W
 
-  NAMELIST / right_state / hB_E , u_E , v_E , alphas_E , T_E
+  NAMELIST / right_state / hB_E , u_E , v_E , alphas0_E , T_E
 
   NAMELIST / west_boundary_conditions / h_bcW , hu_bcW , hv_bcW , alphas_bcW ,  &
        T_bcW
@@ -882,9 +884,6 @@ CONTAINS
     n_vars = n_vars + n_solid
     n_eqns = n_vars
 
-    ALLOCATE( alphas_bcW(n_solid) , alphas_bcE(n_solid) , alphas_bcS(n_solid) , &
-         alphas_bcN(n_solid) ) 
-
     alphas_bcW(1:n_solid)%flag = -1
     alphas_bcE(1:n_solid)%flag = -1
     alphas_bcS(1:n_solid)%flag = -1
@@ -904,6 +903,8 @@ CONTAINS
 
     ALLOCATE( erosion_coeff(n_solid) )
 
+    ALLOCATE( alphas_E(n_solid) , alphas_W(n_solid) )
+    
     rho_s(1:n_solid) = rho0_s(1:n_solid)
     diam_s(1:n_solid) = diam0_s(1:n_solid)
     sp_heat_s(1:n_solid) = sp_heat0_s(1:n_solid)
@@ -917,6 +918,8 @@ CONTAINS
 
        ! ------- READ restart_parameters NAMELIST --------------------------
        READ(input_unit,restart_parameters,IOSTAT=ios)
+
+       sed_vol_perc(1:n_solid) = sed_vol_perc0(1:n_solid)
 
        IF ( ios .NE. 0 ) THEN
           
@@ -965,6 +968,8 @@ CONTAINS
        IF ( riemann_flag ) THEN
 
           READ(input_unit,left_state,IOSTAT=ios)
+          
+          alphas_E(1:n_solid) = alphas0_E(1:n_solid)
 
           IF ( ios .NE. 0 ) THEN
              
@@ -989,6 +994,8 @@ CONTAINS
           
           READ(input_unit,right_state,IOSTAT=ios)
 
+          alphas_E(1:n_solid) = alphas0_E(1:n_solid)
+          
           IF ( ios .NE. 0 ) THEN
              
              WRITE(*,*) 'IOSTAT=',ios
@@ -1163,13 +1170,13 @@ CONTAINS
           
        END IF
        
-       IF ( ANY(alphas_bcW%flag .EQ. -1 ) ) THEN 
+       IF ( ANY(alphas_bcW(1:n_solid)%flag .EQ. -1 ) ) THEN 
           
           WRITE(*,*) 'ERROR: problem with namelist WEST_BOUNDARY_CONDITIONS'
           WRITE(*,*) 'B.C. for sediment conentration not set properly'
           WRITE(*,*) 'Please check the input file'
           WRITE(*,*) 'alphas_bcW'
-          WRITE(*,*) alphas_bcW
+          WRITE(*,*) alphas_bcW(1:n_solid)
           STOP
           
        END IF
@@ -1253,13 +1260,13 @@ CONTAINS
           
        END IF
        
-       IF ( ANY(alphas_bcE%flag .EQ. -1 ) ) THEN 
+       IF ( ANY(alphas_bcE(1:n_solid)%flag .EQ. -1 ) ) THEN 
           
           WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
           WRITE(*,*) 'B.C. for sediment concentration not set properly'
           WRITE(*,*) 'Please check the input file'
           WRITE(*,*) 'alphas_bcE'
-          WRITE(*,*) alphas_bcE
+          WRITE(*,*) alphas_bcE(1:n_solid)
           STOP
           
        END IF
@@ -1343,13 +1350,13 @@ CONTAINS
           
        END IF
        
-       IF ( ANY(alphas_bcS%flag .EQ. -1 ) ) THEN 
+       IF ( ANY(alphas_bcS(1:n_solid)%flag .EQ. -1 ) ) THEN 
           
           WRITE(*,*) 'ERROR: problem with namelist SOUTH_BOUNDARY_CONDITIONS'
           WRITE(*,*) 'B.C. for sediment concentrations not set properly'
           WRITE(*,*) 'Please check the input file'
           WRITE(*,*) 'alphas_bcS'
-          WRITE(*,*) alphas_bcS
+          WRITE(*,*) alphas_bcS(1:n_solid)
           STOP
           
        END IF
@@ -1431,13 +1438,13 @@ CONTAINS
           
        END IF
        
-       IF ( ANY(alphas_bcN%flag .EQ. -1 ) ) THEN 
+       IF ( ANY(alphas_bcN(1:n_solid)%flag .EQ. -1 ) ) THEN 
           
           WRITE(*,*) 'ERROR: problem with namelist NORTH_BOUNDARY_CONDITIONS'
           WRITE(*,*) 'B.C. for sediment concentrations not set properly'
           WRITE(*,*) 'Please check the input file'
           WRITE(*,*) 'alphas_bcN'
-          WRITE(*,*) alphas_bcN
+          WRITE(*,*) alphas_bcN(1:n_solid)
           STOP
           
        END IF

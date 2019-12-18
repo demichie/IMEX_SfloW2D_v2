@@ -1047,7 +1047,6 @@ CONTAINS
           ! Eval and store the other explicit terms (e.g. gravity or viscous 
           ! forces)
           CALL eval_explicit_terms(                                             &
-               q_rk(1:n_vars,1:comp_cells_x,1:comp_cells_y,i_RK) ,              &
                qp_rk(1:n_vars+2,1:comp_cells_x,1:comp_cells_y,i_RK) ,           &
                expl_terms(1:n_eqns,1:comp_cells_x,1:comp_cells_y,i_RK) )
 
@@ -1958,7 +1957,6 @@ CONTAINS
   !> This subroutine evaluate the explicit terms (non-fluxes) of the non-linear 
   !> system with respect to the conservative variables.
   !
-  !> \param[in]    qc_expl          conservative variables 
   !> \param[in]    qp_expl          conservative variables 
   !> \param[out]   expl_terms_RK    explicit terms
   !
@@ -1967,18 +1965,15 @@ CONTAINS
   !> Mattia de' Michieli Vitturi
   !******************************************************************************
 
-  SUBROUTINE eval_explicit_terms( qc_expl , qp_expl , expl_terms_RK )
+  SUBROUTINE eval_explicit_terms( qp_expl , expl_terms_RK )
 
     USE constitutive_2d, ONLY : eval_expl_terms
 
     IMPLICIT NONE
 
-    REAL*8, INTENT(IN) :: qc_expl(n_vars,comp_cells_x,comp_cells_y)
     REAL*8, INTENT(IN) :: qp_expl(n_vars+2,comp_cells_x,comp_cells_y)
     REAL*8, INTENT(OUT) :: expl_terms_RK(n_eqns,comp_cells_x,comp_cells_y)
 
-    REAL*8 :: qcj(n_vars)     !< local conservative variables 
-    REAL*8 :: qpj(n_vars+2)     !< local physical variables
     REAL*8 :: expl_forces_term(n_eqns)      !< conservative variables 
 
     INTEGER :: j,k,l
@@ -1992,11 +1987,8 @@ CONTAINS
        j = j_cent(l)
        k = k_cent(l)
 
-       qcj(1:n_vars) = qc_expl(1:n_vars,j,k)
-       qpj(1:n_vars+2) = qp_expl(1:n_vars+2,j,k)
-
        CALL eval_expl_terms( B_prime_x(j,k), B_prime_y(j,k), source_xy(j,k) ,&
-            qpj(1:n_vars+2) , qcj(1:n_vars) , expl_forces_term )
+            qp_expl(1:n_vars+2,j,k) , expl_forces_term )
 
        expl_terms_RK(1:n_eqns,j,k) =  expl_forces_term
 
