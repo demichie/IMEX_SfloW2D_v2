@@ -119,8 +119,6 @@ MODULE parameters_2d
   !> Initial sediment concentration in the pile of material
   REAL*8, ALLOCATABLE :: alphas_init(:)
 
-  REAL*8, ALLOCATABLE :: sed_vol_perc(:)
-
   INTEGER :: n_vars   !< Number of conservative variables
   INTEGER :: n_eqns   !< Number of equations
 

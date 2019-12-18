@@ -29,7 +29,7 @@ MODULE inpout_2d
   ! -- Variables for the namelist INITIAL_CONDITIONS
   USE parameters_2d, ONLY : released_volume , x_release , y_release
   USE parameters_2d, ONLY : velocity_mod_release , velocity_ang_release
-  USE parameters_2d, ONLY : alphas_init , sed_vol_perc
+  USE parameters_2d, ONLY : alphas_init
   USE parameters_2d, ONLY : T_init
 
   ! -- Variables for the namelist LEFT_STATE
@@ -172,7 +172,7 @@ MODULE inpout_2d
 
   REAL*8 :: x0_runout, y0_runout , init_runout , eps_stop
 
-  REAL*8 :: sed_vol_perc0(1000) , alphas0_E(1000) , alphas0_W(1000)
+  REAL*8 :: sed_vol_perc(1000) , alphas0_E(1000) , alphas0_W(1000)
   
   REAL*8 :: rho0_s(1000) , diam0_s(1000) , sp_heat0_s(1000), erosion_coeff0(1000)
 
@@ -182,7 +182,7 @@ MODULE inpout_2d
        output_cons_flag , output_esri_flag , output_phys_flag ,                 &
        output_runout_flag , verbose_level
 
-  NAMELIST / restart_parameters / restart_file, T_init, T_ambient , sed_vol_perc0
+  NAMELIST / restart_parameters / restart_file, T_init, T_ambient , sed_vol_perc
 
   NAMELIST / newrun_parameters / x0 , y0 , comp_cells_x , comp_cells_y ,        &
        cell_size , rheology_flag , riemann_flag , energy_flag , liquid_flag ,   &
@@ -899,7 +899,7 @@ CONTAINS
 
     ALLOCATE( rho_s(n_solid) , diam_s(n_solid) , sp_heat_s(n_solid) )
 
-    ALLOCATE( alphas_init(n_solid) , sed_vol_perc(n_solid) )
+    ALLOCATE( alphas_init(n_solid) )
 
     ALLOCATE( erosion_coeff(n_solid) )
 
@@ -919,8 +919,6 @@ CONTAINS
        ! ------- READ restart_parameters NAMELIST --------------------------
        READ(input_unit,restart_parameters,IOSTAT=ios)
 
-       sed_vol_perc(1:n_solid) = sed_vol_perc0(1:n_solid)
-
        IF ( ios .NE. 0 ) THEN
           
           WRITE(*,*) 'IOSTAT=',ios
@@ -936,16 +934,17 @@ CONTAINS
 
           IF ( check_file .EQ. 'asc' ) THEN
 
-             IF ( ( ANY(sed_vol_perc .LT. 0.D0 ) ) .OR. ( ANY(sed_vol_perc .GT. 100.D0 ) ) )   &
+             IF ( ( ANY(sed_vol_perc(1:n_solid) .LT. 0.D0 ) ) .OR.              &
+                  ( ANY(sed_vol_perc(1:n_solid) .GT. 100.D0 ) ) )   &
                   THEN
                 
                 WRITE(*,*) 'ERROR: problem with namelist RESTART_PARAMETERS'
-                WRITE(*,*) 'SED_VOL_PERC =' , sed_vol_perc
+                WRITE(*,*) 'SED_VOL_PERC =' , sed_vol_perc(1:n_solid)
                 STOP
                 
              END IF
              
-             alphas_init = 1.D-2 * sed_vol_perc 
+             alphas_init(1:n_solid) = 1.D-2 * sed_vol_perc(1:n_solid)
              WRITE(*,*) 'INITIAL VOLUME FRACTION OF SOLIDS:', alphas_init
              REWIND(input_unit)
     
@@ -1887,11 +1886,11 @@ CONTAINS
              
           END IF
           
-          IF ( ANY(sed_vol_perc .EQ. -1.D0 ) ) THEN
+          IF ( ANY(sed_vol_perc(1:n_solid) .EQ. -1.D0 ) ) THEN
              
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'RHEOLOGY_MODEL =' , rheology_model
-             WRITE(*,*) 'SED_VOL_PERC = ' , sed_vol_perc
+             WRITE(*,*) 'SED_VOL_PERC = ' , sed_vol_perc(1:n_solid)
              STOP
              
           END IF
