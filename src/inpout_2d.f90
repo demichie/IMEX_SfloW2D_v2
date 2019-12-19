@@ -2743,7 +2743,7 @@ CONTAINS
           
           DO j=1,comp_cells_x
 
-             READ(restart_unit,'(2e20.12,*(e20.12))') xj , yk ,                 &
+             READ(restart_unit,'(2e20.12,100(e20.12))') xj , yk ,                 &
                   (q(i_vars,j,k),i_vars=1,n_vars) 
 
              IF ( q(1,j,k) .LE. 0.D0 ) q(1:n_vars,j,k) = 0.D0
@@ -2859,7 +2859,7 @@ CONTAINS
                 
              ENDDO
 
-             WRITE(output_unit_2d,'(2e20.12,*(e20.12))') x_comp(j), y_comp(k),  &
+             WRITE(output_unit_2d,'(2e20.12,100(e20.12))') x_comp(j), y_comp(k),  &
                   (q(i_vars,j,k),i_vars=1,n_vars) 
     
           ENDDO
