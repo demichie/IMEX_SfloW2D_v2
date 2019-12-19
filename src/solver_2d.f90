@@ -537,6 +537,8 @@ CONTAINS
 
     IF ( radial_source_flag ) THEN
 
+       !$OMP PARALLEL DO privite(j,k)
+
        DO k = 1,comp_cells_y
 
           DO j = 1,comp_cells_x
@@ -550,6 +552,8 @@ CONTAINS
           END DO
 
        END DO
+
+    !$OMP END PARALLEL DO
 
     END IF
 
@@ -567,6 +571,8 @@ CONTAINS
 
     IF ( radial_source_flag ) THEN
 
+       !$OMP PARALLEL DO privite(j,k)
+
        DO k = 1,comp_cells_y
 
           DO j = 1,comp_cells_x
@@ -576,6 +582,8 @@ CONTAINS
           END DO
 
        END DO
+
+    !$OMP END PARALLEL DO
 
     END IF
 
@@ -1110,24 +1118,10 @@ CONTAINS
 
              WRITE(*,*) 'j,k,n_RK',j,k,n_RK
              WRITE(*,*) 'dt',dt
-             WRITE(*,*) 'source_cell',source_cell(j,k)
-             WRITE(*,*) 'source_cell left',source_cell(j-1,k)
-             WRITE(*,*) 'source_cell right',source_cell(j+1,k)
-             WRITE(*,*) 'source_cell top',source_cell(j,k+1)
-             WRITE(*,*) 'source_cell bottom',source_cell(j,k-1)
              WRITE(*,*) 'before imex_RK_solver: qc',q0(1:n_vars,j,k)
              CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k))
              WRITE(*,*) 'before imex_RK_solver: qp',qp(1:n_vars+2,j,k)
-             WRITE(*,*) 'h old',q0(1,j,k)
-             WRITE(*,*) 'h new',q(1,j,k)
              WRITE(*,*) 'B_cent(j,k)',B_cent(j,k)
-             WRITE(*,*) 'qp_interfaceR(1:n_vars+2,j,k)',qp_interfaceR(1:n_vars+2,j,k)
-             WRITE(*,*) 'qp_interfaceL(1:n_vars+2,j+1,k)',qp_interfaceL(1:n_vars+2,j+1,k)
-             WRITE(*,*) 'qp_interfaceT(1:n_vars+2,j,k)',qp_interfaceT(1:n_vars+2,j,k)
-             WRITE(*,*) 'qp_interfaceB(1:n_vars+2,j,k+1)',qp_interfaceB(1:n_vars+2,j,k)
-
-             WRITE(*,*) 'hS',q_interfaceT(1,j,k)
-             WRITE(*,*) 'hE',q_interfaceR(1,j,k)
 
              READ(*,*)
 
@@ -1189,8 +1183,12 @@ CONTAINS
   !> \param[in]     a_tilde   explicit coefficents for the fluxes
   !> \param[in]     a_dirk    explicit coefficient for the non-hyperbolic terms
   !> \param[in]     a_diag    implicit coefficient for the non-hyperbolic terms 
+  !> \param[in]     Rj_not_impl
+  !> \param[in]     divFluxj
+  !> \param[in]     Expl_terms_j
+  !> \param[in]     NHj
   !
-  !> \date 07/10/2016
+  !> \date 2019/12/16
   !> @author 
   !> Mattia de' Michieli Vitturi
   !
@@ -1506,7 +1504,8 @@ CONTAINS
   !******************************************************************************
 
   SUBROUTINE lnsrch( qj_rel_NR_old , qj_org , qj_old , scal_f_old , grad_f ,    &
-       desc_dir , coeff_f , qj_rel , scal_f , right_term , stpmax , check , Rj_not_impl )
+       desc_dir , coeff_f , qj_rel , scal_f , right_term , stpmax , check ,     &
+       Rj_not_impl )
 
     IMPLICIT NONE
 
