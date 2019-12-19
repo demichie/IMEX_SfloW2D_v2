@@ -20,7 +20,7 @@ SW_VAR_DENS_MODEL_SOURCES = \
                 inpout_2d.f90 \
                 SW_VAR_DENS_MODEL.f90
 
-FCFLAGS         = -Wunused -O3 -funroll-all-loops
+FCFLAGS         = -fopenmp -Wunused -O3 -funroll-all-loops
 FCDEBUGFLAGS    = -Wall -g
 
 LIBS            = -lm -llapack

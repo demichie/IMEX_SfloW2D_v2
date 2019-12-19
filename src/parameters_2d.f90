@@ -78,7 +78,7 @@ MODULE parameters_2d
   REAL*8 :: vel_source
   REAL*8 :: T_source
   REAL*8 :: h_source
-  REAL*8, ALLOCATABLE :: alphas_source(:)
+  REAL*8 :: alphas_source(100)
   REAL*8 :: alphal_source
   REAL*8 :: time_param(4)
   
@@ -90,8 +90,7 @@ MODULE parameters_2d
   REAL*8 :: r_collapse
   REAL*8 :: T_collapse
   REAL*8 :: h_collapse
-  REAL*8, ALLOCATABLE :: alphas_collapse(:)
-
+  REAL*8 :: alphas_collapse(100)
 
 
   !> Initial volume of the flow
@@ -118,8 +117,6 @@ MODULE parameters_2d
 
   !> Initial sediment concentration in the pile of material
   REAL*8, ALLOCATABLE :: alphas_init(:)
-
-  REAL*8, ALLOCATABLE :: sed_vol_perc(:)
 
   INTEGER :: n_vars   !< Number of conservative variables
   INTEGER :: n_eqns   !< Number of equations

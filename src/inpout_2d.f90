@@ -29,7 +29,7 @@ MODULE inpout_2d
   ! -- Variables for the namelist INITIAL_CONDITIONS
   USE parameters_2d, ONLY : released_volume , x_release , y_release
   USE parameters_2d, ONLY : velocity_mod_release , velocity_ang_release
-  USE parameters_2d, ONLY : alphas_init , sed_vol_perc
+  USE parameters_2d, ONLY : alphas_init
   USE parameters_2d, ONLY : T_init
 
   ! -- Variables for the namelist LEFT_STATE
@@ -140,19 +140,19 @@ MODULE inpout_2d
 
   ! -- Variables for the namelists WEST_BOUNDARY_CONDITIONS
   TYPE(bc) :: h_bcW , hu_bcW , hv_bcW , T_bcW
-  TYPE(bc), ALLOCATABLE :: alphas_bcW(:)
+  TYPE(bc) :: alphas_bcW(100)
 
   ! -- Variables for the namelists EAST_BOUNDARY_CONDITIONS
   TYPE(bc) :: h_bcE , hu_bcE , hv_bcE , T_bcE
-  TYPE(bc), ALLOCATABLE :: alphas_bcE(:)
+  TYPE(bc):: alphas_bcE(100)
 
   ! -- Variables for the namelists SOUTH_BOUNDARY_CONDITIONS
   TYPE(bc) :: h_bcS , hu_bcS , hv_bcS , T_bcS
-  TYPE(bc), ALLOCATABLE :: alphas_bcS(:)
+  TYPE(bc) :: alphas_bcS(100)
 
   ! -- Variables for the namelists NORTH_BOUNDARY_CONDITIONS
   TYPE(bc) :: h_bcN , hu_bcN , hv_bcN , T_bcN
-  TYPE(bc), ALLOCATABLE :: alphas_bcN(:)
+  TYPE(bc) :: alphas_bcN(100)
 
 
   ! parameters to read a dem file
@@ -172,6 +172,8 @@ MODULE inpout_2d
 
   REAL*8 :: x0_runout, y0_runout , init_runout , eps_stop
 
+  REAL*8 :: sed_vol_perc(1000) , alphas0_E(1000) , alphas0_W(1000)
+  
   REAL*8 :: rho0_s(1000) , diam0_s(1000) , sp_heat0_s(1000), erosion_coeff0(1000)
 
   REAL*8 :: alpha1_ref
@@ -189,9 +191,9 @@ MODULE inpout_2d
   NAMELIST / initial_conditions /  released_volume , x_release , y_release ,    &
        velocity_mod_release , velocity_ang_release , T_init , T_ambient
 
-  NAMELIST / left_state / riemann_interface , hB_W , u_W , v_W , alphas_W , T_W
+  NAMELIST / left_state / riemann_interface , hB_W , u_W , v_W , alphas0_W , T_W
 
-  NAMELIST / right_state / hB_E , u_E , v_E , alphas_E , T_E
+  NAMELIST / right_state / hB_E , u_E , v_E , alphas0_E , T_E
 
   NAMELIST / west_boundary_conditions / h_bcW , hu_bcW , hv_bcW , alphas_bcW ,  &
        T_bcW
@@ -211,7 +213,8 @@ MODULE inpout_2d
   NAMELIST / expl_terms_parameters / grav
  
   NAMELIST / radial_source_parameters / x_source , y_source , r_source ,        &
-       vel_source , T_source , h_source , alphas_source , alphal_source , time_param
+       vel_source , T_source , h_source , alphas_source , alphal_source ,       &
+       time_param
 
   NAMELIST / collapsing_volume_parameters / x_collapse , y_collapse ,           &
        r_collapse , T_collapse , h_collapse , alphas_collapse
@@ -882,9 +885,6 @@ CONTAINS
     n_vars = n_vars + n_solid
     n_eqns = n_vars
 
-    ALLOCATE( alphas_bcW(n_solid) , alphas_bcE(n_solid) , alphas_bcS(n_solid) , &
-         alphas_bcN(n_solid) ) 
-
     alphas_bcW(1:n_solid)%flag = -1
     alphas_bcE(1:n_solid)%flag = -1
     alphas_bcS(1:n_solid)%flag = -1
@@ -900,10 +900,12 @@ CONTAINS
 
     ALLOCATE( rho_s(n_solid) , diam_s(n_solid) , sp_heat_s(n_solid) )
 
-    ALLOCATE( alphas_init(n_solid) , sed_vol_perc(n_solid) )
+    ALLOCATE( alphas_init(n_solid) )
 
     ALLOCATE( erosion_coeff(n_solid) )
 
+    ALLOCATE( alphas_E(n_solid) , alphas_W(n_solid) )
+    
     rho_s(1:n_solid) = rho0_s(1:n_solid)
     diam_s(1:n_solid) = diam0_s(1:n_solid)
     sp_heat_s(1:n_solid) = sp_heat0_s(1:n_solid)
@@ -933,16 +935,17 @@ CONTAINS
 
           IF ( check_file .EQ. 'asc' ) THEN
 
-             IF ( ( ANY(sed_vol_perc .LT. 0.D0 ) ) .OR. ( ANY(sed_vol_perc .GT. 100.D0 ) ) )   &
+             IF ( ( ANY(sed_vol_perc(1:n_solid) .LT. 0.D0 ) ) .OR.              &
+                  ( ANY(sed_vol_perc(1:n_solid) .GT. 100.D0 ) ) )   &
                   THEN
                 
                 WRITE(*,*) 'ERROR: problem with namelist RESTART_PARAMETERS'
-                WRITE(*,*) 'SED_VOL_PERC =' , sed_vol_perc
+                WRITE(*,*) 'SED_VOL_PERC =' , sed_vol_perc(1:n_solid)
                 STOP
                 
              END IF
              
-             alphas_init = 1.D-2 * sed_vol_perc 
+             alphas_init(1:n_solid) = 1.D-2 * sed_vol_perc(1:n_solid)
              WRITE(*,*) 'INITIAL VOLUME FRACTION OF SOLIDS:', alphas_init
              REWIND(input_unit)
     
@@ -965,6 +968,8 @@ CONTAINS
        IF ( riemann_flag ) THEN
 
           READ(input_unit,left_state,IOSTAT=ios)
+          
+          alphas_E(1:n_solid) = alphas0_E(1:n_solid)
 
           IF ( ios .NE. 0 ) THEN
              
@@ -989,6 +994,8 @@ CONTAINS
           
           READ(input_unit,right_state,IOSTAT=ios)
 
+          alphas_E(1:n_solid) = alphas0_E(1:n_solid)
+          
           IF ( ios .NE. 0 ) THEN
              
              WRITE(*,*) 'IOSTAT=',ios
@@ -1163,13 +1170,13 @@ CONTAINS
           
        END IF
        
-       IF ( ANY(alphas_bcW%flag .EQ. -1 ) ) THEN 
+       IF ( ANY(alphas_bcW(1:n_solid)%flag .EQ. -1 ) ) THEN 
           
           WRITE(*,*) 'ERROR: problem with namelist WEST_BOUNDARY_CONDITIONS'
           WRITE(*,*) 'B.C. for sediment conentration not set properly'
           WRITE(*,*) 'Please check the input file'
           WRITE(*,*) 'alphas_bcW'
-          WRITE(*,*) alphas_bcW
+          WRITE(*,*) alphas_bcW(1:n_solid)
           STOP
           
        END IF
@@ -1253,13 +1260,13 @@ CONTAINS
           
        END IF
        
-       IF ( ANY(alphas_bcE%flag .EQ. -1 ) ) THEN 
+       IF ( ANY(alphas_bcE(1:n_solid)%flag .EQ. -1 ) ) THEN 
           
           WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
           WRITE(*,*) 'B.C. for sediment concentration not set properly'
           WRITE(*,*) 'Please check the input file'
           WRITE(*,*) 'alphas_bcE'
-          WRITE(*,*) alphas_bcE
+          WRITE(*,*) alphas_bcE(1:n_solid)
           STOP
           
        END IF
@@ -1343,13 +1350,13 @@ CONTAINS
           
        END IF
        
-       IF ( ANY(alphas_bcS%flag .EQ. -1 ) ) THEN 
+       IF ( ANY(alphas_bcS(1:n_solid)%flag .EQ. -1 ) ) THEN 
           
           WRITE(*,*) 'ERROR: problem with namelist SOUTH_BOUNDARY_CONDITIONS'
           WRITE(*,*) 'B.C. for sediment concentrations not set properly'
           WRITE(*,*) 'Please check the input file'
           WRITE(*,*) 'alphas_bcS'
-          WRITE(*,*) alphas_bcS
+          WRITE(*,*) alphas_bcS(1:n_solid)
           STOP
           
        END IF
@@ -1431,13 +1438,13 @@ CONTAINS
           
        END IF
        
-       IF ( ANY(alphas_bcN%flag .EQ. -1 ) ) THEN 
+       IF ( ANY(alphas_bcN(1:n_solid)%flag .EQ. -1 ) ) THEN 
           
           WRITE(*,*) 'ERROR: problem with namelist NORTH_BOUNDARY_CONDITIONS'
           WRITE(*,*) 'B.C. for sediment concentrations not set properly'
           WRITE(*,*) 'Please check the input file'
           WRITE(*,*) 'alphas_bcN'
-          WRITE(*,*) alphas_bcN
+          WRITE(*,*) alphas_bcN(1:n_solid)
           STOP
           
        END IF
@@ -1498,8 +1505,6 @@ CONTAINS
     IF ( radial_source_flag ) THEN
 
        alphal_source = -1.D0
-
-       ALLOCATE( alphas_source(n_solid) )
 
        READ(input_unit,radial_source_parameters,IOSTAT=ios)
 
@@ -1593,6 +1598,16 @@ CONTAINS
              END IF
 
           END IF
+
+          IF ( ANY(alphas_source(1:n_solid) .EQ. -1.D0 ) ) THEN
+       
+             WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
+             WRITE(*,*) 'alphas_source =' , alphas_source(1:n_solid)
+             WRITE(*,*) 'Please check the input file'
+             STOP
+             
+          END IF
+
                  
           IF ( ANY(time_param .LT. 0.D0 ) ) THEN
 
@@ -1640,8 +1655,6 @@ CONTAINS
     ! ------- READ collapsing_volume_parameters NAMELIST ------------------------
 
     IF ( collapsing_volume_flag ) THEN
-
-       ALLOCATE( alphas_collapse(n_solid) )
 
        READ(input_unit,collapsing_volume_parameters,IOSTAT=ios)
 
@@ -1716,6 +1729,16 @@ CONTAINS
 
           END IF
 
+          IF ( ANY(alphas_collapse(1:n_solid) .EQ. -1.D0 ) ) THEN
+       
+             WRITE(*,*) 'ERROR: problem with namelist COLLAPSING_VOLUME_PARAMETERS'
+             WRITE(*,*) 'alphas_collpase =' , alphas_collapse(1:n_solid)
+             WRITE(*,*) 'Please check the input file'
+             STOP
+             
+          END IF
+
+          
        END IF
            
     END IF
@@ -1880,11 +1903,11 @@ CONTAINS
              
           END IF
           
-          IF ( ANY(sed_vol_perc .EQ. -1.D0 ) ) THEN
+          IF ( ANY(sed_vol_perc(1:n_solid) .EQ. -1.D0 ) ) THEN
              
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'RHEOLOGY_MODEL =' , rheology_model
-             WRITE(*,*) 'SED_VOL_PERC = ' , sed_vol_perc
+             WRITE(*,*) 'SED_VOL_PERC = ' , sed_vol_perc(1:n_solid)
              STOP
              
           END IF

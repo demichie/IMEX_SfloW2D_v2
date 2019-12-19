@@ -6,7 +6,6 @@ MODULE constitutive_2d
   USE parameters_2d, ONLY : n_eqns , n_vars , n_solid
   USE parameters_2d, ONLY : rheology_flag , rheology_model , energy_flag ,      &
        liquid_flag , gas_flag
-  USE parameters_2d, ONLY : sed_vol_perc
 
   IMPLICIT none
 
@@ -1599,8 +1598,7 @@ CONTAINS
   !
   !******************************************************************************
 
-  SUBROUTINE eval_expl_terms( Bprimej_x , Bprimej_y , source_xy , qpj , qcj ,  &
-       expl_term )
+  SUBROUTINE eval_expl_terms( Bprimej_x, Bprimej_y, source_xy, qpj, expl_term )
 
     IMPLICIT NONE
 
@@ -1609,7 +1607,6 @@ CONTAINS
     REAL*8, INTENT(IN) :: source_xy
 
     REAL*8, INTENT(IN) :: qpj(n_vars+2)      !< local physical variables 
-    REAL*8, INTENT(IN) :: qcj(n_vars)        !< local conservative variables 
     REAL*8, INTENT(OUT) :: expl_term(n_eqns) !< local explicit forces 
 
     REAL*8 :: r_h          !< real-value flow thickness
@@ -1712,7 +1709,7 @@ CONTAINS
        IF ( ( r_alphas(i_solid) .GT. 0.D0 ) .AND. ( settling_flag ) ) THEN
 
           settling_vel = settling_velocity( diam_s(i_solid) , rho_s(i_solid) ,  &
-               r_rho_c , i_solid )
+               r_rho_c )
 
           deposition_term(i_solid) = r_alphas(i_solid) * settling_vel *         &
                ( 1.D0 - MIN( 1.D0 , SUM( r_alphas ) / alpha_max ) )**hind_exp
@@ -1980,21 +1977,19 @@ CONTAINS
   !> \param[in]    diam        particle diameter      
   !> \param[in]    rhos        particle density
   !> \param[in]    rhoa        atmospheric density
-  !> \patam[in]    i_solid     particle class index
   !
   !> @author 
   !> Mattia de' Michieli Vitturi
   !
   !------------------------------------------------------------------------------
 
-  REAL*8 FUNCTION settling_velocity(diam,rhos,rhoc,i_solid)
+  REAL*8 FUNCTION settling_velocity(diam,rhos,rhoc)
 
     IMPLICIT NONE
 
     REAL*8, INTENT(IN) :: diam          !< particle diameter [m]
     REAL*8, INTENT(IN) :: rhos          !< particle density [kg/m3]
     REAL*8, INTENT(IN) :: rhoc          !< carrier phase density [kg/m3]
-    INTEGER, INTENT(IN) :: i_solid      !< particle class index
 
     REAL*8 :: Rey           !< Reynolds number
     REAL*8 :: C_D           !< Drag coefficient
