@@ -1498,9 +1498,10 @@ CONTAINS
   !> \param[out]    right_term
   !> \param[in]     stpmax
   !> \param[out]    check
-  !> \date 07/10/2016
+  !> \param[in]     RJ_not_impl
   !> @author 
   !> Mattia de' Michieli Vitturi
+  !> \date 2019/12/16
   !******************************************************************************
 
   SUBROUTINE lnsrch( qj_rel_NR_old , qj_org , qj_old , scal_f_old , grad_f ,    &
@@ -1711,13 +1712,12 @@ CONTAINS
   !> defined by the variables qj.
   !> \param[in]    qj          conservative variables 
   !> \param[in]    qj_old      conservative variables at the old time step
-  !> \param[in]    a_tilde     explicit coefficients for the hyperbolic terms 
-  !> \param[in]    a_dirk      explicit coefficients for the non-hyperbolic terms 
   !> \param[in]    a_diag      implicit coefficient for the non-hyperbolic term
   !> \param[in]    coeff_f     coefficient to rescale the nonlinear functions
+  !> \param[in]    Rj_not_impl explicit terms
   !> \param[out]   f_nl        values of the nonlinear functions
   !> \param[out]   scal_f      value of the scalar function f=0.5*<F,F>
-  !> \date 07/10/2016
+  !> \date 2019/12/16
   !> @author 
   !> Mattia de' Michieli Vitturi
   !******************************************************************************
