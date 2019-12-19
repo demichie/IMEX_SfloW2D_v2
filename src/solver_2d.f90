@@ -537,7 +537,7 @@ CONTAINS
 
     IF ( radial_source_flag ) THEN
 
-       !$OMP PARALLEL DO privite(j,k)
+       !$OMP PARALLEL DO private(j,k)
 
        DO k = 1,comp_cells_y
 
@@ -571,7 +571,7 @@ CONTAINS
 
     IF ( radial_source_flag ) THEN
 
-       !$OMP PARALLEL DO privite(j,k)
+       !$OMP PARALLEL DO private(j,k)
 
        DO k = 1,comp_cells_y
 
