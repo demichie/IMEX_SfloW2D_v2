@@ -537,6 +537,8 @@ CONTAINS
 
     IF ( radial_source_flag ) THEN
 
+       !$OMP PARALLEL DO privite(j,k)
+
        DO k = 1,comp_cells_y
 
           DO j = 1,comp_cells_x
@@ -550,6 +552,8 @@ CONTAINS
           END DO
 
        END DO
+
+    !$OMP END PARALLEL DO
 
     END IF
 
@@ -567,6 +571,8 @@ CONTAINS
 
     IF ( radial_source_flag ) THEN
 
+       !$OMP PARALLEL DO privite(j,k)
+
        DO k = 1,comp_cells_y
 
           DO j = 1,comp_cells_x
@@ -576,6 +582,8 @@ CONTAINS
           END DO
 
        END DO
+
+    !$OMP END PARALLEL DO
 
     END IF
 
@@ -1047,7 +1055,6 @@ CONTAINS
           ! Eval and store the other explicit terms (e.g. gravity or viscous 
           ! forces)
           CALL eval_explicit_terms(                                             &
-               q_rk(1:n_vars,1:comp_cells_x,1:comp_cells_y,i_RK) ,              &
                qp_rk(1:n_vars+2,1:comp_cells_x,1:comp_cells_y,i_RK) ,           &
                expl_terms(1:n_eqns,1:comp_cells_x,1:comp_cells_y,i_RK) )
 
@@ -1111,24 +1118,10 @@ CONTAINS
 
              WRITE(*,*) 'j,k,n_RK',j,k,n_RK
              WRITE(*,*) 'dt',dt
-             WRITE(*,*) 'source_cell',source_cell(j,k)
-             WRITE(*,*) 'source_cell left',source_cell(j-1,k)
-             WRITE(*,*) 'source_cell right',source_cell(j+1,k)
-             WRITE(*,*) 'source_cell top',source_cell(j,k+1)
-             WRITE(*,*) 'source_cell bottom',source_cell(j,k-1)
              WRITE(*,*) 'before imex_RK_solver: qc',q0(1:n_vars,j,k)
              CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k))
              WRITE(*,*) 'before imex_RK_solver: qp',qp(1:n_vars+2,j,k)
-             WRITE(*,*) 'h old',q0(1,j,k)
-             WRITE(*,*) 'h new',q(1,j,k)
              WRITE(*,*) 'B_cent(j,k)',B_cent(j,k)
-             WRITE(*,*) 'qp_interfaceR(1:n_vars+2,j,k)',qp_interfaceR(1:n_vars+2,j,k)
-             WRITE(*,*) 'qp_interfaceL(1:n_vars+2,j+1,k)',qp_interfaceL(1:n_vars+2,j+1,k)
-             WRITE(*,*) 'qp_interfaceT(1:n_vars+2,j,k)',qp_interfaceT(1:n_vars+2,j,k)
-             WRITE(*,*) 'qp_interfaceB(1:n_vars+2,j,k+1)',qp_interfaceB(1:n_vars+2,j,k)
-
-             WRITE(*,*) 'hS',q_interfaceT(1,j,k)
-             WRITE(*,*) 'hE',q_interfaceR(1,j,k)
 
              READ(*,*)
 
@@ -1190,8 +1183,12 @@ CONTAINS
   !> \param[in]     a_tilde   explicit coefficents for the fluxes
   !> \param[in]     a_dirk    explicit coefficient for the non-hyperbolic terms
   !> \param[in]     a_diag    implicit coefficient for the non-hyperbolic terms 
+  !> \param[in]     Rj_not_impl
+  !> \param[in]     divFluxj
+  !> \param[in]     Expl_terms_j
+  !> \param[in]     NHj
   !
-  !> \date 07/10/2016
+  !> \date 2019/12/16
   !> @author 
   !> Mattia de' Michieli Vitturi
   !
@@ -1501,13 +1498,15 @@ CONTAINS
   !> \param[out]    right_term
   !> \param[in]     stpmax
   !> \param[out]    check
-  !> \date 07/10/2016
+  !> \param[in]     RJ_not_impl
   !> @author 
   !> Mattia de' Michieli Vitturi
+  !> \date 2019/12/16
   !******************************************************************************
 
   SUBROUTINE lnsrch( qj_rel_NR_old , qj_org , qj_old , scal_f_old , grad_f ,    &
-       desc_dir , coeff_f , qj_rel , scal_f , right_term , stpmax , check , Rj_not_impl )
+       desc_dir , coeff_f , qj_rel , scal_f , right_term , stpmax , check ,     &
+       Rj_not_impl )
 
     IMPLICIT NONE
 
@@ -1713,13 +1712,12 @@ CONTAINS
   !> defined by the variables qj.
   !> \param[in]    qj          conservative variables 
   !> \param[in]    qj_old      conservative variables at the old time step
-  !> \param[in]    a_tilde     explicit coefficients for the hyperbolic terms 
-  !> \param[in]    a_dirk      explicit coefficients for the non-hyperbolic terms 
   !> \param[in]    a_diag      implicit coefficient for the non-hyperbolic term
   !> \param[in]    coeff_f     coefficient to rescale the nonlinear functions
+  !> \param[in]    Rj_not_impl explicit terms
   !> \param[out]   f_nl        values of the nonlinear functions
   !> \param[out]   scal_f      value of the scalar function f=0.5*<F,F>
-  !> \date 07/10/2016
+  !> \date 2019/12/16
   !> @author 
   !> Mattia de' Michieli Vitturi
   !******************************************************************************
@@ -1958,7 +1956,6 @@ CONTAINS
   !> This subroutine evaluate the explicit terms (non-fluxes) of the non-linear 
   !> system with respect to the conservative variables.
   !
-  !> \param[in]    qc_expl          conservative variables 
   !> \param[in]    qp_expl          conservative variables 
   !> \param[out]   expl_terms_RK    explicit terms
   !
@@ -1967,36 +1964,30 @@ CONTAINS
   !> Mattia de' Michieli Vitturi
   !******************************************************************************
 
-  SUBROUTINE eval_explicit_terms( qc_expl , qp_expl , expl_terms_RK )
+  SUBROUTINE eval_explicit_terms( qp_expl , expl_terms_RK )
 
     USE constitutive_2d, ONLY : eval_expl_terms
 
     IMPLICIT NONE
 
-    REAL*8, INTENT(IN) :: qc_expl(n_vars,comp_cells_x,comp_cells_y)
     REAL*8, INTENT(IN) :: qp_expl(n_vars+2,comp_cells_x,comp_cells_y)
     REAL*8, INTENT(OUT) :: expl_terms_RK(n_eqns,comp_cells_x,comp_cells_y)
 
-    REAL*8 :: qcj(n_vars)     !< local conservative variables 
-    REAL*8 :: qpj(n_vars+2)     !< local physical variables
     REAL*8 :: expl_forces_term(n_eqns)      !< conservative variables 
 
     INTEGER :: j,k,l
 
     expl_terms_RK(1:n_eqns,1:comp_cells_x,1:comp_cells_y) = 0.D0
 
-    !$OMP PARALLEL DO private(j,k,qcj,qpj,expl_forces_term)
+    !$OMP PARALLEL DO private(j,k,expl_forces_term)
 
     DO l = 1,solve_cells
 
        j = j_cent(l)
        k = k_cent(l)
 
-       qcj(1:n_vars) = qc_expl(1:n_vars,j,k)
-       qpj(1:n_vars+2) = qp_expl(1:n_vars+2,j,k)
-
        CALL eval_expl_terms( B_prime_x(j,k), B_prime_y(j,k), source_xy(j,k) ,&
-            qpj(1:n_vars+2) , qcj(1:n_vars) , expl_forces_term )
+            qp_expl(1:n_vars+2,j,k) , expl_forces_term )
 
        expl_terms_RK(1:n_eqns,j,k) =  expl_forces_term
 
