@@ -2921,8 +2921,8 @@ CONTAINS
 
           END IF
 
-          CALL qp_to_qc( qrecW,B_interfaceR(j,k),q_interfaceR(:,j,k) )
-          CALL qp_to_qc( qrecE,B_interfaceL(j+1,k),q_interfaceL(:,j+1,k) )
+          CALL qp_to_qc( qrecW,q_interfaceR(:,j,k) )
+          CALL qp_to_qc( qrecE,q_interfaceL(:,j+1,k) )
 
           qp_interfaceR(1:n_vars+2,j,k) = qrecW(1:n_vars+2)
           qp_interfaceL(1:n_vars+2,j+1,k) = qrecE(1:n_vars+2)
@@ -3084,8 +3084,8 @@ CONTAINS
 
           END IF
 
-          CALL qp_to_qc( qrecS, B_interfaceT(j,k), q_interfaceT(:,j,k))
-          CALL qp_to_qc( qrecN, B_interfaceB(j,k+1), q_interfaceB(:,j,k+1))
+          CALL qp_to_qc( qrecS, q_interfaceT(:,j,k))
+          CALL qp_to_qc( qrecN, q_interfaceB(:,j,k+1))
 
           qp_interfaceT(1:n_vars+2,j,k) = qrecS(1:n_vars+2)
           qp_interfaceB(1:n_vars+2,j,k+1) = qrecN(1:n_vars+2)

@@ -747,12 +747,11 @@ CONTAINS
   !
   !******************************************************************************
 
-  SUBROUTINE qp_to_qc(qp,B,qc)
+  SUBROUTINE qp_to_qc(qp,qc)
 
     IMPLICIT none
 
     REAL*8, INTENT(IN) :: qp(n_vars+2)
-    REAL*8, INTENT(IN) :: B
     REAL*8, INTENT(OUT) :: qc(n_vars)
 
     REAL*8 :: r_sp_heat_mix

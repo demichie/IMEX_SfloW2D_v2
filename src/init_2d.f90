@@ -50,8 +50,6 @@ CONTAINS
 
     USE geometry_2d, ONLY : x_comp , comp_cells_x , comp_cells_y , B_cent
 
-    ! USE geometry_2d, ONLY : x0 , xN , y0 , yN
-
     USE parameters_2d, ONLY : n_vars , verbose_level , n_solid
 
     USE solver_2d, ONLY : q
@@ -123,7 +121,7 @@ CONTAINS
        DO k = 1,comp_cells_y
 
          ! evaluate the vector of conservative variables
-         CALL qp_to_qc( qp(:,j,k) , B_cent(j,k) , qj )
+         CALL qp_to_qc( qp(:,j,k) , qj )
 
          q(1:n_vars,j,k) = qj
 
@@ -166,7 +164,7 @@ CONTAINS
        DO k = 1,comp_cells_y
 
          ! evaluate the vector of conservative variables
-         CALL qp_to_qc( qp(:,j,k) , B_cent(j,k) , qj )
+         CALL qp_to_qc( qp(:,j,k) , qj )
 
          q(1:n_vars,j,k) = qj
 
@@ -206,7 +204,7 @@ CONTAINS
 
     USE geometry_2d, ONLY : compute_cell_fract
 
-    USE geometry_2d, ONLY : comp_cells_x , comp_cells_y , B_cent
+    USE geometry_2d, ONLY : comp_cells_x , comp_cells_y
 
     USE parameters_2d, ONLY : n_vars
 
@@ -249,11 +247,11 @@ CONTAINS
              
              qp_init(1) = cell_fract(j,k) * h_collapse
 
-             CALL qp_to_qc( qp_init(1:n_vars+2) , B_cent(j,k) , q(1:n_vars,j,k) )
+             CALL qp_to_qc( qp_init(1:n_vars+2) , q(1:n_vars,j,k) )
              
           ELSE
              
-             CALL qp_to_qc( qp0_init(1:n_vars+2) , B_cent(j,k) , q(1:n_vars,j,k) )
+             CALL qp_to_qc( qp0_init(1:n_vars+2) , q(1:n_vars,j,k) )
              
           END IF
           
