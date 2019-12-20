@@ -2187,9 +2187,11 @@ CONTAINS
     H_interface_x = 0.0_dp
     H_interface_y = 0.0_dp
 
+    !$OMP PARALLEL
+    
     IF ( comp_cells_x .GT. 1 ) THEN
 
-       !$OMP PARALLEL DO private(j,k,i,fluxL,fluxR,flux_avg_x)
+       !$OMP DO private(j,k,i,fluxL,fluxR,flux_avg_x)
 
        interfaces_x_loop:DO l = 1,solve_interfaces_x
 
@@ -2224,7 +2226,7 @@ CONTAINS
 
           ! In the equation for mass and for trasnport (T,alphas) if the 
           ! velocities at the interfaces are null, then the flux is null
-          IF ( (  qp_interfaceL(2,j,k) .EQ. 0.0_dp ) .AND.                        &
+          IF ( (  qp_interfaceL(2,j,k) .EQ. 0.0_dp ) .AND.                      &
                (  qp_interfaceR(2,j,k) .EQ. 0.0_dp ) ) THEN
 
              H_interface_x(1,j,k) = 0.0_dp
@@ -2234,14 +2236,14 @@ CONTAINS
 
        END DO interfaces_x_loop
 
-       !$OMP END PARALLEL DO
+       !$OMP END DO NOWAIT
 
     END IF
 
 
     IF ( comp_cells_y .GT. 1 ) THEN
 
-       !$OMP PARALLEL DO private(j,k,i,fluxB,fluxT,flux_avg_y)
+       !$OMP DO private(j,k,i,fluxB,fluxT,flux_avg_y)
        
        intercafes_y_loop:DO l = 1,solve_interfaces_y
 
@@ -2276,7 +2278,7 @@ CONTAINS
 
           ! In the equation for mass and for trasnport (T,alphas) if the 
           ! velocities at the interfaces are null, then the flux is null
-          IF ( (  q_interfaceB(3,j,k) .EQ. 0.0_dp ) .AND.                         &
+          IF ( (  q_interfaceB(3,j,k) .EQ. 0.0_dp ) .AND.                       &
                (  q_interfaceT(3,j,k) .EQ. 0.0_dp ) ) THEN
 
              H_interface_y(1,j,k) = 0.0_dp
@@ -2286,10 +2288,12 @@ CONTAINS
 
        END DO intercafes_y_loop
 
-       !$OMP END PARALLEL DO
+       !$OMP END DO
 
     END IF
 
+    !$OMP END PARALLEL
+    
     RETURN
     
   END SUBROUTINE eval_flux_KT
@@ -2587,7 +2591,7 @@ CONTAINS
 
                 ELSEIF ( bcN(i)%flag .EQ. 2 ) THEN
 
-                   qrec_prime_y(i) = ( qp_expl(i,j,comp_cells_y) -                 &
+                   qrec_prime_y(i) = ( qp_expl(i,j,comp_cells_y) -              &
                         qp_expl(i,j,comp_cells_y-1) ) / dy 
 
                 END IF
@@ -3097,7 +3101,7 @@ CONTAINS
 
     IF ( comp_cells_y .GT. 1 ) THEN
 
-       !$OMP DO private(j , k , abslambdaB_min , abslambdaB_max ,      &
+       !$OMP DO private(j , k , abslambdaB_min , abslambdaB_max ,               &
        !$OMP & abslambdaT_min , abslambdaT_max , min_r , max_r )
 
        y_interfaces_loop:DO l = 1,solve_interfaces_y
