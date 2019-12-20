@@ -1671,7 +1671,7 @@ CONTAINS
              rhs1 = scal_f - scal_f_old - alam*slope
              rhs2 = scal_f2 - scal_f_old - alam2*slope
 
-             a = ( rhs1/alam**2.0_dp - rhs2/alam2**2.0_dp ) / ( alam - alam2 )
+             a = ( rhs1/alam**2 - rhs2/alam2**2 ) / ( alam - alam2 )
              b = ( -alam2*rhs1/alam**2 + alam*rhs2/alam2**2 ) / ( alam - alam2 )
 
              IF ( a .EQ. 0.0_dp ) THEN
