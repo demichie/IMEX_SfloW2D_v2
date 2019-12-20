@@ -717,12 +717,6 @@ CONTAINS
 
     REAL(dp) :: max_a
 
-    REAL(dp) :: max_vel
-    INTEGER :: max_j,max_k
-    INTEGER :: max_dir
-
-    max_vel = 0.0_dp
-
     dt = max_dt
 
     IF ( cfl .NE. -1.0_dp ) THEN
@@ -761,18 +755,8 @@ CONTAINS
           j = j_cent(l)
           k = k_cent(l)
 
-
           max_a =  MAX( MAXVAL(a_interface_x_max(:,j,k)) ,                      &
                MAXVAL(a_interface_x_max(:,j+1,k)) )
-
-          IF ( max_a .GT. max_vel) THEN 
-
-             max_vel = max_a
-             max_j = j
-             max_k = k
-             max_dir = 1
-
-          END IF
 
           IF ( max_a .GT. 0.0_dp ) THEN
 
@@ -787,15 +771,6 @@ CONTAINS
           max_a =  MAX( MAXVAL(a_interface_y_max(:,j,k)) ,                      &
                MAXVAL(a_interface_y_max(:,j,k+1)) )
 
-          IF ( max_a .GT. max_vel) THEN 
-
-             max_vel = max_a
-             max_j = j
-             max_k = k
-             max_dir = 2
-
-          END IF
-
           IF ( max_a .GT. 0.0_dp ) THEN
 
              dt_interface_y = cfl * dy / max_a
@@ -805,7 +780,6 @@ CONTAINS
              dt_interface_y = dt
 
           END IF
-
 
           dt_cfl = MIN( dt_interface_x , dt_interface_y )
 
@@ -850,6 +824,9 @@ CONTAINS
     INTEGER :: j,k,l            !< loop counter over the grid volumes
     REAL(dp) :: Rj_not_impl(n_eqns)
 
+
+    !$OMP PARALLEL WORKSHARE
+    
     ! Initialization of the solution guess
     q0( 1:n_vars , 1:comp_cells_x , 1:comp_cells_y ) =                          &
          q( 1:n_vars , 1:comp_cells_x , 1:comp_cells_y )
@@ -868,6 +845,8 @@ CONTAINS
 
     expl_terms(1:n_eqns,1:comp_cells_x,1:comp_cells_y,1:n_RK) = 0.0_dp
 
+    !$OMP END PARALLEL WORKSHARE
+    
     runge_kutta:DO i_RK = 1,n_RK
 
        IF ( verbose_level .GE. 2 ) WRITE(*,*) 'solver, imex_RK_solver: i_RK',i_RK
@@ -1410,7 +1389,7 @@ CONTAINS
           CALL SGESV(n_nh,1, left_matrix_small22 , n_nh , pivot_small2 ,        &
                desc_dir_small2 , n_nh, ok)
 
-          desc_dir = unpack( - desc_dir_small2 , implicit_flag , 0.0_dp )        &
+          desc_dir = unpack( - desc_dir_small2 , implicit_flag , 0.0_dp )       &
                + unpack( - desc_dir_small1 , .NOT.implicit_flag , 0.0_dp )
 
        END IF
@@ -2457,7 +2436,6 @@ CONTAINS
     !$OMP & qrec_stencil,qrec_prime_x,qrec_prime_y,qp2recW,qp2recE,qp2recS,     &
     !$OMP & qp2recN,source_bdry)
 
-    ! Linear reconstruction
     DO l = 1,solve_cells
 
        j = j_cent(l)

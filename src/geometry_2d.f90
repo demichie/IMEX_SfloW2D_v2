@@ -105,12 +105,12 @@ MODULE geometry_2d
 
 CONTAINS
 
-  !*********************************************************************
+  !******************************************************************************
   !> \brief Finite volume grid initialization
   !
   !> This subroutine initialize the grids for the finite volume solver.
   !> \date 16/08/2011
-  !*********************************************************************
+  !******************************************************************************
 
   SUBROUTINE init_grid
 
@@ -290,7 +290,7 @@ CONTAINS
 
        DO k=1,comp_cells_y
 
-          grav_surf(j,k) = - ( 1.d0/ SQRT( 1.d0 + B_prime_x(j,k)**2            & 
+          grav_surf(j,k) = - ( 1.d0/ SQRT( 1.d0 + B_prime_x(j,k)**2             & 
                + B_prime_y(j,k)**2) )
 
        ENDDO
@@ -349,7 +349,7 @@ CONTAINS
                 ! cells where radial source boundary condition are applied
                 source_cell(j-1,k) = 2
                 sourceE(j-1,k) = .TRUE.
-                dist_sourceE(j-1,k) = SQRT( ( x_stag(j) - x_source )**2        &
+                dist_sourceE(j-1,k) = SQRT( ( x_stag(j) - x_source )**2         &
                      + ( y_comp(k) - y_source )**2 )
 
                 sourceE_vect_x(j-1,k) = ( x_stag(j) - x_source ) * r_source     &
@@ -367,7 +367,7 @@ CONTAINS
                 ! cells where radial source boundary condition are applied
                 source_cell(j+1,k) = 2
                 sourceW(j+1,k) = .TRUE.
-                dist_sourceW(j+1,k) = SQRT( ( x_stag(j+1) - x_source )**2      &
+                dist_sourceW(j+1,k) = SQRT( ( x_stag(j+1) - x_source )**2       &
                      + ( y_comp(k) - y_source )**2 )
 
                 sourceW_vect_x(j+1,k) = ( x_stag(j+1) - x_source ) * r_source   &
@@ -387,7 +387,7 @@ CONTAINS
                 ! cells where radial source boundary condition are applied
                 source_cell(j,k-1) = 2
                 sourceN(j,k-1) = .TRUE.
-                dist_sourceN(j,k-1) = SQRT( ( x_comp(j) - x_source )**2        &
+                dist_sourceN(j,k-1) = SQRT( ( x_comp(j) - x_source )**2         &
                      + ( y_stag(k) - y_source )**2 )
 
                 sourceN_vect_x(j,k-1) = ( x_comp(j) - x_source ) * r_source     &
@@ -404,7 +404,7 @@ CONTAINS
                 ! cells where radial source boundary condition are applied
                 source_cell(j,k+1) = 2
                 sourceS(j,k+1) = .TRUE.
-                dist_sourceS(j,k+1) = SQRT( ( x_comp(j) - x_source )**2        &
+                dist_sourceS(j,k+1) = SQRT( ( x_comp(j) - x_source )**2         &
                      + ( y_stag(k+1) - y_source )**2 )
                 
                 sourceS_vect_x(j,k+1) = ( x_comp(j) - x_source ) * r_source     &
@@ -427,7 +427,7 @@ CONTAINS
 
   END SUBROUTINE init_source
 
-  !---------------------------------------------------------------------------
+  !-----------------------------------------------------------------------------
   !> Scalar interpolation
   !
   !> This subroutine interpolate the values of the  array f1, defined on the 
@@ -437,7 +437,7 @@ CONTAINS
   !> \param    f1           original values              (\b input)
   !> \param    x2           new point                    (\b output)
   !> \param    f2           interpolated value           (\b output)
-  !---------------------------------------------------------------------------
+  !-----------------------------------------------------------------------------
 
   SUBROUTINE interp_1d_scalar(x1, f1, x2, f2)
     IMPLICIT NONE
@@ -484,7 +484,7 @@ CONTAINS
   END SUBROUTINE interp_1d_scalar
 
 
-  !---------------------------------------------------------------------------
+  !-----------------------------------------------------------------------------
   !> Scalar interpolation (2D)
   !
   !> This subroutine interpolate the values of the  array f1, defined on the 
@@ -496,7 +496,7 @@ CONTAINS
   !> \param    x2           new point                    (\b output)
   !> \param    y2           new point                    (\b output)
   !> \param    f2           interpolated value           (\b output)
-  !---------------------------------------------------------------------------
+  !-----------------------------------------------------------------------------
 
   SUBROUTINE interp_2d_scalar(x1, y1, f1, x2, y2, f2)
     IMPLICIT NONE
@@ -544,15 +544,15 @@ CONTAINS
        
     ELSE
        
-       f2 = alfa_x * ( alfa_y * f1(ix,iy) + ( 1.0_dp - alfa_y ) * f1(ix,iy+1) )   &
-            + ( 1.0_dp - alfa_x ) *  ( alfa_y * f1(ix+1,iy) + ( 1.0_dp - alfa_y )   &
+       f2 = alfa_x * ( alfa_y * f1(ix,iy) + ( 1.0_dp - alfa_y ) * f1(ix,iy+1) ) &
+            + ( 1.0_dp - alfa_x ) * ( alfa_y * f1(ix+1,iy) + ( 1.0_dp - alfa_y )&
             * f1(ix+1,iy+1) )
        
     END IF
     
   END SUBROUTINE interp_2d_scalar
 
-  !---------------------------------------------------------------------------
+  !-----------------------------------------------------------------------------
   !> Scalar interpolation (2D)
   !
   !> This subroutine interpolate the values of the  array f1, defined on the 
@@ -565,7 +565,7 @@ CONTAINS
   !> \param    x2           new point                    (\b output)
   !> \param    y2           new point                    (\b output)
   !> \param    f2           interpolated value           (\b output)
-  !---------------------------------------------------------------------------
+  !-----------------------------------------------------------------------------
 
   SUBROUTINE interp_2d_scalarB(x1, y1, f1, x2, y2, f2)
     IMPLICIT NONE
@@ -604,7 +604,7 @@ CONTAINS
        
     END IF
 
-    IF ( ( alfa_x .LT. 0.0_dp ) .OR. ( alfa_x .GT. 1.0_dp )                         &
+    IF ( ( alfa_x .LT. 0.0_dp ) .OR. ( alfa_x .GT. 1.0_dp )                     &
          .OR. ( alfa_y .LT. 0.0_dp ) .OR. ( alfa_y .GT. 1.0_dp ) ) THEN
 
        f2 = 0.0_dp
@@ -623,8 +623,8 @@ CONTAINS
        
     ELSE
        
-       f2 = alfa_x * ( alfa_y * f1(ix,iy) + ( 1.0_dp - alfa_y ) * f1(ix,iy+1) )   &
-            + ( 1.0_dp - alfa_x ) *  ( alfa_y * f1(ix+1,iy) + ( 1.0_dp - alfa_y )   &
+       f2 = alfa_x * ( alfa_y * f1(ix,iy) + ( 1.0_dp - alfa_y ) * f1(ix,iy+1) ) &
+            + ( 1.0_dp - alfa_x ) * ( alfa_y * f1(ix+1,iy) + ( 1.0_dp - alfa_y )&
             * f1(ix+1,iy+1) )
        
     END IF
@@ -634,7 +634,7 @@ CONTAINS
   END SUBROUTINE interp_2d_scalarB
 
 
-  !---------------------------------------------------------------------------
+  !-----------------------------------------------------------------------------
   !> Scalar interpolation (2D)
   !
   !> This subroutine interpolate the values of the  array f1, defined on the 
@@ -646,7 +646,7 @@ CONTAINS
   !> \param    x2           new point                    (\b output)
   !> \param    y2           new point                    (\b output)
   !> \param    f2           interpolated value           (\b output)
-  !---------------------------------------------------------------------------
+  !-----------------------------------------------------------------------------
 
   SUBROUTINE interp_2d_slope(x1, y1, f1, x2, y2, f_x, f_y)
     IMPLICIT NONE
@@ -775,10 +775,12 @@ CONTAINS
 
                 !east boundary
                 
-                x_stencil(3) = 2.0_dp * x_comp(comp_cells_x) - x_comp(comp_cells_x-1)
+                x_stencil(3) = 2.0_dp * x_comp(comp_cells_x)                    &
+                     - x_comp(comp_cells_x-1)
                 x_stencil(1:2) = x_comp(comp_cells_x-1:comp_cells_x)
                 
-                B_stencil(3) = 2.0_dp * B_cent(comp_cells_x,k) - B_cent(comp_cells_x-1,k)
+                B_stencil(3) = 2.0_dp * B_cent(comp_cells_x,k)                  &
+                     - B_cent(comp_cells_x-1,k)
                 B_stencil(1:2) = B_cent(comp_cells_x-1:comp_cells_x,k)
 
                 CALL limit( B_stencil , x_stencil , limiterB , B_prime_x(j,k) ) 
@@ -816,10 +818,12 @@ CONTAINS
              ELSEIF ( k .EQ. comp_cells_y ) THEN
 
                 ! North boundary
-                y_stencil(3) = 2.0_dp * y_comp(comp_cells_y) - y_comp(comp_cells_y-1)
+                y_stencil(3) = 2.0_dp * y_comp(comp_cells_y)                    &
+                     - y_comp(comp_cells_y-1)
                 y_stencil(1:2) = y_comp(comp_cells_y-1:comp_cells_y)
 
-                B_stencil(3) = 2.0_dp * B_cent(j,comp_cells_y) - B_cent(j,comp_cells_y-1)
+                B_stencil(3) = 2.0_dp * B_cent(j,comp_cells_y)                  &
+                     - B_cent(j,comp_cells_y-1)
                 B_stencil(1:2) = B_cent(j,comp_cells_y-1:comp_cells_y)
                 
                 CALL limit( B_stencil , y_stencil , limiterB , B_prime_y(j,k) ) 
@@ -862,7 +866,7 @@ CONTAINS
 
   END SUBROUTINE topography_reconstruction
 
-  !---------------------------------------------------------------------------
+  !-----------------------------------------------------------------------------
   !> Scalar regrid (2D)
   !
   !> This subroutine interpolate the values of the  array f1, defined on the 
@@ -877,7 +881,7 @@ CONTAINS
   !> \param    yl           new point                    (\b input)
   !> \param    yr           new point                    (\b input)
   !> \param    f2           interpolated value           (\b output)
-  !---------------------------------------------------------------------------
+  !-----------------------------------------------------------------------------
 
   SUBROUTINE regrid_scalar(xin, yin, fin, xl, xr , yl, yr, fout)
     IMPLICIT NONE
@@ -1126,7 +1130,7 @@ CONTAINS
 
     source_area = dx*dy*SUM(cell_fract)
     
-    WRITE(*,*) 'Source area =',source_area,' Error =',ABS( 1.0_dp -      &
+    WRITE(*,*) 'Source area =',source_area,' Error =',ABS( 1.0_dp -             &
          dx*dy*SUM(cell_fract) / ( 4.0_dp*ATAN(1.0_dp)*rs**2 ) )
 
     DEALLOCATE( x_subgrid )

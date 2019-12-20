@@ -84,10 +84,10 @@ PROGRAM SW_VAR_DENS_MODEL
 
   IMPLICIT NONE
 
-  REAL(dp) :: t1 , t2
+  REAL(dp) :: t1 , t2 , t3
 
   REAL(dp) :: rate
-  INTEGER :: st1 , st2 , cr , cm
+  INTEGER :: st1 , st2 , st3 , cr , cm
 
   REAL(dp) :: dt_old , dt_old_old
   LOGICAL :: stop_flag
@@ -120,13 +120,13 @@ PROGRAM SW_VAR_DENS_MODEL
   END IF
 
 
-  CALL cpu_time(t1)
 
  ! First initialize the system_clock
   CALL system_clock(count_rate=cr)
   CALL system_clock(count_max=cm)
   rate = DBLE(cr)
 
+  CALL cpu_time(t1)
   CALL system_clock (st1)
 
   CALL init_param
@@ -220,6 +220,9 @@ PROGRAM SW_VAR_DENS_MODEL
        ' area = ',dx*dy*COUNT(q(1,:,:).GT.1.D-5) ,                              &
        ' solid mass = ',dx*dy*SUM(q(5:4+n_solid,:,:)) 
 
+  CALL cpu_time(t2)
+  CALL system_clock (st2)
+
   DO WHILE ( ( t .LT. t_end ) .AND. ( t .LT. t_steady ) )
 
      CALL update_param
@@ -304,11 +307,11 @@ PROGRAM SW_VAR_DENS_MODEL
 
         CALL output_solution(t)
 
-        CALL cpu_time(t2)
-        CALL system_clock(st2)
+        CALL cpu_time(t3)
+        CALL system_clock(st3)
 
-        WRITE(*,*) 'Time taken by the code is',t2-t1,'seconds'
-        WRITE(*,*) 'Elapsed real time = ', DBLE( st2 - st1 ) / rate,'seconds'
+        WRITE(*,*) 'Time taken by iterations is',t3-t2,'seconds'
+        WRITE(*,*) 'Elapsed real time = ', DBLE( st3 - st2 ) / rate,'seconds'
 
      END IF
 
@@ -320,7 +323,8 @@ PROGRAM SW_VAR_DENS_MODEL
 
   CALL cpu_time(t2)
 
-  WRITE(*,*) 'Time taken by the code is',t2-t1,'seconds'
+  WRITE(*,*) 'Total time taken by the code is',t3-t1,'seconds'
+  WRITE(*,*) 'Total elapsed real time is', DBLE( st3 - st1 ) / rate,'seconds'
 
 END PROGRAM SW_VAR_DENS_MODEL
 
