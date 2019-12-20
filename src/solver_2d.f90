@@ -761,7 +761,6 @@ CONTAINS
           j = j_cent(l)
           k = k_cent(l)
 
-
           max_a =  MAX( MAXVAL(a_interface_x_max(:,j,k)) ,                      &
                MAXVAL(a_interface_x_max(:,j+1,k)) )
 
@@ -944,7 +943,7 @@ CONTAINS
                    !Case 1: if the velocity was null, then it must stay null
                    q_si(2:3) = 0.0_dp 
 
-                ELSEIF ( ( q_si(2)*q_fv(2,j,k) .LT. 0.0_dp ) .OR.                 &
+                ELSEIF ( ( q_si(2)*q_fv(2,j,k) .LT. 0.0_dp ) .OR.               &
                      ( q_si(3)*q_fv(3,j,k) .LT. 0.0_dp ) ) THEN
 
                    ! If the semi-impl. friction term changed the sign of the 
@@ -954,8 +953,8 @@ CONTAINS
                 ELSE
 
                    ! Align the velocity vector with previous one
-                   q_si(2:3) = SQRT( q_si(2)**2 + q_si(3)**2 ) *               &
-                        q_fv(2:3,j,k) / SQRT( q_fv(2,j,k)**2                   &
+                   q_si(2:3) = SQRT( q_si(2)**2 + q_si(3)**2 ) *                &
+                        q_fv(2:3,j,k) / SQRT( q_fv(2,j,k)**2                    &
                         + q_fv(3,j,k)**2 ) 
 
                 END IF
@@ -1003,7 +1002,7 @@ CONTAINS
 
                    q_guess(2:3) = 0.0_dp 
 
-                ELSEIF ( ( q_guess(2)*q_si(2) .LE. 0.0_dp ) .AND.                 &
+                ELSEIF ( ( q_guess(2)*q_si(2) .LE. 0.0_dp ) .AND.               &
                      ( q_guess(3)*q_si(3) .LE. 0.0_dp ) ) THEN
 
                    ! If the impl. friction term changed the sign of the 
@@ -1103,7 +1102,7 @@ CONTAINS
 
        END IF
 
-       IF ( ( SUM(ABS( omega_tilde(:)-a_tilde_ij(n_RK,:))) .EQ. 0.0_dp  )         &
+       IF ( ( SUM(ABS( omega_tilde(:)-a_tilde_ij(n_RK,:))) .EQ. 0.0_dp  )       &
             .AND. ( SUM(ABS(omega(:)-a_dirk_ij(n_RK,:))) .EQ. 0.0_dp ) ) THEN
 
           ! The assembling coeffs are equal to the last step of the RK scheme
@@ -1297,7 +1296,7 @@ CONTAINS
 
        DO i=1,n_eqns
 
-          IF ( ABS(right_term(i)) .GE. 1.0_dp ) coeff_f(i) = 1.0_dp / right_term(i)
+          IF ( ABS(right_term(i)) .GE. 1.0_dp ) coeff_f(i) = 1.0_dp/right_term(i)
 
        END DO
 
@@ -1410,7 +1409,7 @@ CONTAINS
           CALL SGESV(n_nh,1, left_matrix_small22 , n_nh , pivot_small2 ,        &
                desc_dir_small2 , n_nh, ok)
 
-          desc_dir = unpack( - desc_dir_small2 , implicit_flag , 0.0_dp )        &
+          desc_dir = unpack( - desc_dir_small2 , implicit_flag , 0.0_dp )       &
                + unpack( - desc_dir_small1 , .NOT.implicit_flag , 0.0_dp )
 
        END IF
@@ -1468,7 +1467,7 @@ CONTAINS
 
        IF (check) THEN
 
-          check = ( MAXVAL( ABS(grad_f(:)) * MAX( ABS( qj_rel(:) ),1.0_dp ) /     &
+          check = ( MAXVAL( ABS(grad_f(:)) * MAX( ABS( qj_rel(:) ),1.0_dp ) /   &
                MAX( scal_f , 0.5_dp * SIZE(qj_rel) ) )  < TOLMIN )
 
           IF ( verbose_level .GE. 3 ) WRITE(*,*) '2: check',check
@@ -1590,7 +1589,7 @@ CONTAINS
 
     slope = DOT_PRODUCT(grad_f,desc_dir)
 
-    alamin = TOLX / MAXVAL( ABS( desc_dir(:))/MAX( ABS(qj_rel_NR_old(:)),1.0_dp ) )
+    alamin = TOLX / MAXVAL(ABS( desc_dir(:))/MAX( ABS(qj_rel_NR_old(:)),1.0_dp ))
 
     IF ( alamin .EQ. 0.0_dp ) THEN
 
@@ -1900,7 +1899,7 @@ CONTAINS
             erosion_term(1:n_solid) , deposition_term(1:n_solid) )
 
        ! Limit the deposition during a single time step
-       deposition_term(1:n_solid) = MAX(0.0_dp,MIN( deposition_term(1:n_solid),   &
+       deposition_term(1:n_solid) = MAX(0.0_dp,MIN( deposition_term(1:n_solid), &
             q(5:4+n_solid,j,k) / ( rho_s(1:n_solid) * dt ) ))
 
        ! Compute the source terms for the equations
@@ -2023,7 +2022,6 @@ CONTAINS
        CALL eval_flux_UP
 
     END SELECT
-
 
     !$OMP PARALLEL DO private(j,k,i)
 
@@ -2208,9 +2206,11 @@ CONTAINS
     H_interface_x = 0.0_dp
     H_interface_y = 0.0_dp
 
+    !$OMP PARALLEL
+
     IF ( comp_cells_x .GT. 1 ) THEN
 
-       !$OMP PARALLEL DO private(j,k,i,fluxL,fluxR,flux_avg_x)
+       !$OMP DO private(j,k,i,fluxL,fluxR,flux_avg_x)
 
        interfaces_x_loop:DO l = 1,solve_interfaces_x
 
@@ -2245,7 +2245,7 @@ CONTAINS
 
           ! In the equation for mass and for trasnport (T,alphas) if the 
           ! velocities at the interfaces are null, then the flux is null
-          IF ( (  qp_interfaceL(2,j,k) .EQ. 0.0_dp ) .AND.                        &
+          IF ( (  qp_interfaceL(2,j,k) .EQ. 0.0_dp ) .AND.                      &
                (  qp_interfaceR(2,j,k) .EQ. 0.0_dp ) ) THEN
 
              H_interface_x(1,j,k) = 0.0_dp
@@ -2255,16 +2255,16 @@ CONTAINS
 
        END DO interfaces_x_loop
 
-       !$OMP END PARALLEL DO
+       !$OMP END DO NOWAIT
 
     END IF
 
 
     IF ( comp_cells_y .GT. 1 ) THEN
 
-       !$OMP PARALLEL DO private(j,k,i,fluxB,fluxT,flux_avg_y)
+       !$OMP DO private(j,k,i,fluxB,fluxT,flux_avg_y)
        
-       intercafes_y_loop:DO l = 1,solve_interfaces_y
+       interfaces_y_loop:DO l = 1,solve_interfaces_y
 
           j = j_stag_y(l)
           k = k_stag_y(l)
@@ -2297,7 +2297,7 @@ CONTAINS
 
           ! In the equation for mass and for trasnport (T,alphas) if the 
           ! velocities at the interfaces are null, then the flux is null
-          IF ( (  q_interfaceB(3,j,k) .EQ. 0.0_dp ) .AND.                         &
+          IF ( (  q_interfaceB(3,j,k) .EQ. 0.0_dp ) .AND.                       &
                (  q_interfaceT(3,j,k) .EQ. 0.0_dp ) ) THEN
 
              H_interface_y(1,j,k) = 0.0_dp
@@ -2305,11 +2305,13 @@ CONTAINS
 
           END IF
 
-       END DO intercafes_y_loop
+       END DO interfaces_y_loop
 
-       !$OMP END PARALLEL DO
+       !$OMP END DO
 
     END IF
+
+    !$OMP END PARALLEL
 
     RETURN
     
@@ -3091,7 +3093,7 @@ CONTAINS
 
     IF ( comp_cells_x .GT. 1 ) THEN
 
-       !$OMP DO private(j , k , abslambdaL_min , abslambdaL_max ,      &
+       !$OMP DO private(j , k , abslambdaL_min , abslambdaL_max ,               &
        !$OMP & abslambdaR_min , abslambdaR_max , min_r , max_r )
 
        x_interfaces_loop:DO l = 1,solve_interfaces_x
@@ -3119,7 +3121,7 @@ CONTAINS
 
     IF ( comp_cells_y .GT. 1 ) THEN
 
-       !$OMP DO private(j , k , abslambdaB_min , abslambdaB_max ,      &
+       !$OMP DO private(j , k , abslambdaB_min , abslambdaB_max ,               &
        !$OMP & abslambdaT_min , abslambdaT_max , min_r , max_r )
 
        y_interfaces_loop:DO l = 1,solve_interfaces_y
