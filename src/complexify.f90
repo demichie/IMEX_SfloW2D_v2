@@ -26,6 +26,8 @@
 
 module complexify
 
+  USE parameters_2d, ONLY : dp
+
   implicit none
   
 ! ABS
@@ -280,7 +282,7 @@ contains
   complex*16 function atan_c(z)
     complex*16, intent(in) :: z
 !   complex*16 z2
-!   real*8 pi2, xans, yans, r, r2, x, y
+!   real(dp) pi2, xans, yans, r, r2, x, y
 !   pi2 = 2.0*atan(1.0)
 !   r      = sqrt(real(z)**2+aimag(z)**2)
 !   x      = real(z)
@@ -297,7 +299,7 @@ contains
 ! ATAN2
   complex*16 function atan2_cc(csn, ccs)
     complex*16, intent(in) :: csn, ccs
-!   real*8 pi
+!   real(dp) pi
 !   pi = 4.0*atan(1.0)
 !   if (sqrt(real(ccs)**2 + aimag(ccs)**2).eq.0.) then  ! abs orig
 !     if (sqrt(real(csn)**2+aimag(csn)**2).eq.0.) then
@@ -311,7 +313,7 @@ contains
 !     if (real(atan2_cc).gt.pi) atan2_cc = atan2_cc - 2.0*pi
 !   end if
 !   not general complex valued formula:
-    real*8 a,b,c,d
+    real(dp) a,b,c,d
     a=real(csn)
     b=aimag(csn)
     c=real(ccs)
@@ -384,7 +386,7 @@ contains
   end function max_cc
   complex*16 function max_cr(val1, val2)
     complex*16, intent(in) :: val1    
-    real*8, intent(in) :: val2    
+    real(dp), intent(in) :: val2    
     if (real(val1) > val2) then
       max_cr = val1
     else
@@ -393,7 +395,7 @@ contains
     return
   end function max_cr
   complex*16 function max_rc(val1, val2)
-    real*8, intent(in) :: val1
+    real(dp), intent(in) :: val1
     complex*16, intent(in) :: val2
     if (val1 > real(val2)) then
       max_rc = cmplx(val1, 0.)
@@ -446,7 +448,7 @@ contains
   end function min_cc
   complex*16 function min_cr(val1, val2)
     complex*16, intent(in) :: val1    
-    real*8, intent(in) :: val2    
+    real(dp), intent(in) :: val2    
     if (real(val1) < val2) then
       min_cr = val1
     else
@@ -455,7 +457,7 @@ contains
     return
   end function min_cr
   complex*16 function min_rc(val1, val2)
-    real*8, intent(in) :: val1
+    real(dp), intent(in) :: val1
     complex*16, intent(in) :: val2
     if (val1 < real(val2)) then
       min_rc = cmplx(val1, 0.)
@@ -501,7 +503,7 @@ contains
 !                  in reality could be int
   complex*16 function sign_cc(val1, val2)
     complex*16, intent(in) :: val1, val2
-    real*8  sign
+    real(dp)  sign
     if (real(val2) < 0.) then
       sign = -1.
     else
@@ -512,8 +514,8 @@ contains
   end function sign_cc
   complex*16 function sign_cr(val1, val2)
     complex*16, intent(in) :: val1
-    real*8, intent(in) :: val2
-    real*8 sign
+    real(dp), intent(in) :: val2
+    real(dp) sign
     if (real(val2) < 0.) then
       sign = -1.
     else
@@ -523,9 +525,9 @@ contains
     return
   end function sign_cr
   complex*16 function sign_rc(val1, val2)
-    real*8, intent(in) :: val1
+    real(dp), intent(in) :: val1
     complex*16, intent(in) :: val2
-    real*8 sign
+    real(dp) sign
     if (real(val2) < 0.) then
       sign = -1.
     else
@@ -547,7 +549,7 @@ contains
   end function dim_cc
   complex*16 function dim_cr(val1, val2)
     complex*16, intent(in) :: val1
-    real*8, intent(in) :: val2
+    real(dp), intent(in) :: val2
     if (val1 > val2) then
       dim_cr = val1 - cmplx(val2, 0.)
     else
@@ -556,7 +558,7 @@ contains
     return
   end function dim_cr
   complex*16 function dim_rc(val1, val2)
-    real*8, intent(in) :: val1
+    real(dp), intent(in) :: val1
     complex*16, intent(in) :: val2
     if (val1 > val2) then
       dim_rc = cmplx(val1, 0.) - val2
@@ -591,11 +593,11 @@ contains
   end function lt_cc
   logical function lt_cr(lhs, rhs)
     complex*16, intent(in) :: lhs
-    real*8, intent(in) :: rhs
+    real(dp), intent(in) :: rhs
     lt_cr = real(lhs) < rhs
   end function lt_cr
   logical function lt_rc(lhs, rhs)
-    real*8, intent(in) :: lhs
+    real(dp), intent(in) :: lhs
     complex*16, intent(in) :: rhs
     lt_rc = lhs < real(rhs)
   end function lt_rc
@@ -617,11 +619,11 @@ contains
   end function le_cc
   logical function le_cr(lhs, rhs)
     complex*16, intent(in) :: lhs
-    real*8, intent(in) :: rhs
+    real(dp), intent(in) :: rhs
     le_cr = real(lhs) <= rhs
   end function le_cr
   logical function le_rc(lhs, rhs)
-    real*8, intent(in) :: lhs
+    real(dp), intent(in) :: lhs
     complex*16, intent(in) :: rhs
     le_rc = lhs <= real(rhs)
   end function le_rc
@@ -643,11 +645,11 @@ contains
   end function gt_cc
   logical function gt_cr(lhs, rhs)
     complex*16, intent(in) :: lhs
-    real*8, intent(in) :: rhs
+    real(dp), intent(in) :: rhs
     gt_cr = real(lhs) > rhs
   end function gt_cr
   logical function gt_rc(lhs, rhs)
-    real*8, intent(in) :: lhs
+    real(dp), intent(in) :: lhs
     complex*16, intent(in) :: rhs
     gt_rc = lhs > real(rhs)
   end function gt_rc
@@ -669,7 +671,7 @@ contains
     ge_cc = real(lhs) >= real(rhs)
   end function ge_cc
   logical function ge_rr(lhs, rhs)
-    real*8, intent(in) :: lhs, rhs
+    real(dp), intent(in) :: lhs, rhs
     ge_rr = lhs >= rhs
   end function ge_rr
   logical function ge_ii(lhs, rhs)
@@ -682,11 +684,11 @@ contains
   end function ge_aa
   logical function ge_cr(lhs, rhs)
     complex*16, intent(in) :: lhs
-    real*8, intent(in) :: rhs
+    real(dp), intent(in) :: rhs
     ge_cr = real(lhs) >= rhs
   end function ge_cr
   logical function ge_rc(lhs, rhs)
-    real*8, intent(in) :: lhs
+    real(dp), intent(in) :: lhs
     complex*16, intent(in) :: rhs
     ge_rc = lhs >= real(rhs)
   end function ge_rc
@@ -702,11 +704,11 @@ contains
   end function ge_ic
   logical function ge_ir(lhs, rhs)
     integer, intent(in) :: lhs
-    real*8, intent(in) :: rhs
+    real(dp), intent(in) :: rhs
     ge_ir = lhs >= rhs
   end function ge_ir
   logical function ge_ri(lhs, rhs)
-    real*8, intent(in) :: lhs
+    real(dp), intent(in) :: lhs
     integer, intent(in) :: rhs
     ge_ri = lhs >= rhs
   end function ge_ri
@@ -717,7 +719,7 @@ contains
     eq_cc = real(lhs) == real(rhs)
   end function eq_cc
   logical function eq_rr(lhs, rhs)
-    real*8, intent(in) :: lhs, rhs
+    real(dp), intent(in) :: lhs, rhs
     eq_rr = lhs == rhs
   end function eq_rr
   logical function eq_ii(lhs, rhs)
@@ -730,11 +732,11 @@ contains
   end function eq_aa
   logical function eq_cr(lhs, rhs)
     complex*16, intent(in) :: lhs
-    real*8, intent(in) :: rhs
+    real(dp), intent(in) :: rhs
     eq_cr = real(lhs) == rhs
   end function eq_cr
   logical function eq_rc(lhs, rhs)
-    real*8, intent(in) :: lhs
+    real(dp), intent(in) :: lhs
     complex*16, intent(in) :: rhs
     eq_rc = lhs == real(rhs)
   end function eq_rc
@@ -750,11 +752,11 @@ contains
   end function eq_ic
   logical function eq_ir(lhs, rhs)
     integer, intent(in) :: lhs
-    real*8, intent(in) :: rhs
+    real(dp), intent(in) :: rhs
     eq_ir = lhs == rhs
   end function eq_ir
   logical function eq_ri(lhs, rhs)
-    real*8, intent(in) :: lhs
+    real(dp), intent(in) :: lhs
     integer, intent(in) :: rhs
     eq_ri = lhs == rhs
   end function eq_ri
@@ -765,7 +767,7 @@ contains
     ne_cc = real(lhs) /= real(rhs)
   end function ne_cc
   logical function ne_rr(lhs, rhs)
-    real*8, intent(in) :: lhs, rhs
+    real(dp), intent(in) :: lhs, rhs
     ne_rr = lhs /= rhs
   end function ne_rr
   logical function ne_ii(lhs, rhs)
@@ -778,11 +780,11 @@ contains
   end function ne_aa
   logical function ne_cr(lhs, rhs)
     complex*16, intent(in) :: lhs
-    real*8, intent(in) :: rhs
+    real(dp), intent(in) :: rhs
     ne_cr = real(lhs) /= rhs
   end function ne_cr
   logical function ne_rc(lhs, rhs)
-    real*8, intent(in) :: lhs
+    real(dp), intent(in) :: lhs
     complex*16, intent(in) :: rhs
     ne_rc = lhs /= real(rhs)
   end function ne_rc
@@ -798,11 +800,11 @@ contains
   end function ne_ic
   logical function ne_ir(lhs, rhs)
     integer, intent(in) :: lhs
-    real*8, intent(in) :: rhs
+    real(dp), intent(in) :: rhs
     ne_ir = lhs /= rhs
   end function ne_ir
   logical function ne_ri(lhs, rhs)
-    real*8, intent(in) :: lhs
+    real(dp), intent(in) :: lhs
     integer, intent(in) :: rhs
     ne_ri = lhs /= rhs
   end function ne_ri

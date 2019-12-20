@@ -8,18 +8,20 @@ MODULE parameters_2d
 
   IMPLICIT NONE
 
-  REAL*8 :: eps_newton        !< threshold for the convergence of the
-                              !< Newton's method 
+  INTEGER, PARAMETER :: dp = KIND(1.0)
 
-  REAL*8 :: dt0               !< Initial time step
+  REAL(dp) :: eps_newton        !< threshold for the convergence of the
+                                !< Newton's method 
 
-  REAL*8 :: max_dt            !< Largest time step allowed
+  REAL(dp) :: dt0               !< Initial time step
 
-  REAL*8 :: cfl               !< Courant-Friedrichs-Lewy parameter 
+  REAL(dp) :: max_dt            !< Largest time step allowed
 
-  REAL*8 :: eps_sing               !< parameter for desingularization
+  REAL(dp) :: cfl               !< Courant-Friedrichs-Lewy parameter 
 
-  REAL*8 :: reconstr_coeff    !< Slope coefficient in the linear reconstruction
+  REAL(dp) :: eps_sing          !< parameter for desingularization
+
+  REAL(dp) :: reconstr_coeff    !< Slope coefficient in the linear reconstruction
 
   !> Flag to add the relaxation terms after the linear reconstruction:\n
   !> - T      => evaluate the relaxation terms
@@ -72,51 +74,51 @@ MODULE parameters_2d
 
   LOGICAL :: radial_source_flag
 
-  REAL*8 :: x_source
-  REAL*8 :: y_source
-  REAL*8 :: r_source
-  REAL*8 :: vel_source
-  REAL*8 :: T_source
-  REAL*8 :: h_source
-  REAL*8 :: alphas_source(100)
-  REAL*8 :: alphal_source
-  REAL*8 :: time_param(4)
+  REAL(dp) :: x_source
+  REAL(dp) :: y_source
+  REAL(dp) :: r_source
+  REAL(dp) :: vel_source
+  REAL(dp) :: T_source
+  REAL(dp) :: h_source
+  REAL(dp) :: alphas_source(100)
+  REAL(dp) :: alphal_source
+  REAL(dp) :: time_param(4)
   
 
   LOGICAL :: collapsing_volume_flag
 
-  REAL*8 :: x_collapse
-  REAL*8 :: y_collapse
-  REAL*8 :: r_collapse
-  REAL*8 :: T_collapse
-  REAL*8 :: h_collapse
-  REAL*8 :: alphas_collapse(100)
+  REAL(dp) :: x_collapse
+  REAL(dp) :: y_collapse
+  REAL(dp) :: r_collapse
+  REAL(dp) :: T_collapse
+  REAL(dp) :: h_collapse
+  REAL(dp) :: alphas_collapse(100)
 
 
   !> Initial volume of the flow
-  REAL*8 :: released_volume
+  REAL(dp) :: released_volume
 
   !> Initial x-coordiante of the pile
-  REAL*8 :: x_release
+  REAL(dp) :: x_release
 
   !> Initial y-coordinate of the pile
-  REAL*8 :: y_release
+  REAL(dp) :: y_release
   
     !> Initial velocity module of the pile
-  REAL*8 :: velocity_mod_release
+  REAL(dp) :: velocity_mod_release
 
   !> Initial velocity direction (angle in degree):\n
   !> - >=0    => departing from positive x-axis
   !> - <0     => departign from maximum slope direction
   !.
   
-  REAL*8 :: velocity_ang_release
+  REAL(dp) :: velocity_ang_release
 
   !> Initial temperature of the pile of material
-  REAL*8 :: T_init
+  REAL(dp) :: T_init
 
   !> Initial sediment concentration in the pile of material
-  REAL*8, ALLOCATABLE :: alphas_init(:)
+  REAL(dp), ALLOCATABLE :: alphas_init(:)
 
   INTEGER :: n_vars   !< Number of conservative variables
   INTEGER :: n_eqns   !< Number of equations
@@ -129,8 +131,8 @@ MODULE parameters_2d
   
   INTEGER, PARAMETER :: max_nl_iter = 100
 
-  REAL*8, PARAMETER :: tol_abs = 1.D-5
-  REAL*8, PARAMETER :: tol_rel = 1.D-5
+  REAL(dp), PARAMETER :: tol_abs = 1.D-5
+  REAL(dp), PARAMETER :: tol_rel = 1.D-5
 
   !> Limiter for the slope in the linear reconstruction:\n
   !> - 'none'     => no limiter (constant value);
@@ -147,19 +149,19 @@ MODULE parameters_2d
   !> .
   CHARACTER(LEN=20) :: solver_scheme     
 
-  REAL*8 :: theta             !< Van Leer limiter parameter
-  REAL*8 :: t_start           !< initial time for the run
-  REAL*8 :: t_end             !< end time for the run
-  REAL*8 :: t_output          !< time of the next output
-  REAL*8 :: dt_output         !< time interval for the output of the solution
-  REAL*8 :: t_runout          !< time of the next runout output
-  REAL*8 :: t_steady          !< end time when reached steady solution
+  REAL(dp) :: theta             !< Van Leer limiter parameter
+  REAL(dp) :: t_start           !< initial time for the run
+  REAL(dp) :: t_end             !< end time for the run
+  REAL(dp) :: t_output          !< time of the next output
+  REAL(dp) :: dt_output         !< time interval for the output of the solution
+  REAL(dp) :: t_runout          !< time of the next runout output
+  REAL(dp) :: t_steady          !< end time when reached steady solution
 
   INTEGER :: verbose_level
 
   TYPE bc
      INTEGER :: flag
-     REAL*8 :: value
+     REAL(dp) :: value
   END TYPE bc
 
   ! -------boundary conditions variables

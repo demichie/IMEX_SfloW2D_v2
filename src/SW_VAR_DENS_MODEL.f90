@@ -57,6 +57,8 @@ PROGRAM SW_VAR_DENS_MODEL
 
   USE inpout_2d, ONLY : restart
 
+  USE parameters_2d, ONLY : dp
+
   USE parameters_2d, ONLY : t_start
   USE parameters_2d, ONLY : t_end
   USE parameters_2d, ONLY : t_output
@@ -82,12 +84,12 @@ PROGRAM SW_VAR_DENS_MODEL
 
   IMPLICIT NONE
 
-  REAL*8 :: t1 , t2
+  REAL(dp) :: t1 , t2
 
-  REAL*8 :: rate
+  REAL(dp) :: rate
   INTEGER :: st1 , st2 , cr , cm
 
-  REAL*8 :: dt_old , dt_old_old
+  REAL(dp) :: dt_old , dt_old_old
   LOGICAL :: stop_flag
   LOGICAL :: stop_flag_old
 
@@ -165,6 +167,8 @@ PROGRAM SW_VAR_DENS_MODEL
   IF ( topo_change_flag ) CALL topography_reconstruction
 
   t = t_start
+
+  WRITE(*,*) 't',t
   
   WRITE(*,*) 
   WRITE(*,*) '******** START COMPUTATION *********'
@@ -207,7 +211,7 @@ PROGRAM SW_VAR_DENS_MODEL
 
   CALL output_solution(t)
 
-  IF ( SUM(q(1,:,:)) .EQ. 0.D0 ) t_steady = t_output
+  IF ( SUM(q(1,:,:)) .EQ. 0.0_dp ) t_steady = t_output
   
   WRITE(*,FMT="(A3,F10.4,A5,F9.5,A9,ES11.3E3,A11,ES11.3E3,A9,ES11.3E3,A15,ES11.3E3)")   &
        't =',t,'dt =',dt0,                                                      &
@@ -219,7 +223,7 @@ PROGRAM SW_VAR_DENS_MODEL
   DO WHILE ( ( t .LT. t_end ) .AND. ( t .LT. t_steady ) )
 
      CALL update_param
-     
+
      CALL check_solve
 
      IF ( verbose_level .GE. 1 ) THEN
@@ -239,7 +243,7 @@ PROGRAM SW_VAR_DENS_MODEL
 
      END IF
 
-     dt = MIN(dt,1.1D0*0.5D0*(dt_old+dt_old_old))
+     dt = MIN(dt,1.1_dp * 0.5_dp * ( dt_old + dt_old_old ) )
      
      dt_old_old = dt_old
      dt_old = dt

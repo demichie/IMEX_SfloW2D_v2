@@ -6,59 +6,60 @@
 !*********************************************************************
 MODULE geometry_2d
 
+  USE parameters_2d, ONLY : dp
   USE parameters_2d, ONLY : verbose_level
 
   IMPLICIT NONE
 
   !> Location of the centers (x) of the control volume of the domain
-  REAL*8, ALLOCATABLE :: x_comp(:)
+  REAL(dp), ALLOCATABLE :: x_comp(:)
 
   !> Location of the boundaries (x) of the control volumes of the domain
-  REAL*8, ALLOCATABLE :: x_stag(:)
+  REAL(dp), ALLOCATABLE :: x_stag(:)
 
   !> Location of the centers (y) of the control volume of the domain
-  REAL*8, ALLOCATABLE :: y_comp(:)
+  REAL(dp), ALLOCATABLE :: y_comp(:)
 
   !> Location of the boundaries (x) of the control volumes of the domain
-  REAL*8, ALLOCATABLE :: y_stag(:)
+  REAL(dp), ALLOCATABLE :: y_stag(:)
 
   !> Topography at the vertices of the control volumes
-  REAL*8, ALLOCATABLE :: B_ver(:,:)
+  REAL(dp), ALLOCATABLE :: B_ver(:,:)
 
   !> Reconstructed value at the left of the x-interface
-  REAL*8, ALLOCATABLE :: B_interfaceL(:,:)        
+  REAL(dp), ALLOCATABLE :: B_interfaceL(:,:)        
 
   !> Reconstructed value at the right of the x-interface
-  REAL*8, ALLOCATABLE :: B_interfaceR(:,:)
+  REAL(dp), ALLOCATABLE :: B_interfaceR(:,:)
 
   !> Reconstructed value at the bottom of the y-interface
-  REAL*8, ALLOCATABLE :: B_interfaceB(:,:)        
+  REAL(dp), ALLOCATABLE :: B_interfaceB(:,:)        
 
   !> Reconstructed value at the top of the y-interface
-  REAL*8, ALLOCATABLE :: B_interfaceT(:,:)
+  REAL(dp), ALLOCATABLE :: B_interfaceT(:,:)
 
   !> Topography at the centers of the control volumes 
-  REAL*8, ALLOCATABLE :: B_cent(:,:)
+  REAL(dp), ALLOCATABLE :: B_cent(:,:)
 
   !> Topography slope (x direction) at the centers of the control volumes 
-  REAL*8, ALLOCATABLE :: B_prime_x(:,:)
+  REAL(dp), ALLOCATABLE :: B_prime_x(:,:)
 
   !> Topography slope (y direction) at the centers of the control volumes 
-  REAL*8, ALLOCATABLE :: B_prime_y(:,:)
+  REAL(dp), ALLOCATABLE :: B_prime_y(:,:)
 
   !> Solution in ascii grid format (ESRI)
-  REAL*8, ALLOCATABLE :: grid_output(:,:)
+  REAL(dp), ALLOCATABLE :: grid_output(:,:)
 
   !> gravity vector wrt surface coordinates for each cell
-  REAL*8, ALLOCATABLE :: grav_surf(:,:)
+  REAL(dp), ALLOCATABLE :: grav_surf(:,:)
 
   !> curvature wrt mixed directions for each cell
-  REAL*8, ALLOCATABLE :: curv_xy(:,:)
+  REAL(dp), ALLOCATABLE :: curv_xy(:,:)
 
   !> deposit for the different classes
-  REAL*8, ALLOCATABLE :: deposit(:,:,:)
+  REAL(dp), ALLOCATABLE :: deposit(:,:,:)
 
-  REAL*8, ALLOCATABLE :: topography_profile(:,:,:)
+  REAL(dp), ALLOCATABLE :: topography_profile(:,:,:)
 
   INTEGER, ALLOCATABLE :: source_cell(:,:)
   LOGICAL, ALLOCATABLE :: sourceE(:,:)
@@ -66,40 +67,40 @@ MODULE geometry_2d
   LOGICAL, ALLOCATABLE :: sourceS(:,:)
   LOGICAL, ALLOCATABLE :: sourceN(:,:)
 
-  REAL*8, ALLOCATABLE :: dist_sourceE(:,:)
-  REAL*8, ALLOCATABLE :: dist_sourceW(:,:)
-  REAL*8, ALLOCATABLE :: dist_sourceS(:,:)
-  REAL*8, ALLOCATABLE :: dist_sourceN(:,:)
+  REAL(dp), ALLOCATABLE :: dist_sourceE(:,:)
+  REAL(dp), ALLOCATABLE :: dist_sourceW(:,:)
+  REAL(dp), ALLOCATABLE :: dist_sourceS(:,:)
+  REAL(dp), ALLOCATABLE :: dist_sourceN(:,:)
 
-  REAL*8, ALLOCATABLE :: sourceE_vect_x(:,:)
-  REAL*8, ALLOCATABLE :: sourceE_vect_y(:,:)
+  REAL(dp), ALLOCATABLE :: sourceE_vect_x(:,:)
+  REAL(dp), ALLOCATABLE :: sourceE_vect_y(:,:)
 
-  REAL*8, ALLOCATABLE :: sourceW_vect_x(:,:)
-  REAL*8, ALLOCATABLE :: sourceW_vect_y(:,:)
+  REAL(dp), ALLOCATABLE :: sourceW_vect_x(:,:)
+  REAL(dp), ALLOCATABLE :: sourceW_vect_y(:,:)
 
-  REAL*8, ALLOCATABLE :: sourceS_vect_x(:,:)
-  REAL*8, ALLOCATABLE :: sourceS_vect_y(:,:)
+  REAL(dp), ALLOCATABLE :: sourceS_vect_x(:,:)
+  REAL(dp), ALLOCATABLE :: sourceS_vect_y(:,:)
 
-  REAL*8, ALLOCATABLE :: sourceN_vect_x(:,:)
-  REAL*8, ALLOCATABLE :: sourceN_vect_y(:,:)
+  REAL(dp), ALLOCATABLE :: sourceN_vect_x(:,:)
+  REAL(dp), ALLOCATABLE :: sourceN_vect_y(:,:)
 
-  REAL*8 :: pi_g
+  REAL(dp) :: pi_g
 
   INTEGER :: n_topography_profile_x, n_topography_profile_y
 
-  REAL*8 :: dx                 !< Control volumes size
-  REAL*8 :: x0                 !< Left of the physical domain
-  REAL*8 :: xN                 !< Right of the physical domain
-  REAL*8 :: dy                 !< Control volumes size
-  REAL*8 :: y0                 !< Bottom of the physical domain
-  REAL*8 :: yN                 !< Top of the physical domain
-  REAL*8 :: dx2                !< Half x Control volumes size
-  REAL*8 :: dy2                !< Half y Control volumes size
+  REAL(dp) :: dx                 !< Control volumes size
+  REAL(dp) :: x0                 !< Left of the physical domain
+  REAL(dp) :: xN                 !< Right of the physical domain
+  REAL(dp) :: dy                 !< Control volumes size
+  REAL(dp) :: y0                 !< Bottom of the physical domain
+  REAL(dp) :: yN                 !< Top of the physical domain
+  REAL(dp) :: dx2                !< Half x Control volumes size
+  REAL(dp) :: dy2                !< Half y Control volumes size
   INTEGER :: comp_cells_x      !< Number of control volumes x in the comp. domain
   INTEGER :: comp_interfaces_x !< Number of interfaces (comp_cells_x+1)
   INTEGER :: comp_cells_y      !< Number of control volumes y in the comp. domain
   INTEGER :: comp_interfaces_y !< Number of interfaces (comp_cells_y+1)
-  REAL*8 :: cell_size
+  REAL(dp) :: cell_size
   INTEGER :: comp_cells_xy
 
 CONTAINS
@@ -173,7 +174,7 @@ CONTAINS
 
     ELSE
        
-       dx = 1.D0
+       dx = 1.0_dp
 
     END IF
 
@@ -184,7 +185,7 @@ CONTAINS
     
     ELSE
 
-       dy = 1.D0
+       dy = 1.0_dp
 
     END IF
 
@@ -194,8 +195,8 @@ CONTAINS
     dx2 = dx / 2.d0
     dy2 = dy / 2.d0
 
-    ! eps_sing = MIN( dx ** 4.D0,dy ** 4.D0 )
-    eps_sing=MIN(MIN( dx ** 4.D0,dy ** 4.D0 ),1.d-10)
+    ! eps_sing = MIN( dx ** 4.0_dp,dy ** 4.0_dp )
+    eps_sing=MIN(MIN( dx ** 4.0_dp,dy ** 4.0_dp ),1.d-10)
 
     IF ( verbose_level .GE. 1 ) WRITE(*,*) 'eps_sing = ',eps_sing
     
@@ -213,13 +214,13 @@ CONTAINS
 
     DO j=1,comp_cells_x
 
-       x_comp(j) = 0.5D0 * ( x_stag(j) + x_stag(j+1) )
+       x_comp(j) = 0.5_dp * ( x_stag(j) + x_stag(j+1) )
 
     END DO
 
     DO k=1,comp_cells_y
 
-       y_comp(k) = 0.5D0 * ( y_stag(k) + y_stag(k+1) )
+       y_comp(k) = 0.5_dp * ( y_stag(k) + y_stag(k+1) )
 
     END DO
 
@@ -240,13 +241,13 @@ CONTAINS
 !!$
 !!$       DO k=1,comp_cells_y
 !!$
-!!$          B_interfaceR(j,k) = 0.5D0 * ( B_ver(j,k+1) + B_ver(j,k) )
-!!$          B_interfaceL(j+1,k) = 0.5D0 * ( B_ver(j+1,k+1) + B_ver(j+1,k) ) 
+!!$          B_interfaceR(j,k) = 0.5_dp * ( B_ver(j,k+1) + B_ver(j,k) )
+!!$          B_interfaceL(j+1,k) = 0.5_dp * ( B_ver(j+1,k+1) + B_ver(j+1,k) ) 
 !!$
-!!$          B_interfaceT(j,k) = 0.5D0 * ( B_ver(j+1,k) + B_ver(j,k) )
-!!$          B_interfaceB(j,k+1) = 0.5D0 * ( B_ver(j+1,k+1) + B_ver(j,k+1) )
+!!$          B_interfaceT(j,k) = 0.5_dp * ( B_ver(j+1,k) + B_ver(j,k) )
+!!$          B_interfaceB(j,k+1) = 0.5_dp * ( B_ver(j+1,k+1) + B_ver(j,k+1) )
 !!$          
-!!$          B_cent(j,k) = 0.25D0 * ( B_ver(j,k) + B_ver(j+1,k) + B_ver(j,k+1)     &
+!!$          B_cent(j,k) = 0.25_dp * ( B_ver(j,k) + B_ver(j+1,k) + B_ver(j,k+1)     &
 !!$               + B_ver(j+1,k+1) )
 !!$
 !!$             ! Second factor in RHS 1st Eq. 3.16 K&P
@@ -289,14 +290,14 @@ CONTAINS
 
        DO k=1,comp_cells_y
 
-          grav_surf(j,k) = - ( 1.d0/ DSQRT( 1.d0 + B_prime_x(j,k)**2            & 
+          grav_surf(j,k) = - ( 1.d0/ SQRT( 1.d0 + B_prime_x(j,k)**2            & 
                + B_prime_y(j,k)**2) )
 
        ENDDO
 
     ENDDO
 
-    pi_g = 4.D0 * DATAN(1.D0) 
+    pi_g = 4.0_dp * ATAN(1.0_dp) 
 
     RETURN
 
@@ -311,7 +312,7 @@ CONTAINS
     
     INTEGER :: j,k
 
-    REAL*8 :: total_source
+    REAL(dp) :: total_source
 
     WRITE(*,*) 'r_source',r_source
     WRITE(*,*) 'dx,dy',dx,dy
@@ -324,12 +325,12 @@ CONTAINS
     sourceN(1:comp_cells_x,1:comp_cells_y) = .FALSE.
     sourceS(1:comp_cells_x,1:comp_cells_y) = .FALSE.
 
-    dist_sourceE(1:comp_cells_x,1:comp_cells_y) = 0.D0
-    dist_sourceW(1:comp_cells_x,1:comp_cells_y) = 0.D0
-    dist_sourceN(1:comp_cells_x,1:comp_cells_y) = 0.D0
-    dist_sourceS(1:comp_cells_x,1:comp_cells_y) = 0.D0
+    dist_sourceE(1:comp_cells_x,1:comp_cells_y) = 0.0_dp
+    dist_sourceW(1:comp_cells_x,1:comp_cells_y) = 0.0_dp
+    dist_sourceN(1:comp_cells_x,1:comp_cells_y) = 0.0_dp
+    dist_sourceS(1:comp_cells_x,1:comp_cells_y) = 0.0_dp
 
-    total_source = 0.D0
+    total_source = 0.0_dp
 
     DO k = 2,comp_cells_y-1
 
@@ -348,7 +349,7 @@ CONTAINS
                 ! cells where radial source boundary condition are applied
                 source_cell(j-1,k) = 2
                 sourceE(j-1,k) = .TRUE.
-                dist_sourceE(j-1,k) = DSQRT( ( x_stag(j) - x_source )**2        &
+                dist_sourceE(j-1,k) = SQRT( ( x_stag(j) - x_source )**2        &
                      + ( y_comp(k) - y_source )**2 )
 
                 sourceE_vect_x(j-1,k) = ( x_stag(j) - x_source ) * r_source     &
@@ -357,7 +358,7 @@ CONTAINS
                 sourceE_vect_y(j-1,k) = ( y_comp(k) - y_source ) * r_source     &
                      / dist_sourceE(j-1,k)**2
 
-                total_source = total_source + dx * DABS( sourceE_vect_x(j-1,k) )
+                total_source = total_source + dx * ABS( sourceE_vect_x(j-1,k) )
          
              ELSEIF ( ( x_comp(j+1) - x_source )**2 + ( y_comp(k)-y_source )**2 &
                   .GE. r_source**2 ) THEN
@@ -366,7 +367,7 @@ CONTAINS
                 ! cells where radial source boundary condition are applied
                 source_cell(j+1,k) = 2
                 sourceW(j+1,k) = .TRUE.
-                dist_sourceW(j+1,k) = DSQRT( ( x_stag(j+1) - x_source )**2      &
+                dist_sourceW(j+1,k) = SQRT( ( x_stag(j+1) - x_source )**2      &
                      + ( y_comp(k) - y_source )**2 )
 
                 sourceW_vect_x(j+1,k) = ( x_stag(j+1) - x_source ) * r_source   &
@@ -375,7 +376,7 @@ CONTAINS
                 sourceW_vect_y(j+1,k) = ( y_comp(k) - y_source ) * r_source     &
                      / dist_sourceW(j+1,k)**2
 
-                total_source = total_source + dx * DABS( sourceW_vect_x(j+1,k) )
+                total_source = total_source + dx * ABS( sourceW_vect_x(j+1,k) )
 
              END IF
     
@@ -386,7 +387,7 @@ CONTAINS
                 ! cells where radial source boundary condition are applied
                 source_cell(j,k-1) = 2
                 sourceN(j,k-1) = .TRUE.
-                dist_sourceN(j,k-1) = DSQRT( ( x_comp(j) - x_source )**2        &
+                dist_sourceN(j,k-1) = SQRT( ( x_comp(j) - x_source )**2        &
                      + ( y_stag(k) - y_source )**2 )
 
                 sourceN_vect_x(j,k-1) = ( x_comp(j) - x_source ) * r_source     &
@@ -395,7 +396,7 @@ CONTAINS
                 sourceN_vect_y(j,k-1) = ( y_stag(k) - y_source ) * r_source     &
                      / dist_sourceN(j,k-1)**2
 
-                total_source = total_source + dy * DABS( sourceN_vect_y(j,k-1) )
+                total_source = total_source + dy * ABS( sourceN_vect_y(j,k-1) )
 
              ELSEIF ( ( x_comp(j)-x_source )**2 + ( y_comp(k+1) - y_source )**2 &
                   .GE. r_source**2 ) THEN
@@ -403,7 +404,7 @@ CONTAINS
                 ! cells where radial source boundary condition are applied
                 source_cell(j,k+1) = 2
                 sourceS(j,k+1) = .TRUE.
-                dist_sourceS(j,k+1) = DSQRT( ( x_comp(j) - x_source )**2        &
+                dist_sourceS(j,k+1) = SQRT( ( x_comp(j) - x_source )**2        &
                      + ( y_stag(k+1) - y_source )**2 )
                 
                 sourceS_vect_x(j,k+1) = ( x_comp(j) - x_source ) * r_source     &
@@ -412,7 +413,7 @@ CONTAINS
                 sourceS_vect_y(j,k+1) = ( y_stag(k+1) - y_source ) * r_source   &
                      / dist_sourceS(j,k+1)**2
 
-                total_source = total_source + dy * DABS( sourceS_vect_y(j,k+1) )
+                total_source = total_source + dy * ABS( sourceS_vect_y(j,k+1) )
 
              END IF
 
@@ -441,11 +442,11 @@ CONTAINS
   SUBROUTINE interp_1d_scalar(x1, f1, x2, f2)
     IMPLICIT NONE
 
-    REAL*8, INTENT(IN), DIMENSION(:) :: x1, f1
-    REAL*8, INTENT(IN) :: x2
-    REAL*8, INTENT(OUT) :: f2
+    REAL(dp), INTENT(IN), DIMENSION(:) :: x1, f1
+    REAL(dp), INTENT(IN) :: x2
+    REAL(dp), INTENT(OUT) :: f2
     INTEGER :: n, n1x, t
-    REAL*8 :: grad , rel_pos
+    REAL(dp) :: grad , rel_pos
 
     n1x = SIZE(x1)
 
@@ -459,14 +460,14 @@ CONTAINS
 
        rel_pos = ( x2 - x1(n) ) / ( x1(n+1) - x1(n) )
 
-       IF ( ( rel_pos .GE. 0.D0 ) .AND. ( rel_pos .LE. 1.D0 ) ) THEN
+       IF ( ( rel_pos .GE. 0.0_dp ) .AND. ( rel_pos .LE. 1.0_dp ) ) THEN
 
           grad = ( f1(n+1)-f1(n) ) / ( x1(n+1)-x1(n) )
           f2 = f1(n) + ( x2-x1(n) ) * grad
 
           EXIT search
 
-       ELSEIF  ( rel_pos .LT. 0.D0 ) THEN
+       ELSEIF  ( rel_pos .LT. 0.0_dp ) THEN
 
           f2 = f1(n)
 
@@ -500,12 +501,12 @@ CONTAINS
   SUBROUTINE interp_2d_scalar(x1, y1, f1, x2, y2, f2)
     IMPLICIT NONE
 
-    REAL*8, INTENT(IN), DIMENSION(:,:) :: x1, y1, f1
-    REAL*8, INTENT(IN) :: x2, y2
-    REAL*8, INTENT(OUT) :: f2
+    REAL(dp), INTENT(IN), DIMENSION(:,:) :: x1, y1, f1
+    REAL(dp), INTENT(IN) :: x2, y2
+    REAL(dp), INTENT(OUT) :: f2
 
     INTEGER :: ix , iy
-    REAL*8 :: alfa_x , alfa_y
+    REAL(dp) :: alfa_x , alfa_y
 
     IF ( size(x1,1) .GT. 1 ) THEN
 
@@ -516,7 +517,7 @@ CONTAINS
     ELSE
 
        ix = 1
-       alfa_x = 0.D0
+       alfa_x = 0.0_dp
        
     END IF
     
@@ -529,22 +530,22 @@ CONTAINS
     ELSE
 
        iy = 1
-       alfa_y = 0.D0
+       alfa_y = 0.0_dp
        
     END IF
        
     IF ( size(x1,1) .EQ. 1 ) THEN
        
-       f2 = alfa_y * f1(ix,iy) + ( 1.D0 - alfa_y ) * f1(ix,iy+1)
+       f2 = alfa_y * f1(ix,iy) + ( 1.0_dp - alfa_y ) * f1(ix,iy+1)
        
     ELSEIF ( size(x1,2) .EQ. 1 ) THEN
        
-       f2 = alfa_x * f1(ix,iy)  + ( 1.D0 - alfa_x ) * f1(ix+1,iy)
+       f2 = alfa_x * f1(ix,iy)  + ( 1.0_dp - alfa_x ) * f1(ix+1,iy)
        
     ELSE
        
-       f2 = alfa_x * ( alfa_y * f1(ix,iy) + ( 1.D0 - alfa_y ) * f1(ix,iy+1) )   &
-            + ( 1.D0 - alfa_x ) *  ( alfa_y * f1(ix+1,iy) + ( 1.D0 - alfa_y )   &
+       f2 = alfa_x * ( alfa_y * f1(ix,iy) + ( 1.0_dp - alfa_y ) * f1(ix,iy+1) )   &
+            + ( 1.0_dp - alfa_x ) *  ( alfa_y * f1(ix+1,iy) + ( 1.0_dp - alfa_y )   &
             * f1(ix+1,iy+1) )
        
     END IF
@@ -569,13 +570,13 @@ CONTAINS
   SUBROUTINE interp_2d_scalarB(x1, y1, f1, x2, y2, f2)
     IMPLICIT NONE
 
-    REAL*8, INTENT(IN), DIMENSION(:) :: x1, y1
-    REAL*8, INTENT(IN), DIMENSION(:,:) :: f1
-    REAL*8, INTENT(IN) :: x2, y2
-    REAL*8, INTENT(OUT) :: f2
+    REAL(dp), INTENT(IN), DIMENSION(:) :: x1, y1
+    REAL(dp), INTENT(IN), DIMENSION(:,:) :: f1
+    REAL(dp), INTENT(IN) :: x2, y2
+    REAL(dp), INTENT(OUT) :: f2
 
     INTEGER :: ix , iy
-    REAL*8 :: alfa_x , alfa_y
+    REAL(dp) :: alfa_x , alfa_y
 
     IF ( size(x1) .GT. 1 ) THEN
 
@@ -586,7 +587,7 @@ CONTAINS
     ELSE
 
        ix = 1
-       alfa_x = 0.D0
+       alfa_x = 0.0_dp
        
     END IF
     
@@ -599,14 +600,14 @@ CONTAINS
     ELSE
 
        iy = 1
-       alfa_y = 0.D0
+       alfa_y = 0.0_dp
        
     END IF
 
-    IF ( ( alfa_x .LT. 0.D0 ) .OR. ( alfa_x .GT. 1.D0 )                         &
-         .OR. ( alfa_y .LT. 0.D0 ) .OR. ( alfa_y .GT. 1.D0 ) ) THEN
+    IF ( ( alfa_x .LT. 0.0_dp ) .OR. ( alfa_x .GT. 1.0_dp )                         &
+         .OR. ( alfa_y .LT. 0.0_dp ) .OR. ( alfa_y .GT. 1.0_dp ) ) THEN
 
-       f2 = 0.D0
+       f2 = 0.0_dp
        RETURN
 
     END IF
@@ -614,16 +615,16 @@ CONTAINS
     
     IF ( size(x1) .EQ. 1 ) THEN
        
-       f2 = alfa_y * f1(ix,iy) + ( 1.D0 - alfa_y ) * f1(ix,iy+1)
+       f2 = alfa_y * f1(ix,iy) + ( 1.0_dp - alfa_y ) * f1(ix,iy+1)
        
     ELSEIF ( size(y1) .EQ. 1 ) THEN
        
-       f2 = alfa_x * f1(ix,iy)  + ( 1.D0 - alfa_x ) * f1(ix+1,iy)
+       f2 = alfa_x * f1(ix,iy)  + ( 1.0_dp - alfa_x ) * f1(ix+1,iy)
        
     ELSE
        
-       f2 = alfa_x * ( alfa_y * f1(ix,iy) + ( 1.D0 - alfa_y ) * f1(ix,iy+1) )   &
-            + ( 1.D0 - alfa_x ) *  ( alfa_y * f1(ix+1,iy) + ( 1.D0 - alfa_y )   &
+       f2 = alfa_x * ( alfa_y * f1(ix,iy) + ( 1.0_dp - alfa_y ) * f1(ix,iy+1) )   &
+            + ( 1.0_dp - alfa_x ) *  ( alfa_y * f1(ix+1,iy) + ( 1.0_dp - alfa_y )   &
             * f1(ix+1,iy+1) )
        
     END IF
@@ -650,13 +651,13 @@ CONTAINS
   SUBROUTINE interp_2d_slope(x1, y1, f1, x2, y2, f_x, f_y)
     IMPLICIT NONE
 
-    REAL*8, INTENT(IN), DIMENSION(:,:) :: x1, y1, f1
-    REAL*8, INTENT(IN) :: x2, y2
-    REAL*8, INTENT(OUT) :: f_x , f_y
+    REAL(dp), INTENT(IN), DIMENSION(:,:) :: x1, y1, f1
+    REAL(dp), INTENT(IN) :: x2, y2
+    REAL(dp), INTENT(OUT) :: f_x , f_y
 
     INTEGER :: ix , iy
-    REAL*8 :: alfa_x , alfa_y
-    REAL*8 :: f_x1 , f_x2 , f_y1 , f_y2
+    REAL(dp) :: alfa_x , alfa_y
+    REAL(dp) :: f_x1 , f_x2 , f_y1 , f_y2
 
 
     IF ( size(x1,1) .GT. 1 ) THEN
@@ -668,7 +669,7 @@ CONTAINS
     ELSE
 
        ix = 1
-       alfa_x = 1.D0
+       alfa_x = 1.0_dp
        
     END IF
     
@@ -681,12 +682,12 @@ CONTAINS
     ELSE
 
        iy = 1
-       alfa_y = 1.D0
+       alfa_y = 1.0_dp
   
     END IF
 
-    f_x1 = 0.D0
-    f_x2 = 0.D0
+    f_x1 = 0.0_dp
+    f_x2 = 0.0_dp
 
     IF ( size(x1,1) .GT. 1 ) THEN
 
@@ -700,10 +701,10 @@ CONTAINS
 
     END IF
 
-    f_x = alfa_y * f_x1 + ( 1.D0 - alfa_y ) * f_x2
+    f_x = alfa_y * f_x1 + ( 1.0_dp - alfa_y ) * f_x2
 
-    f_y1 = 0.D0
-    f_y2 = 0.D0
+    f_y1 = 0.0_dp
+    f_y2 = 0.0_dp
 
     IF ( size(x1,2) .GT. 1 ) THEN
 
@@ -717,7 +718,7 @@ CONTAINS
 
     END IF
 
-    f_y = alfa_x * f_y1 + ( 1.D0 - alfa_x ) * f_y2
+    f_y = alfa_x * f_y1 + ( 1.0_dp - alfa_x ) * f_y2
 
 
     RETURN
@@ -739,9 +740,9 @@ CONTAINS
 
     IMPLICIT NONE
     
-    REAL*8 :: B_stencil(3)    !< recons variables stencil for the limiter
-    REAL*8 :: x_stencil(3)    !< grid stencil for the limiter
-    REAL*8 :: y_stencil(3)    !< grid stencil for the limiter
+    REAL(dp) :: B_stencil(3)    !< recons variables stencil for the limiter
+    REAL(dp) :: x_stencil(3)    !< grid stencil for the limiter
+    REAL(dp) :: y_stencil(3)    !< grid stencil for the limiter
 
     INTEGER :: limiterB
 
@@ -762,10 +763,10 @@ CONTAINS
 
                 ! west boundary
 
-                x_stencil(1) = 2.D0 * x_comp(1) - x_comp(2)
+                x_stencil(1) = 2.0_dp * x_comp(1) - x_comp(2)
                 x_stencil(2:3) = x_comp(1:2)
 
-                B_stencil(1) = 2.D0 * B_cent(1,k) - B_cent(2,k) 
+                B_stencil(1) = 2.0_dp * B_cent(1,k) - B_cent(2,k) 
                 B_stencil(2:3) = B_cent(1:2,k)
 
                 CALL limit( B_stencil , x_stencil , limiterB , B_prime_x(j,k) )
@@ -774,10 +775,10 @@ CONTAINS
 
                 !east boundary
                 
-                x_stencil(3) = 2.D0 * x_comp(comp_cells_x) - x_comp(comp_cells_x-1)
+                x_stencil(3) = 2.0_dp * x_comp(comp_cells_x) - x_comp(comp_cells_x-1)
                 x_stencil(1:2) = x_comp(comp_cells_x-1:comp_cells_x)
                 
-                B_stencil(3) = 2.D0 * B_cent(comp_cells_x,k) - B_cent(comp_cells_x-1,k)
+                B_stencil(3) = 2.0_dp * B_cent(comp_cells_x,k) - B_cent(comp_cells_x-1,k)
                 B_stencil(1:2) = B_cent(comp_cells_x-1:comp_cells_x,k)
 
                 CALL limit( B_stencil , x_stencil , limiterB , B_prime_x(j,k) ) 
@@ -794,7 +795,7 @@ CONTAINS
 
           ELSE
 
-             B_prime_x(j,k) = 0.D0
+             B_prime_x(j,k) = 0.0_dp
              
           END IF check_comp_cells_x
 
@@ -804,10 +805,10 @@ CONTAINS
              check_y_boundary:IF (k.EQ.1) THEN
                 
                 ! South boundary
-                y_stencil(1) = 2.D0 * y_comp(1) - y_comp(2)
+                y_stencil(1) = 2.0_dp * y_comp(1) - y_comp(2)
                 y_stencil(2:3) = y_comp(1:2)
                 
-                B_stencil(1) = 2.D0 * B_cent(j,1) - B_cent(j,2)
+                B_stencil(1) = 2.0_dp * B_cent(j,1) - B_cent(j,2)
                 B_stencil(2:3) = B_cent(j,1:2)
                 
                 CALL limit( B_stencil , y_stencil , limiterB , B_prime_y(j,k) ) 
@@ -815,10 +816,10 @@ CONTAINS
              ELSEIF ( k .EQ. comp_cells_y ) THEN
 
                 ! North boundary
-                y_stencil(3) = 2.D0 * y_comp(comp_cells_y) - y_comp(comp_cells_y-1)
+                y_stencil(3) = 2.0_dp * y_comp(comp_cells_y) - y_comp(comp_cells_y-1)
                 y_stencil(1:2) = y_comp(comp_cells_y-1:comp_cells_y)
 
-                B_stencil(3) = 2.D0 * B_cent(j,comp_cells_y) - B_cent(j,comp_cells_y-1)
+                B_stencil(3) = 2.0_dp * B_cent(j,comp_cells_y) - B_cent(j,comp_cells_y-1)
                 B_stencil(1:2) = B_cent(j,comp_cells_y-1:comp_cells_y)
                 
                 CALL limit( B_stencil , y_stencil , limiterB , B_prime_y(j,k) ) 
@@ -835,7 +836,7 @@ CONTAINS
 
           ELSE
 
-             B_prime_y(j,k) = 0.D0
+             B_prime_y(j,k) = 0.0_dp
              
           ENDIF check_comp_cells_y
 
@@ -881,15 +882,15 @@ CONTAINS
   SUBROUTINE regrid_scalar(xin, yin, fin, xl, xr , yl, yr, fout)
     IMPLICIT NONE
 
-    REAL*8, INTENT(IN), DIMENSION(:) :: xin, yin
-    REAL*8, INTENT(IN), DIMENSION(:,:) :: fin
-    REAL*8, INTENT(IN) :: xl, xr , yl , yr
-    REAL*8, INTENT(OUT) :: fout
+    REAL(dp), INTENT(IN), DIMENSION(:) :: xin, yin
+    REAL(dp), INTENT(IN), DIMENSION(:,:) :: fin
+    REAL(dp), INTENT(IN) :: xl, xr , yl , yr
+    REAL(dp), INTENT(OUT) :: fout
 
     INTEGER :: ix , iy
     INTEGER :: ix1 , ix2 , iy1 , iy2
-    REAL*8 :: alfa_x , alfa_y
-    REAL*8 :: dXin , dYin
+    REAL(dp) :: alfa_x , alfa_y
+    REAL(dp) :: dXin , dYin
     
     INTEGER nXin,nYin
     
@@ -905,7 +906,7 @@ CONTAINS
     iy1 = MAX(1,CEILING( ( yl - yin(1) ) / dYin ))
     iy2 = MIN(nYin,CEILING( ( yr - yin(1) ) / dYin ) + 1)
 
-    fout = 0.D0
+    fout = 0.0_dp
     
     DO ix=ix1,ix2-1
         
@@ -948,15 +949,15 @@ CONTAINS
 
     IMPLICIT none
 
-    REAL*8, INTENT(IN) :: v(3)
-    REAL*8, INTENT(IN) :: z(3)
+    REAL(dp), INTENT(IN) :: v(3)
+    REAL(dp), INTENT(IN) :: z(3)
     INTEGER, INTENT(IN) :: limiter
 
-    REAL*8, INTENT(OUT) :: slope_lim
+    REAL(dp), INTENT(OUT) :: slope_lim
 
-    REAL*8 :: a , b , c
+    REAL(dp) :: a , b , c
 
-    REAL*8 :: sigma1 , sigma2
+    REAL(dp) :: sigma1 , sigma2
 
     a = ( v(3) - v(2) ) / ( z(3) - z(2) )
     b = ( v(2) - v(1) ) / ( z(2) - z(1) )
@@ -966,7 +967,7 @@ CONTAINS
 
     CASE ( 0 )
 
-       slope_lim = 0.D0
+       slope_lim = 0.0_dp
 
     CASE ( 1 )
 
@@ -976,8 +977,8 @@ CONTAINS
     CASE ( 2 )
 
        ! superbee
-       sigma1 = minmod( a , 2.D0*b )
-       sigma2 = minmod( 2.D0*a , b )
+       sigma1 = minmod( a , 2.0_dp*b )
+       sigma2 = minmod( 2.0_dp*a , b )
        slope_lim = maxmod( sigma1 , sigma2 )
 
     CASE ( 3 )
@@ -1010,13 +1011,13 @@ CONTAINS
   END SUBROUTINE limit
 
 
-  REAL*8 FUNCTION minmod(a,b)
+  REAL(dp) FUNCTION minmod(a,b)
 
     IMPLICIT none
 
-    REAL*8 :: a , b , sa , sb 
+    REAL(dp) :: a , b , sa , sb 
 
-    IF ( a*b .EQ. 0.D0 ) THEN
+    IF ( a*b .EQ. 0.0_dp ) THEN
 
        minmod = 0.d0
 
@@ -1025,17 +1026,17 @@ CONTAINS
        sa = a / ABS(a)
        sb = b / ABS(b)
 
-       minmod = 0.5D0 * ( sa+sb ) * MIN( ABS(a) , ABS(b) )
+       minmod = 0.5_dp * ( sa+sb ) * MIN( ABS(a) , ABS(b) )
 
     END IF
 
   END FUNCTION minmod
 
-  REAL*8 function maxmod(a,b)
+  REAL(dp) function maxmod(a,b)
 
     IMPLICIT none
 
-    REAL*8 :: a , b , sa , sb 
+    REAL(dp) :: a , b , sa , sb 
 
     IF ( a*b .EQ. 0.d0 ) THEN
 
@@ -1046,7 +1047,7 @@ CONTAINS
        sa = a / ABS(a)
        sb = b / ABS(b)
 
-       maxmod = 0.5D0 * ( sa+sb ) * MAX( ABS(a) , ABS(b) )
+       maxmod = 0.5_dp * ( sa+sb ) * MAX( ABS(a) , ABS(b) )
 
     END IF
 
@@ -1056,17 +1057,17 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL*8, INTENT(IN) :: xs,ys,rs
+    REAL(dp), INTENT(IN) :: xs,ys,rs
 
-    REAL*8, INTENT(OUT) :: cell_fract(comp_cells_x,comp_cells_y)
+    REAL(dp), INTENT(OUT) :: cell_fract(comp_cells_x,comp_cells_y)
 
-    REAL*8, ALLOCATABLE :: x_subgrid(:) , y_subgrid(:)
+    REAL(dp), ALLOCATABLE :: x_subgrid(:) , y_subgrid(:)
 
     INTEGER, ALLOCATABLE :: check_subgrid(:)
 
     INTEGER n_points , n_points2
 
-    REAL*8 :: source_area
+    REAL(dp) :: source_area
     
     INTEGER :: h ,j, k
 
@@ -1077,8 +1078,8 @@ CONTAINS
     ALLOCATE( y_subgrid(n_points2) )
     ALLOCATE( check_subgrid(n_points2) )
 
-    x_subgrid = 0.D0
-    y_subgrid = 0.D0
+    x_subgrid = 0.0_dp
+    y_subgrid = 0.0_dp
     
     DO h = 1,n_points
 
@@ -1087,11 +1088,11 @@ CONTAINS
 
     END DO
 
-    x_subgrid = ( 2.D0 * x_subgrid - 1.D0 ) / ( 2.D0 * DBLE(n_points) )
-    y_subgrid = ( 2.D0 * y_subgrid - 1.D0 ) / ( 2.D0 * DBLE(n_points) )
+    x_subgrid = ( 2.0_dp * x_subgrid - 1.0_dp ) / ( 2.0_dp * DBLE(n_points) )
+    y_subgrid = ( 2.0_dp * y_subgrid - 1.0_dp ) / ( 2.0_dp * DBLE(n_points) )
     
-    x_subgrid = ( x_subgrid - 0.5D0 ) * dx
-    y_subgrid = ( y_subgrid - 0.5D0 ) * dy
+    x_subgrid = ( x_subgrid - 0.5_dp ) * dx
+    y_subgrid = ( y_subgrid - 0.5_dp ) * dy
     
     DO j=1,comp_cells_x
 
@@ -1102,7 +1103,7 @@ CONTAINS
               ( y_stag(k+1) .LT. ( ys - rs ) ) .OR.                             &
               ( y_stag(k) .GT. ( ys + rs ) ) ) THEN
 
-            cell_fract(j,k) = 0.D0 
+            cell_fract(j,k) = 0.0_dp 
 
          ELSE
 
@@ -1125,8 +1126,8 @@ CONTAINS
 
     source_area = dx*dy*SUM(cell_fract)
     
-    WRITE(*,*) 'Source area =',source_area,' Error =',ABS( 1.D0 -      &
-         dx*dy*SUM(cell_fract) / ( 4.D0*ATAN(1.D0)*rs**2 ) )
+    WRITE(*,*) 'Source area =',source_area,' Error =',ABS( 1.0_dp -      &
+         dx*dy*SUM(cell_fract) / ( 4.0_dp*ATAN(1.0_dp)*rs**2 ) )
 
     DEALLOCATE( x_subgrid )
     DEALLOCATE( y_subgrid )
