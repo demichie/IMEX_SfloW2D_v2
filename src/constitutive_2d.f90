@@ -1808,7 +1808,7 @@ CONTAINS
     r_v = qpj(n_vars+2)
     r_T = qpj(4)
 
-    mag_vel = SQRT( r_u**2.0_dp + r_v**2.0_dp ) 
+    mag_vel = SQRT( r_u**2 + r_v**2 ) 
 
     IF ( entrainment_flag .AND. ( mag_vel**2 .GT. 0.0_dp ) .AND.                  &
          ( r_h .GT. 0.0_dp ) ) THEN
