@@ -717,12 +717,6 @@ CONTAINS
 
     REAL(dp) :: max_a
 
-    REAL(dp) :: max_vel
-    INTEGER :: max_j,max_k
-    INTEGER :: max_dir
-
-    max_vel = 0.0_dp
-
     dt = max_dt
 
     IF ( cfl .NE. -1.0_dp ) THEN
@@ -764,15 +758,6 @@ CONTAINS
           max_a =  MAX( MAXVAL(a_interface_x_max(:,j,k)) ,                      &
                MAXVAL(a_interface_x_max(:,j+1,k)) )
 
-          IF ( max_a .GT. max_vel) THEN 
-
-             max_vel = max_a
-             max_j = j
-             max_k = k
-             max_dir = 1
-
-          END IF
-
           IF ( max_a .GT. 0.0_dp ) THEN
 
              dt_interface_x = cfl * dx / max_a
@@ -786,15 +771,6 @@ CONTAINS
           max_a =  MAX( MAXVAL(a_interface_y_max(:,j,k)) ,                      &
                MAXVAL(a_interface_y_max(:,j,k+1)) )
 
-          IF ( max_a .GT. max_vel) THEN 
-
-             max_vel = max_a
-             max_j = j
-             max_k = k
-             max_dir = 2
-
-          END IF
-
           IF ( max_a .GT. 0.0_dp ) THEN
 
              dt_interface_y = cfl * dy / max_a
@@ -804,7 +780,6 @@ CONTAINS
              dt_interface_y = dt
 
           END IF
-
 
           dt_cfl = MIN( dt_interface_x , dt_interface_y )
 
@@ -849,11 +824,13 @@ CONTAINS
     INTEGER :: j,k,l            !< loop counter over the grid volumes
     REAL(dp) :: Rj_not_impl(n_eqns)
 
+    IF ( verbose_level .GE. 2 ) WRITE(*,*) 'solver, imex_RK_solver: beginning'
+
+    !$OMP PARALLEL WORKSHARE
+    
     ! Initialization of the solution guess
     q0( 1:n_vars , 1:comp_cells_x , 1:comp_cells_y ) =                          &
          q( 1:n_vars , 1:comp_cells_x , 1:comp_cells_y )
-
-    IF ( verbose_level .GE. 2 ) WRITE(*,*) 'solver, imex_RK_solver: beginning'
 
     ! Initialization of the variables for the Runge-Kutta scheme
     q_rk(1:n_vars,1:comp_cells_x,1:comp_cells_y,1:n_RK) = 0.0_dp
@@ -867,6 +844,8 @@ CONTAINS
 
     expl_terms(1:n_eqns,1:comp_cells_x,1:comp_cells_y,1:n_RK) = 0.0_dp
 
+    !$OMP END PARALLEL WORKSHARE
+    
     runge_kutta:DO i_RK = 1,n_RK
 
        IF ( verbose_level .GE. 2 ) WRITE(*,*) 'solver, imex_RK_solver: i_RK',i_RK
@@ -1670,7 +1649,7 @@ CONTAINS
              rhs1 = scal_f - scal_f_old - alam*slope
              rhs2 = scal_f2 - scal_f_old - alam2*slope
 
-             a = ( rhs1/alam**2.0_dp - rhs2/alam2**2.0_dp ) / ( alam - alam2 )
+             a = ( rhs1/alam**2 - rhs2/alam2**2 ) / ( alam - alam2 )
              b = ( -alam2*rhs1/alam**2 + alam*rhs2/alam2**2 ) / ( alam - alam2 )
 
              IF ( a .EQ. 0.0_dp ) THEN
@@ -2207,7 +2186,11 @@ CONTAINS
     H_interface_y = 0.0_dp
 
     !$OMP PARALLEL
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> fc4c64ca37ae3ba10392857fc4a465e9c754389c
     IF ( comp_cells_x .GT. 1 ) THEN
 
        !$OMP DO private(j,k,i,fluxL,fluxR,flux_avg_x)
@@ -2312,7 +2295,11 @@ CONTAINS
     END IF
 
     !$OMP END PARALLEL
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> fc4c64ca37ae3ba10392857fc4a465e9c754389c
     RETURN
     
   END SUBROUTINE eval_flux_KT
@@ -2459,7 +2446,6 @@ CONTAINS
     !$OMP & qrec_stencil,qrec_prime_x,qrec_prime_y,qp2recW,qp2recE,qp2recS,     &
     !$OMP & qp2recN,source_bdry)
 
-    ! Linear reconstruction
     DO l = 1,solve_cells
 
        j = j_cent(l)
@@ -2611,7 +2597,7 @@ CONTAINS
 
                 ELSEIF ( bcN(i)%flag .EQ. 2 ) THEN
 
-                   qrec_prime_y(i) = ( qp_expl(i,j,comp_cells_y) -                 &
+                   qrec_prime_y(i) = ( qp_expl(i,j,comp_cells_y) -              &
                         qp_expl(i,j,comp_cells_y-1) ) / dy 
 
                 END IF

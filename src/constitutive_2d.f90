@@ -171,10 +171,10 @@ CONTAINS
     implicit_flag(3) = .TRUE.
 
     ! Temperature
-    implicit_flag(4) = .TRUE.
+    implicit_flag(4) = .FALSE.
 
     ! Solid volume fraction
-    implicit_flag(5:4+n_solid) = .TRUE.
+    implicit_flag(5:4+n_solid) = .FALSE.
 
     n_nh = COUNT( implicit_flag )
 
@@ -211,21 +211,21 @@ CONTAINS
     REAL(dp), INTENT(OUT) :: r_h               !< real-value flow thickness
     REAL(dp), INTENT(OUT) :: r_u               !< real-value x-velocity
     REAL(dp), INTENT(OUT) :: r_v               !< real-value y-velocity
-    REAL(dp), INTENT(OUT) :: r_alphas(n_solid) !< real-value solid volume fractions
+    REAL(dp), INTENT(OUT) :: r_alphas(n_solid) !< real-value solid volume fracts
     REAL(dp), INTENT(OUT) :: r_rho_m           !< real-value mixture density
     REAL(dp), INTENT(OUT) :: r_T               !< real-value temperature
-    REAL(dp), INTENT(OUT) :: r_alphal          !< real-value liquid volume fraction
+    REAL(dp), INTENT(OUT) :: r_alphal          !< real-value liquid volume fract
 
     REAL(dp) :: r_inv_rhom
     REAL(dp) :: r_xs(n_solid)     !< real-value solid mass fraction
     REAL(dp) :: r_xs_tot
 
-    REAL(dp) :: r_Ri         !< real-value Richardson number
-    REAL(dp) :: r_xl                     !< real-value liquid mass fraction
-    REAL(dp) :: r_xc                     !< real-value carrier phase mass fraction
-    REAL(dp) :: r_alphac                 !< real-value carrier phase volume fraction
-    REAL(dp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
-    REAL(dp) :: r_red_grav   !< real-value reduced gravity
+    REAL(dp) :: r_Ri            !< real-value Richardson number
+    REAL(dp) :: r_xl            !< real-value liquid mass fraction
+    REAL(dp) :: r_xc            !< real-value carrier phase mass fraction
+    REAL(dp) :: r_alphac        !< real-value carrier phase volume fraction
+    REAL(dp) :: r_rho_c         !< real-value carrier phase density [kg/m3]
+    REAL(dp) :: r_red_grav      !< real-value reduced gravity
     REAL(dp) :: r_sp_heat_mix   !< Specific heat of mixture
 
     ! compute solid mass fractions
@@ -258,7 +258,7 @@ CONTAINS
        r_xc =  1.0_dp - r_xs_tot - r_xl
 
        ! specific heat of the mixutre: mass average of sp. heat pf phases
-       r_sp_heat_mix = SUM( r_xs(1:n_solid) * sp_heat_s(1:n_solid) )              &
+       r_sp_heat_mix = SUM( r_xs(1:n_solid) * sp_heat_s(1:n_solid) )            &
             + r_xl * sp_heat_l + r_xc * sp_heat_c
 
     ELSE
@@ -267,7 +267,7 @@ CONTAINS
        r_xc = 1.0_dp - r_xs_tot
 
        ! specific heaf of the mixutre: mass average of sp. heat pf phases
-       r_sp_heat_mix = SUM( r_xs(1:n_solid) * sp_heat_s(1:n_solid) )              &
+       r_sp_heat_mix = SUM( r_xs(1:n_solid) * sp_heat_s(1:n_solid) )            &
             + r_xc * sp_heat_c
 
     END IF
@@ -277,7 +277,7 @@ CONTAINS
 
        IF ( energy_flag ) THEN
 
-          r_T = ( r_qj(4) - ( r_qj(2)**2 + r_qj(3)**2 ) / ( 2.0_dp*r_qj(1) ) ) /  &
+          r_T = ( r_qj(4) - ( r_qj(2)**2 + r_qj(3)**2 ) / ( 2.0_dp*r_qj(1) ) ) /&
                ( r_qj(1) * r_sp_heat_mix ) 
 
        ELSE
@@ -1363,14 +1363,14 @@ CONTAINS
           ! reference temperature. This value is used to scale the equation
           IF ( REAL(Tc) .LT. 20.0_dp ) THEN
 
-             expA = 1301.0_dp / ( 998.333_dp + 8.1855_dp * ( Tc - 20.0_dp )           &
+             expA = 1301.0_dp / ( 998.333_dp + 8.1855_dp * ( Tc - 20.0_dp )     &
                   + 0.00585_dp * ( Tc - 20.0_dp )**2 ) - 1.30223_dp
 
              alpha1 = alpha1_coeff * 1.D-3 * 10.0_dp**expA
 
           ELSE
 
-             expB = ( 1.3272_dp * ( 20.0_dp - Tc ) - 0.001053_dp *                  &
+             expB = ( 1.3272_dp * ( 20.0_dp - Tc ) - 0.001053_dp *              &
                   ( Tc - 20.0_dp )**2 ) / ( Tc + 105.0_dp )
 
              alpha1 = alpha1_coeff * 1.002D-3 * 10.0_dp**expB 
@@ -1808,9 +1808,9 @@ CONTAINS
     r_v = qpj(n_vars+2)
     r_T = qpj(4)
 
-    mag_vel = SQRT( r_u**2.0_dp + r_v**2.0_dp ) 
+    mag_vel = SQRT( r_u**2 + r_v**2 ) 
 
-    IF ( entrainment_flag .AND. ( mag_vel**2 .GT. 0.0_dp ) .AND.                  &
+    IF ( entrainment_flag .AND. ( mag_vel**2 .GT. 0.0_dp ) .AND.                &
          ( r_h .GT. 0.0_dp ) ) THEN
 
        entr_coeff = 0.075_dp / SQRT( 1.0_dp + 718.0_dp * MAX(0.0_dp,r_Ri)**2.4 )
@@ -1839,7 +1839,7 @@ CONTAINS
     IF ( energy_flag ) THEN
 
        eqns_term(4) = - r_T * SUM( rho_s * sp_heat_s * deposition_avg_term )    &
-            - 0.5_dp * mag_vel**2 * SUM( rho_s * deposition_avg_term )           &
+            - 0.5_dp * mag_vel**2 * SUM( rho_s * deposition_avg_term )          &
             + T_s_substrate * SUM( rho_s * sp_heat_s * erosion_avg_term )       &
             + T_ambient * sp_heat_a * rho_a_amb * air_entr
 
@@ -1941,7 +1941,7 @@ CONTAINS
 
        ELSEIF ( t_rem .LE. time_param(2) ) THEN
 
-          t_coeff = 0.5_dp * ( 1.0_dp + COS( pi_g * ( ( t_rem - time_param(2) )      &
+          t_coeff = 0.5_dp * ( 1.0_dp + COS( pi_g * ( ( t_rem - time_param(2) ) &
                / time_param(3) + 1.0_dp ) ) )
 
        END IF
@@ -2020,12 +2020,12 @@ CONTAINS
 
           settling_velocity = const_part / SQRT( C_D )
 
-          IF ( ABS( set_vel_old - settling_velocity ) / set_vel_old            &
+          IF ( ABS( set_vel_old - settling_velocity ) / set_vel_old             &
                .LT. 1.D-6 ) THEN
 
              ! round to first three significative digits
              dig = FLOOR(LOG10(set_vel_old))
-             settling_velocity = 10.0_dp**(dig-3)                                 &
+             settling_velocity = 10.0_dp**(dig-3)                               &
                   * FLOOR( 10.0_dp**(-dig+3)*set_vel_old ) 
 
              EXIT C_D_loop

@@ -11,8 +11,8 @@ bindir=@bindir@
 
 # list of sources for the binary
 SW_VAR_DENS_MODEL_SOURCES = \
-                complexify.f90 \
                 parameters_2d.f90 \
+                complexify.f90 \
                 geometry_2d.f90 \
                 constitutive_2d.f90 \
                 solver_2d.f90 \

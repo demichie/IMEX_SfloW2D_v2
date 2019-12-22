@@ -88,7 +88,7 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_SW_VAR_DENS_MODEL_OBJECTS = complexify.$(OBJEXT) parameters_2d.$(OBJEXT) \
+am_SW_VAR_DENS_MODEL_OBJECTS = parameters_2d.$(OBJEXT) complexify.$(OBJEXT) \
 	geometry_2d.$(OBJEXT) constitutive_2d.$(OBJEXT) \
 	solver_2d.$(OBJEXT) init_2d.$(OBJEXT) inpout_2d.$(OBJEXT) \
 	SW_VAR_DENS_MODEL.$(OBJEXT)
@@ -229,8 +229,8 @@ AUTOMAKE_OPTIONS = foreign
 
 # list of sources for the binary
 SW_VAR_DENS_MODEL_SOURCES = \
-                complexify.f90 \
                 parameters_2d.f90 \
+                complexify.f90 \
                 geometry_2d.f90 \
                 constitutive_2d.f90 \
                 solver_2d.f90 \
