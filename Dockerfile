@@ -24,7 +24,9 @@ USER userSW
 # install the code
 USER userSW
 WORKDIR /home/userSW
+USER userSW
 RUN curl -LOk https://github.com/demichie/SW_VAR_DENS_MODEL/archive/master.zip
+USER userSW
 RUN unzip *.zip
 
 USER userSW
