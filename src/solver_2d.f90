@@ -824,14 +824,13 @@ CONTAINS
     INTEGER :: j,k,l            !< loop counter over the grid volumes
     REAL(dp) :: Rj_not_impl(n_eqns)
 
+    IF ( verbose_level .GE. 2 ) WRITE(*,*) 'solver, imex_RK_solver: beginning'
 
     !$OMP PARALLEL WORKSHARE
     
     ! Initialization of the solution guess
     q0( 1:n_vars , 1:comp_cells_x , 1:comp_cells_y ) =                          &
          q( 1:n_vars , 1:comp_cells_x , 1:comp_cells_y )
-
-    IF ( verbose_level .GE. 2 ) WRITE(*,*) 'solver, imex_RK_solver: beginning'
 
     ! Initialization of the variables for the Runge-Kutta scheme
     q_rk(1:n_vars,1:comp_cells_x,1:comp_cells_y,1:n_RK) = 0.0_dp
