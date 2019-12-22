@@ -36,8 +36,7 @@ RUN make install
 
 
 WORKDIR /home/userSW/
-RUN cp SW_VAR_DENS_MODEL-master/run_tests.sh .
-RUN chmod +x run_tests.sh
+RUN chmod +x SW_VAR_DENS_MODEL-master/TESTS/run_tests.sh
 
 RUN rm *.zip
 
