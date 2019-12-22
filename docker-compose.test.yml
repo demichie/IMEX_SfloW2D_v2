@@ -1,4 +1,4 @@
 sut:
   build: .
-  command: cd /home/userSW/SW_VAR_DENS_MODEL/TESTS && /bin/sh run_tests.sh
+  command: cd /home/userSW/SW_VAR_DENS_MODEL-master/TESTS && /bin/sh run_tests.sh
 
