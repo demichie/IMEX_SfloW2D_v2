@@ -168,8 +168,6 @@ PROGRAM SW_VAR_DENS_MODEL
 
   t = t_start
 
-  WRITE(*,*) 't',t
-  
   WRITE(*,*) 
   WRITE(*,*) '******** START COMPUTATION *********'
   WRITE(*,*)
