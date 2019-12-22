@@ -3,7 +3,7 @@ Simulation example of an avalanche of finite granular mass sliding down an incli
 Please note that we do not use the same rheological model as in the original paper of the example, but a simple model as in [2]
 
 A Python script (create_example4.py) is provided to create the input file for this example (required packages: numpy, basemap). 
-Please provide three arguments:
+Please provide four arguments:
 
 1) Number of cells in the x-direction 
 
@@ -11,17 +11,15 @@ Please provide three arguments:
 
 3) Flow temperature (Kelvin)
 
+4) Logical for plot of initial solution (true or false)
+
 Usage example of the script:
 
->> python create_example.py 100 0.5 300
+>> python create_example.py 100 0.5 300 false
 
-Once the input file (SW_VAR_DENS_MODEL.inp) is created create a simbolic link of the executable in this folder:
+Run the solver:
 
->> ln -s ../../bin/SW_VAR_DENS_MODEL .
-
-Finally, launch the solver:
-
->> ./SW_VAR_DENS_MODEL
+>> ../../bin/SW_VAR_DENS_MODEL
 
 Two Python scripts to plot the results are provided. The first one works better with small simulations.
 Usage example:

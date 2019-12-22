@@ -4,16 +4,10 @@
 
 """
 import numpy as np
-from mpl_toolkits.mplot3d import Axes3D                      
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-from matplotlib import cm
-import matplotlib.tri as mtri
-
 import time
 import sys
 
-if len(sys.argv)==4: 
+if len(sys.argv)==5: 
 
     print('Number of cells')
     a = sys.argv[1]
@@ -38,14 +32,25 @@ if len(sys.argv)==4:
     except ValueError:
         print("You must enter a float for temperature: "+a)
 
+    a = sys.argv[4]
+    if a == 'true': 
+        plot_flag = True
+    elif a == 'false':
+        plot_flag = False
+    else:
+        raise ValueError("You must enter true or false: "+a)
+
 else:
 
     print('Please provide three arguments:\n')
     print('1) Number of cells\n')
     print('2) Solid volume fraction (0,1)\n')
     print('3) Temperature (>0)\n')
+    print('4) Plot flag (true or false)\n')
     sys.exit()
 
+
+print('plot_flag',sys.argv[4],plot_flag)
 
 n_solid = 1
 
@@ -86,8 +91,6 @@ dx = ( x_max - x_min ) / ( nx_cells )
 x = np.linspace(x_min,x_max,nx_points)
 
 x_cent = np.linspace(x_min+0.5*dx,x_max-0.5*dx,nx_cells)
-
-
 
 dy = dx
 
@@ -167,54 +170,6 @@ for i in range(nx_cells):
         H_cent[j,i] = W_cent[j,i] - Z_cent[j,i]
 
 
-# create a figure for the plot
-fig = plt.figure()
-ax = fig.gca(projection='3d')
-#plt.ylim([-0.1,1.5])
-#plt.xlim([-0.25,1.75])
-
-# plot the initial solution and call "line" the plot
-# surf = ax.plot_surface(X,Y,Z)
-# surf2 = ax.plot_surface(X_cent,Y_cent,W_cent)
-
-X_cent1d = X_cent.flatten()
-Y_cent1d = Y_cent.flatten()
-H_cent1d = H_cent.flatten()
-W_cent1d = W_cent.flatten()
-
-idx = np.argwhere(H_cent1d>0)
-
-idx = np.union1d(idx,idx+1)
-idx = np.union1d(idx,idx-1)
-idx = np.union1d(idx,idx+nx_cells)
-idx = np.union1d(idx,idx-nx_cells)
-
-
-
-# Triangulate parameter space to determine the triangles
-tri = mtri.Triangulation(X_cent1d[idx].flatten(), Y_cent1d[idx].flatten())
-
-# Plot the surface.  The triangles in parameter space determine which x, y, z
-# points are connected by an edge.
-ax.plot_trisurf(X_cent1d[idx].flatten(), Y_cent1d[idx].flatten(), W_cent1d[idx].flatten(), triangles=tri.triangles,edgecolor='none')
-
-ax.plot_surface(X_cent, Y_cent, W_cent, alpha=0.3)
-cset = ax.contour(X_cent, Y_cent, H_cent, zdir='z', offset=-5, cmap=cm.coolwarm)
-cset = ax.contour(X_cent, Y_cent, H_cent, zdir='x', offset=0, cmap=cm.coolwarm)
-cset = ax.contour(X_cent, Y_cent, H_cent, zdir='y', offset=7, cmap=cm.coolwarm)
-
-ax.set_xlabel('X')
-ax.set_xlim(0, 30)
-ax.set_ylabel('Y')
-ax.set_ylim(-15, 15)
-ax.set_zlabel('Z')
-ax.set_zlim(-5, 10)
-#ax.axis('equal')
-
-# fig.tight_layout()
-plt.show()    
-
-
 # create topography file
 header = "ncols     %s\n" % nx_points
 header += "nrows    %s\n" % ny_points
@@ -279,4 +234,59 @@ filedata = filedata.replace('dx', str(dx))
 # Write the file out again
 with open('SW_VAR_DENS_MODEL.inp', 'w') as file:
   file.write(filedata)
+
+if ( plot_flag):
+
+    from mpl_toolkits.mplot3d import Axes3D                      
+    import matplotlib.pyplot as plt
+    import matplotlib.animation as animation
+    from matplotlib import cm
+    import matplotlib.tri as mtri
+
+    X_cent1d = X_cent.flatten()
+    Y_cent1d = Y_cent.flatten()
+    H_cent1d = H_cent.flatten()
+    W_cent1d = W_cent.flatten()
+
+    idx = np.argwhere(H_cent1d>0)
+
+    idx = np.union1d(idx,idx+1)
+    idx = np.union1d(idx,idx-1)
+    idx = np.union1d(idx,idx+nx_cells)
+    idx = np.union1d(idx,idx-nx_cells)
+    
+    
+    # create a figure for the plot
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    #plt.ylim([-0.1,1.5])
+    #plt.xlim([-0.25,1.75])
+
+    # plot the initial solution and call "line" the plot
+    # surf = ax.plot_surface(X,Y,Z)
+    # surf2 = ax.plot_surface(X_cent,Y_cent,W_cent)
+    
+    
+    # Triangulate parameter space to determine the triangles
+    tri = mtri.Triangulation(X_cent1d[idx].flatten(), Y_cent1d[idx].flatten())
+    
+    # Plot the surface.  The triangles in parameter space determine which x, y, z
+    # points are connected by an edge.
+    ax.plot_trisurf(X_cent1d[idx].flatten(), Y_cent1d[idx].flatten(), W_cent1d[idx].flatten(), triangles=tri.triangles,edgecolor='none')
+
+    ax.plot_surface(X_cent, Y_cent, W_cent, alpha=0.3)
+    cset = ax.contour(X_cent, Y_cent, H_cent, zdir='z', offset=-5, cmap=cm.coolwarm)
+    cset = ax.contour(X_cent, Y_cent, H_cent, zdir='x', offset=0, cmap=cm.coolwarm)
+    cset = ax.contour(X_cent, Y_cent, H_cent, zdir='y', offset=7, cmap=cm.coolwarm)
+
+    ax.set_xlabel('X')
+    ax.set_xlim(0, 30)
+    ax.set_ylabel('Y')    
+    ax.set_ylim(-15, 15)
+    ax.set_zlabel('Z')
+    ax.set_zlim(-5, 10)
+    #ax.axis('equal')
+
+    # fig.tight_layout()
+    plt.show()    
 
