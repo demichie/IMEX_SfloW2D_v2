@@ -37,7 +37,7 @@ RUN make install
 
 WORKDIR /home/userSW/
 
-RUN cp SW_VAR_DENS_MODEL-master/TESTS/run_tests.sh .
+RUN cp /home/userSW/SW_VAR_DENS_MODEL-master/TESTS/run_tests.sh .
 RUN echo 'cd /home/userSW/SW_VAR_DENS_MODEL-master/TESTS/' | cat - run_tests.sh > temp && mv temp run_tests.sh
 RUN chmod +x run_tests.sh
 
