@@ -457,7 +457,6 @@ CONTAINS
 
           DO k = 1, n_topography_profile_y
 
-            WRITE(*,108) topography_profile(1:3,j,k)
             WRITE(input_unit,108) topography_profile(1:3,j,k)
 
 108         FORMAT(3(1x,e14.7))
@@ -622,7 +621,7 @@ CONTAINS
 
     ! ------- READ run_parameters NAMELIST -----------------------------------
     READ(input_unit, run_parameters,IOSTAT=ios )
-
+    
     IF ( ios .NE. 0 ) THEN
 
        WRITE(*,*) 'IOSTAT=',ios
@@ -632,6 +631,7 @@ CONTAINS
 
     ELSE
 
+       WRITE(*,*) 'Run name: ',run_name
        REWIND(input_unit)
 
     END IF
@@ -654,11 +654,11 @@ CONTAINS
 
     IF ( ( comp_cells_x .EQ. 1 ) .OR. ( comp_cells_y .EQ. 1 ) ) THEN
 
-       WRITE(*,*) '----- 1D SIMULATION -----' 
+       IF ( verbose_level .GE. 0 ) WRITE(*,*) '----- 1D SIMULATION -----' 
 
     ELSE
        
-       WRITE(*,*) '----- 2D SIMULATION -----' 
+       IF ( verbose_level .GE. 0 ) WRITE(*,*) '----- 2D SIMULATION -----' 
 
     END IF
 
@@ -720,8 +720,12 @@ CONTAINS
 
        IF ( gas_flag ) THEN
 
-          WRITE(*,*) 'CARRIER PHASE: gas'
-          WRITE(*,*) 'Carrier phase kinematic viscosity:',kin_visc_a
+          IF ( VERBOSE_LEVEL .GE. 0 ) THEN
+          
+             WRITE(*,*) 'CARRIER PHASE: gas'
+             WRITE(*,*) 'Carrier phase kinematic viscosity:',kin_visc_a
+
+          END IF
           kin_visc_c = kin_visc_a
 
        END IF
@@ -757,8 +761,11 @@ CONTAINS
     END IF
 
     rho_a_amb = pres / ( sp_gas_const_a * T_ambient )
-    WRITE(*,*) 'Ambient density = ',rho_a_amb,' (kg/m3)'
+    IF ( verbose_level .GE. 0 ) THEN
 
+       WRITE(*,*) 'Ambient density = ',rho_a_amb,' (kg/m3)'
+
+    END IF
     ! ------- READ liquid_transport_parameters NAMELIST -------------------------
     
     n_vars = 4
@@ -811,10 +818,14 @@ CONTAINS
 
           IF ( .NOT. gas_flag ) THEN
 
-             WRITE(*,*) 'CARRIER PHASE: liquid'
-             WRITE(*,*) 'Carrier phase kinematic viscosity:',kin_visc_l
-             kin_visc_c = kin_visc_l
+             IF ( verbose_level .GE. 0 ) THEN
+                
+                WRITE(*,*) 'CARRIER PHASE: liquid'
+                WRITE(*,*) 'Carrier phase kinematic viscosity:',kin_visc_l
+                kin_visc_c = kin_visc_l
 
+             END IF
+                
        END IF
 
           
@@ -948,12 +959,18 @@ CONTAINS
              END IF
              
              alphas_init(1:n_solid) = 1.D-2 * sed_vol_perc(1:n_solid)
-             WRITE(*,*) 'INITIAL VOLUME FRACTION OF SOLIDS:', alphas_init
+
+             IF ( verbose_level .GE. 0 ) THEN
+
+                WRITE(*,*) 'INITIAL VOLUME FRACTION OF SOLIDS:', alphas_init
+
+             END IF
+
              REWIND(input_unit)
-    
-          
+              
              IF ( T_init*T_ambient .EQ. 0.0_dp ) THEN
           
+                WRITE(*,*) 'ERROR: problem with namelist RESTART_PARAMETERS'
                 WRITE(*,*) 'T_init=',T_init
                 WRITE(*,*) 'T_ambient=',T_ambient
                 WRITE(*,*) 'Add the variables to the namelist RESTART_PARAMETERS'
@@ -1094,10 +1111,13 @@ CONTAINS
 
     END IF
 
+    IF ( verbose_level .GE. 0 ) THEN
+       
+       WRITE(*,*) 'Linear reconstruction and b. c. applied to variables:'
+       WRITE(*,*) 'h,hu,hv,T,alphas'
 
-    WRITE(*,*) 'Linear reconstruction and b. c. applied to variables:'
-    WRITE(*,*) 'h,hu,hv,T,alphas'
-
+    END IF
+       
     IF ( ( reconstr_coeff .GT. 1.0_dp ) .OR. ( reconstr_coeff .LT. 0.0_dp ) ) THEN
        
        WRITE(*,*) 'WARNING: wrong value of reconstr_coeff ',reconstr_coeff
@@ -2001,14 +2021,22 @@ CONTAINS
 
        ELSEIF ( rheology_model .EQ. 5 ) THEN
 
+          IF ( VERBOSE_LEVEL .GE. 0 ) THEN
+             
              WRITE(*,*) 'RHEOLOGY_MODEL =' , rheology_model
              WRITE(*,*) 'Kurganov & Petrova Example 5'
 
+          END IF
+             
        ELSEIF ( rheology_model .EQ. 6 ) THEN
 
-          WRITE(*,*) 'RHEOLOGY_MODEL =' , rheology_model
-          WRITE(*,*) 'Bursik & Woods'
+          IF ( VERBOSE_LEVEL .GE. 0 ) THEN
+          
+             WRITE(*,*) 'RHEOLOGY_MODEL =' , rheology_model
+             WRITE(*,*) 'Bursik & Woods'
 
+          END IF
+             
           IF ( friction_factor .LT. 0.0_dp ) THEN
              
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
@@ -2034,7 +2062,7 @@ CONTAINS
 
     IF ( verbose_level .GE. 1 ) WRITE(*,*) 
 
-    WRITE(*,*) 'Searching for DEM file'
+    IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Searching for DEM file'
 
     INQUIRE(FILE='topography_dem.asc',EXIST=lexist)
 
@@ -2097,11 +2125,14 @@ CONTAINS
 
     END IF
 
+    IF ( VERBOSE_LEVEL .GE. 0 ) THEN
+       
+       WRITE(*,*) 'Reading DEM file' 
+       WRITE(*,*) 'ncols',ncols
+       WRITE(*,*) 'nrows',nrows
 
-    WRITE(*,*) 'Reading DEM file' 
-    WRITE(*,*) 'ncols',ncols
-    WRITE(*,*) 'nrows',nrows
-
+    END IF
+       
     n_topography_profile_x = ncols
 
     n_topography_profile_y = nrows
@@ -2125,17 +2156,21 @@ CONTAINS
 
     DO k=1,n_topography_profile_y
 
-       WRITE(*,FMT="(A1,A,t21,F6.2,A)",ADVANCE="NO") ACHAR(13),              &
-            & " Percent Complete: " ,                                        &
-            ( REAL(k) / REAL(n_topography_profile_y))*100.0, "%"
+       IF ( VERBOSE_LEVEL .GE. 0 ) THEN
+       
+          WRITE(*,FMT="(A1,A,t21,F6.2,A)",ADVANCE="NO") ACHAR(13),              &
+               & " Percent Complete: " ,                                        &
+               ( REAL(k) / REAL(n_topography_profile_y))*100.0, "%"
 
+       END IF
+          
        READ(2001,*) topography_profile(3,:,n_topography_profile_y-k+1)
 
     ENDDO
 
     topography_profile(3,:,:) = MAX(0.0_dp,topography_profile(3,:,:))
 
-    WRITE(*,*) ''
+    IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) ''
 
     CLOSE(2001)
 
@@ -2212,7 +2247,7 @@ CONTAINS
 
     tend1 = .FALSE.
     
-    WRITE(*,*) 'Searching for topography_profile'
+    IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Searching for topography_profile'
    
     n_probes = 0
  
@@ -2501,14 +2536,15 @@ CONTAINS
 
     IF ( lexist .EQV. .FALSE.) THEN
 
-       WRITE(*,*) 'Restart: ',TRIM(restart_file),' not found'
+       WRITE(*,*) 'Restart: ',TRIM(restart_file) , ' not found'
        STOP
 
     ELSE
 
        OPEN(restart_unit,FILE=restart_file,STATUS='old')
        
-       WRITE(*,*) 'Restart: ',TRIM(restart_file), ' found'
+       IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Restart: ',TRIM(restart_file),   &
+            ' found'
 
     END IF
 
@@ -2542,11 +2578,11 @@ CONTAINS
 
        ELSEIF ( gas_flag ) THEN
 
-          WRITE(*,*) 'Carrier phase: gas'
+          IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Carrier phase: gas'
           
        ELSEIF ( liquid_flag ) THEN
 
-          WRITE(*,*) 'Carrier phase: liquid'
+          IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Carrier phase: liquid'
           
        END IF
        
@@ -2614,7 +2650,8 @@ CONTAINS
        ENDDO
 
        WRITE(*,*) 
-       WRITE(*,*) 'Total volume from restart =',cellsize**2*SUM(thickness_input)
+       IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Total volume from restart =',    &
+            cellsize**2*SUM(thickness_input)
 
        WHERE ( thickness_init .EQ. nodata_value )
 
@@ -2668,18 +2705,21 @@ CONTAINS
 
        END IF
           
-       rho_m = SUM( rho_s(1:n_solid)*alphas_init(1:n_solid) ) + ( 1.0_dp -        &
+       rho_m = SUM( rho_s(1:n_solid)*alphas_init(1:n_solid) ) + ( 1.0_dp -      &
             SUM( alphas_init(1:n_solid) ) ) * rho_c 
 
        mass_fract = rho_s * alphas_init / rho_m
 
        q(1,:,:) = thickness_init(:,:) * rho_m
 
-       WRITE(*,*) 'Total volume on computational grid =',cell_size**2 *         &
-            SUM( thickness_init(:,:) )
-       WRITE(*,*) 'Total mass on computational grid =',cell_size**2 *           &
-            SUM( q(1,:,:) )
-       
+       IF ( VERBOSE_LEVEL .GE. 0 ) THEN
+          
+          WRITE(*,*) 'Total volume on computational grid =',cell_size**2 *      &
+               SUM( thickness_init(:,:) )
+          WRITE(*,*) 'Total mass on computational grid =',cell_size**2 *        &
+               SUM( q(1,:,:) )
+
+       END IF
        ! rhom*h*u
        q(2,:,:) = 0.0_dp
        ! rhom*h*v
@@ -2712,8 +2752,12 @@ CONTAINS
 
        WRITE(*,*) 'MAXVAL(q(5,:,:))',MAXVAL(q(5:4+n_solid,:,:))
 
-       WRITE(*,*) 'Total sediment volume =',cell_size**2*SUM( thickness_init*   &
-            SUM(alphas_init) )
+       IF ( VERBOSE_LEVEL .GE. 0 ) THEN
+          
+          WRITE(*,*) 'Total sediment volume =',cell_size**2*SUM( thickness_init*&
+               SUM(alphas_init) )
+
+       END IF
 
        output_idx = 0
 
@@ -2756,11 +2800,12 @@ CONTAINS
           
        END DO
 
-       WRITE(*,*) 'Total mass =',dx*dy* SUM( q(1,:,:) )
+       IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Total mass =',dx*dy*SUM(q(1,:,:))
 
        DO solid_idx=5,4+n_solid
 
-          WRITE(*,*) 'Total sediment mass =',dx*dy* SUM( q(solid_idx,:,:) )
+          IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Total sediment mass =',       &
+               dx*dy* SUM( q(solid_idx,:,:) )
 
        END DO
 
@@ -2768,10 +2813,14 @@ CONTAINS
        
        string = TRIM(restart_file(j-4:j-1))
        READ( string,* ) output_idx
-       
-       WRITE(*,*) 
-       WRITE(*,*) 'Starting from output index ',output_idx
-       
+
+       IF ( VERBOSE_LEVEL .GE. 0 ) THEN
+          
+          WRITE(*,*) 
+          WRITE(*,*) 'Starting from output index ',output_idx
+
+       END IF
+          
        ! Set this flag to 0 to not overwrite the initial condition
     
     ELSE
@@ -2843,7 +2892,7 @@ CONTAINS
        
        output_file_2d = TRIM(run_name)//'_'//idx_string//'.q_2d'
        
-       WRITE(*,*) 'WRITING ',output_file_2d
+       IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'WRITING ',output_file_2d
        
        OPEN(output_unit_2d,FILE=output_file_2d,status='unknown',form='formatted')
        
@@ -2881,7 +2930,7 @@ CONTAINS
        
        output_file_2d = TRIM(run_name)//'_'//idx_string//'.p_2d'
        
-       WRITE(*,*) 'WRITING ',output_file_2d
+       IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'WRITING ',output_file_2d
        
        OPEN(output_unit_2d,FILE=output_file_2d,status='unknown',form='formatted')
        
@@ -2984,7 +3033,7 @@ CONTAINS
     !Save max thickness
     output_max_file = TRIM(run_name)//'_max.asc'
 
-    WRITE(*,*) 'WRITING ',output_max_file
+    IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'WRITING ',output_max_file
 
     OPEN(output_max_unit,FILE=output_max_file,status='unknown',form='formatted')
 
@@ -3070,7 +3119,7 @@ CONTAINS
     !Save thickness
     output_esri_file = TRIM(run_name)//'_'//idx_string//'.asc'
 
-    WRITE(*,*) 'WRITING ',output_esri_file
+    IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'WRITING ',output_esri_file
 
     OPEN(output_esri_unit,FILE=output_esri_file,status='unknown',form='formatted')
 
@@ -3100,7 +3149,7 @@ CONTAINS
     !Save temperature
     output_esri_file = TRIM(run_name)//'_T_'//idx_string//'.asc'
     
-    WRITE(*,*) 'WRITING ',output_esri_file
+    IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'WRITING ',output_esri_file
     
     OPEN(output_esri_unit,FILE=output_esri_file,status='unknown',form='formatted')
     
@@ -3134,7 +3183,7 @@ CONTAINS
 
        output_esri_file = TRIM(run_name)//'_dep_'//isolid_string//'_'//idx_string//'.asc'
        
-       WRITE(*,*) 'WRITING ',output_esri_file
+       IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'WRITING ',output_esri_file
        
        OPEN(output_esri_unit,FILE=output_esri_file,status='unknown',form='formatted')
        

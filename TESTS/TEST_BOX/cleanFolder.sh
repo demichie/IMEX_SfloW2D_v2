@@ -1,5 +1,5 @@
 #!/bin/bash
-clear
+
 echo "Cleaning folder form output of previous runs of SW_VAR_DENS_MODEL"
 
 file="TEST_BOX*"
