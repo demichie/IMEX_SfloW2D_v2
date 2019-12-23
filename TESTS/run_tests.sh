@@ -1,3 +1,4 @@
+#!/bin/bash
 # run TEST_2D
 cd TEST_2D
 echo ""
