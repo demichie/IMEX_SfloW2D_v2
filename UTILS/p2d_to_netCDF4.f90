@@ -295,7 +295,7 @@ program pres_temp_4D_wr
         DO j = 1,comp_cells_x
 
            READ(12,*) x(j), y(k), h(j,k) , u(j,k) , v(j,k) , B(j,k) , w(j,k) ,  &
-                alphas(j,k,1:n_solid) , T(j,k) , rho_m(j,k) , &red_grav(j,k) ,  &
+                alphas(j,k,1:n_solid) , T(j,k) , rho_m(j,k) , red_grav(j,k) ,   &
                 deposit(j,k,1:n_solid)
 
         END DO
