@@ -1,4 +1,4 @@
-# MdMV SW_VAR_DENS test
+# MdMV SW_VAR_DENS_MODEL
 
 # start by building the basic container
 
@@ -6,11 +6,7 @@ FROM alpine:edge
 
 MAINTAINER Mattia de' Michieli Vitturi <demichie@gmail.com>
 
-RUN apk add --no-cache bash bash-doc bash-completion
-RUN apk add --no-cache musl-dev m4 zlib-dev git
-RUN apk add --no-cache gfortran gdb make curl
-
-CMD gfortran --version
+RUN apk add --no-cache bash bash-doc bash-completion musl-dev m4 zlib-dev git gfortran gdb make curl
 
 RUN apk add --no-cache -X http://dl-cdn.alpinelinux.org/alpine/edge/testing \
   hdf5-dev
