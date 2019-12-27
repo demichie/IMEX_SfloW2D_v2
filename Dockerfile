@@ -20,10 +20,12 @@ RUN tar -xzvf v4.7.3.tar.gz
 
 WORKDIR netcdf-c-4.7.3
 RUN ./configure --enable-remote-fortran-bootstrap --disable-dap --prefix=/usr/local
-RUN make check
 RUN make install
 RUN make build-netcdf-fortran
 RUN make install-netcdf-fortran
+WORKDIR /
+RUN rm v4.7.3.tar.gz
+RUN rm -rf netcdf-c-4.7.3
 
 RUN apk add --no-cache -X http://dl-cdn.alpinelinux.org/alpine/edge/testing \
   openmpi-dev
