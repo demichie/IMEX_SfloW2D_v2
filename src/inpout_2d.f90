@@ -2186,6 +2186,7 @@ CONTAINS
           WRITE(*,*) 'IOSTAT=',ios
           WRITE(*,*) 'ERROR: problem with namelist RUNOUT_PARAMETERS'
           WRITE(*,*) 'Please check the input file'
+          WRITE(*,runout_parameters) 
           STOP
           
        ELSE

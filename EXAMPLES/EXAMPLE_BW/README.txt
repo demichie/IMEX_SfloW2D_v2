@@ -5,26 +5,23 @@ Topography does not change with deposition (TOPO_CHANGE_FLAG=F), but it is inter
 The settings are similar to those presented in Bursik & Woods 1996 [1].
 
 A Python script is provided to create the input file for this example. 
-Please provide three arguments:
+Please provide four arguments:
 
 1) Number of cells in the x-direction 
 
 2) Volume fraction of particles
 
-5) Flow temperature (Kelvin)
+3) Flow temperature (Kelvin)
+
+4) Logical for plot of initial solution (true or false)
 
 Usage example of the script:
 
->> ./create_example.py 400 0.1 900
+>> ./create_example.py 400 0.1 900 false
 
-Once the input file (SW_VAR_DENS_MODEL.inp) is created create a simbolic link of the executable 
-in this folder:
+Run the solver (this assumes that the example is in the original folder):
 
->> ln -s ../../bin/SW_VAR_DENS_MODEL .
-
-Finally, launch the solver:
-
->> ./SW_VAR_DENS_MODEL
+>> ../../bin/SW_VAR_DENS_MODEL
 
 A Python script to plot the results is provided. With this script you can choose the output and the variable to plot (h,hB,B,u,v)
 Usage example:

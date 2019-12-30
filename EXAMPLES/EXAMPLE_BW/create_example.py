@@ -4,12 +4,10 @@
 
 """
 import numpy as np                      
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 import time
 import sys
 
-if len(sys.argv)==4: 
+if len(sys.argv)==5: 
 
     print('Number of cells')
     a = sys.argv[1]
@@ -35,6 +33,13 @@ if len(sys.argv)==4:
     except ValueError:
         print("You must enter a float for temperature: "+a)
 
+    a = sys.argv[4]
+    if a == 'true': 
+        plot_flag = True
+    elif a == 'false':
+        plot_flag = False
+    else:
+        raise ValueError("You must enter true or false: "+a)
 
 else:
 
@@ -42,6 +47,7 @@ else:
     print('1) Number of cells\n')
     print('2) Solid volume fraction (0,1)\n')
     print('3) Temperature (>0)\n')
+    print('4) Plot flag (true or false)\n')
     sys.exit()
 
 
@@ -183,14 +189,19 @@ filedata = filedata.replace('temp', str(T))
 with open('SW_VAR_DENS_MODEL.inp', 'w') as file:
   file.write(filedata)
 
-# create a figure for the plot
-fig, ax = plt.subplots()
-#plt.ylim([-0.1,5.1])
-plt.xlim([x_left,x_right])
 
-# plot the initial solution and call "line" the plot
-line1, = ax.plot(x,B)
-line2, = ax.plot(x_cent,w_cent,'-g')
+if (plot_flag):
 
+    import matplotlib.pyplot as plt
+    import matplotlib.animation as animation
+    
+    # create a figure for the plot
+    fig, ax = plt.subplots()
+    #plt.ylim([-0.1,5.1])
+    plt.xlim([x_left,x_right])
+    
+    # plot the initial solution and call "line" the plot
+    line1, = ax.plot(x,B)
+    line2, = ax.plot(x_cent,w_cent,'-g')
 
-plt.show()
+    plt.show()

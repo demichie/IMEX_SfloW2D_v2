@@ -65,6 +65,10 @@ program pres_temp_4D_wr
   REAL(dp) :: x0                 !< Left of the physical domain
   REAL(dp) :: y0                 !< Bottom of the physical domain
 
+  INTEGER :: comp_cells_xx      !< Number of control volumes x in the comp. domain
+  INTEGER :: comp_cells_yy      !< Number of control volumes y in the comp. domain
+
+  
   REAL(dp) :: cell_size
 
   REAL(dp), ALLOCATABLE :: x(:) , y(:), time(:)
@@ -161,29 +165,34 @@ program pres_temp_4D_wr
   END DO
 
   WRITE(*,*) 'time= ',time
+
+  comp_cells_xx = MAX( comp_cells_x,2)
+  comp_cells_yy = MAX( comp_cells_y,2)
   
-  ALLOCATE( x(comp_cells_x) )
-  DO j=1,comp_cells_x
+  ALLOCATE( x(comp_cells_xx) )
+  DO j=1,comp_cells_xx
      x(j) = x0 + ( j - 0.5) * cell_size
   END DO
 
-  ALLOCATE( y(comp_cells_y) )
-  DO k=1,comp_cells_y
+  
+  
+  ALLOCATE( y(comp_cells_yy) )
+  DO k=1,comp_cells_yy
      y(k) = y0 + ( k - 0.5) * cell_size
   END DO
 
   WRITE(*,*) comp_cells_x,comp_cells_y,n_solid
-  
-  ALLOCATE( w(comp_cells_x,comp_cells_y) )
-  ALLOCATE( h(comp_cells_x,comp_cells_y) )
-  ALLOCATE( u(comp_cells_x,comp_cells_y) )
-  ALLOCATE( v(comp_cells_x,comp_cells_y) )
-  ALLOCATE( B(comp_cells_x,comp_cells_y) )
-  ALLOCATE( alphas(comp_cells_x,comp_cells_y,n_solid) )
-  ALLOCATE( T(comp_cells_x,comp_cells_y) )
-  ALLOCATE( rho_m(comp_cells_x,comp_cells_y) )
-  ALLOCATE( red_grav(comp_cells_x,comp_cells_y) )
-  ALLOCATE( deposit(comp_cells_x,comp_cells_y,n_solid) )
+ 
+  ALLOCATE( w(comp_cells_xx,comp_cells_yy) )
+  ALLOCATE( h(comp_cells_xx,comp_cells_yy) )
+  ALLOCATE( u(comp_cells_xx,comp_cells_yy) )
+  ALLOCATE( v(comp_cells_xx,comp_cells_yy) )
+  ALLOCATE( B(comp_cells_xx,comp_cells_yy) )
+  ALLOCATE( alphas(comp_cells_xx,comp_cells_yy,n_solid) )
+  ALLOCATE( T(comp_cells_xx,comp_cells_yy) )
+  ALLOCATE( rho_m(comp_cells_xx,comp_cells_yy) )
+  ALLOCATE( red_grav(comp_cells_xx,comp_cells_yy) )
+  ALLOCATE( deposit(comp_cells_xx,comp_cells_yy,n_solid) )
 
 
   ALLOCATE( alfas_varid(n_solid) )
@@ -197,8 +206,8 @@ program pres_temp_4D_wr
   ! Define the dimensions. The record dimension is defined to have
   ! unlimited length - it can grow as needed. In this example it is
   ! the time dimension.
-  call check( nf90_def_dim(ncid, 'x', comp_cells_x, x_dimid) )
-  call check( nf90_def_dim(ncid, 'y', comp_cells_y, y_dimid) )
+  call check( nf90_def_dim(ncid, 'x', comp_cells_xx, x_dimid) )
+  call check( nf90_def_dim(ncid, 'y', comp_cells_yy, y_dimid) )
   call check( nf90_def_dim(ncid, 'time', NF90_UNLIMITED, t_dimid) )
 
   ! Define the coordinate variables. We will only define coordinate
@@ -273,7 +282,7 @@ program pres_temp_4D_wr
   ! These settings tell netcdf to write one timestep of data. (The
   ! setting of start(4) inside the loop below tells netCDF which
   ! timestep to write.)
-  count = (/ comp_cells_x, comp_cells_y, 1 /)
+  count = (/ comp_cells_xx, comp_cells_yy, 1 /)
   start = (/ 1, 1, 1 /)
 
   ! Write the pretend data. This will write our surface pressure and
@@ -302,6 +311,34 @@ program pres_temp_4D_wr
 
      END DO
 
+     IF ( comp_cells_x .EQ. 1 ) THEN
+
+        h(2,:) = h(1,:)
+        v(2,:) = v(1,:)
+        B(2,:) = B(1,:)
+        w(2,:) = W(1,:)
+        T(2,:) = T(1,:)
+        rho_m(2,:) = rho_m(1,:)
+        red_grav(2,:) = red_grav(1,:)
+        alphas(2,:,1:n_solid) = alphas(1,:,1:n_solid)
+        deposit(2,:,1:n_solid) = deposit(1,:,1:n_solid)
+        
+     END IF
+
+     IF ( comp_cells_y .EQ. 1 ) THEN
+
+        h(:,2) = h(:,1)
+        v(:,2) = v(:,1)
+        B(:,2) = B(:,1)
+        w(:,2) = W(:,1)
+        T(:,2) = T(:,1)
+        rho_m(:,2) = rho_m(:,1)
+        red_grav(:,2) = red_grav(:,1)
+        alphas(:,2,1:n_solid) = alphas(:,1,1:n_solid)
+        deposit(:,2,1:n_solid) = deposit(:,1,1:n_solid)
+        
+     END IF
+        
      CLOSE(12)
 
      start(3) = rec-i_first+1
