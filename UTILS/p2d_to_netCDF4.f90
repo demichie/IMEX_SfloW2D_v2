@@ -87,10 +87,26 @@ program pres_temp_4D_wr
 
   integer           :: intg(2), stat , i_first , i_last
 
+  WRITE(*,*)
+  WRITE(*,*) '------------------------'
+  WRITE(*,*) '-- P2D_TO_NETCDF4 1.0 --'
+  WRITE(*,*) '------------------------'
+  WRITE(*,*)
+
   intg(2) = -1
   i = 0
   
   n_arg = iargc()
+
+
+  IF ( n_arg .EQ. 0 ) THEN
+
+     WRITE(*,*) 'ERROR: p2d_to_netCDF4.x requires .bak file as argument'
+     WRITE(*,*) 
+     STOP
+
+  END IF
+
   DO iter = 1, n_arg
 
      CALL getarg( iter, argv )
@@ -102,6 +118,7 @@ program pres_temp_4D_wr
         IF (lexist .EQV. .FALSE.) THEN
 
            WRITE(*,*) 'ERROR: bak file does not exist: ',argv
+           WRITE(*,*)
            STOP
            
         ELSE
