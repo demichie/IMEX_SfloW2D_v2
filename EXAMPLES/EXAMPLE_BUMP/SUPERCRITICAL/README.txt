@@ -4,30 +4,23 @@ No friction is considered in this test (RHEOLOGY_FLAG=F).
 On the left boundary (supercritical) the volumetric flow and flow thickness are fixed: hu = 10.0m^2/s,  h = 1m.
 On the right boundary (still supercritical) zero gradient boundary conditions are prescribed.
 A Python script is provided to create the input file for this example. 
-Please provide three arguments:
+Please provide four arguments:
 
 1) Number of cells in the x-direction 
 
 2) Volume fraction of particles
 
-3) Erosion coefficient ( 0 => no erosion )
+3) Flow temperature (Kelvin)
 
-4) Sedimentation coefficient ( 0 => no deposition )
-
-5) Flow temperature (Kelvin)
+4) Logical for plot of initial solution (true or false)
 
 Usage example of the script:
 
->> ./create_example.py 200 1.0 300
+>> ./create_example.py 200 1.0 300 false
 
-Once the input file (SW_VAR_DENS_MODEL.inp) is created create a simbolic link of the executable 
-in this folder:
+Run the solver (this assumes that the example is in the original folder):
 
->> ln -s ../../../bin/SW_VAR_DENS_MODEL .
-
-Finally, launch the solver:
-
->> ./SW_VAR_DENS_MODEL
+>> ../../bin/SW_VAR_DENS_MODEL
 
 A Python script to plot the results is provided. With this script you can choose the output and the variable to plot (h,hB,B,u,v)
 Usage example:
@@ -38,5 +31,11 @@ A Python script to create an animation (mp4) of the simulation is also provided.
 Usage example:
 
 >> ./plot_animated.py exampleSuper_200 100
+
+
+REFERENCES
+
+[1] Delestre, O., Lucas, C., Ksinant, P. A., Darboux, F., Laguerre, C., Vo, T. N. T., ... & Cordier, S. (2013). SWASHES: a compilation of shallow water analytic solutions for hydraulic and environmental studies. International Journal for Numerical Methods in Fluids, 72(3), 269-300.
+
 
 

@@ -1352,7 +1352,7 @@ CONTAINS
 
           desc_dir_temp = - right_term
 
-          CALL SGESV(n_eqns,1, left_matrix , n_eqns, pivot, desc_dir_temp ,     &
+          CALL DGESV(n_eqns,1, left_matrix , n_eqns, pivot, desc_dir_temp ,     &
                n_eqns, ok)
 
           desc_dir = desc_dir_temp
@@ -1385,7 +1385,7 @@ CONTAINS
           desc_dir_small2 = desc_dir_small2 -                                   &
                MATMUL( desc_dir_small1 , left_matrix_small21 )
 
-          CALL SGESV(n_nh,1, left_matrix_small22 , n_nh , pivot_small2 ,        &
+          CALL DGESV(n_nh,1, left_matrix_small22 , n_nh , pivot_small2 ,        &
                desc_dir_small2 , n_nh, ok)
 
           desc_dir = unpack( - desc_dir_small2 , implicit_flag , 0.0_dp )       &

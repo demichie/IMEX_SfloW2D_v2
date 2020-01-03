@@ -1,8 +1,8 @@
 # initial information about the project
-AC_INIT([PLUME-MoM], [1.0], [mattia.demichielivitturi@ingv.it])
+AC_INIT([SW_VAR_DENS_MODEL], [1.0], [mattia.demichielivitturi@ingv.it])
 
 # check if the source folder is available
-AC_CONFIG_SRCDIR([src/plume_model.f90])
+AC_CONFIG_SRCDIR([src/SW_VAR_DENS_MODEL.f90])
 
 # check for fortran compiler
 AC_PROG_FC

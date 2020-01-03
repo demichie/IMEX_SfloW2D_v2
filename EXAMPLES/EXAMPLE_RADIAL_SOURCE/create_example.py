@@ -4,12 +4,6 @@
 
 """
 import numpy as np
-from mpl_toolkits.mplot3d import Axes3D                      
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-from matplotlib import cm
-import matplotlib.tri as mtri
-
 import time
 import sys
 
@@ -161,20 +155,6 @@ for i in range(nx_cells):
         H_cent[j,i] = W_cent[j,i] - Z_cent[j,i]
 
 
-# create a figure for the plot
-fig = plt.figure()
-ax = fig.gca(projection='3d')
-#plt.ylim([-0.1,1.5])
-#plt.xlim([-0.25,1.75])
-
-# plot the initial solution and call "line" the plot
-# surf = ax.plot_surface(X,Y,Z)
-# surf2 = ax.plot_surface(X_cent,Y_cent,W_cent)
-
-X_cent1d = X_cent.flatten()
-Y_cent1d = Y_cent.flatten()
-H_cent1d = H_cent.flatten()
-W_cent1d = W_cent.flatten()
 
 
 # create topography file
@@ -249,42 +229,7 @@ filedata = filedata.replace('source_alphas', str(alfas_init))
 with open('SW_VAR_DENS_MODEL.inp', 'w') as file:
   file.write(filedata)
 
-import plotly
-import plotly.graph_objects as go
 
-import pandas as pd
-
-trace2 = go.Surface(x=X_cent,y=Y_cent,z=W_cent,surfacecolor=H_cent, opacity=0.95,showscale=False,
-              colorscale=[[0.0, "rgb(214,214,0)"],
-                [0.005, "rgb(215,148,39)"],
-                [1.0, "rgb(215,148,39)"]])
-
-data = [trace2]
-
-layout = go.Layout(title='Initial solution', autosize=False,
-                  width=1200, height=800,
-                  margin=dict(l=65, r=50, b=65, t=90))
-
-
-fig = go.Figure(data=data, 
-        layout=layout)
-
-yratio = ( np.max(Y_cent)-np.min(Y_cent) ) / ( np.max(X_cent)-np.min(X_cent) )
-
-fig.update_layout(scene = dict(
-                  aspectmode = "manual",
-                  aspectratio =dict(x=1,y=yratio))
-                  )
-
-camera = dict(
-    eye=dict(x=1.0, y=-1.0, z=0.5)
-)
-
-fig.update_layout(scene_camera=camera)
-
-# fig.write_image("fig1.png")
-
-fig.show()
 
 
 

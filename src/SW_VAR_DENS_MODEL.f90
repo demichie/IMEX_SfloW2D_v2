@@ -98,24 +98,22 @@ PROGRAM SW_VAR_DENS_MODEL
 
   LOGICAL :: use_openmp = .false.
 
+  WRITE(*,*) '---------------------'
+  WRITE(*,*) 'SW_VAR_DENS_MODEL 1.0'
+  WRITE(*,*) '---------------------'
+  
   !$ use_openmp = .true.
   !$ print *, "OpenMP program"
 
   IF ( .NOT. use_openmp) THEN
 
-     PRINT *, "Non-OpenMP program"
+     PRINT *, "Non-OpenMP simulation"
 
   ELSE
      
      !$ n_threads = omp_get_max_threads()
      !$ CALL OMP_SET_NUM_THREADS(n_threads)
-     
-     WRITE(*,*) 'Number of threads used', n_threads
-     !$OMP PARALLEL
-     
-     !$ PRINT *, "Hello from process", OMP_GET_THREAD_NUM()
-     
-     !$OMP END PARALLEL
+     IF ( verbose_level .GE. 0.D0 ) WRITE(*,*) 'Number of threads used', n_threads
 
   END IF
 
@@ -168,12 +166,14 @@ PROGRAM SW_VAR_DENS_MODEL
 
   t = t_start
 
-  WRITE(*,*) 't',t
+  IF ( verbose_level .GE. 0 ) THEN
   
-  WRITE(*,*) 
-  WRITE(*,*) '******** START COMPUTATION *********'
-  WRITE(*,*)
+     WRITE(*,*) 
+     WRITE(*,*) '******** START COMPUTATION *********'
+     WRITE(*,*)
 
+  END IF
+     
   IF ( verbose_level .GE. 1 ) THEN
      
      WRITE(*,*) 'Min q(1,:,:)=',MINVAL(q(1,:,:))
@@ -212,13 +212,17 @@ PROGRAM SW_VAR_DENS_MODEL
   CALL output_solution(t)
 
   IF ( SUM(q(1,:,:)) .EQ. 0.0_dp ) t_steady = t_output
+
+  IF ( verbose_level .GE. 0.D0 ) THEN
   
-  WRITE(*,FMT="(A3,F10.4,A5,F9.5,A9,ES11.3E3,A11,ES11.3E3,A9,ES11.3E3,A15,ES11.3E3)")   &
-       't =',t,'dt =',dt0,                                                      &
-       ' mass = ',dx*dy*SUM(q(1,:,:)) ,                                         &
-       ' volume = ',dx*dy*SUM(qp(1,:,:)) ,                                      &
-       ' area = ',dx*dy*COUNT(q(1,:,:).GT.1.D-5) ,                              &
-       ' solid mass = ',dx*dy*SUM(q(5:4+n_solid,:,:)) 
+     WRITE(*,FMT="(A3,F10.4,A5,F9.5,A9,ES11.3E3,A11,ES11.3E3,A9,ES11.3E3,A15,ES11.3E3)")   &
+          't =',t,'dt =',dt0,                                                   &
+          ' mass = ',dx*dy*SUM(q(1,:,:)) ,                                      &
+          ' volume = ',dx*dy*SUM(qp(1,:,:)) ,                                   &
+          ' area = ',dx*dy*COUNT(q(1,:,:).GT.1.D-5) ,                           &
+          ' solid mass = ',dx*dy*SUM(q(5:4+n_solid,:,:))
+
+  END IF
 
   CALL cpu_time(t2)
   CALL system_clock (st2)
@@ -275,13 +279,17 @@ PROGRAM SW_VAR_DENS_MODEL
   
      !OMP END PARALLEL DO 
 
-     WRITE(*,FMT="(A3,F10.4,A5,F9.5,A9,ES11.3E3,A11,ES11.3E3,A9,ES11.3E3,A15,ES11.3E3)")&
-          't =',t,'dt =',dt,                                                    &
-          ' mass = ',dx*dy*SUM(q(1,:,:)) ,                                      &
-          ' volume = ',dx*dy*SUM(qp(1,:,:)) ,                                   &
-          ' area = ',dx*dy*COUNT(q(1,:,:).GT.1.D-7) ,                           &
-          ' solid mass = ',dx*dy*SUM(q(5:4+n_solid,:,:)) 
+     IF ( verbose_level .GE. 0 ) THEN
      
+        WRITE(*,FMT="(A3,F10.4,A5,F9.5,A9,ES11.3E3,A11,ES11.3E3,A9,ES11.3E3,A15,ES11.3E3)")&
+             't =',t,'dt =',dt,                                                    &
+             ' mass = ',dx*dy*SUM(q(1,:,:)) ,                                      &
+             ' volume = ',dx*dy*SUM(qp(1,:,:)) ,                                   &
+             ' area = ',dx*dy*COUNT(q(1,:,:).GT.1.D-7) ,                           &
+             ' solid mass = ',dx*dy*SUM(q(5:4+n_solid,:,:)) 
+
+     END IF
+        
      IF ( output_runout_flag ) THEN
 
         IF ( ( t .GE. t_runout ) .OR. ( t .GE. t_steady ) ) THEN
@@ -305,13 +313,17 @@ PROGRAM SW_VAR_DENS_MODEL
 
      IF ( ( t .GE. t_output ) .OR. ( t .GE. t_end ) ) THEN
 
-        CALL output_solution(t)
-
         CALL cpu_time(t3)
         CALL system_clock(st3)
+        
+        IF ( verbose_level .GE. 0.D0 ) THEN
+        
+           WRITE(*,*) 'Time taken by iterations is',t3-t2,'seconds'
+           WRITE(*,*) 'Elapsed real time = ', DBLE( st3 - st2 ) / rate,'seconds'
 
-        WRITE(*,*) 'Time taken by iterations is',t3-t2,'seconds'
-        WRITE(*,*) 'Elapsed real time = ', DBLE( st3 - st2 ) / rate,'seconds'
+        END IF
+
+        CALL output_solution(t)
 
      END IF
 
@@ -321,7 +333,8 @@ PROGRAM SW_VAR_DENS_MODEL
 
   CALL close_units
 
-  CALL cpu_time(t2)
+  CALL cpu_time(t3)
+  CALL system_clock(st3)
 
   WRITE(*,*) 'Total time taken by the code is',t3-t1,'seconds'
   WRITE(*,*) 'Total elapsed real time is', DBLE( st3 - st1 ) / rate,'seconds'

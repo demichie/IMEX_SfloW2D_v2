@@ -8,7 +8,7 @@ MODULE parameters_2d
 
   IMPLICIT NONE
 
-  INTEGER, PARAMETER :: dp = KIND(1.0)
+  INTEGER, PARAMETER :: dp = KIND(1.D0)
 
   REAL(dp) :: eps_newton        !< threshold for the convergence of the
                                 !< Newton's method 

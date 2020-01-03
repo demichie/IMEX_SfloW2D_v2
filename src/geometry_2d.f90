@@ -314,9 +314,13 @@ CONTAINS
 
     REAL(dp) :: total_source
 
-    WRITE(*,*) 'r_source',r_source
-    WRITE(*,*) 'dx,dy',dx,dy
+    IF ( verbose_level .GE. 0 ) THEN
+       
+       WRITE(*,*) 'r_source',r_source
+       WRITE(*,*) 'dx,dy',dx,dy
 
+    END IF
+    
     ! cell where are equations are solved
     source_cell(1:comp_cells_x,1:comp_cells_y) = 0
 
@@ -1129,10 +1133,14 @@ CONTAINS
     ENDDO
 
     source_area = dx*dy*SUM(cell_fract)
-    
-    WRITE(*,*) 'Source area =',source_area,' Error =',ABS( 1.0_dp -             &
-         dx*dy*SUM(cell_fract) / ( 4.0_dp*ATAN(1.0_dp)*rs**2 ) )
 
+    IF ( VERBOSE_LEVEL .GE. 0 ) THEN
+       
+       WRITE(*,*) 'Source area =',source_area,' Error =',ABS( 1.0_dp -          &
+            dx*dy*SUM(cell_fract) / ( 4.0_dp*ATAN(1.0_dp)*rs**2 ) )
+
+    END IF
+       
     DEALLOCATE( x_subgrid )
     DEALLOCATE( y_subgrid )
     DEALLOCATE( check_subgrid )
