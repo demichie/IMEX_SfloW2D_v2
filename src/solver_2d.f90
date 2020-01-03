@@ -2186,11 +2186,7 @@ CONTAINS
     H_interface_y = 0.0_dp
 
     !$OMP PARALLEL
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> fc4c64ca37ae3ba10392857fc4a465e9c754389c
     IF ( comp_cells_x .GT. 1 ) THEN
 
        !$OMP DO private(j,k,i,fluxL,fluxR,flux_avg_x)
@@ -2295,11 +2291,7 @@ CONTAINS
     END IF
 
     !$OMP END PARALLEL
-<<<<<<< HEAD
 
-=======
-    
->>>>>>> fc4c64ca37ae3ba10392857fc4a465e9c754389c
     RETURN
     
   END SUBROUTINE eval_flux_KT

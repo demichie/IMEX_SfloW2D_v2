@@ -758,19 +758,19 @@ CONTAINS
     REAL(dp) :: r_sp_heat_mix
     REAL(dp) :: sum_sl
 
-    REAL(dp) :: r_u          !< real-value x-velocity
-    REAL(dp) :: r_v          !< real-value y-velocity
-    REAL(dp) :: r_h          !< real-value flow thickness
-    REAL(dp) :: r_hu         !< real-value volumetric x-flow
-    REAL(dp) :: r_hv         !< real-value volumetric y-flow
+    REAL(dp) :: r_u               !< real-value x-velocity
+    REAL(dp) :: r_v               !< real-value y-velocity
+    REAL(dp) :: r_h               !< real-value flow thickness
+    REAL(dp) :: r_hu              !< real-value volumetric x-flow
+    REAL(dp) :: r_hv              !< real-value volumetric y-flow
     REAL(dp) :: r_alphas(n_solid) !< real-value solid volume fractions
     REAL(dp) :: r_xl              !< real-value liquid mass fraction
     REAL(dp) :: r_xc              !< real-value carrier phase mass fraction
-    REAL(dp) :: r_T          !< real-value temperature [K]
+    REAL(dp) :: r_T               !< real-value temperature [K]
     REAL(dp) :: r_alphal          !< real-value liquid volume fraction
     REAL(dp) :: r_alphac          !< real-value carrier phase volume fraction
-    REAL(dp) :: r_rho_m      !< real-value mixture density [kg/m3]
-    REAL(dp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
+    REAL(dp) :: r_rho_m           !< real-value mixture density [kg/m3]
+    REAL(dp) :: r_rho_c           !< real-value carrier phase density [kg/m3]
     REAL(dp) :: r_xs(n_solid)     !< real-value solid mass fraction
 
     r_h = qp(1)
@@ -976,13 +976,13 @@ CONTAINS
 
     REAL(dp), INTENT(OUT) :: vel_min(n_vars) , vel_max(n_vars)
 
-    REAL(dp) :: r_h          !< real-value flow thickness
-    REAL(dp) :: r_u          !< real-value x-velocity
-    REAL(dp) :: r_v          !< real-value y-velocity
+    REAL(dp) :: r_h          !< real-value flow thickness [m]
+    REAL(dp) :: r_u          !< real-value x-velocity [m s-1]
+    REAL(dp) :: r_v          !< real-value y-velocity [m s-1]
     REAL(dp) :: r_Ri         !< real-value Richardson number
-    REAL(dp) :: r_rho_m      !< real-value mixture density [kg/m3]
-    REAL(dp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
-    REAL(dp) :: r_red_grav   !< real-value reduced gravity
+    REAL(dp) :: r_rho_m      !< real-value mixture density [kg m-3]
+    REAL(dp) :: r_rho_c      !< real-value carrier phase density [kg m-3]
+    REAL(dp) :: r_red_grav   !< real-value reduced gravity [m s-2]
 
     CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav)
 
@@ -1082,13 +1082,13 @@ CONTAINS
 
     REAL(dp), INTENT(OUT) :: flux(n_eqns)
 
-    REAL(dp) :: r_h          !< real-value flow thickness
-    REAL(dp) :: r_u          !< real-value x-velocity
-    REAL(dp) :: r_v          !< real-value y-velocity
+    REAL(dp) :: r_h          !< real-value flow thickness [m]
+    REAL(dp) :: r_u          !< real-value x-velocity [m s-1]
+    REAL(dp) :: r_v          !< real-value y-velocity [m s-1]
     REAL(dp) :: r_Ri         !< real-value Richardson number
-    REAL(dp) :: r_rho_m      !< real-value mixture density [kg/m3]
-    REAL(dp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
-    REAL(dp) :: r_red_grav   !< real-value reduced gravity
+    REAL(dp) :: r_rho_m      !< real-value mixture density [kg m-3]
+    REAL(dp) :: r_rho_c      !< real-value carrier phase density [kg m-3]
+    REAL(dp) :: r_red_grav   !< real-value reduced gravity [m s-2]
 
     pos_thick:IF ( qcj(1) .GT. 0.0_dp ) THEN
 
@@ -1245,7 +1245,7 @@ CONTAINS
     !> Fluid dynamic viscosity (units: kg m-1 s-1 )
     COMPLEX(dp) :: fluid_visc
 
-    !> Total friction (dimensionless)
+    !> Total friction slope (dimensionless): s_f = s_v+s_td+s_y
     COMPLEX(dp) :: s_f
 
     !> Viscous slope component of total Friction (dimensionless)
@@ -1489,8 +1489,10 @@ CONTAINS
     REAL(dp) :: h_threshold
 
     !--- Lahars rheology model variables
-    !> Yield strenght (units: kg m−1 s−2)
+
+    !> Yield strenght (units: kg m-1 s-2)
     REAL(dp) :: tau_y
+
     !> Yield slope component of total friction (dimensionless)
     REAL(dp) :: s_y
 
@@ -1517,11 +1519,11 @@ CONTAINS
 
           IF ( mod_vel .GT. 0.0_dp ) THEN
 
-             ! units of dqc(2)/dt=d(rho h v)/dt (kg m−1 s−2)
+             ! units of dqc(2)/dt=d(rho h v)/dt (kg m-1 s-2)
              forces_term(2) = forces_term(2) - r_rho_m * ( r_u / mod_vel ) *    &
                   mu * r_h * ( - grav * grav3_surf )
 
-             ! units of dqc(3)/dt=d(rho h v)/dt (kg m−1 s−2)
+             ! units of dqc(3)/dt=d(rho h v)/dt (kg m-1 s-2)
              forces_term(3) = forces_term(3) - r_rho_m * ( r_v / mod_vel ) *    &
                   mu * r_h * ( - grav * grav3_surf )
 
@@ -1540,7 +1542,7 @@ CONTAINS
 
           h_threshold = 1.D-20
 
-          ! Yield strength (units: kg m−1 s−2)
+          ! Yield strength (units: kg m-1 s-2)
           tau_y = alpha2 * EXP( beta2 * SUM(r_alphas) )
 
           IF ( r_h .GT. h_threshold ) THEN
@@ -1557,11 +1559,11 @@ CONTAINS
 
           IF ( mod_vel .GT. 0.0_dp ) THEN
 
-             ! units of dqc(2)/dt (kg m−1 s−2)
+             ! units of dqc(2)/dt (kg m-1 s-2)
              forces_term(2) = forces_term(2) - grav * r_rho_m * r_h *           &
                   ( r_u / mod_vel ) * s_y
 
-             ! units of dqc(3)/dt (kg m−1 s−2)
+             ! units of dqc(3)/dt (kg m-1 s-2)
              forces_term(3) = forces_term(3) - grav * r_rho_m * r_h *           &
                   ( r_v / mod_vel ) * s_y
 
