@@ -740,16 +740,41 @@ CONTAINS
        ! Compute the max/min eigenvalues at the interfaces
        CALL eval_speeds
 
-       DO i=1,n_vars
 
-          a_interface_x_max(i,:,:) =                                            &
-               MAX( a_interface_xPos(i,:,:) , -a_interface_xNeg(i,:,:) )
+       !$OMP PARALLEL DO private(j,k)
+       DO l = 1,solve_interfaces_x
 
-          a_interface_y_max(i,:,:) =                                            &
-               MAX( a_interface_yPos(i,:,:) , -a_interface_yNeg(i,:,:) )
+          j = j_stag_x(l)
+          k = k_stag_x(l)
+
+          DO i=1,n_vars
+
+             a_interface_x_max(i,j,k) =                                         &
+                  MAX( a_interface_xPos(i,j,k) , -a_interface_xNeg(i,j,k) )
+ 
+          END DO
 
        END DO
+       !$OMP END PARALLEL DO
+    
 
+       !$OMP PARALLEL DO private(j,k)
+       DO l = 1,solve_interfaces_y
+
+          j = j_stag_y(l)
+          k = k_stag_y(l)
+
+          DO i=1,n_vars
+
+             a_interface_y_max(i,j,k) =                                         &
+                  MAX( a_interface_yPos(i,j,k) , -a_interface_yNeg(i,j,k) )
+
+ 
+          END DO
+
+       END DO
+       !$OMP END PARALLEL DO
+       
        DO l = 1,solve_cells
 
           j = j_cent(l)
@@ -826,26 +851,32 @@ CONTAINS
 
     IF ( verbose_level .GE. 2 ) WRITE(*,*) 'solver, imex_RK_solver: beginning'
 
-    !$OMP PARALLEL WORKSHARE
-    
-    ! Initialization of the solution guess
-    q0( 1:n_vars , 1:comp_cells_x , 1:comp_cells_y ) =                          &
-         q( 1:n_vars , 1:comp_cells_x , 1:comp_cells_y )
+    !$OMP PARALLEL DO private(j,k,q_guess,q_si,Rj_not_impl)
+    init_cells_loop:DO l = 1,solve_cells
 
-    ! Initialization of the variables for the Runge-Kutta scheme
-    q_rk(1:n_vars,1:comp_cells_x,1:comp_cells_y,1:n_RK) = 0.0_dp
-    qp_rk(1:n_vars+2,1:comp_cells_x,1:comp_cells_y,1:n_RK) = 0.0_dp
+       j = j_cent(l)
+       k = k_cent(l)
 
-    divFlux(1:n_eqns,1:comp_cells_x,1:comp_cells_y,1:n_RK) = 0.0_dp
+       ! Initialization of the solution guess
+       q0( 1:n_vars , j , k ) =                          &
+            q( 1:n_vars , j , k )
+       
+       ! Initialization of the variables for the Runge-Kutta scheme
+       q_rk( 1:n_vars , j , k , 1:n_RK ) = 0.0_dp
+       
+       qp_rk( 1:n_vars+2 , j , k , 1:n_RK ) = 0.0_dp
+       
+       divFlux(1:n_eqns , j , k , 1:n_RK ) = 0.0_dp
+       
+       NH( 1:n_eqns, j , k , 1:n_RK ) = 0.0_dp
+       
+       SI_NH( 1:n_eqns , j , k , 1:n_RK ) = 0.0_dp
+       
+       expl_terms(1:n_eqns , j , k , 1:n_RK) = 0.0_dp
+       
+    END DO init_cells_loop
+    !$OMP END PARALLEL DO
 
-    NH(1:n_eqns,1:comp_cells_x,1:comp_cells_y,1:n_RK) = 0.0_dp
-
-    SI_NH(1:n_eqns,1:comp_cells_x,1:comp_cells_y,1:n_RK) = 0.0_dp
-
-    expl_terms(1:n_eqns,1:comp_cells_x,1:comp_cells_y,1:n_RK) = 0.0_dp
-
-    !$OMP END PARALLEL WORKSHARE
-    
     runge_kutta:DO i_RK = 1,n_RK
 
        IF ( verbose_level .GE. 2 ) WRITE(*,*) 'solver, imex_RK_solver: i_RK',i_RK
@@ -2182,8 +2213,8 @@ CONTAINS
 
     INTEGER :: i,j,k,l                  !< Loop counters
 
-    H_interface_x = 0.0_dp
-    H_interface_y = 0.0_dp
+    !H_interface_x = 0.0_dp
+    !H_interface_y = 0.0_dp
 
     !$OMP PARALLEL
 
