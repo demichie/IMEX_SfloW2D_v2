@@ -2990,7 +2990,7 @@ CONTAINS
 
     END IF
 
-1010 FORMAT(100ES13.5E2)
+1010 FORMAT(100ES14.7E2)
 
     t_output = time + dt_output
 
@@ -3337,6 +3337,9 @@ CONTAINS
     REAL(dp), ALLOCATABLE :: X(:,:), Y(:,:) , dist(:,:)
     INTEGER :: sX, sY
     INTEGER :: imax(2) , imin(2)
+
+    INTEGER :: j,k
+
     REAL(dp) :: max_mom
     REAL(dp) :: area , area0 , dareaRel_dt
     REAL(dp) :: dhRel_dt
@@ -3346,9 +3349,28 @@ CONTAINS
 
     ALLOCATE( X(sX,sY) , Y(sX,sY) , dist(sX,sY) )
 
-    X(:,:) = SPREAD( x_comp, 2, sY )
-    Y(:,:) = SPREAD( y_comp, 1, sX )
+    ! This work with large 
+    !X(:,:) = SPREAD( x_comp, 2, sY )
+    !Y(:,:) = SPREAD( y_comp, 1, sX )
     
+    !$OMP PARALLEL 
+    !$OMP DO 
+    DO k=1,sY
+
+       X(1:sX,k) = x_comp(1:sX)
+
+    END DO
+    !$OMP END DO
+
+    !$OMP DO
+    DO j=1,sX
+
+       Y(j,1:sY) = y_comp(1:sY)
+
+    END DO
+    !$OMP END DO
+    !$OMP END PARALLEL
+
     dist(:,:) = 0.0_dp
 
     IF ( time .EQ. t_start ) THEN
