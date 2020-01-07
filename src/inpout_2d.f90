@@ -2990,7 +2990,7 @@ CONTAINS
 
     END IF
 
-1010 FORMAT(100ES14.7E2)
+1010 FORMAT(100ES15.7E2)
 
     t_output = time + dt_output
 
