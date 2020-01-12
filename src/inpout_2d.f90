@@ -2293,7 +2293,7 @@ CONTAINS
 
     bak_name = TRIM(run_name)//'.bak'
 
-    OPEN(backup_unit,file=bak_name,status='unknown')
+    OPEN(backup_unit,file=bak_name,status='unknown',delim='quote')
 
     WRITE(backup_unit, run_parameters )
 
