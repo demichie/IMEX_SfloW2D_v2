@@ -1391,7 +1391,8 @@ CONTAINS
           ELSE
 
              ! Viscous slope component (dimensionless)
-             s_v = Kappa * fluid_visc * mod_vel / ( 8.0_dp * h_threshold**2 )
+             s_v = Kappa * fluid_visc * mod_vel / ( 8.0_dp * rho_m * grav *     &
+                  h_threshold**2 )
 
              ! Turbulent dispersive components (dimensionless)
              s_td = n_td**2 * (mod_vel**2) / ( h_threshold**(4.0_dp/3.0_dp) )
