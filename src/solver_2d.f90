@@ -1885,7 +1885,7 @@ CONTAINS
     REAL(dp) :: erosion_term(n_solid)
     REAL(dp) :: deposition_term(n_solid)
     REAL(dp) :: eqns_term(n_eqns)
-    REAL(dp) :: deposit_term(n_solid)
+    REAL(dp) :: topo_term
 
     REAL(dp) :: r_Ri , r_rho_m
     REAL(dp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
@@ -1896,7 +1896,7 @@ CONTAINS
     IF ( ( SUM(erosion_coeff) .EQ. 0.0_dp ) .AND. ( .NOT. settling_flag ) ) RETURN
 
     !$OMP PARALLEL DO private(j,k,erosion_term,deposition_term,eqns_term,       &
-    !$OMP & deposit_term,r_Ri,r_rho_m,r_rho_c,r_red_grav)
+    !$OMP & topo_term,r_Ri,r_rho_m,r_rho_c,r_red_grav)
 
     DO l = 1,solve_cells
 
@@ -1914,7 +1914,7 @@ CONTAINS
 
        ! Compute the source terms for the equations
        CALL eval_topo_term( qp(1:n_vars+2,j,k) , deposition_term ,              &
-            erosion_term , eqns_term , deposit_term )
+            erosion_term , eqns_term , topo_term )
 
        IF ( verbose_level .GE. 2 ) THEN
 
@@ -1926,12 +1926,13 @@ CONTAINS
        ! Update the solution with erosion/deposition terms
        q(1:n_eqns,j,k) = q(1:n_eqns,j,k) + dt * eqns_term(1:n_eqns)
 
-       deposit(j,k,1:n_solid) = deposit(j,k,1:n_solid)+dt*deposit_term(1:n_solid)
+       deposit(j,k,1:n_solid) = deposit(j,k,1:n_solid)                          &
+            + dt * deposition_term(1:n_solid)
 
        ! Update the topography with erosion/deposition terms
        IF ( topo_change_flag ) THEN
 
-          B_cent(j,k) = B_cent(j,k) + dt * SUM( deposit_term(1:n_solid) )
+          B_cent(j,k) = B_cent(j,k) + dt * topo_term
 
        END IF
 

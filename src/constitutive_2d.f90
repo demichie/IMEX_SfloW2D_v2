@@ -1770,7 +1770,7 @@ CONTAINS
   !******************************************************************************
 
   SUBROUTINE eval_topo_term( qpj , deposition_avg_term , erosion_avg_term ,      &
-       eqns_term, deposit_term )
+       eqns_term, topo_term )
 
     IMPLICIT NONE
 
@@ -1779,7 +1779,7 @@ CONTAINS
     REAL(dp), INTENT(IN) :: erosion_avg_term(n_solid)    !< erosion term
 
     REAL(dp), INTENT(OUT):: eqns_term(n_eqns)
-    REAL(dp), INTENT(OUT):: deposit_term(n_solid)
+    REAL(dp), INTENT(OUT):: topo_term
 
     REAL(dp) :: entr_coeff
     REAL(dp) :: air_entr
@@ -1798,7 +1798,7 @@ CONTAINS
     IF ( qpj(1) .LE. 0.0_dp ) THEN
 
        eqns_term(1:n_eqns) = 0.0_dp
-       deposit_term(1:n_solid) = 0.0_dp
+       topo_term = 0.0_dp
 
        RETURN
 
@@ -1859,8 +1859,8 @@ CONTAINS
          - deposition_avg_term(1:n_solid) )
 
     ! solid deposit rate terms
-    deposit_term(1:n_solid) = deposition_avg_term(1:n_solid)                    &
-         - erosion_avg_term(1:n_solid)
+    topo_term = SUM( deposition_avg_term(1:n_solid)                             &
+         - erosion_avg_term(1:n_solid) )
 
     RETURN
 
