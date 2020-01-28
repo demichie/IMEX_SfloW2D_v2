@@ -7,31 +7,31 @@
 
 MODULE init_2d
 
-  USE parameters_2d, ONLY : dp
+  USE parameters_2d, ONLY : wp
   USE parameters_2d, ONLY : verbose_level
   USE parameters_2d, ONLY : n_solid
 
   IMPLICIT none
 
-  REAL(dp), ALLOCATABLE :: q_init(:,:,:)
+  REAL(wp), ALLOCATABLE :: q_init(:,:,:)
 
-  REAL(dp), ALLOCATABLE :: thickness_init(:,:)
+  REAL(wp), ALLOCATABLE :: thickness_init(:,:)
   
   !> Riemann problem interface relative position. It is a value
   !> between 0 and 1
-  REAL(dp) :: riemann_interface  
+  REAL(wp) :: riemann_interface  
 
-  REAL(dp) :: hB_W         !< Left height
-  REAL(dp) :: u_W          !< Left velocity x
-  REAL(dp) :: v_W          !< Left velocity y
-  REAL(dp),ALLOCATABLE :: alphas_W(:)         !< Left sediment concentration
-  REAL(dp) :: T_W          !< Left temperature
+  REAL(wp) :: hB_W         !< Left height
+  REAL(wp) :: u_W          !< Left velocity x
+  REAL(wp) :: v_W          !< Left velocity y
+  REAL(wp),ALLOCATABLE :: alphas_W(:)         !< Left sediment concentration
+  REAL(wp) :: T_W          !< Left temperature
 
-  REAL(dp) :: hB_E         !< Right height
-  REAL(dp) :: u_E          !< Right velocity x
-  REAL(dp) :: v_E          !< Right velocity y
-  REAL(dp),ALLOCATABLE :: alphas_E(:)         !< Right sediment concentration
-  REAL(dp) :: T_E          !< Right temperature
+  REAL(wp) :: hB_E         !< Right height
+  REAL(wp) :: u_E          !< Right velocity x
+  REAL(wp) :: v_E          !< Right velocity y
+  REAL(wp),ALLOCATABLE :: alphas_E(:)         !< Right sediment concentration
+  REAL(wp) :: T_E          !< Right temperature
 
 
 CONTAINS
@@ -57,18 +57,18 @@ CONTAINS
 
     IMPLICIT none
 
-    ! REAL(dp) :: hB            !< height + topography
-    ! REAL(dp) :: u             !< velocity
-    ! REAL(dp) :: v             !< velocity
+    ! REAL(wp) :: hB            !< height + topography
+    ! REAL(wp) :: u             !< velocity
+    ! REAL(wp) :: v             !< velocity
 
-    REAL(dp) :: qp(n_vars,comp_cells_x,comp_cells_y) , qj(n_vars)
+    REAL(wp) :: qp(n_vars,comp_cells_x,comp_cells_y) , qj(n_vars)
 
     INTEGER :: j,k          !< loop counter
     INTEGER :: i1           !< last index with left state
 
     INTEGER :: i_solid
 
-    REAL(dp) :: eps
+    REAL(wp) :: eps
 
     IF ( verbose_level .GE. 1 ) THEN
 
@@ -111,8 +111,8 @@ CONTAINS
 
     END DO
 
-    qp(n_vars+1,1:i1,:) = 0.0_dp
-    qp(n_vars+2,1:i1,:) = 0.0_dp
+    qp(n_vars+1,1:i1,:) = 0.0_wp
+    qp(n_vars+2,1:i1,:) = 0.0_wp
 
     IF ( verbose_level .GE. 1 ) WRITE(*,*) 'Left state'
 
@@ -153,8 +153,8 @@ CONTAINS
 
     END DO
 
-    qp(n_vars+1,i1+1:comp_cells_x,:) = 0.0_dp
-    qp(n_vars+2,i1+1:comp_cells_x,:) = 0.0_dp
+    qp(n_vars+1,i1+1:comp_cells_x,:) = 0.0_wp
+    qp(n_vars+2,i1+1:comp_cells_x,:) = 0.0_wp
 
 
     IF ( verbose_level .GE. 1 ) WRITE(*,*) 'Right state'
@@ -217,33 +217,33 @@ CONTAINS
 
     INTEGER :: j,k
 
-    REAL(dp) :: qp_init(n_vars+2) ,  qp0_init(n_vars+2)
+    REAL(wp) :: qp_init(n_vars+2) ,  qp0_init(n_vars+2)
 
-    REAL(dp) :: cell_fract(comp_cells_x,comp_cells_y)
+    REAL(wp) :: cell_fract(comp_cells_x,comp_cells_y)
 
     CALL compute_cell_fract(x_collapse,y_collapse,r_collapse,cell_fract)
 
     ! values outside the collapsing volume
-    qp0_init(1) = 0.0_dp                  ! h
-    qp0_init(2) = 0.0_dp                  ! hu
-    qp0_init(3) = 0.0_dp                  ! hv
+    qp0_init(1) = 0.0_wp                  ! h
+    qp0_init(2) = 0.0_wp                  ! hu
+    qp0_init(3) = 0.0_wp                  ! hv
     qp0_init(4) = T_collapse            ! T
-    qp0_init(5:4+n_solid) = 0.0_dp        ! alphas
-    qp0_init(n_vars+1:n_vars+2) = 0.0_dp  ! u,v
+    qp0_init(5:4+n_solid) = 0.0_wp        ! alphas
+    qp0_init(n_vars+1:n_vars+2) = 0.0_wp  ! u,v
 
     ! values within the collapsing volume
     qp_init(1) = h_collapse
-    qp_init(2) = 0.0_dp
-    qp_init(3) = 0.0_dp
+    qp_init(2) = 0.0_wp
+    qp_init(3) = 0.0_wp
     qp_init(4) = T_collapse
     qp_init(5:4+n_solid) = alphas_collapse(1:n_solid)
-    qp_init(n_vars+1:n_vars+2) = 0.0_dp
+    qp_init(n_vars+1:n_vars+2) = 0.0_wp
     
     DO j = 1,comp_cells_x
        
        DO k = 1,comp_cells_y
           
-          IF ( cell_fract(j,k) .GT. 0.0_dp ) THEN
+          IF ( cell_fract(j,k) .GT. 0.0_wp ) THEN
              
              qp_init(1) = cell_fract(j,k) * h_collapse
 

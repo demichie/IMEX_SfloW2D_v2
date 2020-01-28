@@ -23,7 +23,7 @@ MODULE solver_2d
   USE geometry_2d, ONLY : grav_surf
   USE geometry_2d, ONLY : source_cell
 
-  USE parameters_2d, ONLY : dp
+  USE parameters_2d, ONLY : wp , sp
 
   USE parameters_2d, ONLY : n_eqns , n_vars , n_nh , n_solid
   USE parameters_2d, ONLY : n_RK
@@ -40,78 +40,78 @@ MODULE solver_2d
   IMPLICIT none
 
   !> time
-  REAL(dp) :: t
+  REAL(wp) :: t
 
   !> Conservative variables
-  REAL(dp), ALLOCATABLE :: q(:,:,:)        
+  REAL(wp), ALLOCATABLE :: q(:,:,:)        
   !> Conservative variables
-  REAL(dp), ALLOCATABLE :: q0(:,:,:)        
+  REAL(wp), ALLOCATABLE :: q0(:,:,:)        
   !> Solution of the finite-volume semidiscrete cheme
-  REAL(dp), ALLOCATABLE :: q_fv(:,:,:)     
+  REAL(wp), ALLOCATABLE :: q_fv(:,:,:)     
 
   !> Reconstructed value at the left of the x-interface
-  REAL(dp), ALLOCATABLE :: q_interfaceL(:,:,:)        
+  REAL(wp), ALLOCATABLE :: q_interfaceL(:,:,:)        
   !> Reconstructed value at the right of the x-interface
-  REAL(dp), ALLOCATABLE :: q_interfaceR(:,:,:)
+  REAL(wp), ALLOCATABLE :: q_interfaceR(:,:,:)
   !> Reconstructed value at the bottom of the y-interface
-  REAL(dp), ALLOCATABLE :: q_interfaceB(:,:,:)        
+  REAL(wp), ALLOCATABLE :: q_interfaceB(:,:,:)        
   !> Reconstructed value at the top of the y-interface
-  REAL(dp), ALLOCATABLE :: q_interfaceT(:,:,:)
+  REAL(wp), ALLOCATABLE :: q_interfaceT(:,:,:)
 
   !> Reconstructed physical value at the left of the x-interface
-  REAL(dp), ALLOCATABLE :: qp_interfaceL(:,:,:)        
+  REAL(wp), ALLOCATABLE :: qp_interfaceL(:,:,:)        
   !> Reconstructed physical value at the right of the x-interface
-  REAL(dp), ALLOCATABLE :: qp_interfaceR(:,:,:)
+  REAL(wp), ALLOCATABLE :: qp_interfaceR(:,:,:)
   !> Reconstructed physical value at the bottom of the y-interface
-  REAL(dp), ALLOCATABLE :: qp_interfaceB(:,:,:)        
+  REAL(wp), ALLOCATABLE :: qp_interfaceB(:,:,:)        
   !> Reconstructed physical value at the top of the y-interface
-  REAL(dp), ALLOCATABLE :: qp_interfaceT(:,:,:)
+  REAL(wp), ALLOCATABLE :: qp_interfaceT(:,:,:)
 
   !> Reconstructed value at the NW corner of cell
-  REAL(dp), ALLOCATABLE :: q_cellNW(:,:,:)        
+  REAL(wp), ALLOCATABLE :: q_cellNW(:,:,:)        
   !> Reconstructed value at the NE corner of cell
-  REAL(dp), ALLOCATABLE :: q_cellNE(:,:,:)
+  REAL(wp), ALLOCATABLE :: q_cellNE(:,:,:)
   !> Reconstructed value at the SW corner of cell
-  REAL(dp), ALLOCATABLE :: q_cellSW(:,:,:)        
+  REAL(wp), ALLOCATABLE :: q_cellSW(:,:,:)        
   !> Reconstructed value at the SE corner of cell
-  REAL(dp), ALLOCATABLE :: q_cellSE(:,:,:)
+  REAL(wp), ALLOCATABLE :: q_cellSE(:,:,:)
 
   !> Reconstructed physical value at the NW corner of cell
-  REAL(dp), ALLOCATABLE :: qp_cellNW(:,:,:)        
+  REAL(wp), ALLOCATABLE :: qp_cellNW(:,:,:)        
   !> Reconstructed physical value at the NE corner of cell
-  REAL(dp), ALLOCATABLE :: qp_cellNE(:,:,:)
+  REAL(wp), ALLOCATABLE :: qp_cellNE(:,:,:)
   !> Reconstructed physical value at the SW corner of cell
-  REAL(dp), ALLOCATABLE :: qp_cellSW(:,:,:)        
+  REAL(wp), ALLOCATABLE :: qp_cellSW(:,:,:)        
   !> Reconstructed physical value at the SE corner of cell
-  REAL(dp), ALLOCATABLE :: qp_cellSE(:,:,:)
+  REAL(wp), ALLOCATABLE :: qp_cellSE(:,:,:)
 
 
   !> Maximum over time of thickness
-  REAL(dp), ALLOCATABLE :: q1max(:,:)
+  REAL(wp), ALLOCATABLE :: q1max(:,:)
 
   !> Max local speeds at the x-interface
-  REAL(dp), ALLOCATABLE :: a_interface_x_max(:,:,:)
+  REAL(wp), ALLOCATABLE :: a_interface_x_max(:,:,:)
   !> Max local speeds at the y-interface
-  REAL(dp), ALLOCATABLE :: a_interface_y_max(:,:,:)
+  REAL(wp), ALLOCATABLE :: a_interface_y_max(:,:,:)
 
 
   !> Local speeds at the left of the x-interface
-  REAL(dp), ALLOCATABLE :: a_interface_xNeg(:,:,:)
+  REAL(wp), ALLOCATABLE :: a_interface_xNeg(:,:,:)
   !> Local speeds at the right of the x-interface
-  REAL(dp), ALLOCATABLE :: a_interface_xPos(:,:,:)
+  REAL(wp), ALLOCATABLE :: a_interface_xPos(:,:,:)
   !> Local speeds at the bottom of the y-interface
-  REAL(dp), ALLOCATABLE :: a_interface_yNeg(:,:,:)
+  REAL(wp), ALLOCATABLE :: a_interface_yNeg(:,:,:)
   !> Local speeds at the top of the y-interface
-  REAL(dp), ALLOCATABLE :: a_interface_yPos(:,:,:)
+  REAL(wp), ALLOCATABLE :: a_interface_yPos(:,:,:)
   !> Semidiscrete numerical interface fluxes 
-  REAL(dp), ALLOCATABLE :: H_interface_x(:,:,:)
+  REAL(wp), ALLOCATABLE :: H_interface_x(:,:,:)
   !> Semidiscrete numerical interface fluxes 
-  REAL(dp), ALLOCATABLE :: H_interface_y(:,:,:)
+  REAL(wp), ALLOCATABLE :: H_interface_y(:,:,:)
   !> Physical variables (\f$\alpha_1, p_1, p_2, \rho u, w, T\f$)
-  REAL(dp), ALLOCATABLE :: qp(:,:,:)
+  REAL(wp), ALLOCATABLE :: qp(:,:,:)
 
   !> Array defining fraction of cells affected by source term
-  REAL(dp), ALLOCATABLE :: source_xy(:,:)
+  REAL(wp), ALLOCATABLE :: source_xy(:,:)
 
   LOGICAL, ALLOCATABLE :: solve_mask(:,:)
   LOGICAL, ALLOCATABLE :: solve_mask_x(:,:)
@@ -122,49 +122,49 @@ MODULE solver_2d
   INTEGER :: solve_interfaces_y
 
   !> Time step
-  REAL(dp) :: dt
+  REAL(wp) :: dt
 
   LOGICAL, ALLOCATABLE :: mask22(:,:) , mask21(:,:) , mask11(:,:) , mask12(:,:)
 
   INTEGER :: i_RK           !< loop counter for the RK iteration
 
   !> Butcher Tableau for the explicit part of the Runge-Kutta scheme
-  REAL(dp), ALLOCATABLE :: a_tilde_ij(:,:)
+  REAL(wp), ALLOCATABLE :: a_tilde_ij(:,:)
   !> Butcher Tableau for the implicit part of the Runge-Kutta scheme
-  REAL(dp), ALLOCATABLE :: a_dirk_ij(:,:)
+  REAL(wp), ALLOCATABLE :: a_dirk_ij(:,:)
 
   !> Coefficients for the explicit part of the Runge-Kutta scheme
-  REAL(dp), ALLOCATABLE :: omega_tilde(:)
+  REAL(wp), ALLOCATABLE :: omega_tilde(:)
 
   !> Coefficients for the implicit part of the Runge-Kutta scheme
-  REAL(dp), ALLOCATABLE :: omega(:)
+  REAL(wp), ALLOCATABLE :: omega(:)
 
   !> Explicit coeff. for the hyperbolic part for a single step of the R-K scheme
-  REAL(dp), ALLOCATABLE :: a_tilde(:)
+  REAL(wp), ALLOCATABLE :: a_tilde(:)
 
   !> Explicit coeff. for the non-hyp. part for a single step of the R-K scheme
-  REAL(dp), ALLOCATABLE :: a_dirk(:)
+  REAL(wp), ALLOCATABLE :: a_dirk(:)
 
   !> Implicit coeff. for the non-hyp. part for a single step of the R-K scheme
-  REAL(dp) :: a_diag
+  REAL(wp) :: a_diag
 
   !> Intermediate solutions of the Runge-Kutta scheme
-  REAL(dp), ALLOCATABLE :: q_rk(:,:,:,:)
+  REAL(wp), ALLOCATABLE :: q_rk(:,:,:,:)
 
   !> Intermediate physical solutions of the Runge-Kutta scheme
-  REAL(dp), ALLOCATABLE :: qp_rk(:,:,:,:)
+  REAL(wp), ALLOCATABLE :: qp_rk(:,:,:,:)
 
   !> Intermediate hyperbolic terms of the Runge-Kutta scheme
-  REAL(dp), ALLOCATABLE :: divFlux(:,:,:,:)
+  REAL(wp), ALLOCATABLE :: divFlux(:,:,:,:)
 
   !> Intermediate non-hyperbolic terms of the Runge-Kutta scheme
-  REAL(dp), ALLOCATABLE :: NH(:,:,:,:)
+  REAL(wp), ALLOCATABLE :: NH(:,:,:,:)
 
   !> Intermediate semi-implicit non-hyperbolic terms of the Runge-Kutta scheme
-  REAL(dp), ALLOCATABLE :: SI_NH(:,:,:,:)
+  REAL(wp), ALLOCATABLE :: SI_NH(:,:,:,:)
 
   !> Intermediate explicit terms of the Runge-Kutta scheme
-  REAL(dp), ALLOCATABLE :: expl_terms(:,:,:,:)
+  REAL(wp), ALLOCATABLE :: expl_terms(:,:,:,:)
 
   !> Flag for the normalization of the array q in the implicit solution scheme
   LOGICAL :: normalize_q
@@ -176,7 +176,7 @@ MODULE solver_2d
   LOGICAL :: opt_search_NL
 
   !> Sum of all the terms of the equations except the transient term
-  REAL(dp), ALLOCATABLE :: residual_term(:,:,:)
+  REAL(wp), ALLOCATABLE :: residual_term(:,:,:)
 
   INTEGER, ALLOCATABLE :: j_cent(:)
   INTEGER, ALLOCATABLE :: k_cent(:)
@@ -205,7 +205,7 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp) :: gamma , delta
+    REAL(wp) :: gamma , delta
 
     INTEGER :: i,j
 
@@ -214,8 +214,8 @@ CONTAINS
 
     ALLOCATE( qp( n_vars+2 , comp_cells_x , comp_cells_y ) )
 
-    q(1:n_vars,1:comp_cells_x,1:comp_cells_y) = 0.0_dp
-    qp(1:n_vars+2,1:comp_cells_x,1:comp_cells_y) = 0.0_dp
+    q(1:n_vars,1:comp_cells_x,1:comp_cells_y) = 0.0_wp
+    qp(1:n_vars+2,1:comp_cells_x,1:comp_cells_y) = 0.0_wp
 
     ALLOCATE( q1max( comp_cells_x , comp_cells_y ) )
 
@@ -257,6 +257,13 @@ CONTAINS
     ALLOCATE( H_interface_y( n_eqns , comp_cells_x, comp_interfaces_y ) )
 
     ALLOCATE( solve_mask( comp_cells_x , comp_cells_y ) )
+
+    solve_mask(1,1:comp_cells_y) = .TRUE.
+    solve_mask(comp_cells_x,1:comp_cells_y) = .TRUE.
+    solve_mask(1:comp_cells_x,1) = .TRUE.
+    solve_mask(1:comp_cells_x,comp_cells_y) = .TRUE.
+
+
     ALLOCATE( solve_mask_x( comp_interfaces_x , comp_cells_y ) )
     ALLOCATE( solve_mask_y( comp_cells_x , comp_interfaces_y ) )
 
@@ -306,87 +313,87 @@ CONTAINS
     ! explicit and implicit terms do not depend explicitly on time.
 
     ! Explicit part coefficients (a_tilde_ij=0 for j>=i)
-    a_tilde_ij = 0.0_dp
+    a_tilde_ij = 0.0_wp
 
     ! Weight coefficients of the explicit part in the final assemblage
-    omega_tilde = 0.0_dp
+    omega_tilde = 0.0_wp
 
     ! Implicit part coefficients (a_dirk_ij=0 for j>i)
-    a_dirk_ij = 0.0_dp
+    a_dirk_ij = 0.0_wp
 
     ! Weight coefficients of the explicit part in the final assemblage
-    omega = 0.0_dp
+    omega = 0.0_wp
 
-    gamma = 1.0_dp - 1.0_dp / SQRT(2.0_dp)
-    delta = 1.0_dp - 1.0_dp / ( 2.0_dp * gamma )
+    gamma = 1.0_wp - 1.0_wp / SQRT(2.0_wp)
+    delta = 1.0_wp - 1.0_wp / ( 2.0_wp * gamma )
 
     IF ( n_RK .EQ. 1 ) THEN
 
-       a_tilde_ij(1,1) = 1.0_dp
+       a_tilde_ij(1,1) = 1.0_wp
 
-       omega_tilde(1) = 1.0_dp
+       omega_tilde(1) = 1.0_wp
 
-       a_dirk_ij(1,1) = 0.0_dp
+       a_dirk_ij(1,1) = 0.0_wp
 
-       omega(1) = 0.0_dp
+       omega(1) = 0.0_wp
 
     ELSEIF ( n_RK .EQ. 2 ) THEN
 
-       a_tilde_ij(2,1) = 1.0_dp
+       a_tilde_ij(2,1) = 1.0_wp
 
-       omega_tilde(1) = 1.0_dp
-       omega_tilde(2) = 0.0_dp
+       omega_tilde(1) = 1.0_wp
+       omega_tilde(2) = 0.0_wp
 
-       a_dirk_ij(2,2) = 1.0_dp
+       a_dirk_ij(2,2) = 1.0_wp
 
-       omega(1) = 0.0_dp
-       omega(2) = 1.0_dp
+       omega(1) = 0.0_wp
+       omega(2) = 1.0_wp
 
     ELSEIF ( n_RK .EQ. 3 ) THEN
 
        ! Tableau for the IMEX-SSP(3,3,2) Stiffly Accurate Scheme
        ! from Pareschi & Russo (2005), Table IV
 
-       a_tilde_ij(2,1) = 0.5_dp
-       a_tilde_ij(3,1) = 0.5_dp
-       a_tilde_ij(3,2) = 0.5_dp
+       a_tilde_ij(2,1) = 0.5_wp
+       a_tilde_ij(3,1) = 0.5_wp
+       a_tilde_ij(3,2) = 0.5_wp
 
-       omega_tilde(1) =  1.0_dp / 3.0_dp
-       omega_tilde(2) =  1.0_dp / 3.0_dp
-       omega_tilde(3) =  1.0_dp / 3.0_dp
+       omega_tilde(1) =  1.0_wp / 3.0_wp
+       omega_tilde(2) =  1.0_wp / 3.0_wp
+       omega_tilde(3) =  1.0_wp / 3.0_wp
 
-       a_dirk_ij(1,1) = 0.25_dp
-       a_dirk_ij(2,2) = 0.25_dp
-       a_dirk_ij(3,1) = 1.0_dp / 3.0_dp
-       a_dirk_ij(3,2) = 1.0_dp / 3.0_dp
-       a_dirk_ij(3,3) = 1.0_dp / 3.0_dp
+       a_dirk_ij(1,1) = 0.25_wp
+       a_dirk_ij(2,2) = 0.25_wp
+       a_dirk_ij(3,1) = 1.0_wp / 3.0_wp
+       a_dirk_ij(3,2) = 1.0_wp / 3.0_wp
+       a_dirk_ij(3,3) = 1.0_wp / 3.0_wp
 
-       omega(1) =  1.0_dp / 3.0_dp
-       omega(2) =  1.0_dp / 3.0_dp
-       omega(3) =  1.0_dp / 3.0_dp
+       omega(1) =  1.0_wp / 3.0_wp
+       omega(2) =  1.0_wp / 3.0_wp
+       omega(3) =  1.0_wp / 3.0_wp
 
     ELSEIF ( n_RK .EQ. 4 ) THEN
 
        ! LRR(3,2,2) from Table 3 in Pareschi & Russo (2000)
 
-       a_tilde_ij(2,1) = 0.5_dp
-       a_tilde_ij(3,1) = 1.0_dp / 3.0_dp
-       a_tilde_ij(4,2) = 1.0_dp
+       a_tilde_ij(2,1) = 0.5_wp
+       a_tilde_ij(3,1) = 1.0_wp / 3.0_wp
+       a_tilde_ij(4,2) = 1.0_wp
 
-       omega_tilde(1) = 0.0_dp
-       omega_tilde(2) = 1.0_dp
-       omega_tilde(3) = 0.0_dp
-       omega_tilde(4) = 0.0_dp
+       omega_tilde(1) = 0.0_wp
+       omega_tilde(2) = 1.0_wp
+       omega_tilde(3) = 0.0_wp
+       omega_tilde(4) = 0.0_wp
 
-       a_dirk_ij(2,2) = 0.5_dp
-       a_dirk_ij(3,3) = 1.0_dp / 3.0_dp
-       a_dirk_ij(4,3) = 0.75_dp
-       a_dirk_ij(4,4) = 0.25_dp
+       a_dirk_ij(2,2) = 0.5_wp
+       a_dirk_ij(3,3) = 1.0_wp / 3.0_wp
+       a_dirk_ij(4,3) = 0.75_wp
+       a_dirk_ij(4,4) = 0.25_wp
 
-       omega(1) = 0.0_dp
-       omega(2) = 0.0_dp
-       omega(3) = 0.75_dp
-       omega(4) = 0.25_dp
+       omega(1) = 0.0_wp
+       omega(2) = 0.0_wp
+       omega(3) = 0.75_wp
+       omega(4) = 0.25_wp
 
     END IF
 
@@ -526,49 +533,37 @@ CONTAINS
 
     INTEGER :: i,j,k
 
-
     !$OMP PARALLEL
-
-    !$OMP WORKSHARE
-
-    solve_mask(1:comp_cells_x,1:comp_cells_y) = .FALSE.
-
-    WHERE ( q(1,:,:) .GT. 0.0_dp ) solve_mask = .TRUE.
-
-    !$OMP END WORKSHARE
-
-    !$OMP SINGLE
-
-    ! the equations are solved here to prescribe boundary conditions
-    solve_mask(1,1:comp_cells_y) = .TRUE.
-    solve_mask(comp_cells_x,1:comp_cells_y) = .TRUE.
-    solve_mask(1:comp_cells_x,1) = .TRUE.
-    solve_mask(1:comp_cells_x,comp_cells_y) = .TRUE.
-
-    !$OMP END SINGLE
-
-
-    !$OMP DO private(j,k)
     
-    DO k = 1,comp_cells_y
-       
-       DO j = 1,comp_cells_x
-          
-          IF ( radial_source_flag ) THEN
+    !$OMP WORKSHARE
+    solve_mask(2:comp_cells_x,2:comp_cells_y) = .FALSE.
+    WHERE ( q(1,2:comp_cells_x,2:comp_cells_y) .GT. 0.0_wp )  &
+         solve_mask(2:comp_cells_x,2:comp_cells_y) = .TRUE.
+    
+    !$OMP END WORKSHARE
+    
+    IF ( radial_source_flag ) THEN
              
+       !$OMP DO private(j,k)
+    
+       DO k = 2,comp_cells_y-1
+   
+          DO j = 2,comp_cells_x-1
+
              IF ( source_cell(j,k) .EQ. 2 ) THEN
                 
                 solve_mask(j,k) = .TRUE.
                 
              END IF
 
-          END IF
+          END DO
           
        END DO
-       
-    END DO
 
-    !$OMP END DO
+       !$OMP END DO
+
+    END IF
+
 
     !$OMP SINGLE
 
@@ -709,17 +704,17 @@ CONTAINS
 
     IMPLICIT none
 
-    REAL(dp) :: dt_cfl        !< local time step
+    REAL(wp) :: dt_cfl        !< local time step
 
-    REAL(dp) :: dt_interface_x, dt_interface_y
+    REAL(wp) :: dt_interface_x, dt_interface_y
 
     INTEGER :: i,j,k,l          !< loop counter
 
-    REAL(dp) :: max_a
+    REAL(wp) :: max_a
 
     dt = max_dt
 
-    IF ( cfl .NE. -1.0_dp ) THEN
+    IF ( cfl .NE. -1.0_wp ) THEN
 
        !$OMP PARALLEL DO private(j,k)
 
@@ -728,7 +723,15 @@ CONTAINS
           j = j_cent(l)
           k = k_cent(l)
 
-          CALL qc_to_qp( q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) )
+          IF ( q(1,j,k) .GT. 0.0_wp ) THEN
+
+             CALL qc_to_qp( q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) )
+
+          ELSE
+
+             qp(1:n_vars+2,j,k) = 0.0_wp
+
+          END IF
 
        END DO
 
@@ -783,7 +786,7 @@ CONTAINS
           max_a =  MAX( MAXVAL(a_interface_x_max(:,j,k)) ,                      &
                MAXVAL(a_interface_x_max(:,j+1,k)) )
 
-          IF ( max_a .GT. 0.0_dp ) THEN
+          IF ( max_a .GT. 0.0_wp ) THEN
 
              dt_interface_x = cfl * dx / max_a
 
@@ -796,7 +799,7 @@ CONTAINS
           max_a =  MAX( MAXVAL(a_interface_y_max(:,j,k)) ,                      &
                MAXVAL(a_interface_y_max(:,j,k+1)) )
 
-          IF ( max_a .GT. 0.0_dp ) THEN
+          IF ( max_a .GT. 0.0_wp ) THEN
 
              dt_interface_y = cfl * dy / max_a
 
@@ -844,10 +847,10 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp) :: q_si(n_vars) !< solution after the semi-implicit step
-    REAL(dp) :: q_guess(n_vars) !< initial guess for the solution of the RK step
+    REAL(wp) :: q_si(n_vars) !< solution after the semi-implicit step
+    REAL(wp) :: q_guess(n_vars) !< initial guess for the solution of the RK step
     INTEGER :: j,k,l            !< loop counter over the grid volumes
-    REAL(dp) :: Rj_not_impl(n_eqns)
+    REAL(wp) :: Rj_not_impl(n_eqns)
 
     IF ( verbose_level .GE. 2 ) WRITE(*,*) 'solver, imex_RK_solver: beginning'
 
@@ -862,17 +865,17 @@ CONTAINS
             q( 1:n_vars , j , k )
        
        ! Initialization of the variables for the Runge-Kutta scheme
-       q_rk( 1:n_vars , j , k , 1:n_RK ) = 0.0_dp
+       q_rk( 1:n_vars , j , k , 1:n_RK ) = 0.0_wp
        
-       qp_rk( 1:n_vars+2 , j , k , 1:n_RK ) = 0.0_dp
+       qp_rk( 1:n_vars+2 , j , k , 1:n_RK ) = 0.0_wp
        
-       divFlux(1:n_eqns , j , k , 1:n_RK ) = 0.0_dp
+       divFlux(1:n_eqns , j , k , 1:n_RK ) = 0.0_wp
        
-       NH( 1:n_eqns, j , k , 1:n_RK ) = 0.0_dp
+       NH( 1:n_eqns, j , k , 1:n_RK ) = 0.0_wp
        
-       SI_NH( 1:n_eqns , j , k , 1:n_RK ) = 0.0_dp
+       SI_NH( 1:n_eqns , j , k , 1:n_RK ) = 0.0_wp
        
-       expl_terms(1:n_eqns , j , k , 1:n_RK) = 0.0_dp
+       expl_terms(1:n_eqns , j , k , 1:n_RK) = 0.0_wp
        
     END DO init_cells_loop
     !$OMP END PARALLEL DO
@@ -882,8 +885,8 @@ CONTAINS
        IF ( verbose_level .GE. 2 ) WRITE(*,*) 'solver, imex_RK_solver: i_RK',i_RK
 
        ! define the explicits coefficients for the i-th step of the Runge-Kutta
-       a_tilde = 0.0_dp
-       a_dirk = 0.0_dp
+       a_tilde = 0.0_wp
+       a_dirk = 0.0_wp
 
        ! in the first step of the RK scheme all the coefficients remain to 0
        a_tilde(1:i_RK-1) = a_tilde_ij(i_RK,1:i_RK-1)
@@ -930,14 +933,18 @@ CONTAINS
           IF ( verbose_level .GE. 2 ) THEN
 
              WRITE(*,*) 'q_guess',q_guess
-             CALL qc_to_qp( q_guess , qp(1:n_vars+2,j,k) )
-             WRITE(*,*) 'q_guess: qp',qp(1:n_vars+2,j,k)
+             IF ( q_guess(1) .GT. 0.0_wp  ) THEN 
+
+                CALL qc_to_qp( q_guess , qp(1:n_vars+2,j,k) )
+                WRITE(*,*) 'q_guess: qp',qp(1:n_vars+2,j,k)
+
+             END IF
 
           END IF
 
-          adiag_pos:IF ( a_diag .NE. 0.0_dp ) THEN
+          adiag_pos:IF ( a_diag .NE. 0.0_wp ) THEN
 
-             pos_thick:IF ( q_fv(1,j,k) .GT.  0.0_dp )  THEN
+             pos_thick:IF ( q_fv(1,j,k) .GT.  0.0_wp )  THEN
 
                 ! Eval the semi-implicit terms
                 ! (terms which non depend on velocity magnitude)
@@ -948,17 +955,17 @@ CONTAINS
                 q_si(1:n_vars) = q_fv(1:n_vars,j,k ) + dt * a_diag *            &
                      SI_NH(1:n_eqns,j,k,i_RK)
 
-                IF ( ( q_fv(2,j,k)**2 + q_fv(3,j,k)**2 ) .EQ. 0.0_dp ) THEN
+                IF ( ( q_fv(2,j,k)**2 + q_fv(3,j,k)**2 ) .EQ. 0.0_wp ) THEN
 
                    !Case 1: if the velocity was null, then it must stay null
-                   q_si(2:3) = 0.0_dp 
+                   q_si(2:3) = 0.0_wp 
 
-                ELSEIF ( ( q_si(2)*q_fv(2,j,k) .LT. 0.0_dp ) .OR.               &
-                     ( q_si(3)*q_fv(3,j,k) .LT. 0.0_dp ) ) THEN
+                ELSEIF ( ( q_si(2)*q_fv(2,j,k) .LT. 0.0_wp ) .OR.               &
+                     ( q_si(3)*q_fv(3,j,k) .LT. 0.0_wp ) ) THEN
 
                    ! If the semi-impl. friction term changed the sign of the 
                    ! velocity then set it to zero
-                   q_si(2:3) = 0.0_dp 
+                   q_si(2:3) = 0.0_wp 
 
                 ELSE
 
@@ -994,13 +1001,13 @@ CONTAINS
 
                 IF ( comp_cells_y .EQ. 1 ) THEN
 
-                   q_guess(3) = 0.0_dp
+                   q_guess(3) = 0.0_wp
 
                 END IF
 
                 IF ( comp_cells_x .EQ. 1 ) THEN
 
-                   q_guess(2) = 0.0_dp
+                   q_guess(2) = 0.0_wp
 
                 END IF
 
@@ -1008,16 +1015,16 @@ CONTAINS
                 CALL eval_nonhyperbolic_terms( r_qj = q_guess ,                 &
                      r_nh_term_impl = NH(1:n_eqns,j,k,i_RK) )
 
-                IF ( q_si(2)**2 + q_si(3)**2 .EQ. 0.0_dp ) THEN
+                IF ( q_si(2)**2 + q_si(3)**2 .EQ. 0.0_wp ) THEN
 
-                   q_guess(2:3) = 0.0_dp 
+                   q_guess(2:3) = 0.0_wp 
 
-                ELSEIF ( ( q_guess(2)*q_si(2) .LE. 0.0_dp ) .AND.               &
-                     ( q_guess(3)*q_si(3) .LE. 0.0_dp ) ) THEN
+                ELSEIF ( ( q_guess(2)*q_si(2) .LE. 0.0_wp ) .AND.               &
+                     ( q_guess(3)*q_si(3) .LE. 0.0_wp ) ) THEN
 
                    ! If the impl. friction term changed the sign of the 
                    ! velocity then set it to zero
-                   q_guess(2:3) = 0.0_dp 
+                   q_guess(2:3) = 0.0_wp 
 
                 ELSE
 
@@ -1032,14 +1039,14 @@ CONTAINS
                 ! If h=0 nothing has to be changed 
                 q_guess(1:n_vars) = q_fv( 1:n_vars , j , k ) 
                 q_si(1:n_vars) = q_fv( 1:n_vars , j , k ) 
-                SI_NH(1:n_eqns,j,k,i_RK) = 0.0_dp
-                NH(1:n_eqns,j,k,i_RK) = 0.0_dp
+                SI_NH(1:n_eqns,j,k,i_RK) = 0.0_wp
+                NH(1:n_eqns,j,k,i_RK) = 0.0_wp
 
              END IF pos_thick
 
           END IF adiag_pos
 
-          IF ( a_diag .NE. 0.0_dp ) THEN
+          IF ( a_diag .NE. 0.0_wp ) THEN
 
              ! Update the implicit term with correction on the new velocity
              NH(1:n_vars,j,k,i_RK) = ( q_guess(1:n_vars) - q_si(1:n_vars))      &
@@ -1053,16 +1060,30 @@ CONTAINS
           IF ( verbose_level .GE. 2 ) THEN
 
              WRITE(*,*) 'imex_RK_solver: qc',q_guess
-             CALL qc_to_qp( q_guess , qp(1:n_vars+2,j,k) )
-             WRITE(*,*) 'imex_RK_solver: qp',qp(1:n_vars+2,j,k)
+
+             IF ( q_guess(1) .GT. 0.0_wp ) THEN
+
+                CALL qc_to_qp( q_guess , qp(1:n_vars+2,j,k) )
+                WRITE(*,*) 'imex_RK_solver: qp',qp(1:n_vars+2,j,k)
+
+             END IF
+             
              READ(*,*)
 
           END IF
 
-          IF ( omega_tilde(i_RK) .GT. 0.0_dp ) THEN
+          IF ( omega_tilde(i_RK) .GT. 0.0_wp ) THEN
           
-             CALL qc_to_qp( q_rk(1:n_vars,j,k,i_RK) ,                           &
-                  qp_rk(1:n_vars+2,j,k,i_RK) )
+             IF ( q_rk(1,j,k,i_RK) .GT. 0.0_wp ) THEN
+
+                CALL qc_to_qp( q_rk(1:n_vars,j,k,i_RK) ,                        &
+                     qp_rk(1:n_vars+2,j,k,i_RK) )
+
+             ELSE
+
+                qp_rk(1:n_vars+2,j,k,i_RK) = 0.0_wp
+
+             END IF
              
              ! Eval and store the other explicit terms (e.g. gravity or viscous 
              ! forces)
@@ -1078,7 +1099,7 @@ CONTAINS
 
        !$OMP END PARALLEL 
 
-       IF ( omega_tilde(i_RK) .GT. 0.0_dp ) THEN
+       IF ( omega_tilde(i_RK) .GT. 0.0_wp ) THEN
 
           ! Eval and store the explicit hyperbolic (fluxes) terms
           CALL eval_hyperbolic_terms(                                           &
@@ -1107,13 +1128,17 @@ CONTAINS
 
           WRITE(*,*) 'cell jk =',j,k
           WRITE(*,*) 'before imex_RK_solver: qc',q0(1:n_vars,j,k)
-          CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k))
-          WRITE(*,*) 'before imex_RK_solver: qp',qp(1:n_vars+2,j,k)
+          IF ( q0(1,j,k) .GT. 0.0_wp ) THEN
+
+             CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k))
+             WRITE(*,*) 'before imex_RK_solver: qp',qp(1:n_vars+2,j,k)
+
+          END IF
 
        END IF
 
-       IF ( ( SUM(ABS( omega_tilde(:)-a_tilde_ij(n_RK,:))) .EQ. 0.0_dp  )       &
-            .AND. ( SUM(ABS(omega(:)-a_dirk_ij(n_RK,:))) .EQ. 0.0_dp ) ) THEN
+       IF ( ( SUM(ABS( omega_tilde(:)-a_tilde_ij(n_RK,:))) .EQ. 0.0_wp  )       &
+            .AND. ( SUM(ABS(omega(:)-a_dirk_ij(n_RK,:))) .EQ. 0.0_wp ) ) THEN
 
           ! The assembling coeffs are equal to the last step of the RK scheme
           q(1:n_vars,j,k) = q_rk(1:n_vars,j,k,n_RK)
@@ -1125,20 +1150,37 @@ CONTAINS
 
        END IF
 
-       negative_thickness_check:IF ( q(1,j,k) .LT. 0.0_dp ) THEN
+       negative_thickness_check:IF ( q(1,j,k) .LT. 0.0_wp ) THEN
 
           IF ( q(1,j,k) .GT. -1.D-7 ) THEN
 
-             q(1,j,k) = 0.0_dp
-             q(2:n_vars,j,k) = 0.0_dp
+             q(1,j,k) = 0.0_wp
+             q(2:n_vars,j,k) = 0.0_wp
 
           ELSE
 
              WRITE(*,*) 'j,k,n_RK',j,k,n_RK
              WRITE(*,*) 'dt',dt
              WRITE(*,*) 'before imex_RK_solver: qc',q0(1:n_vars,j,k)
-             CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k))
-             WRITE(*,*) 'before imex_RK_solver: qp',qp(1:n_vars+2,j,k)
+             IF ( q0(1,j,k) .GT. 0.0_wp ) THEN
+
+                CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k))
+                WRITE(*,*) 'before imex_RK_solver: qp',qp(1:n_vars+2,j,k)
+
+             END IF
+             WRITE(*,*) 'after imex_RK_solver: qc',q(1:n_vars,j,k)
+
+             WRITE(*,*) 'divFlux(1,j,k,1:n_RK)',divFlux(1,j,k,1:n_RK) 
+
+             WRITE(*,*) H_interface_x(1,j+1,k), H_interface_x(1,j,k)
+             WRITE(*,*) qp_interfaceR(1:n_vars,j,k)
+             WRITE(*,*) qp(1:n_vars,j,k)
+             WRITE(*,*) qp_interfaceL(1:n_vars,j+1,k)
+
+             WRITE(*,*) 'expl_terms(1,j,k,1:n_RK)',expl_terms(1,j,k,1:n_RK) 
+             WRITE(*,*) 'NH(1,j,k,1:n_RK)',NH(1,j,k,1:n_RK) 
+             WRITE(*,*) 'SI_NH(1,j,k,1:n_RK)',SI_NH(1,j,k,1:n_RK) 
+
              WRITE(*,*) 'B_cent(j,k)',B_cent(j,k)
 
              READ(*,*)
@@ -1160,11 +1202,20 @@ CONTAINS
              WRITE(*,*) 'dt',dt
              WRITE(*,*) ' B_cent(j,k)', B_cent(j,k)
              WRITE(*,*) 'before imex_RK_solver: qc',q0(1:n_vars,j,k)
-             CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k))
-             WRITE(*,*) 'before imex_RK_solver: qp',qp(1:n_vars+2,j,k)
+             IF ( q0(1,j,k) .GT. 0.0_wp ) THEN
+
+                CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k))
+                WRITE(*,*) 'before imex_RK_solver: qp',qp(1:n_vars+2,j,k)
+
+             END IF
              WRITE(*,*) 'after imex_RK_solver: qc',q(1:n_vars,j,k)
-             CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k))
-             WRITE(*,*) 'after imex_RK_solver: qp',qp(1:n_vars+2,j,k)
+             
+             IF ( q(1,j,k) .GT. 0.0_wp ) THEN
+
+                CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k))
+                WRITE(*,*) 'after imex_RK_solver: qp',qp(1:n_vars+2,j,k)
+
+             END IF
              READ(*,*)
 
           END IF
@@ -1221,69 +1272,69 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(INOUT) :: qj(n_vars)
-    REAL(dp), INTENT(IN) :: qj_old(n_vars)
-    REAL(dp), INTENT(IN) :: a_tilde(n_RK)
-    REAL(dp), INTENT(IN) :: a_dirk(n_RK)
-    REAL(dp), INTENT(IN) :: a_diag
-    REAL(dp), INTENT(IN) :: Rj_not_impl(n_eqns)
-    REAL(dp), INTENT(IN) :: divFluxj(n_eqns,n_RK)
-    REAL(dp), INTENT(IN) :: expl_terms_j(n_eqns,n_RK)
-    REAL(dp), INTENT(IN) :: NHj(n_eqns,n_RK)
+    REAL(wp), INTENT(INOUT) :: qj(n_vars)
+    REAL(wp), INTENT(IN) :: qj_old(n_vars)
+    REAL(wp), INTENT(IN) :: a_tilde(n_RK)
+    REAL(wp), INTENT(IN) :: a_dirk(n_RK)
+    REAL(wp), INTENT(IN) :: a_diag
+    REAL(wp), INTENT(IN) :: Rj_not_impl(n_eqns)
+    REAL(wp), INTENT(IN) :: divFluxj(n_eqns,n_RK)
+    REAL(wp), INTENT(IN) :: expl_terms_j(n_eqns,n_RK)
+    REAL(wp), INTENT(IN) :: NHj(n_eqns,n_RK)
 
-    REAL(dp) :: qj_init(n_vars)
+    REAL(wp) :: qj_init(n_vars)
 
-    REAL(dp) :: qj_org(n_vars) , qj_rel(n_vars)
+    REAL(wp) :: qj_org(n_vars) , qj_rel(n_vars)
 
-    REAL(dp) :: left_matrix(n_eqns,n_vars)
-    REAL(dp) :: right_term(n_eqns)
+    REAL(wp) :: left_matrix(n_eqns,n_vars)
+    REAL(wp) :: right_term(n_eqns)
 
-    REAL(dp) :: scal_f
+    REAL(wp) :: scal_f
 
-    REAL(dp) :: coeff_f(n_eqns)
+    REAL(wp) :: coeff_f(n_eqns)
 
-    REAL(dp) :: qj_rel_NR_old(n_vars)
-    REAL(dp) :: scal_f_old
-    REAL(dp) :: desc_dir(n_vars)
-    REAL(dp) :: grad_f(n_vars)
+    REAL(wp) :: qj_rel_NR_old(n_vars)
+    REAL(wp) :: scal_f_old
+    REAL(wp) :: desc_dir(n_vars)
+    REAL(wp) :: grad_f(n_vars)
 
     INTEGER :: pivot(n_vars)
 
-    REAL(dp) :: left_matrix_small22(n_nh,n_nh)
-    REAL(dp) :: left_matrix_small21(n_eqns-n_nh,n_nh)
-    REAL(dp) :: left_matrix_small11(n_eqns-n_nh,n_vars-n_nh)
-    REAL(dp) :: left_matrix_small12(n_nh,n_vars-n_nh)
+    REAL(wp) :: left_matrix_small22(n_nh,n_nh)
+    REAL(wp) :: left_matrix_small21(n_eqns-n_nh,n_nh)
+    REAL(wp) :: left_matrix_small11(n_eqns-n_nh,n_vars-n_nh)
+    ! REAL(wp) :: left_matrix_small12(n_nh,n_vars-n_nh)
 
-    REAL(dp) :: desc_dir_small2(n_nh)
+    REAL(wp) :: desc_dir_small2(n_nh)
     INTEGER :: pivot_small2(n_nh)
 
-    REAL(dp) :: desc_dir_small1(n_vars-n_nh)
+    REAL(wp) :: desc_dir_small1(n_vars-n_nh)
 
     INTEGER :: ok
 
     INTEGER :: i 
     INTEGER :: nl_iter
 
-    REAL(dp), PARAMETER :: STPMX=100.0_dp
-    REAL(dp) :: stpmax
+    REAL(wp), PARAMETER :: STPMX=100.0_wp
+    REAL(wp) :: stpmax
     LOGICAL :: check
 
-    REAL(dp), PARAMETER :: TOLF=1.D-10 , TOLMIN=1.D-6
-    REAL(dp) :: TOLX
+    REAL(wp), PARAMETER :: TOLF=1.D-10 , TOLMIN=1.D-6
+    REAL(wp) :: TOLX
 
-    REAL(dp) :: qpj(n_vars+2)
+    ! REAL(wp) :: qpj(n_vars+2)
 
-    REAL(dp) :: desc_dir2(n_vars)
+    REAL(wp) :: desc_dir2(n_vars)
 
-    REAL(dp) :: desc_dir_temp(n_vars)
+    REAL(wp) :: desc_dir_temp(n_vars)
 
     normalize_q = .TRUE.
     normalize_f = .FALSE.
     opt_search_NL = .TRUE.
 
-    coeff_f(1:n_eqns) = 1.0_dp
+    coeff_f(1:n_eqns) = 1.0_wp
 
-    grad_f(1:n_eqns) = 0.0_dp
+    grad_f(1:n_eqns) = 0.0_wp
 
     qj_init = qj
 
@@ -1306,13 +1357,13 @@ CONTAINS
 
        DO i=1,n_eqns
 
-          IF ( ABS(right_term(i)) .GE. 1.0_dp ) coeff_f(i) = 1.0_dp/right_term(i)
+          IF ( ABS(right_term(i)) .GE. 1.0_wp ) coeff_f(i) = 1.0_wp/right_term(i)
 
        END DO
 
        right_term = coeff_f * right_term
 
-       scal_f = 0.5_dp * DOT_PRODUCT( right_term , right_term )
+       scal_f = 0.5_wp * DOT_PRODUCT( right_term , right_term )
 
        IF ( verbose_level .GE. 3 ) THEN                    
           WRITE(*,*) 'solve_rk_step: after normalization',scal_f
@@ -1330,7 +1381,7 @@ CONTAINS
 
     ELSE 
 
-       qj_org(1:n_vars) = 1.0_dp
+       qj_org(1:n_vars) = 1.0_wp
 
     END IF
 
@@ -1383,8 +1434,17 @@ CONTAINS
 
           desc_dir_temp = - right_term
 
-          CALL DGESV(n_eqns,1, left_matrix , n_eqns, pivot, desc_dir_temp ,     &
-               n_eqns, ok)
+          IF ( wp .EQ. sp ) THEN
+
+             CALL SGESV(n_eqns,1, left_matrix , n_eqns, pivot, desc_dir_temp ,  &
+                  n_eqns, ok)
+
+          ELSE
+
+             CALL DGESV(n_eqns,1, left_matrix , n_eqns, pivot, desc_dir_temp ,  &
+                  n_eqns, ok)
+            
+          END IF
 
           desc_dir = desc_dir_temp
 
@@ -1395,8 +1455,9 @@ CONTAINS
           left_matrix_small11 = reshape(pack(left_matrix, mask11),              &
                [n_eqns-n_nh,n_eqns-n_nh]) 
 
-          left_matrix_small12 = reshape(pack(left_matrix, mask12),              &
-               [n_nh,n_eqns-n_nh]) 
+          ! not needed for computation
+          !left_matrix_small12 = reshape(pack(left_matrix, mask12),              &
+          !     [n_nh,n_eqns-n_nh]) 
 
           left_matrix_small22 = reshape(pack(left_matrix, mask22),              &
                [n_nh,n_nh]) 
@@ -1416,11 +1477,20 @@ CONTAINS
           desc_dir_small2 = desc_dir_small2 -                                   &
                MATMUL( desc_dir_small1 , left_matrix_small21 )
 
-          CALL DGESV(n_nh,1, left_matrix_small22 , n_nh , pivot_small2 ,        &
-               desc_dir_small2 , n_nh, ok)
+          IF ( wp .EQ. sp ) THEN
 
-          desc_dir = unpack( - desc_dir_small2 , implicit_flag , 0.0_dp )       &
-               + unpack( - desc_dir_small1 , .NOT.implicit_flag , 0.0_dp )
+             CALL SGESV(n_nh,1, left_matrix_small22 , n_nh , pivot_small2 ,     &
+                  desc_dir_small2 , n_nh, ok)
+             
+          ELSE
+
+             CALL DGESV(n_nh,1, left_matrix_small22 , n_nh , pivot_small2 ,     &
+                  desc_dir_small2 , n_nh, ok)
+             
+          END IF
+
+          desc_dir = unpack( - desc_dir_small2 , implicit_flag , 0.0_wp )       &
+               + unpack( - desc_dir_small1 , .NOT.implicit_flag , 0.0_wp )
 
        END IF
 
@@ -1461,11 +1531,8 @@ CONTAINS
        IF ( verbose_level .GE. 3 ) THEN
 
           WRITE(*,*) 'qj',qj
-          CALL qc_to_qp( qj , qpj)
-          WRITE(*,*) 'qp',qpj
 
        END IF
-
 
        IF ( MAXVAL( ABS( right_term(:) ) ) < TOLF ) THEN
 
@@ -1477,8 +1544,8 @@ CONTAINS
 
        IF (check) THEN
 
-          check = ( MAXVAL( ABS(grad_f(:)) * MAX( ABS( qj_rel(:) ),1.0_dp ) /   &
-               MAX( scal_f , 0.5_dp * SIZE(qj_rel) ) )  < TOLMIN )
+          check = ( MAXVAL( ABS(grad_f(:)) * MAX( ABS( qj_rel(:) ),1.0_wp ) /   &
+               MAX( scal_f , 0.5_wp * SIZE(qj_rel) ) )  < TOLMIN )
 
           IF ( verbose_level .GE. 3 ) WRITE(*,*) '2: check',check
           !          RETURN
@@ -1486,7 +1553,7 @@ CONTAINS
        END IF
 
        IF ( MAXVAL( ABS( qj_rel(:) - qj_rel_NR_old(:) ) / MAX( ABS( qj_rel(:)) ,&
-            1.0_dp ) ) < TOLX ) THEN
+            1.0_wp ) ) < TOLX ) THEN
 
           IF ( verbose_level .GE. 3 ) WRITE(*,*) 'check',check
           RETURN
@@ -1529,55 +1596,55 @@ CONTAINS
     IMPLICIT NONE
 
     !> Initial point
-    REAL(dp), DIMENSION(:), INTENT(IN) :: qj_rel_NR_old
+    REAL(wp), DIMENSION(:), INTENT(IN) :: qj_rel_NR_old
 
     !> Initial point
-    REAL(dp), DIMENSION(:), INTENT(IN) :: qj_org
+    REAL(wp), DIMENSION(:), INTENT(IN) :: qj_org
 
     !> Initial point
-    REAL(dp), DIMENSION(:), INTENT(IN) :: qj_old
+    REAL(wp), DIMENSION(:), INTENT(IN) :: qj_old
 
     !> Gradient at xold
-    REAL(dp), DIMENSION(:), INTENT(IN) :: grad_f
+    REAL(wp), DIMENSION(:), INTENT(IN) :: grad_f
 
     !> Value of the function at xold
-    REAL(dp), INTENT(IN) :: scal_f_old
+    REAL(wp), INTENT(IN) :: scal_f_old
 
     !> Descent direction (usually Newton direction)
-    REAL(dp), DIMENSION(:), INTENT(INOUT) :: desc_dir
+    REAL(wp), DIMENSION(:), INTENT(INOUT) :: desc_dir
 
-    REAL(dp), INTENT(IN) :: stpmax
+    REAL(wp), INTENT(IN) :: stpmax
 
     !> Coefficients to rescale the nonlinear function
-    REAL(dp), DIMENSION(:), INTENT(IN) :: coeff_f
+    REAL(wp), DIMENSION(:), INTENT(IN) :: coeff_f
 
     !> Updated solution
-    REAL(dp), DIMENSION(:), INTENT(OUT) :: qj_rel
+    REAL(wp), DIMENSION(:), INTENT(OUT) :: qj_rel
 
     !> Value of the scalar function at x
-    REAL(dp), INTENT(OUT) :: scal_f
+    REAL(wp), INTENT(OUT) :: scal_f
 
     !> Value of the scalar function at x
-    REAL(dp), INTENT(OUT) :: right_term(n_eqns)
+    REAL(wp), INTENT(OUT) :: right_term(n_eqns)
 
     !> Output quantity check is false on a normal exit 
     LOGICAL, INTENT(OUT) :: check
 
-    REAL(dp), INTENT(IN) :: Rj_not_impl(n_eqns)
+    REAL(wp), INTENT(IN) :: Rj_not_impl(n_eqns)
 
-    REAL(dp), PARAMETER :: TOLX=epsilon(qj_rel)
+    REAL(wp), PARAMETER :: TOLX=epsilon(qj_rel)
 
     INTEGER, DIMENSION(1) :: ndum
-    REAL(dp) :: ALF , a,alam,alam2,alamin,b,disc
-    REAL(dp) :: scal_f2
-    REAL(dp) :: desc_dir_abs
-    REAL(dp) :: rhs1 , rhs2 , slope, tmplam
+    REAL(wp) :: ALF , a,alam,alam2,alamin,b,disc
+    REAL(wp) :: scal_f2
+    REAL(wp) :: desc_dir_abs
+    REAL(wp) :: rhs1 , rhs2 , slope, tmplam
 
-    REAL(dp) :: scal_f_min , alam_min
+    REAL(wp) :: scal_f_min , alam_min
 
-    REAL(dp) :: qj(n_vars)
+    REAL(wp) :: qj(n_vars)
 
-    ALF = 1.0d-4
+    ALF = 1.0e-4_wp
 
     IF ( size(grad_f) == size(desc_dir) .AND. size(grad_f) == size(qj_rel)      &
          .AND. size(qj_rel) == size(qj_rel_NR_old) ) THEN
@@ -1599,9 +1666,9 @@ CONTAINS
 
     slope = DOT_PRODUCT(grad_f,desc_dir)
 
-    alamin = TOLX / MAXVAL(ABS( desc_dir(:))/MAX( ABS(qj_rel_NR_old(:)),1.0_dp ))
+    alamin = TOLX / MAXVAL(ABS( desc_dir(:))/MAX( ABS(qj_rel_NR_old(:)),1.0_wp ))
 
-    IF ( alamin .EQ. 0.0_dp ) THEN
+    IF ( alamin .EQ. 0.0_wp ) THEN
 
        qj_rel(:) = qj_rel_NR_old(:)
 
@@ -1609,7 +1676,7 @@ CONTAINS
 
     END IF
 
-    alam = 1.0_dp
+    alam = 1.0_wp
 
     scal_f_min = scal_f_old
 
@@ -1671,9 +1738,9 @@ CONTAINS
           !       ELSE IF ( scal_f .LE. scal_f_old + ALF * alam * slope ) THEN   
        ELSE  
 
-          IF ( alam .EQ. 1.0_dp ) THEN
+          IF ( alam .EQ. 1.0_wp ) THEN
 
-             tmplam = - slope / ( 2.0_dp * ( scal_f - scal_f_old - slope ) )
+             tmplam = - slope / ( 2.0_wp * ( scal_f - scal_f_old - slope ) )
 
           ELSE
 
@@ -1683,21 +1750,21 @@ CONTAINS
              a = ( rhs1/alam**2 - rhs2/alam2**2 ) / ( alam - alam2 )
              b = ( -alam2*rhs1/alam**2 + alam*rhs2/alam2**2 ) / ( alam - alam2 )
 
-             IF ( a .EQ. 0.0_dp ) THEN
+             IF ( a .EQ. 0.0_wp ) THEN
 
-                tmplam = - slope / ( 2.0_dp * b )
+                tmplam = - slope / ( 2.0_wp * b )
 
              ELSE
 
-                disc = b*b - 3.0_dp*a*slope
+                disc = b*b - 3.0_wp*a*slope
 
-                IF ( disc .LT. 0.0_dp ) THEN
+                IF ( disc .LT. 0.0_wp ) THEN
 
-                   tmplam = 0.5_dp * alam
+                   tmplam = 0.5_wp * alam
 
-                ELSE IF ( b .LE. 0.0_dp ) THEN
+                ELSE IF ( b .LE. 0.0_wp ) THEN
 
-                   tmplam = ( - b + SQRT(disc) ) / ( 3.0_dp * a )
+                   tmplam = ( - b + SQRT(disc) ) / ( 3.0_wp * a )
 
                 ELSE
 
@@ -1707,7 +1774,7 @@ CONTAINS
 
              END IF
 
-             IF ( tmplam .GT. 0.5_dp * alam ) tmplam = 0.5_dp * alam
+             IF ( tmplam .GT. 0.5_wp * alam ) tmplam = 0.5_wp * alam
 
           END IF
 
@@ -1715,7 +1782,7 @@ CONTAINS
 
        alam2 = alam
        scal_f2 = scal_f
-       alam = MAX( tmplam , 0.5_dp * alam )
+       alam = MAX( tmplam , 0.5_wp * alam )
 
     END DO optimal_step_search
 
@@ -1747,17 +1814,17 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(IN) :: qj(n_vars)
-    REAL(dp), INTENT(IN) :: qj_old(n_vars)
-    REAL(dp), INTENT(IN) :: a_diag
-    REAL(dp), INTENT(IN) :: coeff_f(n_eqns)
-    REAL(dp), INTENT(IN) :: Rj_not_impl(n_eqns)
+    REAL(wp), INTENT(IN) :: qj(n_vars)
+    REAL(wp), INTENT(IN) :: qj_old(n_vars)
+    REAL(wp), INTENT(IN) :: a_diag
+    REAL(wp), INTENT(IN) :: coeff_f(n_eqns)
+    REAL(wp), INTENT(IN) :: Rj_not_impl(n_eqns)
 
-    REAL(dp), INTENT(OUT) :: f_nl(n_eqns)
-    REAL(dp), INTENT(OUT) :: scal_f
+    REAL(wp), INTENT(OUT) :: f_nl(n_eqns)
+    REAL(wp), INTENT(OUT) :: scal_f
 
-    REAL(dp) :: nh_term_impl(n_eqns)
-    REAL(dp) :: Rj(n_eqns)
+    REAL(wp) :: nh_term_impl(n_eqns)
+    REAL(wp) :: Rj(n_eqns)
 
     CALL eval_nonhyperbolic_terms( r_qj = qj , r_nh_term_impl=nh_term_impl ) 
 
@@ -1767,7 +1834,7 @@ CONTAINS
 
     f_nl = coeff_f * f_nl
 
-    scal_f = 0.5_dp * DOT_PRODUCT( f_nl , f_nl )
+    scal_f = 0.5_wp * DOT_PRODUCT( f_nl , f_nl )
 
     RETURN
     
@@ -1795,33 +1862,33 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(IN) :: qj_rel(n_vars)
-    REAL(dp), INTENT(IN) :: qj_org(n_vars)
-    REAL(dp), INTENT(IN) :: coeff_f(n_eqns)
+    REAL(wp), INTENT(IN) :: qj_rel(n_vars)
+    REAL(wp), INTENT(IN) :: qj_org(n_vars)
+    REAL(wp), INTENT(IN) :: coeff_f(n_eqns)
 
-    REAL(dp), INTENT(OUT) :: left_matrix(n_eqns,n_vars)
+    REAL(wp), INTENT(OUT) :: left_matrix(n_eqns,n_vars)
 
-    REAL(dp) :: Jacob_relax(n_eqns,n_vars)
-    COMPLEX(dp) :: nh_terms_cmplx_impl(n_eqns)
-    COMPLEX(dp) :: qj_cmplx(n_vars) , qj_rel_cmplx(n_vars)
-    COMPLEX(dp) :: qj_rel_cmplx_init(n_vars)
+    REAL(wp) :: Jacob_relax(n_eqns,n_vars)
+    COMPLEX(wp) :: nh_terms_cmplx_impl(n_eqns)
+    COMPLEX(wp) :: qj_cmplx(n_vars) , qj_rel_cmplx(n_vars)
+    COMPLEX(wp) :: qj_rel_cmplx_init(n_vars)
 
-    REAL(dp) :: h
+    REAL(wp) :: h
 
     INTEGER :: i
 
-    h = n_vars * epsilon(1.0_dp)
+    h = n_vars * epsilon(1.0_wp)
 
     ! initialize the matrix of the linearized system and the Jacobian
 
-    left_matrix(1:n_eqns,1:n_vars) = 0.0_dp
-    Jacob_relax(1:n_eqns,1:n_vars) = 0.0_dp
+    left_matrix(1:n_eqns,1:n_vars) = 0.0_wp
+    Jacob_relax(1:n_eqns,1:n_vars) = 0.0_wp
 
     ! evaluate the jacobian of the non-hyperbolic terms
 
     DO i=1,n_vars
 
-       qj_rel_cmplx_init(i) = CMPLX(qj_rel(i),0.0_dp,dp)
+       qj_rel_cmplx_init(i) = CMPLX(qj_rel(i),0.0_wp,wp)
 
     END DO
 
@@ -1832,7 +1899,7 @@ CONTAINS
        IF ( implicit_flag(i) ) THEN 
 
           qj_rel_cmplx(1:n_vars) = qj_rel_cmplx_init(1:n_vars)
-          qj_rel_cmplx(i) = CMPLX(qj_rel(i), h,dp)
+          qj_rel_cmplx(i) = CMPLX(qj_rel(i), h,wp)
 
           qj_cmplx = qj_rel_cmplx * qj_org
 
@@ -1880,20 +1947,20 @@ CONTAINS
 
     IMPLICIT NONE
     
-    REAL(dp), INTENT(IN) :: dt
+    REAL(wp), INTENT(IN) :: dt
 
-    REAL(dp) :: erosion_term(n_solid)
-    REAL(dp) :: deposition_term(n_solid)
-    REAL(dp) :: eqns_term(n_eqns)
-    REAL(dp) :: topo_term
+    REAL(wp) :: erosion_term(n_solid)
+    REAL(wp) :: deposition_term(n_solid)
+    REAL(wp) :: eqns_term(n_eqns)
+    REAL(wp) :: topo_term
 
-    REAL(dp) :: r_Ri , r_rho_m
-    REAL(dp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
-    REAL(dp) :: r_red_grav   !< real-value reduced gravity
+    REAL(wp) :: r_Ri , r_rho_m
+    REAL(wp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
+    REAL(wp) :: r_red_grav   !< real-value reduced gravity
 
     INTEGER :: j,k,l 
 
-    IF ( ( SUM(erosion_coeff) .EQ. 0.0_dp ) .AND. ( .NOT. settling_flag ) ) RETURN
+    IF ( ( SUM(erosion_coeff) .EQ. 0.0_wp ) .AND. ( .NOT. settling_flag ) ) RETURN
 
     !$OMP PARALLEL DO private(j,k,erosion_term,deposition_term,eqns_term,       &
     !$OMP & topo_term,r_Ri,r_rho_m,r_rho_c,r_red_grav)
@@ -1903,13 +1970,21 @@ CONTAINS
        j = j_cent(l)
        k = k_cent(l)
 
-       CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) )
+       IF ( q(1,j,k) .GT. 0.0_wp ) THEN
+
+          CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) )
+
+       ELSE
+
+          qp(1:n_vars+2,j,k) = 0.0_wp
+
+       END IF
 
        CALL eval_erosion_dep_term( qp(1:n_vars+2,j,k) ,  dt ,                   &
             erosion_term(1:n_solid) , deposition_term(1:n_solid) )
 
        ! Limit the deposition during a single time step
-       deposition_term(1:n_solid) = MAX(0.0_dp,MIN( deposition_term(1:n_solid), &
+       deposition_term(1:n_solid) = MAX(0.0_wp,MIN( deposition_term(1:n_solid), &
             q(5:4+n_solid,j,k) / ( rho_s(1:n_solid) * dt ) ))
 
        ! Compute the source terms for the equations
@@ -1937,11 +2012,11 @@ CONTAINS
        END IF
 
        ! Check for negative thickness
-       IF ( q(1,j,k) .LT. 0.0_dp ) THEN
+       IF ( q(1,j,k) .LT. 0.0_wp ) THEN
 
           IF ( q(1,j,k) .GT. -1.D-10 ) THEN
 
-             q(1:n_vars,j,k) = 0.0_dp
+             q(1:n_vars,j,k) = 0.0_wp
 
           ELSE
 
@@ -1951,20 +2026,33 @@ CONTAINS
              WRITE(*,*) 'qp',qp(1:n_eqns+2,j,k)
              WRITE(*,*) 'deposition_term',deposition_term
              WRITE(*,*) 'erosion_term',erosion_term
-             CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k))
-             WRITE(*,*) 'qp',qp(1:n_eqns+2,j,k)
+             IF ( q(1,j,k) .GT. 0.0_wp ) THEN
+
+                CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k))
+                WRITE(*,*) 'qp',qp(1:n_eqns+2,j,k)
+                
+             END IF
              READ(*,*)
 
           END IF
 
        END IF
 
-       CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) )
-       CALL mixt_var(qp(1:n_vars+2,j,k),r_Ri,r_rho_m,r_rho_c,r_red_grav)
+       IF ( q(1,j,k) .GT. 0.0_wp ) THEN
 
-       IF ( r_red_grav .LE. 0.0_dp ) THEN
+          CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) )
+          CALL mixt_var(qp(1:n_vars+2,j,k),r_Ri,r_rho_m,r_rho_c,r_red_grav)
 
-          q(1:n_vars,j,k) = 0.0_dp
+       ELSE
+
+          qp(1:n_vars+2,j,k) = 0.0_wp
+          r_red_grav = 0.0_wp
+
+       END IF
+
+       IF ( r_red_grav .LE. 0.0_wp ) THEN
+
+          q(1:n_vars,j,k) = 0.0_wp
 
        END IF
 
@@ -2001,9 +2089,9 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(IN) :: q_expl(n_vars,comp_cells_x,comp_cells_y)
-    REAL(dp), INTENT(IN) :: qp_expl(n_vars+2,comp_cells_x,comp_cells_y)
-    REAL(dp), INTENT(OUT) :: divFlux_iRK(n_eqns,comp_cells_x,comp_cells_y)
+    REAL(wp), INTENT(IN) :: q_expl(n_vars,comp_cells_x,comp_cells_y)
+    REAL(wp), INTENT(IN) :: qp_expl(n_vars+2,comp_cells_x,comp_cells_y)
+    REAL(wp), INTENT(OUT) :: divFlux_iRK(n_eqns,comp_cells_x,comp_cells_y)
 
     INTEGER :: l , i, j, k      !< loop counters
 
@@ -2034,7 +2122,14 @@ CONTAINS
 
     END SELECT
 
-    !$OMP PARALLEL DO private(j,k,i)
+    !WRITE(*,*) 'H_interface_x(1,2,1)',H_interface_x(1,2,1)
+    !WRITE(*,*) 'q_interfaceR(1,1,1)',q_interfaceR(1,1,1)
+    !WRITE(*,*) 'qp_interfaceR(1,1,1)',qp_interfaceR(1,1,1)
+    !WRITE(*,*) 'H_interface_x(1,1,1)',H_interface_x(1,1,1)
+    !WRITE(*,*) 'H_interface_y(1,1,2)',H_interface_y(1,1,2)
+    !WRITE(*,*) 'H_interface_y(1,1,1)',H_interface_y(1,1,1)
+
+    !$OMP PARALLEL DO private(l,j,k,i)
 
     ! Advance in time the solution
     cells_loop:DO l = 1,solve_cells
@@ -2044,7 +2139,7 @@ CONTAINS
 
        DO i=1,n_eqns
 
-          divFlux_iRK(i,j,k) = 0.0_dp
+          divFlux_iRK(i,j,k) = 0.0_wp
 
           IF ( comp_cells_x .GT. 1 ) THEN
 
@@ -2087,15 +2182,15 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp) :: fluxL(n_eqns)           !< Numerical fluxes from the eqns 
-    REAL(dp) :: fluxR(n_eqns)           !< Numerical fluxes from the eqns
-    REAL(dp) :: fluxB(n_eqns)           !< Numerical fluxes from the eqns 
-    REAL(dp) :: fluxT(n_eqns)           !< Numerical fluxes from the eqns
+    REAL(wp) :: fluxL(n_eqns)           !< Numerical fluxes from the eqns 
+    REAL(wp) :: fluxR(n_eqns)           !< Numerical fluxes from the eqns
+    REAL(wp) :: fluxB(n_eqns)           !< Numerical fluxes from the eqns 
+    REAL(wp) :: fluxT(n_eqns)           !< Numerical fluxes from the eqns
 
     INTEGER :: j,k,l                  !< Loop counters
 
-    H_interface_x = 0.0_dp
-    H_interface_y = 0.0_dp
+    H_interface_x = 0.0_wp
+    H_interface_y = 0.0_wp
 
     IF ( comp_cells_x .GT. 1 ) THEN
 
@@ -2110,27 +2205,27 @@ CONTAINS
           CALL eval_fluxes( q_interfaceR(1:n_vars,j,k) ,                        &
                qp_interfaceR(1:n_vars+2,j,k) , 1 , fluxR)
 
-          IF ( ( q_interfaceL(2,j,k) .GT. 0.0_dp ) .AND.                        &
-               ( q_interfaceR(2,j,k) .GE. 0.0_dp ) ) THEN
+          IF ( ( q_interfaceL(2,j,k) .GT. 0.0_wp ) .AND.                        &
+               ( q_interfaceR(2,j,k) .GE. 0.0_wp ) ) THEN
 
              H_interface_x(:,j,k) = fluxL
 
-          ELSEIF ( ( q_interfaceL(2,j,k) .LE. 0.0_dp ) .AND.                    &
-               ( q_interfaceR(2,j,k) .LT. 0.0_dp ) ) THEN
+          ELSEIF ( ( q_interfaceL(2,j,k) .LE. 0.0_wp ) .AND.                    &
+               ( q_interfaceR(2,j,k) .LT. 0.0_wp ) ) THEN
 
              H_interface_x(:,j,k) = fluxR
 
           ELSE
 
-             H_interface_x(:,j,k) = 0.5_dp * ( fluxL + fluxR )
+             H_interface_x(:,j,k) = 0.5_wp * ( fluxL + fluxR )
 
           END IF
 
-          IF ( (  q_interfaceL(2,j,k) .EQ. 0.0_dp ) .AND.                       &
-               (  q_interfaceR(2,j,k) .EQ. 0.0_dp ) ) THEN
+          IF ( (  q_interfaceL(2,j,k) .EQ. 0.0_wp ) .AND.                       &
+               (  q_interfaceR(2,j,k) .EQ. 0.0_wp ) ) THEN
 
-             H_interface_x(1,j,k) = 0.0_dp
-             H_interface_x(4:n_vars,j,k) = 0.0_dp
+             H_interface_x(1,j,k) = 0.0_wp
+             H_interface_x(4:n_vars,j,k) = 0.0_wp
 
           END IF
 
@@ -2152,29 +2247,29 @@ CONTAINS
           CALL eval_fluxes( q_interfaceT(1:n_vars,j,k) ,                        &
                qp_interfaceT(1:n_vars+2,j,k) ,2 , fluxT)
 
-          IF ( ( q_interfaceB(3,j,k) .GT. 0.0_dp ) .AND.                        &
-               ( q_interfaceT(3,j,k) .GE. 0.0_dp ) ) THEN
+          IF ( ( q_interfaceB(3,j,k) .GT. 0.0_wp ) .AND.                        &
+               ( q_interfaceT(3,j,k) .GE. 0.0_wp ) ) THEN
 
              H_interface_y(:,j,k) = fluxB
 
-          ELSEIF ( ( q_interfaceB(3,j,k) .LE. 0.0_dp ) .AND.                    &
-               ( q_interfaceT(3,j,k) .LT. 0.0_dp ) ) THEN
+          ELSEIF ( ( q_interfaceB(3,j,k) .LE. 0.0_wp ) .AND.                    &
+               ( q_interfaceT(3,j,k) .LT. 0.0_wp ) ) THEN
 
              H_interface_y(:,j,k) = fluxT
 
           ELSE
 
-             H_interface_y(:,j,k) = 0.5_dp * ( fluxB + fluxT )
+             H_interface_y(:,j,k) = 0.5_wp * ( fluxB + fluxT )
 
           END IF
 
           ! In the equation for mass and for trasnport (T,alphas) if the 
           ! velocities at the interfaces are null, then the flux is null
-          IF ( (  q_interfaceB(3,j,k) .EQ. 0.0_dp ) .AND.                       &
-               (  q_interfaceT(3,j,k) .EQ. 0.0_dp ) ) THEN
+          IF ( (  q_interfaceB(3,j,k) .EQ. 0.0_wp ) .AND.                       &
+               (  q_interfaceT(3,j,k) .EQ. 0.0_wp ) ) THEN
 
-             H_interface_y(1,j,k) = 0.0_dp
-             H_interface_y(4:n_vars,j,k) = 0.0_dp
+             H_interface_y(1,j,k) = 0.0_wp
+             H_interface_y(4:n_vars,j,k) = 0.0_wp
 
           END IF
 
@@ -2204,18 +2299,21 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp) :: fluxL(n_eqns)           !< Numerical fluxes from the eqns 
-    REAL(dp) :: fluxR(n_eqns)           !< Numerical fluxes from the eqns
-    REAL(dp) :: fluxB(n_eqns)           !< Numerical fluxes from the eqns 
-    REAL(dp) :: fluxT(n_eqns)           !< Numerical fluxes from the eqns
+    REAL(wp) :: fluxL(n_eqns)           !< Numerical fluxes from the eqns 
+    REAL(wp) :: fluxR(n_eqns)           !< Numerical fluxes from the eqns
+    REAL(wp) :: fluxB(n_eqns)           !< Numerical fluxes from the eqns 
+    REAL(wp) :: fluxT(n_eqns)           !< Numerical fluxes from the eqns
 
-    REAL(dp) :: flux_avg_x(n_eqns)   
-    REAL(dp) :: flux_avg_y(n_eqns)   
+    REAL(wp) :: flux_avg_x(n_eqns)   
+    REAL(wp) :: flux_avg_y(n_eqns)   
 
     INTEGER :: i,j,k,l                  !< Loop counters
 
-    !H_interface_x = 0.0_dp
-    !H_interface_y = 0.0_dp
+    ! WRITE(*,*) 'eval_flux_KT: qp_interfaceR(1,1,1)',qp_interfaceR(1,1,1)
+
+
+    !H_interface_x = 0.0_wp
+    !H_interface_y = 0.0_wp
 
     !$OMP PARALLEL
 
@@ -2241,7 +2339,7 @@ CONTAINS
 
              IF ( a_interface_xNeg(i,j,k) .EQ. a_interface_xPos(i,j,k) ) THEN
 
-                H_interface_x(i,j,k) = 0.0_dp
+                H_interface_x(i,j,k) = 0.0_wp
 
              ELSE
 
@@ -2256,11 +2354,11 @@ CONTAINS
 
           ! In the equation for mass and for trasnport (T,alphas) if the 
           ! velocities at the interfaces are null, then the flux is null
-          IF ( (  qp_interfaceL(2,j,k) .EQ. 0.0_dp ) .AND.                      &
-               (  qp_interfaceR(2,j,k) .EQ. 0.0_dp ) ) THEN
+          IF ( (  qp_interfaceL(2,j,k) .EQ. 0.0_wp ) .AND.                      &
+               (  qp_interfaceR(2,j,k) .EQ. 0.0_wp ) ) THEN
 
-             H_interface_x(1,j,k) = 0.0_dp
-             H_interface_x(4:n_vars,j,k) = 0.0_dp
+             H_interface_x(1,j,k) = 0.0_wp
+             H_interface_x(4:n_vars,j,k) = 0.0_wp
 
           END IF
 
@@ -2293,7 +2391,7 @@ CONTAINS
 
              IF ( a_interface_yNeg(i,j,k) .EQ. a_interface_yPos(i,j,k) ) THEN
 
-                H_interface_y(i,j,k) = 0.0_dp
+                H_interface_y(i,j,k) = 0.0_wp
 
              ELSE
 
@@ -2308,11 +2406,11 @@ CONTAINS
 
           ! In the equation for mass and for trasnport (T,alphas) if the 
           ! velocities at the interfaces are null, then the flux is null
-          IF ( (  q_interfaceB(3,j,k) .EQ. 0.0_dp ) .AND.                       &
-               (  q_interfaceT(3,j,k) .EQ. 0.0_dp ) ) THEN
+          IF ( (  q_interfaceB(3,j,k) .EQ. 0.0_wp ) .AND.                       &
+               (  q_interfaceT(3,j,k) .EQ. 0.0_wp ) ) THEN
 
-             H_interface_y(1,j,k) = 0.0_dp
-             H_interface_y(4:n_vars,j,k) = 0.0_dp
+             H_interface_y(1,j,k) = 0.0_wp
+             H_interface_y(4:n_vars,j,k) = 0.0_wp
 
           END IF
 
@@ -2347,9 +2445,9 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(IN) :: a1(:) , a2(:)
-    REAL(dp), INTENT(IN) :: w1(:) , w2(:)
-    REAL(dp), INTENT(OUT) :: w_avg(:)
+    REAL(wp), INTENT(IN) :: a1(:) , a2(:)
+    REAL(wp), INTENT(IN) :: w1(:) , w2(:)
+    REAL(wp), INTENT(OUT) :: w_avg(:)
 
     INTEGER :: n
     INTEGER :: i 
@@ -2360,8 +2458,8 @@ CONTAINS
 
        IF ( a1(i) .EQ. a2(i) ) THEN
 
-          w_avg(i) = 0.5_dp * ( w1(i) + w2(i) )
-          w_avg(i) = 0.0_dp
+          w_avg(i) = 0.5_wp * ( w1(i) + w2(i) )
+          w_avg(i) = 0.0_wp
 
        ELSE
 
@@ -2444,31 +2542,33 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(IN) :: q_expl(:,:,:)
-    REAL(dp), INTENT(IN) :: qp_expl(:,:,:)
+    REAL(wp), INTENT(IN) :: q_expl(:,:,:)
+    REAL(wp), INTENT(IN) :: qp_expl(:,:,:)
 
-    REAL(dp) :: qrecW(n_vars+2) !< recons var at the west edge of the cells
-    REAL(dp) :: qrecE(n_vars+2) !< recons var at the east edge of the cells
-    REAL(dp) :: qrecS(n_vars+2) !< recons var at the south edge of the cells
-    REAL(dp) :: qrecN(n_vars+2) !< recons var at the north edge of the cells
+    REAL(wp) :: qrecW(n_vars+2) !< recons var at the west edge of the cells
+    REAL(wp) :: qrecE(n_vars+2) !< recons var at the east edge of the cells
+    REAL(wp) :: qrecS(n_vars+2) !< recons var at the south edge of the cells
+    REAL(wp) :: qrecN(n_vars+2) !< recons var at the north edge of the cells
 
-    REAL(dp) :: source_bdry(n_vars+2)
-    REAL(dp) :: qrec_prime_x(n_vars+2)      !< recons variables slope
-    REAL(dp) :: qrec_prime_y(n_vars+2)      !< recons variables slope
+    REAL(wp) :: source_bdry(n_vars+2)
+    REAL(wp) :: qrec_prime_x(n_vars+2)      !< recons variables slope
+    REAL(wp) :: qrec_prime_y(n_vars+2)      !< recons variables slope
 
-    REAL(dp) :: qp2recW(3) , qp2recE(3)
-    REAL(dp) :: qp2recS(3) , qp2recN(3) 
+    REAL(wp) :: qp2recW(3) , qp2recE(3)
+    REAL(wp) :: qp2recS(3) , qp2recN(3) 
 
-    REAL(dp) :: qrec_stencil(3)   !< recons variables stencil for the limiter
-    REAL(dp) :: x_stencil(3)    !< grid stencil for the limiter
-    REAL(dp) :: y_stencil(3)    !< grid stencil for the limiter
+    REAL(wp) :: qrec_stencil(3) !< recons variables stencil for the limiter
+    REAL(wp) :: x_stencil(3)    !< grid stencil for the limiter
+    REAL(wp) :: y_stencil(3)    !< grid stencil for the limiter
 
     INTEGER :: l,j,k            !< loop counters (cells)
-    INTEGER :: i              !< loop counter (variables)
+    INTEGER :: i                !< loop counter (variables)
+
+    REAL(wp) :: dq
 
     !$OMP PARALLEL DO private(j,k,i,qrecW,qrecE,qrecS,qrecN,x_stencil,y_stencil,&
     !$OMP & qrec_stencil,qrec_prime_x,qrec_prime_y,qp2recW,qp2recE,qp2recS,     &
-    !$OMP & qp2recN,source_bdry)
+    !$OMP & qp2recN,source_bdry,dq)
 
     DO l = 1,solve_cells
 
@@ -2480,7 +2580,12 @@ CONTAINS
        qrecS(1:n_vars+2) = qp_expl(1:n_vars+2,j,k)
        qrecN(1:n_vars+2) = qp_expl(1:n_vars+2,j,k)
 
+       x_stencil(2) = x_comp(j)
+       y_stencil(2) = y_comp(k)
+
        vars_loop:DO i=1,n_vars
+
+          qrec_stencil(2) = qp_expl(i,j,k)
 
           ! x direction
           check_comp_cells_x:IF ( comp_cells_x .GT. 1 ) THEN
@@ -2491,10 +2596,10 @@ CONTAINS
                 IF ( bcW(i)%flag .EQ. 0 ) THEN
 
                    x_stencil(1) = x_stag(1)
-                   x_stencil(2:3) = x_comp(1:2)
+                   x_stencil(3) = x_comp(j+1)
 
                    qrec_stencil(1) = bcW(i)%value
-                   qrec_stencil(2:3) = qp_expl(i,1:2,k)
+                   qrec_stencil(3) = qp_expl(i,j+1,k)
 
                    CALL limit( qrec_stencil , x_stencil , limiter(i) ,          &
                         qrec_prime_x(i) ) 
@@ -2515,10 +2620,10 @@ CONTAINS
                 IF ( bcE(i)%flag .EQ. 0 ) THEN
 
                    qrec_stencil(3) = bcE(i)%value
-                   qrec_stencil(1:2)= qp_expl(i,comp_cells_x-1:comp_cells_x,k)
+                   qrec_stencil(1)= qp_expl(i,j-1,k)
 
                    x_stencil(3) = x_stag(comp_interfaces_x)
-                   x_stencil(1:2) = x_comp(comp_cells_x-1:comp_cells_x)
+                   x_stencil(1) = x_comp(j-1)
 
                    CALL limit( qrec_stencil , x_stencil , limiter(i) ,          &
                         qrec_prime_x(i) ) 
@@ -2537,8 +2642,11 @@ CONTAINS
                 ! internal x cells
              ELSE
 
-                x_stencil(1:3) = x_comp(j-1:j+1)
-                qrec_stencil(1:3) = qp_expl(i,j-1:j+1,k)
+                x_stencil(1) = x_comp(j-1)
+                x_stencil(3) = x_comp(j+1)
+
+                qrec_stencil(1) = qp_expl(i,j-1,k)
+                qrec_stencil(3) = qp_expl(i,j+1,k)
 
                 ! correction for radial source inlet x-interfaces values 
                 ! used for the linear reconstruction
@@ -2569,8 +2677,10 @@ CONTAINS
 
              ENDIF check_x_boundary
 
-             qrecW(i) = qp_expl(i,j,k) - reconstr_coeff* dx2 * qrec_prime_x(i)
-             qrecE(i) = qp_expl(i,j,k) + reconstr_coeff* dx2 * qrec_prime_x(i)
+             dq = reconstr_coeff* dx2 * qrec_prime_x(i) 
+
+             qrecW(i) = qrec_stencil(2) - dq
+             qrecE(i) = qrec_stencil(2) + dq
 
           END IF check_comp_cells_x
 
@@ -2582,11 +2692,11 @@ CONTAINS
 
                 IF ( bcS(i)%flag .EQ. 0 ) THEN
 
-                   qrec_stencil(1) = bcS(i)%value
-                   qrec_stencil(2:3) = qp_expl(i,j,1:2)
-
                    y_stencil(1) = y_stag(1)
-                   y_stencil(2:3) = y_comp(1:2)
+                   y_stencil(3) = y_comp(k+1)
+
+                   qrec_stencil(1) = bcS(i)%value
+                   qrec_stencil(3) = qp_expl(i,j,k+1)
 
                    CALL limit( qrec_stencil , y_stencil , limiter(i) ,          &
                         qrec_prime_y(i) ) 
@@ -2606,11 +2716,11 @@ CONTAINS
 
                 IF ( bcN(i)%flag .EQ. 0 ) THEN
 
-                   qrec_stencil(3) = bcN(i)%value
-                   qrec_stencil(1:2)= qp_expl(i,j,comp_cells_y-1:comp_cells_y)
-
                    y_stencil(3) = y_stag(comp_interfaces_y)
-                   y_stencil(1:2) = y_comp(comp_cells_y-1:comp_cells_y)
+                   y_stencil(1) = y_comp(k-1)
+
+                   qrec_stencil(3) = bcN(i)%value
+                   qrec_stencil(1)= qp_expl(i,j,k-1)
 
                    CALL limit( qrec_stencil , y_stencil , limiter(i) ,          &
                         qrec_prime_y(i) ) 
@@ -2629,8 +2739,11 @@ CONTAINS
                 ! Internal y cells
              ELSE
 
-                y_stencil(1:3) = y_comp(k-1:k+1)
-                qrec_stencil = qp_expl(i,j,k-1:k+1)
+                y_stencil(1) = y_comp(k-1)
+                y_stencil(3) = y_comp(k+1)
+
+                qrec_stencil(1) = qp_expl(i,j,k-1)
+                qrec_stencil(3) = qp_expl(i,j,k+1)
 
                 ! correction for radial source inlet y-interfaces
                 ! used for the linear reconstruction
@@ -2661,8 +2774,10 @@ CONTAINS
 
              ENDIF check_y_boundary
 
-             qrecS(i) = qp_expl(i,j,k) - reconstr_coeff* dy2 * qrec_prime_y(i)
-             qrecN(i) = qp_expl(i,j,k) + reconstr_coeff* dy2 * qrec_prime_y(i)
+             dq = reconstr_coeff* dy2 * qrec_prime_y(i)
+
+             qrecS(i) = qrec_stencil(2) - dq
+             qrecN(i) = qrec_stencil(2) + dq
 
           ENDIF check_comp_cells_y
 
@@ -2706,8 +2821,10 @@ CONTAINS
                 CALL limit( qrec_stencil , x_stencil , limiter(i) ,             &
                      qrec_prime_x(i) )
 
-                qrecW(i) = qp_expl(i,j,k) - reconstr_coeff*dx2*qrec_prime_x(i)
-                qrecE(i) = qp_expl(i,j,k) + reconstr_coeff*dx2*qrec_prime_x(i)
+                dq = reconstr_coeff*dx2*qrec_prime_x(i)
+
+                qrecW(i) = qrec_stencil(2) - dq
+                qrecE(i) = qrec_stencil(2) + dq
 
              END IF
 
@@ -2748,8 +2865,10 @@ CONTAINS
                 CALL limit( qrec_stencil , y_stencil , limiter(i) ,             &
                      qrec_prime_y(i) )
 
-                qrecS(i) = qp_expl(i,j,k) - reconstr_coeff*dy2*qrec_prime_y(i)
-                qrecN(i) = qp_expl(i,j,k) + reconstr_coeff*dy2*qrec_prime_y(i)
+                dq = reconstr_coeff*dy2*qrec_prime_y(i) 
+
+                qrecS(i) = qrec_stencil(2) - dq
+                qrecN(i) = qrec_stencil(2) + dq
 
              ENDIF
 
@@ -2762,7 +2881,7 @@ CONTAINS
 
           IF ( ( j .GT. 1 ) .AND. ( j .LT. comp_cells_x ) ) THEN
 
-             IF ( q_expl(1,j,k) .EQ. 0.0_dp ) THEN
+             IF ( q_expl(1,j,k) .EQ. 0.0_wp ) THEN
 
                 IF ( ( .NOT. radial_source_flag ) .OR.                          &
                      ( ( radial_source_flag ) .AND.                             &
@@ -2772,16 +2891,16 @@ CONTAINS
                    ! of the cell, then all the variables are 0 at the center
                    ! and at the interfaces (no conversion back is needed from
                    ! reconstructed to conservative)
-                   q_interfaceR(:,j,k) = 0.0_dp
-                   q_interfaceL(:,j+1,k) = 0.0_dp
+                   q_interfaceR(:,j,k) = 0.0_wp
+                   q_interfaceL(:,j+1,k) = 0.0_wp
 
-                   qp_interfaceR(1:3,j,k) = 0.0_dp
+                   qp_interfaceR(1:3,j,k) = 0.0_wp
                    qp_interfaceR(4:n_vars,j,k) = qrecW(4:n_vars)
-                   qp_interfaceR(n_vars+1:n_vars+2,j,k) = 0.0_dp
+                   qp_interfaceR(n_vars+1:n_vars+2,j,k) = 0.0_wp
 
-                   qp_interfaceL(1:3,j+1,k) = 0.0_dp
+                   qp_interfaceL(1:3,j+1,k) = 0.0_wp
                    qp_interfaceL(4:n_vars,j+1,k) = qrecE(4:n_vars)
-                   qp_interfaceL(n_vars+1:n_vars+2,j+1,k) = 0.0_dp
+                   qp_interfaceL(n_vars+1:n_vars+2,j+1,k) = 0.0_wp
 
                 END IF
 
@@ -2927,7 +3046,7 @@ CONTAINS
 
           IF ( ( k .GT. 1 ) .AND. ( k .LT. comp_cells_y ) ) THEN
 
-             IF ( q_expl(1,j,k) .EQ. 0.0_dp ) THEN
+             IF ( q_expl(1,j,k) .EQ. 0.0_wp ) THEN
 
                 IF ( ( .NOT. radial_source_flag ) .OR.                          &
                      ( ( radial_source_flag ) .AND.                             &
@@ -2938,16 +3057,16 @@ CONTAINS
                    ! and at the interfaces (no conversion back is needed from
                    ! reconstructed to conservative)
 
-                   q_interfaceT(:,j,k) = 0.0_dp
-                   q_interfaceB(:,j,k+1) = 0.0_dp
+                   q_interfaceT(:,j,k) = 0.0_wp
+                   q_interfaceB(:,j,k+1) = 0.0_wp
 
-                   qp_interfaceT(1:3,j,k) = 0.0_dp
+                   qp_interfaceT(1:3,j,k) = 0.0_wp
                    qp_interfaceT(4:n_vars,j,k) = qrecS(4:n_vars)
-                   qp_interfaceT(n_vars+1:n_vars+2,j,k) = 0.0_dp
+                   qp_interfaceT(n_vars+1:n_vars+2,j,k) = 0.0_wp
 
-                   qp_interfaceB(1:3,j,k+1) = 0.0_dp
+                   qp_interfaceB(1:3,j,k+1) = 0.0_wp
                    qp_interfaceB(4:n_vars,j,k+1) = qrecN(4:n_vars)
-                   qp_interfaceB(n_vars+1:n_vars+2,j,k+1) = 0.0_dp
+                   qp_interfaceB(n_vars+1:n_vars+2,j,k+1) = 0.0_wp
 
                 END IF
 
@@ -3091,11 +3210,11 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp) :: abslambdaL_min(n_vars) , abslambdaL_max(n_vars)
-    REAL(dp) :: abslambdaR_min(n_vars) , abslambdaR_max(n_vars)
-    REAL(dp) :: abslambdaB_min(n_vars) , abslambdaB_max(n_vars)
-    REAL(dp) :: abslambdaT_min(n_vars) , abslambdaT_max(n_vars)
-    REAL(dp) :: min_r(n_vars) , max_r(n_vars)
+    REAL(wp) :: abslambdaL_min(n_vars) , abslambdaL_max(n_vars)
+    REAL(wp) :: abslambdaR_min(n_vars) , abslambdaR_max(n_vars)
+    REAL(wp) :: abslambdaB_min(n_vars) , abslambdaB_max(n_vars)
+    REAL(wp) :: abslambdaT_min(n_vars) , abslambdaT_max(n_vars)
+    REAL(wp) :: min_r(n_vars) , max_r(n_vars)
 
     INTEGER :: j,k,l
 
@@ -3117,8 +3236,8 @@ CONTAINS
           CALL eval_local_speeds_x( qp_interfaceR(:,j,k) , abslambdaR_min ,     &
                abslambdaR_max )
 
-          min_r = MIN(abslambdaL_min , abslambdaR_min , 0.0_dp)
-          max_r = MAX(abslambdaL_max , abslambdaR_max , 0.0_dp)
+          min_r = MIN(abslambdaL_min , abslambdaR_min , 0.0_wp)
+          max_r = MAX(abslambdaL_max , abslambdaR_max , 0.0_wp)
 
           a_interface_xNeg(:,j,k) = min_r
           a_interface_xPos(:,j,k) = max_r
@@ -3145,8 +3264,8 @@ CONTAINS
           CALL eval_local_speeds_y( qp_interfaceT(:,j,k) , abslambdaT_min ,     &
                abslambdaT_max )
 
-          min_r = MIN(abslambdaB_min , abslambdaT_min , 0.0_dp)
-          max_r = MAX(abslambdaB_max , abslambdaT_max , 0.0_dp)
+          min_r = MIN(abslambdaB_min , abslambdaT_min , 0.0_wp)
+          max_r = MAX(abslambdaB_max , abslambdaT_max , 0.0_wp)
 
           a_interface_yNeg(:,j,k) = min_r
           a_interface_yPos(:,j,k) = max_r

@@ -3,7 +3,7 @@
 !********************************************************************************
 MODULE constitutive_2d
 
-  USE parameters_2d, ONLY : dp
+  USE parameters_2d, ONLY : wp, tolh
   USE parameters_2d, ONLY : n_eqns , n_vars , n_solid
   USE parameters_2d, ONLY : rheology_flag , rheology_model , energy_flag ,      &
        liquid_flag , gas_flag
@@ -17,138 +17,147 @@ MODULE constitutive_2d
   LOGICAL :: entrainment_flag
   
   !> gravitational acceleration 
-  REAL(dp) :: grav
+  REAL(wp) :: grav
 
   !> drag coefficients (Voellmy-Salm model)
-  REAL(dp) :: mu
-  REAL(dp) :: xi
+  REAL(wp) :: mu
+  REAL(wp) :: xi
 
   !> drag coefficients (B&W model)
-  REAL(dp) :: friction_factor
+  REAL(wp) :: friction_factor
 
   !> drag coefficients (plastic model)
-  REAL(dp) :: tau
+  REAL(wp) :: tau
 
   !> evironment temperature [K]
-  REAL(dp) :: T_env
+  REAL(wp) :: T_env
 
   !> radiative coefficient
-  REAL(dp) :: rad_coeff
+  REAL(wp) :: rad_coeff
 
   !> friction coefficient
-  REAL(dp) :: frict_coeff
+  REAL(wp) :: frict_coeff
 
   !> reference temperature [K]
-  REAL(dp) :: T_ref
+  REAL(wp) :: T_ref
 
   !> reference kinematic viscosity [m2/s]
-  REAL(dp) :: nu_ref
+  REAL(wp) :: nu_ref
 
   !> viscosity parameter [K-1] (b in Table 1 Costa & Macedonio, 2005)
-  REAL(dp) :: visc_par
+  REAL(wp) :: visc_par
 
   !> velocity boundary layer fraction of total thickness
-  REAL(dp) :: emme
+  REAL(wp) :: emme
 
   !> specific heat [J kg-1 K-1]
-  REAL(dp) :: c_p
+  REAL(wp) :: c_p
 
   !> atmospheric heat trasnfer coefficient [W m-2 K-1] (lambda in C&M, 2005)
-  REAL(dp) :: atm_heat_transf_coeff
+  REAL(wp) :: atm_heat_transf_coeff
 
   !> fractional area of the exposed inner core (f in C&M, 2005)
-  REAL(dp) :: exp_area_fract
+  REAL(wp) :: exp_area_fract
 
   !> Stephan-Boltzmann constant [W m-2 K-4]
-  REAL(dp), PARAMETER :: SBconst = 5.67D-8
+  REAL(wp), PARAMETER :: SBconst = 5.67D-8
 
   !> emissivity (eps in Costa & Macedonio, 2005)
-  REAL(dp) :: emissivity
+  REAL(wp) :: emissivity
 
   !> thermal boundary layer fraction of total thickness
-  REAL(dp) :: enne
+  REAL(wp) :: enne
 
   !> temperature of lava-ground interface
-  REAL(dp) :: T_ground
+  REAL(wp) :: T_ground
 
   !> thermal conductivity [W m-1 K-1] (k in Costa & Macedonio, 2005)
-  REAL(dp) :: thermal_conductivity
+  REAL(wp) :: thermal_conductivity
 
   !--- START Lahars rheology model parameters
 
   !> 1st param for yield strenght empirical relationship (O'Brian et al, 1993)
-  REAL(dp) :: alpha2    ! (units: kg m-1 s-2)
+  REAL(wp) :: alpha2    ! (units: kg m-1 s-2)
 
   !> 2nd param for yield strenght empirical relationship (O'Brian et al, 1993)
-  REAL(dp) :: beta2     ! (units: nondimensional) 
+  REAL(wp) :: beta2     ! (units: nondimensional) 
 
   !> ratio between reference value from input and computed values from eq.
-  REAL(dp) :: alpha1_coeff ! (units: nondimensional )
+  REAL(wp) :: alpha1_coeff ! (units: nondimensional )
 
   !> 2nd param for fluid viscosity empirical relationship (O'Brian et al, 1993)
-  REAL(dp) :: beta1     ! (units: nondimensional, input parameter)
+  REAL(wp) :: beta1     ! (units: nondimensional, input parameter)
 
   !> Empirical resistance parameter (dimensionless, input parameter)
-  REAL(dp) :: Kappa
+  REAL(wp) :: Kappa
 
   !> Mannings roughness coefficient ( units: T L^(-1/3) )
-  REAL(dp) :: n_td
+  REAL(wp) :: n_td
 
   !--- END Lahars rheology model parameters
 
   !> Specific heat of carrier phase (gas or liquid)
-  REAL(dp) :: sp_heat_c  ! ( initialized from input)   
+  REAL(wp) :: sp_heat_c  ! ( initialized from input)   
 
   !> Ambient density of air ( units: kg m-3 )
-  REAL(dp) :: rho_a_amb
+  REAL(wp) :: rho_a_amb
 
   !> Specific heat of air (units: J K-1 kg-1)
-  REAL(dp) :: sp_heat_a
+  REAL(wp) :: sp_heat_a
 
   !> Specific gas constant of air (units: J kg-1 K-1)
-  REAL(dp) :: sp_gas_const_a
+  REAL(wp) :: sp_gas_const_a
 
   !> Kinematic viscosity of air (units: m2 s-1)
-  REAL(dp) :: kin_visc_a
+  REAL(wp) :: kin_visc_a
 
   !> Kinematic viscosity of liquid (units: m2 s-1)
-  REAL(dp) :: kin_visc_l
+  REAL(wp) :: kin_visc_l
 
   !> Kinematic viscosity of carrier phase (units: m2 s-1)
-  REAL(dp) :: kin_visc_c
+  REAL(wp) :: kin_visc_c
 
   !> Temperature of ambient air (units: K)
-  REAL(dp) :: T_ambient
+  REAL(wp) :: T_ambient
 
   !> Density of sediments ( units: kg m-3 )
-  REAL(dp), ALLOCATABLE :: rho_s(:)
+  REAL(wp), ALLOCATABLE :: rho_s(:)
+
+  !> Reciprocal of density of sediments ( units: kg m-3 )
+  REAL(wp), ALLOCATABLE :: inv_rho_s(:)
 
   !> Diameter of sediments ( units: m )
-  REAL(dp), ALLOCATABLE :: diam_s(:)
+  REAL(wp), ALLOCATABLE :: diam_s(:)
 
   !> Specific heat of solids (units: J K-1 kg-1)
-  REAL(dp), ALLOCATABLE :: sp_heat_s(:)
+  REAL(wp), ALLOCATABLE :: sp_heat_s(:)
 
   !> Flag to determine if sedimentation is active
   LOGICAL :: settling_flag
 
   !> Hindered settling velocity (units: m s-1 )
-  REAL(dp) :: settling_vel
+  REAL(wp) :: settling_vel
 
   !> erosion model coefficient  (units: m-1 )
-  REAL(dp), ALLOCATABLE :: erosion_coeff(:)
+  REAL(wp), ALLOCATABLE :: erosion_coeff(:)
 
   !> temperature of solid substrate (units: K)
-  REAL(dp) :: T_s_substrate
+  REAL(wp) :: T_s_substrate
 
   !> ambient pressure (units: Pa)
-  REAL(dp) :: pres
+  REAL(wp) :: pres
+
+  !> reciprocal of ambient pressure (units: Pa)
+  REAL(wp) :: inv_pres
 
   !> liquid density (units: kg m-3)
-  REAL(dp) :: rho_l
+  REAL(wp) :: rho_l
+
+  !> reciprocal of liquid density (units: kg m-3)
+  REAL(wp) :: inv_rho_l
 
   !> Sepcific heat of liquid (units: J K-1 kg-1)
-  REAL(dp) :: sp_heat_l
+  REAL(wp) :: sp_heat_l
 
 CONTAINS
 
@@ -207,35 +216,37 @@ CONTAINS
     USE parameters_2d, ONLY : eps_sing
     IMPLICIT none
 
-    REAL(dp), INTENT(IN) :: r_qj(n_vars)       !< real-value conservative var
-    REAL(dp), INTENT(OUT) :: r_h               !< real-value flow thickness
-    REAL(dp), INTENT(OUT) :: r_u               !< real-value x-velocity
-    REAL(dp), INTENT(OUT) :: r_v               !< real-value y-velocity
-    REAL(dp), INTENT(OUT) :: r_alphas(n_solid) !< real-value solid volume fracts
-    REAL(dp), INTENT(OUT) :: r_rho_m           !< real-value mixture density
-    REAL(dp), INTENT(OUT) :: r_T               !< real-value temperature
-    REAL(dp), INTENT(OUT) :: r_alphal          !< real-value liquid volume fract
+    REAL(wp), INTENT(IN) :: r_qj(n_vars)       !< real-value conservative var
+    REAL(wp), INTENT(OUT) :: r_h               !< real-value flow thickness
+    REAL(wp), INTENT(OUT) :: r_u               !< real-value x-velocity
+    REAL(wp), INTENT(OUT) :: r_v               !< real-value y-velocity
+    REAL(wp), INTENT(OUT) :: r_alphas(n_solid) !< real-value solid volume fracts
+    REAL(wp), INTENT(OUT) :: r_rho_m           !< real-value mixture density
+    REAL(wp), INTENT(OUT) :: r_T               !< real-value temperature
+    REAL(wp), INTENT(OUT) :: r_alphal          !< real-value liquid volume fract
 
-    REAL(dp) :: r_inv_rhom
-    REAL(dp) :: r_xs(n_solid)     !< real-value solid mass fraction
-    REAL(dp) :: r_xs_tot
+    REAL(wp) :: r_inv_rhom
+    REAL(wp) :: r_xs(n_solid)     !< real-value solid mass fraction
+    REAL(wp) :: r_xs_tot
 
-    REAL(dp) :: r_Ri            !< real-value Richardson number
-    REAL(dp) :: r_xl            !< real-value liquid mass fraction
-    REAL(dp) :: r_xc            !< real-value carrier phase mass fraction
-    REAL(dp) :: r_alphac        !< real-value carrier phase volume fraction
-    REAL(dp) :: r_rho_c         !< real-value carrier phase density [kg/m3]
-    REAL(dp) :: r_red_grav      !< real-value reduced gravity
-    REAL(dp) :: r_sp_heat_mix   !< Specific heat of mixture
+    REAL(wp) :: r_Ri            !< real-value Richardson number
+    REAL(wp) :: r_xl            !< real-value liquid mass fraction
+    REAL(wp) :: r_xc            !< real-value carrier phase mass fraction
+    REAL(wp) :: r_alphac        !< real-value carrier phase volume fraction
+    REAL(wp) :: r_rho_c         !< real-value carrier phase density [kg/m3]
+    REAL(wp) :: r_red_grav      !< real-value reduced gravity
+    REAL(wp) :: r_sp_heat_mix   !< Specific heat of mixture
+
+    REAL(wp) :: r_inv_rho_c
 
     ! compute solid mass fractions
-    IF ( r_qj(1) .GT. 1.D-25 ) THEN
+    IF ( r_qj(1) .GT. eps_sing ) THEN
 
        r_xs(1:n_solid) = r_qj(5:4+n_solid) / r_qj(1)
 
     ELSE
 
-       r_xs(1:n_solid) = 0.0_dp
+       r_xs(1:n_solid) = 0.0_wp
 
     END IF
 
@@ -244,18 +255,18 @@ CONTAINS
     IF ( gas_flag .AND. liquid_flag ) THEN
 
        ! compute liquid mass fraction
-       IF ( r_qj(1) .GT. 1.D-25 ) THEN
+       IF ( r_qj(1) .GT. eps_sing ) THEN
 
           r_xl = r_qj(n_vars) / r_qj(1)
 
        ELSE
 
-          r_xl = 0.0_dp
+          r_xl = 0.0_wp
 
        END IF
 
        ! compute carrier phase (gas) mass fraction
-       r_xc =  1.0_dp - r_xs_tot - r_xl
+       r_xc =  1.0_wp - r_xs_tot - r_xl
 
        ! specific heat of the mixutre: mass average of sp. heat pf phases
        r_sp_heat_mix = SUM( r_xs(1:n_solid) * sp_heat_s(1:n_solid) )            &
@@ -264,7 +275,7 @@ CONTAINS
     ELSE
 
        ! compute carrier phase (gas or liquid) mass fraction
-       r_xc = 1.0_dp - r_xs_tot
+       r_xc = 1.0_wp - r_xs_tot
 
        ! specific heaf of the mixutre: mass average of sp. heat pf phases
        r_sp_heat_mix = SUM( r_xs(1:n_solid) * sp_heat_s(1:n_solid) )            &
@@ -273,11 +284,11 @@ CONTAINS
     END IF
 
     ! compute temperature from energy
-    IF ( r_qj(1) .GT. 1.D-25 ) THEN
+    IF ( r_qj(1) .GT. eps_sing ) THEN
 
        IF ( energy_flag ) THEN
 
-          r_T = ( r_qj(4) - ( r_qj(2)**2 + r_qj(3)**2 ) / ( 2.0_dp*r_qj(1) ) ) /&
+          r_T = ( r_qj(4) - ( r_qj(2)**2 + r_qj(3)**2 ) / ( 2.0_wp*r_qj(1) ) ) /&
                ( r_qj(1) * r_sp_heat_mix ) 
 
        ELSE
@@ -286,7 +297,7 @@ CONTAINS
 
        END IF
 
-       IF ( r_T .LE. 0.0_dp ) r_T = T_ambient
+       IF ( r_T .LE. 0.0_wp ) r_T = T_ambient
 
     ELSE
 
@@ -298,45 +309,49 @@ CONTAINS
 
        ! carrier phase is gas
        r_rho_c =  pres / ( sp_gas_const_a * r_T )
+       r_inv_rho_c = sp_gas_const_a * r_T * inv_pres
        sp_heat_c = sp_heat_a
 
     ELSE
 
        ! carrier phase is liquid
        r_rho_c = rho_l
+       r_inv_rho_c = inv_rho_l
        sp_heat_c = sp_heat_l
 
     END IF
 
+
     IF ( gas_flag .AND. liquid_flag ) THEN
 
-       r_inv_rhom = ( SUM(r_xs(1:n_solid) / rho_s(1:n_solid)) + r_xl / rho_l    &
-            + r_xc / r_rho_c )
+       r_inv_rhom = ( SUM(r_xs(1:n_solid) * inv_rho_s(1:n_solid)) + r_xl * inv_rho_l    &
+            + r_xc * r_inv_rho_c )
 
-       r_rho_m = 1.0_dp / r_inv_rhom
+       r_rho_m = 1.0_wp / r_inv_rhom
 
-       r_alphal = r_xl * r_rho_m / rho_l
+       r_alphal = r_xl * r_rho_m * inv_rho_l
 
     ELSE
 
-       r_inv_rhom = ( SUM(r_xs(1:n_solid) / rho_s(1:n_solid)) + r_xc / r_rho_c )
+       r_inv_rhom = ( SUM(r_xs(1:n_solid) * inv_rho_s(1:n_solid)) + r_xc * r_inv_rho_c )
 
-       r_rho_m = 1.0_dp / r_inv_rhom
+       r_rho_m = 1.0_wp / r_inv_rhom
 
     END IF
 
     ! convert from mass fraction to volume fraction
-    r_alphas(1:n_solid) = r_xs(1:n_solid) * r_rho_m / rho_s(1:n_solid)
+    r_alphas(1:n_solid) = r_xs(1:n_solid) * r_rho_m * inv_rho_s(1:n_solid)
 
     ! convert from mass fraction to volume fraction
-    r_alphac = r_xc * r_rho_m / r_rho_c
+    r_alphac = r_xc * r_rho_m * r_inv_rho_c
 
-    r_h = r_qj(1) / r_rho_m
+    r_h = r_qj(1) * r_inv_rhom
 
     ! reduced gravity
-    r_red_grav = ( r_rho_m - rho_a_amb ) / r_rho_m * grav
+    r_red_grav = ( r_rho_m - rho_a_amb ) * r_inv_rhom * grav
 
     ! velocity components
+    eps_sing = 1.D-6
     IF ( r_qj(1) .GT. eps_sing ) THEN
 
        r_u = r_qj(2) / r_qj(1)
@@ -344,19 +359,19 @@ CONTAINS
 
     ELSE
 
-       r_u = SQRT(2.0_dp) * r_qj(1) * r_qj(2) / SQRT( r_qj(1)**4 + eps_sing**4 )
-       r_v = SQRT(2.0_dp) * r_qj(1) * r_qj(3) / SQRT( r_qj(1)**4 + eps_sing**4 )
+       r_u = SQRT(2.0_wp) * r_qj(1) * r_qj(2) / SQRT( r_qj(1)**4 + eps_sing**4 )
+       r_v = SQRT(2.0_wp) * r_qj(1) * r_qj(3) / SQRT( r_qj(1)**4 + eps_sing**4 )
 
     END IF
 
     ! Richardson number
-    IF ( ( r_u**2 + r_v**2 ) .GT. 0.0_dp ) THEN
+    IF ( ( r_u**2 + r_v**2 ) .GT. 0.0_wp ) THEN
 
        r_Ri = r_red_grav * r_h / ( r_u**2 + r_v**2 )
 
     ELSE
 
-       r_Ri = 0.0_dp
+       r_Ri = 0.0_wp
 
     END IF
 
@@ -390,35 +405,40 @@ CONTAINS
     USE parameters_2d, ONLY : eps_sing
     IMPLICIT none
 
-    COMPLEX(dp), INTENT(IN) :: c_qj(n_vars)
-    COMPLEX(dp), INTENT(OUT) :: h               !< height [m]
-    COMPLEX(dp), INTENT(OUT) :: u               !< velocity (x direction) [m s-1]
-    COMPLEX(dp), INTENT(OUT) :: v               !< velocity (y direction) [m s-1]
-    COMPLEX(dp), INTENT(OUT) :: T               !< temperature [K]
-    COMPLEX(dp), INTENT(OUT) :: rho_m           !< mixture density [kg m-3]
-    COMPLEX(dp), INTENT(OUT) :: red_grav        !< reduced gravity
-    COMPLEX(dp), INTENT(OUT) :: alphas(n_solid) !< sediment volume fractions
+    COMPLEX(wp), INTENT(IN) :: c_qj(n_vars)
+    COMPLEX(wp), INTENT(OUT) :: h               !< height [m]
+    COMPLEX(wp), INTENT(OUT) :: u               !< velocity (x direction) [m s-1]
+    COMPLEX(wp), INTENT(OUT) :: v               !< velocity (y direction) [m s-1]
+    COMPLEX(wp), INTENT(OUT) :: T               !< temperature [K]
+    COMPLEX(wp), INTENT(OUT) :: rho_m           !< mixture density [kg m-3]
+    COMPLEX(wp), INTENT(OUT) :: red_grav        !< reduced gravity
+    COMPLEX(wp), INTENT(OUT) :: alphas(n_solid) !< sediment volume fractions
 
-    COMPLEX(dp) :: inv_rhom
-    COMPLEX(dp) :: xs(n_solid)             !< sediment mass fractions
-    COMPLEX(dp) :: xs_tot                  !< sum of solid mass fraction
-    COMPLEX(dp) :: Ri                      !< Richardson number
-    COMPLEX(dp) :: xl                      !< liquid mass fraction
-    COMPLEX(dp) :: xc                      !< carrier phase mass fraction
-    COMPLEX(dp) :: alphal                  !< liquid volume fraction
-    COMPLEX(dp) :: alphac                  !< carrier phase volume fraction
-    COMPLEX(dp) :: sp_heat_mix             !< Specific heat of mixture
-    COMPLEX(dp) :: rho_c     !< Density of carrier phase in the mixture 
+    COMPLEX(wp) :: inv_rhom
+    COMPLEX(wp) :: xs(n_solid)             !< sediment mass fractions
+    COMPLEX(wp) :: xs_tot                  !< sum of solid mass fraction
+    COMPLEX(wp) :: Ri                      !< Richardson number
+    COMPLEX(wp) :: xl                      !< liquid mass fraction
+    COMPLEX(wp) :: xc                      !< carrier phase mass fraction
+    COMPLEX(wp) :: alphal                  !< liquid volume fraction
+    COMPLEX(wp) :: alphac                  !< carrier phase volume fraction
+    COMPLEX(wp) :: sp_heat_mix             !< Specific heat of mixture
+    COMPLEX(wp) :: rho_c     !< Density of carrier phase in the mixture 
 
+    COMPLEX(wp) :: inv_rho_c
+    COMPLEX(wp) :: inv_cqj1
 
     ! compute solid mass fractions
-    IF ( REAL(c_qj(1)) .GT. 1.D-25 ) THEN
+    IF ( REAL(c_qj(1)) .GT. eps_sing ) THEN
 
-       xs(1:n_solid) = c_qj(5:4+n_solid) / c_qj(1)
+       inv_cqj1 = 1.0_wp / c_qj(1)
+
+       xs(1:n_solid) = c_qj(5:4+n_solid) * inv_cqj1
 
     ELSE
 
-       xs(1:n_solid) = CMPLX(0.0_dp,0.0_dp,dp)
+       inv_cqj1 = CMPLX(0.0_wp,0.0_wp,wp)
+       xs(1:n_solid) = CMPLX(0.0_wp,0.0_wp,wp)
 
     END IF
 
@@ -427,18 +447,10 @@ CONTAINS
     IF ( gas_flag .AND. liquid_flag ) THEN
 
        ! compute liquid mass fraction
-       IF ( REAL(c_qj(1)) .GT. 1.D-25 ) THEN
-
-          xl = c_qj(n_vars) / c_qj(1)
-
-       ELSE
-
-          xl = CMPLX(0.0_dp,0.0_dp,dp) 
-
-       END IF
+       xl = c_qj(n_vars) * inv_cqj1
 
        ! compute carrier phase (gas) mass fraction
-       xc =  CMPLX(1.0_dp,0.0_dp,dp) - xs_tot - xl
+       xc =  CMPLX(1.0_wp,0.0_wp,wp) - xs_tot - xl
 
        ! specific heaf of the mixutre: mass average of sp. heat pf phases
        sp_heat_mix = SUM( xs(1:n_solid) * sp_heat_s(1:n_solid) )                &
@@ -447,7 +459,7 @@ CONTAINS
     ELSE
 
        ! compute carrier phase (gas or liquid) mass fraction
-       xc = CMPLX(1.0_dp,0.0_dp,dp) - xs_tot
+       xc = CMPLX(1.0_wp,0.0_wp,wp) - xs_tot
 
        ! specific heaf of the mixutre: mass average of sp. heat pf phases
        sp_heat_mix = SUM( xs(1:n_solid) * sp_heat_s(1:n_solid) ) + xc * sp_heat_c
@@ -455,11 +467,11 @@ CONTAINS
     END IF
 
     ! compute temperature from energy
-    IF ( REAL(c_qj(1)) .GT. 1.D-25 ) THEN
+    IF ( REAL(c_qj(1)) .GT. eps_sing ) THEN
 
        IF ( energy_flag ) THEN
 
-          T = ( c_qj(4) - ( c_qj(2)**2 + c_qj(3)**2 ) / ( 2.0_dp*c_qj(1) ) ) /  &
+          T = ( c_qj(4) - ( c_qj(2)**2 + c_qj(3)**2 ) / ( 2.0_wp*c_qj(1) ) ) /  &
                ( c_qj(1) * sp_heat_mix ) 
 
        ELSE
@@ -468,11 +480,11 @@ CONTAINS
 
        END IF
 
-       IF ( REAL(T) .LE. 0.0_dp ) T = CMPLX(T_ambient,0.0_dp,dp)
+       IF ( REAL(T) .LE. 0.0_wp ) T = CMPLX(T_ambient,0.0_wp,wp)
 
     ELSE
 
-       T = CMPLX(T_ambient,0.0_dp,dp)
+       T = CMPLX(T_ambient,0.0_wp,wp)
 
     END IF
 
@@ -480,65 +492,67 @@ CONTAINS
 
        ! carrier phase is gas
        rho_c =  pres / ( sp_gas_const_a * T )
+       inv_rho_c = sp_gas_const_a * T * inv_pres
        sp_heat_c = sp_heat_a
 
     ELSE
 
        ! carrier phase is liquid
        rho_c = rho_l
+       inv_rho_c = inv_rho_l
        sp_heat_c = sp_heat_l
 
     END IF
 
     IF ( gas_flag .AND. liquid_flag ) THEN
 
-       inv_rhom = ( SUM(xs(1:n_solid) / rho_s(1:n_solid)) + xl / rho_l          &
-            + xc / rho_c )
+       inv_rhom = ( SUM(xs(1:n_solid) * inv_rho_s(1:n_solid)) + xl * inv_rho_l          &
+            + xc * inv_rho_c )
 
-       rho_m = 1.0_dp / inv_rhom
+       rho_m = 1.0_wp / inv_rhom
 
-       alphal = xl * rho_m / rho_l
+       alphal = xl * rho_m * inv_rho_l
 
     ELSE
 
-       inv_rhom = ( SUM(xs(1:n_solid) / rho_s(1:n_solid)) + xc / rho_c )
+       inv_rhom = ( SUM(xs(1:n_solid) * inv_rho_s(1:n_solid)) + xc * inv_rho_c )
 
-       rho_m = 1.0_dp / inv_rhom
+       rho_m = 1.0_wp / inv_rhom
 
     END IF
 
     ! convert from mass fraction to volume fraction
-    alphas(1:n_solid) = xs(1:n_solid) * rho_m / rho_s(1:n_solid)
+    alphas(1:n_solid) = xs(1:n_solid) * rho_m * inv_rho_s(1:n_solid)
 
     ! convert from mass fraction to volume fraction
-    alphac = xc * rho_m / rho_c
+    alphac = xc * rho_m * inv_rho_c
 
-    h = c_qj(1) / rho_m
+    h = c_qj(1) * inv_rhom
 
     ! reduced gravity
-    red_grav = ( rho_m - rho_a_amb ) / rho_m * grav
+    red_grav = ( rho_m - rho_a_amb ) * inv_rhom * grav
 
     ! velocity components
     IF ( REAL( c_qj(1) ) .GT. eps_sing ) THEN
 
-       u = c_qj(2) / c_qj(1)
-       v = c_qj(3) / c_qj(1)
+       u = c_qj(2) * inv_cqj1
+       v = c_qj(3) * inv_cqj1
 
     ELSE
 
-       u = SQRT(2.0_dp) * c_qj(1) * c_qj(2) / SQRT( c_qj(1)**4 + eps_sing**4 )
-       v = SQRT(2.0_dp) * c_qj(1) * c_qj(3) / SQRT( c_qj(1)**4 + eps_sing**4 )
+       u = SQRT(2.0_wp) * c_qj(1) * c_qj(2) / SQRT( c_qj(1)**4 + eps_sing**4 )
+       v = SQRT(2.0_wp) * c_qj(1) * c_qj(3) / SQRT( c_qj(1)**4 + eps_sing**4 )
 
     END IF
 
     ! Richardson number
-    IF ( REAL( u**2 + v**2 ) .GT. 0.0_dp ) THEN
+    IF ( REAL( u**2 + v**2 ) .GT. 0.0_wp ) THEN
 
        Ri = red_grav * h / ( u**2 + v**2 )
 
     ELSE
 
-       Ri = CMPLX(0.0_dp,0.0_dp,dp)
+       Ri = CMPLX(0.0_wp,0.0_wp,wp)
 
     END IF
 
@@ -569,30 +583,30 @@ CONTAINS
 
     IMPLICIT none
 
-    REAL(dp), INTENT(IN) :: qpj(n_vars+2) !< real-value physical variables
-    REAL(dp), INTENT(OUT) :: r_Ri         !< real-value Richardson number
-    REAL(dp), INTENT(OUT) :: r_rho_m      !< real-value mixture density [kg/m3]
-    REAL(dp), INTENT(OUT) :: r_rho_c !< real-value carrier phase density [kg/m3]
-    REAL(dp), INTENT(OUT) :: r_red_grav   !< real-value reduced gravity
-    REAL(dp) :: r_u                       !< real-value x-velocity
-    REAL(dp) :: r_v                       !< real-value y-velocity
-    REAL(dp) :: r_h                       !< real-value flow thickness
-    REAL(dp) :: r_alphas(n_solid)         !< real-value solid volume fractions
-    REAL(dp) :: r_T                       !< real-value temperature [K]
-    REAL(dp) :: r_alphal                  !< real-value liquid volume fraction
+    REAL(wp), INTENT(IN) :: qpj(n_vars+2) !< real-value physical variables
+    REAL(wp), INTENT(OUT) :: r_Ri         !< real-value Richardson number
+    REAL(wp), INTENT(OUT) :: r_rho_m      !< real-value mixture density [kg/m3]
+    REAL(wp), INTENT(OUT) :: r_rho_c !< real-value carrier phase density [kg/m3]
+    REAL(wp), INTENT(OUT) :: r_red_grav   !< real-value reduced gravity
+    REAL(wp) :: r_u                       !< real-value x-velocity
+    REAL(wp) :: r_v                       !< real-value y-velocity
+    REAL(wp) :: r_h                       !< real-value flow thickness
+    REAL(wp) :: r_alphas(n_solid)         !< real-value solid volume fractions
+    REAL(wp) :: r_T                       !< real-value temperature [K]
+    REAL(wp) :: r_alphal                  !< real-value liquid volume fraction
 
     r_h = qpj(1)
 
-    IF ( qpj(1) .LE. 0.0_dp ) THEN
+    IF ( qpj(1) .LE. 0.0_wp ) THEN
 
-       r_u = 0.0_dp
-       r_v = 0.0_dp
+       r_u = 0.0_wp
+       r_v = 0.0_wp
        r_T = T_ambient
-       r_alphas(1:n_solid) = 0.0_dp
-       r_red_grav = 0.0_dp
-       r_Ri = 0.0_dp
+       r_alphas(1:n_solid) = 0.0_wp
+       r_red_grav = 0.0_wp
+       r_Ri = 0.0_wp
        r_rho_m = rho_a_amb
-       IF ( gas_flag .AND. liquid_flag ) r_alphal = 0.0_dp
+       IF ( gas_flag .AND. liquid_flag ) r_alphal = 0.0_wp
 
        RETURN
 
@@ -620,27 +634,29 @@ CONTAINS
        r_alphal = qpj(n_vars)
 
        ! density of mixture of carrier (gas), liquid and solids
-       r_rho_m = ( 1.0_dp - SUM(r_alphas) - r_alphal ) * r_rho_c                &
+       r_rho_m = ( 1.0_wp - SUM(r_alphas) - r_alphal ) * r_rho_c                &
             + SUM( r_alphas * rho_s ) + r_alphal * rho_l
 
     ELSE
 
        ! density of mixture of carrier phase and solids
-       r_rho_m = ( 1.0_dp - SUM(r_alphas) ) * r_rho_c + SUM( r_alphas * rho_s ) 
+       r_rho_m = ( 1.0_wp - SUM(r_alphas) ) * r_rho_c + SUM( r_alphas * rho_s ) 
 
     END IF
 
     ! reduced gravity
     r_red_grav = ( r_rho_m - rho_a_amb ) / r_rho_m * grav
 
+    
+
     ! Richardson number
-    IF ( ( r_u**2 + r_v**2 ) .GT. 0.0_dp ) THEN
+    IF ( ( r_u**2 + r_v**2 ) .GT. 0.0_wp ) THEN
 
        r_Ri = r_red_grav * r_h / ( r_u**2 + r_v**2 )
 
     ELSE
 
-       r_Ri = 0.0_dp
+       r_Ri = 1.D10
 
     END IF
 
@@ -678,47 +694,33 @@ CONTAINS
 
     IMPLICIT none
 
-    REAL(dp), INTENT(IN) :: qc(n_vars)
-    REAL(dp), INTENT(OUT) :: qp(n_vars+2)
+    REAL(wp), INTENT(IN) :: qc(n_vars)
+    REAL(wp), INTENT(OUT) :: qp(n_vars+2)
 
-    REAL(dp) :: r_h               !< real-value flow thickness
-    REAL(dp) :: r_u               !< real-value x-velocity
-    REAL(dp) :: r_v               !< real-value y-velocity
-    REAL(dp) :: r_alphas(n_solid) !< real-value solid volume fractions
-    REAL(dp) :: r_rho_m           !< real-value mixture density [kg/m3]
-    REAL(dp) :: r_T               !< real-value temperature [K]
-    REAL(dp) :: r_alphal          !< real-value liquid volume fraction
+    REAL(wp) :: r_h               !< real-value flow thickness
+    REAL(wp) :: r_u               !< real-value x-velocity
+    REAL(wp) :: r_v               !< real-value y-velocity
+    REAL(wp) :: r_alphas(n_solid) !< real-value solid volume fractions
+    REAL(wp) :: r_rho_m           !< real-value mixture density [kg/m3]
+    REAL(wp) :: r_T               !< real-value temperature [K]
+    REAL(wp) :: r_alphal          !< real-value liquid volume fraction
 
     
-    IF ( qc(1) .GT. 0.0_dp ) THEN
-
-       CALL r_phys_var(qc,r_h,r_u,r_v,r_alphas,r_rho_m,r_T,r_alphal)
-
-       qp(1) = r_h
-
-       qp(2) = r_h*r_u
-       qp(3) = r_h*r_v
-
-       qp(4) = r_T
-       qp(5:4+n_solid) = r_alphas(1:n_solid)
-
-       IF ( gas_flag .AND. liquid_flag ) qp(n_vars) = r_alphal
-
-       qp(n_vars+1) = r_u
-       qp(n_vars+2) = r_v
-
-    ELSE
-
-       qp(1) = 0.0_dp           ! h
-       qp(2) = 0.0_dp           ! hu
-       qp(3) = 0.0_dp           ! hv
-       qp(4) = T_ambient      ! T
-       qp(5:n_vars) = 0.0_dp    ! alphas
-       qp(n_vars+1) = 0.0_dp    ! u
-       qp(n_vars+2) = 0.0_dp    ! v
-
-    END IF
-
+    CALL r_phys_var(qc,r_h,r_u,r_v,r_alphas,r_rho_m,r_T,r_alphal)
+    
+    qp(1) = r_h
+    
+    qp(2) = r_h*r_u
+    qp(3) = r_h*r_v
+    
+    qp(4) = r_T
+    qp(5:4+n_solid) = r_alphas(1:n_solid)
+    
+    IF ( gas_flag .AND. liquid_flag ) qp(n_vars) = r_alphal
+    
+    qp(n_vars+1) = r_u
+    qp(n_vars+2) = r_v
+    
     RETURN
 
   END SUBROUTINE qc_to_qp
@@ -752,30 +754,30 @@ CONTAINS
 
     IMPLICIT none
 
-    REAL(dp), INTENT(IN) :: qp(n_vars+2)
-    REAL(dp), INTENT(OUT) :: qc(n_vars)
+    REAL(wp), INTENT(IN) :: qp(n_vars+2)
+    REAL(wp), INTENT(OUT) :: qc(n_vars)
 
-    REAL(dp) :: r_sp_heat_mix
-    REAL(dp) :: sum_sl
+    REAL(wp) :: r_sp_heat_mix
+    REAL(wp) :: sum_sl
 
-    REAL(dp) :: r_u               !< real-value x-velocity
-    REAL(dp) :: r_v               !< real-value y-velocity
-    REAL(dp) :: r_h               !< real-value flow thickness
-    REAL(dp) :: r_hu              !< real-value volumetric x-flow
-    REAL(dp) :: r_hv              !< real-value volumetric y-flow
-    REAL(dp) :: r_alphas(n_solid) !< real-value solid volume fractions
-    REAL(dp) :: r_xl              !< real-value liquid mass fraction
-    REAL(dp) :: r_xc              !< real-value carrier phase mass fraction
-    REAL(dp) :: r_T               !< real-value temperature [K]
-    REAL(dp) :: r_alphal          !< real-value liquid volume fraction
-    REAL(dp) :: r_alphac          !< real-value carrier phase volume fraction
-    REAL(dp) :: r_rho_m           !< real-value mixture density [kg/m3]
-    REAL(dp) :: r_rho_c           !< real-value carrier phase density [kg/m3]
-    REAL(dp) :: r_xs(n_solid)     !< real-value solid mass fraction
+    REAL(wp) :: r_u               !< real-value x-velocity
+    REAL(wp) :: r_v               !< real-value y-velocity
+    REAL(wp) :: r_h               !< real-value flow thickness
+    REAL(wp) :: r_hu              !< real-value volumetric x-flow
+    REAL(wp) :: r_hv              !< real-value volumetric y-flow
+    REAL(wp) :: r_alphas(n_solid) !< real-value solid volume fractions
+    REAL(wp) :: r_xl              !< real-value liquid mass fraction
+    REAL(wp) :: r_xc              !< real-value carrier phase mass fraction
+    REAL(wp) :: r_T               !< real-value temperature [K]
+    REAL(wp) :: r_alphal          !< real-value liquid volume fraction
+    REAL(wp) :: r_alphac          !< real-value carrier phase volume fraction
+    REAL(wp) :: r_rho_m           !< real-value mixture density [kg/m3]
+    REAL(wp) :: r_rho_c           !< real-value carrier phase density [kg/m3]
+    REAL(wp) :: r_xs(n_solid)     !< real-value solid mass fraction
 
     r_h = qp(1)
 
-    IF ( r_h .GT. 0.0_dp ) THEN
+    IF ( r_h .GT. 0.0_wp ) THEN
 
        r_hu = qp(2)
        r_hv = qp(3)
@@ -785,13 +787,13 @@ CONTAINS
 
     ELSE
 
-       r_hu = 0.0_dp
-       r_hv = 0.0_dp
+       r_hu = 0.0_wp
+       r_hv = 0.0_wp
 
-       r_u = 0.0_dp
-       r_v = 0.0_dp
+       r_u = 0.0_wp
+       r_v = 0.0_wp
 
-       qc(1:n_vars) = 0.0_dp
+       qc(1:n_vars) = 0.0_wp
        RETURN
 
     END IF
@@ -820,21 +822,21 @@ CONTAINS
        r_alphal = qp(n_vars)
 
        ! check and correction on dispersed phases volume fractions
-       IF ( ( SUM(r_alphas) + r_alphal ) .GT. 1.0_dp ) THEN
+       IF ( ( SUM(r_alphas) + r_alphal ) .GT. 1.0_wp ) THEN
 
           sum_sl = SUM(r_alphas) + r_alphal
           r_alphas(1:n_solid) = r_alphas(1:n_solid) / sum_sl
           r_alphal = r_alphal / sum_sl
 
-       ELSEIF ( ( SUM(r_alphas) + r_alphal ) .LT. 0.0_dp ) THEN
+       ELSEIF ( ( SUM(r_alphas) + r_alphal ) .LT. 0.0_wp ) THEN
 
-          r_alphas(1:n_solid) = 0.0_dp
-          r_alphal = 0.0_dp
+          r_alphas(1:n_solid) = 0.0_wp
+          r_alphal = 0.0_wp
 
        END IF
 
        ! carrier phase volume fraction
-       r_alphac = 1.0_dp - SUM(r_alphas) - r_alphal
+       r_alphac = 1.0_wp - SUM(r_alphas) - r_alphal
 
        ! volume averaged mixture density: carrier (gas) + solids + liquid
        r_rho_m = r_alphac * r_rho_c + SUM( r_alphas * rho_s ) + r_alphal * rho_l
@@ -856,18 +858,18 @@ CONTAINS
        ! mixture of carrier phase ( gas or liquid ) and solid
 
        ! check and corrections on dispersed phases
-       IF ( SUM(r_alphas) .GT. 1.0_dp ) THEN
+       IF ( SUM(r_alphas) .GT. 1.0_wp ) THEN
 
           r_alphas(1:n_solid) = r_alphas(1:n_solid) / SUM(r_alphas)
 
-       ELSEIF ( SUM(r_alphas).LT. 0.0_dp ) THEN
+       ELSEIF ( SUM(r_alphas).LT. 0.0_wp ) THEN
 
-          r_alphas(1:n_solid) = 0.0_dp
+          r_alphas(1:n_solid) = 0.0_wp
 
        END IF
 
        ! carrier (gas or liquid) volume fraction
-       r_alphac = 1.0_dp - SUM(r_alphas) 
+       r_alphac = 1.0_wp - SUM(r_alphas) 
 
        ! volume averaged mixture density: carrier (gas or liquid) + solids
        r_rho_m = r_alphac * r_rho_c + SUM( r_alphas * rho_s ) 
@@ -889,15 +891,15 @@ CONTAINS
 
     IF ( energy_flag ) THEN
 
-       IF ( r_h .GT. 0.0_dp ) THEN
+       IF ( r_h .GT. 0.0_wp ) THEN
 
           ! total energy (internal and kinetic)
           qc(4) = r_h * r_rho_m * ( r_sp_heat_mix * r_T                         &
-               + 0.5_dp * ( r_hu**2 + r_hv**2 ) / r_h**2 )
+               + 0.5_wp * ( r_hu**2 + r_hv**2 ) / r_h**2 )
 
        ELSE
 
-          qc(4) = 0.0_dp
+          qc(4) = 0.0_wp
 
        END IF
 
@@ -933,16 +935,16 @@ CONTAINS
 
     IMPLICIT none
 
-    REAL(dp), INTENT(IN) :: qpj(n_vars)
-    REAL(dp), INTENT(IN) :: Bj
-    REAL(dp), INTENT(OUT) :: qp2j(3)
+    REAL(wp), INTENT(IN) :: qpj(n_vars)
+    REAL(wp), INTENT(IN) :: Bj
+    REAL(wp), INTENT(OUT) :: qp2j(3)
 
     qp2j(1) = qpj(1) + Bj
 
-    IF ( qpj(1) .LE. 0.0_dp ) THEN
+    IF ( qpj(1) .LE. 0.0_wp ) THEN
 
-       qp2j(2) = 0.0_dp
-       qp2j(3) = 0.0_dp
+       qp2j(2) = 0.0_wp
+       qp2j(3) = 0.0_wp
 
     ELSE
 
@@ -972,17 +974,17 @@ CONTAINS
 
     IMPLICIT none
 
-    REAL(dp), INTENT(IN) :: qpj(n_vars+2)
+    REAL(wp), INTENT(IN) :: qpj(n_vars+2)
 
-    REAL(dp), INTENT(OUT) :: vel_min(n_vars) , vel_max(n_vars)
+    REAL(wp), INTENT(OUT) :: vel_min(n_vars) , vel_max(n_vars)
 
-    REAL(dp) :: r_h          !< real-value flow thickness [m]
-    REAL(dp) :: r_u          !< real-value x-velocity [m s-1]
-    REAL(dp) :: r_v          !< real-value y-velocity [m s-1]
-    REAL(dp) :: r_Ri         !< real-value Richardson number
-    REAL(dp) :: r_rho_m      !< real-value mixture density [kg m-3]
-    REAL(dp) :: r_rho_c      !< real-value carrier phase density [kg m-3]
-    REAL(dp) :: r_red_grav   !< real-value reduced gravity [m s-2]
+    REAL(wp) :: r_h          !< real-value flow thickness [m]
+    REAL(wp) :: r_u          !< real-value x-velocity [m s-1]
+    REAL(wp) :: r_v          !< real-value y-velocity [m s-1]
+    REAL(wp) :: r_Ri         !< real-value Richardson number
+    REAL(wp) :: r_rho_m      !< real-value mixture density [kg m-3]
+    REAL(wp) :: r_rho_c      !< real-value carrier phase density [kg m-3]
+    REAL(wp) :: r_red_grav   !< real-value reduced gravity [m s-2]
 
     CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav)
 
@@ -990,7 +992,7 @@ CONTAINS
     r_u = qpj(n_vars+1)
     r_v = qpj(n_vars+2)
 
-    IF ( r_red_grav * r_h .LT. 0.0_dp ) THEN
+    IF ( r_red_grav * r_h .LT. 0.0_wp ) THEN
 
        vel_min(1:n_eqns) = r_u
        vel_max(1:n_eqns) = r_u
@@ -1023,16 +1025,16 @@ CONTAINS
 
     IMPLICIT none
 
-    REAL(dp), INTENT(IN)  :: qpj(n_vars+2)
-    REAL(dp), INTENT(OUT) :: vel_min(n_vars) , vel_max(n_vars)
+    REAL(wp), INTENT(IN)  :: qpj(n_vars+2)
+    REAL(wp), INTENT(OUT) :: vel_min(n_vars) , vel_max(n_vars)
 
-    REAL(dp) :: r_h          !< real-value flow thickness
-    REAL(dp) :: r_u          !< real-value x-velocity
-    REAL(dp) :: r_v          !< real-value y-velocity
-    REAL(dp) :: r_Ri         !< real-value Richardson number
-    REAL(dp) :: r_rho_m      !< real-value mixture density [kg/m3]
-    REAL(dp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
-    REAL(dp) :: r_red_grav   !< real-value reduced gravity
+    REAL(wp) :: r_h          !< real-value flow thickness
+    REAL(wp) :: r_u          !< real-value x-velocity
+    REAL(wp) :: r_v          !< real-value y-velocity
+    REAL(wp) :: r_Ri         !< real-value Richardson number
+    REAL(wp) :: r_rho_m      !< real-value mixture density [kg/m3]
+    REAL(wp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
+    REAL(wp) :: r_red_grav   !< real-value reduced gravity
 
     CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav)
 
@@ -1040,7 +1042,7 @@ CONTAINS
     r_u = qpj(n_vars+1)
     r_v = qpj(n_vars+2)
 
-    IF ( r_red_grav * r_h .LT. 0.0_dp ) THEN
+    IF ( r_red_grav * r_h .LT. 0.0_wp ) THEN
 
        vel_min(1:n_eqns) = r_v
        vel_max(1:n_eqns) = r_v
@@ -1076,21 +1078,21 @@ CONTAINS
 
     IMPLICIT none
 
-    REAL(dp), INTENT(IN) :: qcj(n_vars)
-    REAL(dp), INTENT(IN) :: qpj(n_vars+2)
+    REAL(wp), INTENT(IN) :: qcj(n_vars)
+    REAL(wp), INTENT(IN) :: qpj(n_vars+2)
     INTEGER, INTENT(IN) :: dir
 
-    REAL(dp), INTENT(OUT) :: flux(n_eqns)
+    REAL(wp), INTENT(OUT) :: flux(n_eqns)
 
-    REAL(dp) :: r_h          !< real-value flow thickness [m]
-    REAL(dp) :: r_u          !< real-value x-velocity [m s-1]
-    REAL(dp) :: r_v          !< real-value y-velocity [m s-1]
-    REAL(dp) :: r_Ri         !< real-value Richardson number
-    REAL(dp) :: r_rho_m      !< real-value mixture density [kg m-3]
-    REAL(dp) :: r_rho_c      !< real-value carrier phase density [kg m-3]
-    REAL(dp) :: r_red_grav   !< real-value reduced gravity [m s-2]
+    REAL(wp) :: r_h          !< real-value flow thickness [m]
+    REAL(wp) :: r_u          !< real-value x-velocity [m s-1]
+    REAL(wp) :: r_v          !< real-value y-velocity [m s-1]
+    REAL(wp) :: r_Ri         !< real-value Richardson number
+    REAL(wp) :: r_rho_m      !< real-value mixture density [kg m-3]
+    REAL(wp) :: r_rho_c      !< real-value carrier phase density [kg m-3]
+    REAL(wp) :: r_red_grav   !< real-value reduced gravity [m s-2]
 
-    pos_thick:IF ( qcj(1) .GT. 0.0_dp ) THEN
+    pos_thick:IF ( qcj(1) .GT. 0.0_wp ) THEN
 
        r_h = qpj(1)
        r_u = qpj(n_vars+1)
@@ -1104,7 +1106,7 @@ CONTAINS
           flux(1) = r_u * qcj(1)
 
           ! x-momentum flux in x-direction + hydrostatic pressure term
-          flux(2) = r_u * qcj(2) + 0.5_dp * r_rho_m * r_red_grav * r_h**2
+          flux(2) = r_u * qcj(2) + 0.5_wp * r_rho_m * r_red_grav * r_h**2
 
           ! y-momentum flux in x-direction: u * ( rho * h * v )
           flux(3) = r_u * qcj(3)
@@ -1112,7 +1114,7 @@ CONTAINS
           IF ( energy_flag ) THEN
 
              ! ENERGY flux in x-direction
-             flux(4) = r_u * ( qcj(4) + 0.5_dp * r_rho_m * r_red_grav * r_h**2 )
+             flux(4) = r_u * ( qcj(4) + 0.5_wp * r_rho_m * r_red_grav * r_h**2 )
 
           ELSE
 
@@ -1125,8 +1127,8 @@ CONTAINS
           flux(5:4+n_solid) = r_u * qcj(5:4+n_solid)
 
           ! Solid flux can't be larger than total flux
-          IF ( ( flux(1) .GT. 0.0_dp ) .AND. ( SUM(flux(5:4+n_solid)) / flux(1) &
-               .GT. 1.0_dp ) ) THEN
+          IF ( ( flux(1) .GT. 0.0_wp ) .AND. ( SUM(flux(5:4+n_solid)) / flux(1) &
+               .GT. 1.0_wp ) ) THEN
 
              flux(5:4+n_solid) = &
                   flux(5:4+n_solid) / SUM(flux(5:4+n_solid)) * flux(1)
@@ -1143,12 +1145,12 @@ CONTAINS
 
           flux(2) = r_v * qcj(2)
 
-          flux(3) = r_v * qcj(3) + 0.5_dp * r_rho_m * r_red_grav * r_h**2
+          flux(3) = r_v * qcj(3) + 0.5_wp * r_rho_m * r_red_grav * r_h**2
 
           IF ( energy_flag ) THEN
 
              ! ENERGY flux in x-direction
-             flux(4) = r_v * ( qcj(4) + 0.5_dp * r_rho_m * r_red_grav * r_h**2 )
+             flux(4) = r_v * ( qcj(4) + 0.5_wp * r_rho_m * r_red_grav * r_h**2 )
 
           ELSE
 
@@ -1161,8 +1163,8 @@ CONTAINS
           flux(5:4+n_solid) = r_v * qcj(5:4+n_solid)
 
           ! Solid flux can't be larger than total flux
-          IF ( ( flux(1) .GT. 0.0_dp ) .AND. ( SUM(flux(5:4+n_solid)) / flux(1) &
-               .GT. 1.0_dp ) ) THEN
+          IF ( ( flux(1) .GT. 0.0_wp ) .AND. ( SUM(flux(5:4+n_solid)) / flux(1) &
+               .GT. 1.0_wp ) ) THEN
 
              flux(5:4+n_solid) = &
                   flux(5:4+n_solid) / SUM(flux(5:4+n_solid)) * flux(1)
@@ -1176,7 +1178,7 @@ CONTAINS
 
     ELSE
 
-       flux(1:n_eqns) = 0.0_dp
+       flux(1:n_eqns) = 0.0_wp
 
     ENDIF pos_thick
 
@@ -1209,58 +1211,58 @@ CONTAINS
 
     IMPLICIT NONE
 
-    COMPLEX(dp), INTENT(IN), OPTIONAL :: c_qj(n_vars)
-    COMPLEX(dp), INTENT(OUT), OPTIONAL :: c_nh_term_impl(n_eqns)
-    REAL(dp), INTENT(IN), OPTIONAL :: r_qj(n_vars)
-    REAL(dp), INTENT(OUT), OPTIONAL :: r_nh_term_impl(n_eqns)
+    COMPLEX(wp), INTENT(IN), OPTIONAL :: c_qj(n_vars)
+    COMPLEX(wp), INTENT(OUT), OPTIONAL :: c_nh_term_impl(n_eqns)
+    REAL(wp), INTENT(IN), OPTIONAL :: r_qj(n_vars)
+    REAL(wp), INTENT(OUT), OPTIONAL :: r_nh_term_impl(n_eqns)
 
-    COMPLEX(dp) :: h                       !< height [m]
-    COMPLEX(dp) :: u                       !< velocity (x direction) [m/s]
-    COMPLEX(dp) :: v                       !< velocity (y direction) [m/s]
-    COMPLEX(dp) :: T                       !< temperature [K]
-    COMPLEX(dp) :: rho_m                   !< mixture density [kg/m3]
-    COMPLEX(dp) :: red_grav                !< reduced gravity
-    COMPLEX(dp) :: alphas(n_solid)         !< sediment volume fractions
+    COMPLEX(wp) :: h                       !< height [m]
+    COMPLEX(wp) :: u                       !< velocity (x direction) [m/s]
+    COMPLEX(wp) :: v                       !< velocity (y direction) [m/s]
+    COMPLEX(wp) :: T                       !< temperature [K]
+    COMPLEX(wp) :: rho_m                   !< mixture density [kg/m3]
+    COMPLEX(wp) :: red_grav                !< reduced gravity
+    COMPLEX(wp) :: alphas(n_solid)         !< sediment volume fractions
  
-    COMPLEX(dp) :: qj(n_vars)
-    COMPLEX(dp) :: nh_term(n_eqns)
-    COMPLEX(dp) :: forces_term(n_eqns)
+    COMPLEX(wp) :: qj(n_vars)
+    COMPLEX(wp) :: nh_term(n_eqns)
+    COMPLEX(wp) :: forces_term(n_eqns)
 
-    COMPLEX(dp) :: mod_vel
-    COMPLEX(dp) :: gamma
-    REAL(dp) :: h_threshold
+    COMPLEX(wp) :: mod_vel
+    COMPLEX(wp) :: gamma
+    REAL(wp) :: h_threshold
 
     INTEGER :: i
 
     !--- Lahars rheology model variables
 
     !> Temperature in C
-    COMPLEX(dp) :: Tc
+    COMPLEX(wp) :: Tc
 
-    COMPLEX(dp) :: expA , expB
+    COMPLEX(wp) :: expA , expB
 
     !> 1st param for fluid viscosity empirical relationship (O'Brian et al, 1993)
-    COMPLEX(dp) :: alpha1    ! (units: kg m-1 s-1 )
+    COMPLEX(wp) :: alpha1    ! (units: kg m-1 s-1 )
     
     !> Fluid dynamic viscosity (units: kg m-1 s-1 )
-    COMPLEX(dp) :: fluid_visc
+    COMPLEX(wp) :: fluid_visc
 
     !> Total friction slope (dimensionless): s_f = s_v+s_td+s_y
-    COMPLEX(dp) :: s_f
+    COMPLEX(wp) :: s_f
 
     !> Viscous slope component of total Friction (dimensionless)
-    COMPLEX(dp) :: s_v
+    COMPLEX(wp) :: s_v
 
     !> Turbulent dispersive slope component of total friction (dimensionless)
-    COMPLEX(dp) :: s_td
+    COMPLEX(wp) :: s_td
 
-    IF ( ( thermal_conductivity .GT. 0.0_dp ) .OR. ( emme .GT. 0.0_dp ) ) THEN
+    IF ( ( thermal_conductivity .GT. 0.0_wp ) .OR. ( emme .GT. 0.0_wp ) ) THEN
 
        h_threshold = 1.D-10
 
     ELSE
 
-       h_threshold = 0.0_dp
+       h_threshold = 0.0_wp
 
     END IF
 
@@ -1272,7 +1274,7 @@ CONTAINS
 
        DO i = 1,n_vars
 
-          qj(i) = CMPLX( r_qj(i),0.0_dp,dp )
+          qj(i) = CMPLX( r_qj(i),0.0_wp,wp )
 
        END DO
 
@@ -1284,7 +1286,7 @@ CONTAINS
     END IF
 
     ! initialize and evaluate the forces terms
-    forces_term(1:n_eqns) = CMPLX(0.0_dp,0.0_dp,dp)
+    forces_term(1:n_eqns) = CMPLX(0.0_wp,0.0_wp,wp)
 
     IF (rheology_flag) THEN
 
@@ -1295,7 +1297,7 @@ CONTAINS
        ! Voellmy Salm rheology
        IF ( rheology_model .EQ. 1 ) THEN
 
-          IF ( REAL(mod_vel) .NE. 0.0_dp ) THEN 
+          IF ( REAL(mod_vel) .NE. 0.0_wp ) THEN 
 
              ! IMPORTANT: grav3_surf is always negative 
              forces_term(2) = forces_term(2) - rho_m * ( u / mod_vel ) *        &
@@ -1309,7 +1311,7 @@ CONTAINS
           ! Plastic rheology
        ELSEIF ( rheology_model .EQ. 2 ) THEN
 
-          IF ( REAL(mod_vel) .NE. 0.0_dp ) THEN 
+          IF ( REAL(mod_vel) .NE. 0.0_wp ) THEN 
 
              forces_term(2) = forces_term(2) - rho_m * tau * (u/mod_vel)
 
@@ -1323,17 +1325,17 @@ CONTAINS
           IF ( REAL(h) .GT. h_threshold ) THEN
 
              ! Equation 6 from Costa & Macedonio, 2005
-             gamma = 3.0_dp * nu_ref / h * EXP( - visc_par * ( T - T_ref ) )
+             gamma = 3.0_wp * nu_ref / h * EXP( - visc_par * ( T - T_ref ) )
 
           ELSE
 
              ! Equation 6 from Costa & Macedonio, 2005
-             gamma = 3.0_dp * nu_ref / h_threshold * EXP( - visc_par            &
+             gamma = 3.0_wp * nu_ref / h_threshold * EXP( - visc_par            &
                   * ( T - T_ref ) )
 
           END IF
 
-          IF ( REAL(mod_vel) .NE. 0.0_dp ) THEN 
+          IF ( REAL(mod_vel) .NE. 0.0_wp ) THEN 
 
              ! Last R.H.S. term in equation 2 from Costa & Macedonio, 2005
              forces_term(2) = forces_term(2) - rho_m * gamma * u
@@ -1353,7 +1355,7 @@ CONTAINS
           h_threshold = 1.D-20
 
           ! convert from Kelvin to Celsius
-          Tc = T - 273.15_dp
+          Tc = T - 273.15_wp
 
           ! the dependance of viscosity on temperature is modeled with the
           ! equation presented at:
@@ -1361,19 +1363,19 @@ CONTAINS
           !
           ! In addition, we use a reference value provided in input at a 
           ! reference temperature. This value is used to scale the equation
-          IF ( REAL(Tc) .LT. 20.0_dp ) THEN
+          IF ( REAL(Tc) .LT. 20.0_wp ) THEN
 
-             expA = 1301.0_dp / ( 998.333_dp + 8.1855_dp * ( Tc - 20.0_dp )     &
-                  + 0.00585_dp * ( Tc - 20.0_dp )**2 ) - 1.30223_dp
+             expA = 1301.0_wp / ( 998.333_wp + 8.1855_wp * ( Tc - 20.0_wp )     &
+                  + 0.00585_wp * ( Tc - 20.0_wp )**2 ) - 1.30223_wp
 
-             alpha1 = alpha1_coeff * 1.D-3 * 10.0_dp**expA
+             alpha1 = alpha1_coeff * 1.D-3 * 10.0_wp**expA
 
           ELSE
 
-             expB = ( 1.3272_dp * ( 20.0_dp - Tc ) - 0.001053_dp *              &
-                  ( Tc - 20.0_dp )**2 ) / ( Tc + 105.0_dp )
+             expB = ( 1.3272_wp * ( 20.0_wp - Tc ) - 0.001053_wp *              &
+                  ( Tc - 20.0_wp )**2 ) / ( Tc + 105.0_wp )
 
-             alpha1 = alpha1_coeff * 1.002D-3 * 10.0_dp**expB 
+             alpha1 = alpha1_coeff * 1.002D-3 * 10.0_wp**expB 
 
           END IF
 
@@ -1383,26 +1385,26 @@ CONTAINS
           IF ( REAL(h) .GT. h_threshold ) THEN
 
              ! Viscous slope component (dimensionless)
-             s_v = Kappa * fluid_visc * mod_vel / ( 8.0_dp * rho_m * grav *h**2 )
+             s_v = Kappa * fluid_visc * mod_vel / ( 8.0_wp * rho_m * grav *h**2 )
 
              ! Turbulent dispersive component (dimensionless)
-             s_td = n_td**2 * mod_vel**2 / ( h**(4.0_dp/3.0_dp) )
+             s_td = n_td**2 * mod_vel**2 / ( h**(4.0_wp/3.0_wp) )
 
           ELSE
 
              ! Viscous slope component (dimensionless)
-             s_v = Kappa * fluid_visc * mod_vel / ( 8.0_dp * rho_m * grav *     &
+             s_v = Kappa * fluid_visc * mod_vel / ( 8.0_wp * rho_m * grav *     &
                   h_threshold**2 )
 
              ! Turbulent dispersive components (dimensionless)
-             s_td = n_td**2 * (mod_vel**2) / ( h_threshold**(4.0_dp/3.0_dp) )
+             s_td = n_td**2 * (mod_vel**2) / ( h_threshold**(4.0_wp/3.0_wp) )
 
           END IF
 
           ! Total implicit friction slope (dimensionless)
           s_f = s_v + s_td
 
-          IF ( REAL(mod_vel) .GT. 0.0_dp ) THEN
+          IF ( REAL(mod_vel) .GT. 0.0_wp ) THEN
 
              ! same units of dqc(2)/dt: kg m-1 s-2
              forces_term(2) = forces_term(2) - grav * rho_m * h *               &
@@ -1416,9 +1418,9 @@ CONTAINS
 
        ELSEIF ( rheology_model .EQ. 5 ) THEN
 
-          tau = 1.D-3 / ( 1.0_dp + 10.0_dp * h ) * mod_vel
+          tau = 1.D-3 / ( 1.0_wp + 10.0_wp * h ) * mod_vel
 
-          IF ( REAL(mod_vel) .NE. 0.0_dp ) THEN
+          IF ( REAL(mod_vel) .NE. 0.0_wp ) THEN
 
              forces_term(2) = forces_term(2) - rho_m * tau * ( u / mod_vel )
              forces_term(3) = forces_term(3) - rho_m * tau * ( v / mod_vel )
@@ -1428,13 +1430,13 @@ CONTAINS
 
        ELSEIF ( rheology_model .EQ. 6 ) THEN
 
-          IF ( REAL(mod_vel) .NE. 0.0_dp ) THEN 
+          IF ( REAL(mod_vel) .NE. 0.0_wp ) THEN 
 
-             forces_term(2) = forces_term(2) - rho_m * ( u / mod_vel ) *        &
-                  friction_factor * mod_vel ** 2
+             forces_term(2) = forces_term(2) - rho_m * u * friction_factor *    &
+                  mod_vel
 
-             forces_term(3) = forces_term(3) - rho_m * ( v / mod_vel ) *        &
-                  friction_factor * mod_vel ** 2
+             forces_term(3) = forces_term(3) - rho_m * v * friction_factor *    &
+                  mod_vel
 
           ENDIF
 
@@ -1478,36 +1480,36 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(IN) :: grav3_surf
+    REAL(wp), INTENT(IN) :: grav3_surf
 
-    REAL(dp), INTENT(IN) :: qcj(n_vars)
-    REAL(dp), INTENT(OUT) :: nh_semi_impl_term(n_eqns)
+    REAL(wp), INTENT(IN) :: qcj(n_vars)
+    REAL(wp), INTENT(OUT) :: nh_semi_impl_term(n_eqns)
 
-    REAL(dp) :: forces_term(n_eqns)
+    REAL(wp) :: forces_term(n_eqns)
 
-    REAL(dp) :: mod_vel
+    REAL(wp) :: mod_vel
 
-    REAL(dp) :: h_threshold
+    REAL(wp) :: h_threshold
 
     !--- Lahars rheology model variables
 
     !> Yield strenght (units: kg m-1 s-2)
-    REAL(dp) :: tau_y
+    REAL(wp) :: tau_y
 
     !> Yield slope component of total friction (dimensionless)
-    REAL(dp) :: s_y
+    REAL(wp) :: s_y
 
-    REAL(dp) :: r_h               !< real-value flow thickness
-    REAL(dp) :: r_u               !< real-value x-velocity
-    REAL(dp) :: r_v               !< real-value y-velocity
-    REAL(dp) :: r_alphas(n_solid) !< real-value solid volume fractions
-    REAL(dp) :: r_rho_m           !< real-value mixture density [kg/m3]
-    REAL(dp) :: r_T               !< real-value temperature [K]
-    REAL(dp) :: r_alphal          !< real-value liquid volume fraction
+    REAL(wp) :: r_h               !< real-value flow thickness
+    REAL(wp) :: r_u               !< real-value x-velocity
+    REAL(wp) :: r_v               !< real-value y-velocity
+    REAL(wp) :: r_alphas(n_solid) !< real-value solid volume fractions
+    REAL(wp) :: r_rho_m           !< real-value mixture density [kg/m3]
+    REAL(wp) :: r_T               !< real-value temperature [K]
+    REAL(wp) :: r_alphal          !< real-value liquid volume fraction
 
 
     ! initialize and evaluate the forces terms
-    forces_term(1:n_eqns) = 0.0_dp
+    forces_term(1:n_eqns) = 0.0_wp
 
     IF (rheology_flag) THEN
 
@@ -1518,7 +1520,7 @@ CONTAINS
        ! Voellmy Salm rheology
        IF ( rheology_model .EQ. 1 ) THEN
 
-          IF ( mod_vel .GT. 0.0_dp ) THEN
+          IF ( mod_vel .GT. 0.0_wp ) THEN
 
              ! units of dqc(2)/dt=d(rho h v)/dt (kg m-1 s-2)
              forces_term(2) = forces_term(2) - r_rho_m * ( r_u / mod_vel ) *    &
@@ -1558,7 +1560,7 @@ CONTAINS
 
           END IF
 
-          IF ( mod_vel .GT. 0.0_dp ) THEN
+          IF ( mod_vel .GT. 0.0_wp ) THEN
 
              ! units of dqc(2)/dt (kg m-1 s-2)
              forces_term(2) = forces_term(2) - grav * r_rho_m * r_h *           &
@@ -1605,24 +1607,24 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(IN) :: Bprimej_x
-    REAL(dp), INTENT(IN) :: Bprimej_y
-    REAL(dp), INTENT(IN) :: source_xy
+    REAL(wp), INTENT(IN) :: Bprimej_x
+    REAL(wp), INTENT(IN) :: Bprimej_y
+    REAL(wp), INTENT(IN) :: source_xy
 
-    REAL(dp), INTENT(IN) :: qpj(n_vars+2)      !< local physical variables 
-    REAL(dp), INTENT(OUT) :: expl_term(n_eqns) !< local explicit forces 
+    REAL(wp), INTENT(IN) :: qpj(n_vars+2)      !< local physical variables 
+    REAL(wp), INTENT(OUT) :: expl_term(n_eqns) !< local explicit forces 
 
-    REAL(dp) :: r_h          !< real-value flow thickness
-    REAL(dp) :: r_u          !< real-value x-velocity
-    REAL(dp) :: r_v          !< real-value y-velocity
-    REAL(dp) :: r_Ri         !< real-value Richardson number
-    REAL(dp) :: r_rho_m      !< real-value mixture density [kg/m3]
-    REAL(dp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
-    REAL(dp) :: r_red_grav   !< real-value reduced gravity
+    REAL(wp) :: r_h          !< real-value flow thickness
+    REAL(wp) :: r_u          !< real-value x-velocity
+    REAL(wp) :: r_v          !< real-value y-velocity
+    REAL(wp) :: r_Ri         !< real-value Richardson number
+    REAL(wp) :: r_rho_m      !< real-value mixture density [kg/m3]
+    REAL(wp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
+    REAL(wp) :: r_red_grav   !< real-value reduced gravity
 
-    expl_term(1:n_eqns) = 0.0_dp
+    expl_term(1:n_eqns) = 0.0_wp
 
-    IF ( qpj(1) .LE. 0.0_dp ) RETURN
+    IF ( qpj(1) .LE. 0.0_wp ) RETURN
 
     r_h = qpj(1)
     r_u = qpj(n_vars+1)
@@ -1641,7 +1643,7 @@ CONTAINS
 
     ELSE
 
-       expl_term(4) = 0.0_dp
+       expl_term(4) = 0.0_wp
 
     END IF
 
@@ -1668,37 +1670,37 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(IN) :: qpj(n_vars+2)              !< physical variables 
-    REAL(dp), INTENT(IN) :: dt
+    REAL(wp), INTENT(IN) :: qpj(n_vars+2)              !< physical variables 
+    REAL(wp), INTENT(IN) :: dt
 
-    REAL(dp), INTENT(OUT) :: erosion_term(n_solid)     !< erosion term
-    REAL(dp), INTENT(OUT) :: deposition_term(n_solid)  !< deposition term
+    REAL(wp), INTENT(OUT) :: erosion_term(n_solid)     !< erosion term
+    REAL(wp), INTENT(OUT) :: deposition_term(n_solid)  !< deposition term
 
-    REAL(dp) :: mod_vel
+    REAL(wp) :: mod_vel
 
-    REAL(dp) :: hind_exp
-    REAL(dp) :: alpha_max
+    REAL(wp) :: hind_exp
+    REAL(wp) :: alpha_max
 
     INTEGER :: i_solid
 
-    REAL(dp) :: r_h          !< real-value flow thickness
-    REAL(dp) :: r_u          !< real-value x-velocity
-    REAL(dp) :: r_v          !< real-value y-velocity
-    REAL(dp) :: r_alphas(n_solid) !< real-value solid volume fractions
-    REAL(dp) :: r_Ri         !< real-value Richardson number
-    REAL(dp) :: r_rho_m      !< real-value mixture density [kg/m3]
-    REAL(dp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
-    REAL(dp) :: r_red_grav   !< real-value reduced gravity
+    REAL(wp) :: r_h          !< real-value flow thickness
+    REAL(wp) :: r_u          !< real-value x-velocity
+    REAL(wp) :: r_v          !< real-value y-velocity
+    REAL(wp) :: r_alphas(n_solid) !< real-value solid volume fractions
+    REAL(wp) :: r_Ri         !< real-value Richardson number
+    REAL(wp) :: r_rho_m      !< real-value mixture density [kg/m3]
+    REAL(wp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
+    REAL(wp) :: r_red_grav   !< real-value reduced gravity
 
 
     ! parameters for Michaels and Bolger (1962) sedimentation correction
-    alpha_max = 0.6_dp
-    hind_exp = 4.65_dp
+    alpha_max = 0.6_wp
+    hind_exp = 4.65_wp
 
-    deposition_term(1:n_solid) = 0.0_dp
-    erosion_term(1:n_solid) = 0.0_dp
+    deposition_term(1:n_solid) = 0.0_wp
+    erosion_term(1:n_solid) = 0.0_wp
 
-    IF ( qpj(1) .LE. 0.0_dp ) RETURN
+    IF ( qpj(1) .LE. 0.0_wp ) RETURN
     
     r_h = qpj(1)
     r_u = qpj(n_vars+1)
@@ -1709,18 +1711,18 @@ CONTAINS
 
     DO i_solid=1,n_solid
 
-       IF ( ( r_alphas(i_solid) .GT. 0.0_dp ) .AND. ( settling_flag ) ) THEN
+       IF ( ( r_alphas(i_solid) .GT. 0.0_wp ) .AND. ( settling_flag ) ) THEN
 
           settling_vel = settling_velocity( diam_s(i_solid) , rho_s(i_solid) ,  &
                r_rho_c )
 
           deposition_term(i_solid) = r_alphas(i_solid) * settling_vel *         &
-               ( 1.0_dp - MIN( 1.0_dp , SUM( r_alphas ) / alpha_max ) )**hind_exp
+               ( 1.0_wp - MIN( 1.0_wp , SUM( r_alphas ) / alpha_max ) )**hind_exp
 
           deposition_term(i_solid) = MIN( deposition_term(i_solid) ,            &
                r_h * r_alphas(i_solid) / dt )
 
-          IF ( deposition_term(i_solid) .LT. 0.0_dp ) THEN
+          IF ( deposition_term(i_solid) .LT. 0.0_wp ) THEN
 
              WRITE(*,*) 'eval_erosion_dep_term'
              WRITE(*,*) 'deposition_term(i_solid)',deposition_term(i_solid)
@@ -1738,11 +1740,11 @@ CONTAINS
           ! here we use the solid volume fraction instead of relative density
           ! This term has units: m s-1
           erosion_term(i_solid) = erosion_coeff(i_solid) * mod_vel * r_h        &
-               * ( 1.0_dp - SUM(r_alphas) )
+               * ( 1.0_wp - SUM(r_alphas) )
 
        ELSE
 
-          erosion_term(i_solid) = 0.0_dp
+          erosion_term(i_solid) = 0.0_wp
 
        END IF
 
@@ -1774,31 +1776,31 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(IN) :: qpj(n_vars+2)                !< physical variables 
-    REAL(dp), INTENT(IN) :: deposition_avg_term(n_solid) !< deposition term
-    REAL(dp), INTENT(IN) :: erosion_avg_term(n_solid)    !< erosion term
+    REAL(wp), INTENT(IN) :: qpj(n_vars+2)                !< physical variables 
+    REAL(wp), INTENT(IN) :: deposition_avg_term(n_solid) !< deposition term
+    REAL(wp), INTENT(IN) :: erosion_avg_term(n_solid)    !< erosion term
 
-    REAL(dp), INTENT(OUT):: eqns_term(n_eqns)
-    REAL(dp), INTENT(OUT):: topo_term
+    REAL(wp), INTENT(OUT):: eqns_term(n_eqns)
+    REAL(wp), INTENT(OUT):: topo_term
 
-    REAL(dp) :: entr_coeff
-    REAL(dp) :: air_entr
-    REAL(dp) :: mag_vel 
+    REAL(wp) :: entr_coeff
+    REAL(wp) :: air_entr
+    REAL(wp) :: mag_vel 
 
-    REAL(dp) :: r_h          !< real-value flow thickness
-    REAL(dp) :: r_u          !< real-value x-velocity
-    REAL(dp) :: r_v          !< real-value y-velocity
-    REAL(dp) :: r_T          !< real-value temperature [K]
-    REAL(dp) :: r_Ri         !< real-value Richardson number
-    REAL(dp) :: r_rho_m      !< real-value mixture density [kg/m3]
-    REAL(dp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
-    REAL(dp) :: r_red_grav   !< real-value reduced gravity
+    REAL(wp) :: r_h          !< real-value flow thickness
+    REAL(wp) :: r_u          !< real-value x-velocity
+    REAL(wp) :: r_v          !< real-value y-velocity
+    REAL(wp) :: r_T          !< real-value temperature [K]
+    REAL(wp) :: r_Ri         !< real-value Richardson number
+    REAL(wp) :: r_rho_m      !< real-value mixture density [kg/m3]
+    REAL(wp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
+    REAL(wp) :: r_red_grav   !< real-value reduced gravity
 
 
-    IF ( qpj(1) .LE. 0.0_dp ) THEN
+    IF ( qpj(1) .LE. 0.0_wp ) THEN
 
-       eqns_term(1:n_eqns) = 0.0_dp
-       topo_term = 0.0_dp
+       eqns_term(1:n_eqns) = 0.0_wp
+       topo_term = 0.0_wp
 
        RETURN
 
@@ -1813,20 +1815,20 @@ CONTAINS
 
     mag_vel = SQRT( r_u**2 + r_v**2 ) 
 
-    IF ( entrainment_flag .AND. ( mag_vel**2 .GT. 0.0_dp ) .AND.                &
-         ( r_h .GT. 0.0_dp ) ) THEN
+    IF ( entrainment_flag .AND. ( mag_vel**2 .GT. 0.0_wp ) .AND.                &
+         ( r_h .GT. 0.0_wp ) .AND. ( r_Ri .GT. 0.0_wp ) ) THEN
 
-       entr_coeff = 0.075_dp / SQRT( 1.0_dp + 718.0_dp * MAX(0.0_dp,r_Ri)**2.4 )
+       entr_coeff = 0.075_wp / SQRT( 1.0_wp + 718.0_wp * r_Ri**2.4_wp )
 
        air_entr = entr_coeff * mag_vel
 
     ELSE
 
-       air_entr = 0.0_dp
+       air_entr = 0.0_wp
 
     END IF
 
-    eqns_term(1:n_eqns) = 0.0_dp
+    eqns_term(1:n_eqns) = 0.0_wp
 
     ! free surface (topography+flow) equation
     eqns_term(1) = SUM( rho_s * ( erosion_avg_term - deposition_avg_term ) ) +  &
@@ -1842,7 +1844,7 @@ CONTAINS
     IF ( energy_flag ) THEN
 
        eqns_term(4) = - r_T * SUM( rho_s * sp_heat_s * deposition_avg_term )    &
-            - 0.5_dp * mag_vel**2 * SUM( rho_s * deposition_avg_term )          &
+            - 0.5_wp * mag_vel**2 * SUM( rho_s * deposition_avg_term )          &
             + T_s_substrate * SUM( rho_s * sp_heat_s * erosion_avg_term )       &
             + T_ambient * sp_heat_a * rho_a_amb * air_entr
 
@@ -1891,21 +1893,21 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(IN) :: time
-    REAL(dp), INTENT(IN) :: vect_x
-    REAL(dp), INTENT(IN) :: vect_y
-    REAL(dp), INTENT(OUT) :: source_bdry(n_vars)
+    REAL(wp), INTENT(IN) :: time
+    REAL(wp), INTENT(IN) :: vect_x
+    REAL(wp), INTENT(IN) :: vect_y
+    REAL(wp), INTENT(OUT) :: source_bdry(n_vars)
 
-    REAL(dp) :: t_rem
-    REAL(dp) :: t_coeff
-    REAL(dp) :: pi_g
+    REAL(wp) :: t_rem
+    REAL(wp) :: t_coeff
+    REAL(wp) :: pi_g
 
     IF ( time .GE. time_param(4) ) THEN
 
        ! The exponents of t_coeff are such that Ri does not depend on t_coeff
-       source_bdry(1) = 0.0_dp
-       source_bdry(2) = 0.0_dp
-       source_bdry(3) = 0.0_dp
+       source_bdry(1) = 0.0_wp
+       source_bdry(2) = 0.0_wp
+       source_bdry(3) = 0.0_wp
        source_bdry(4) = T_source
        source_bdry(5:4+n_solid) = alphas_source(1:n_solid)
 
@@ -1915,8 +1917,8 @@ CONTAINS
 
        END IF
 
-       source_bdry(n_vars+1) = 0.0_dp
-       source_bdry(n_vars+2) = 0.0_dp
+       source_bdry(n_vars+1) = 0.0_wp
+       source_bdry(n_vars+2) = 0.0_wp
 
        RETURN
 
@@ -1924,28 +1926,28 @@ CONTAINS
 
     t_rem = MOD( time , time_param(1) )
 
-    pi_g = 4.0_dp * ATAN(1.0_dp) 
+    pi_g = 4.0_wp * ATAN(1.0_wp) 
 
-    t_coeff = 0.0_dp
+    t_coeff = 0.0_wp
 
-    IF ( time_param(3) .EQ. 0.0_dp ) THEN
+    IF ( time_param(3) .EQ. 0.0_wp ) THEN
 
-       IF ( t_rem .LE. time_param(2) ) t_coeff = 1.0_dp
+       IF ( t_rem .LE. time_param(2) ) t_coeff = 1.0_wp
 
     ELSE
 
        IF ( t_rem .LT. time_param(3) ) THEN
 
-          t_coeff = 0.5_dp * ( 1.0_dp - COS( pi_g * t_rem / time_param(3) ) )
+          t_coeff = 0.5_wp * ( 1.0_wp - COS( pi_g * t_rem / time_param(3) ) )
 
        ELSEIF ( t_rem .LE. ( time_param(2) - time_param(3) ) ) THEN
 
-          t_coeff = 1.0_dp
+          t_coeff = 1.0_wp
 
        ELSEIF ( t_rem .LE. time_param(2) ) THEN
 
-          t_coeff = 0.5_dp * ( 1.0_dp + COS( pi_g * ( ( t_rem - time_param(2) ) &
-               / time_param(3) + 1.0_dp ) ) )
+          t_coeff = 0.5_wp * ( 1.0_wp + COS( pi_g * ( ( t_rem - time_param(2) ) &
+               / time_param(3) + 1.0_wp ) ) )
 
        END IF
 
@@ -1953,8 +1955,8 @@ CONTAINS
 
     ! The exponents of t_coeff are such that Ri does not depend on t_coeff
     source_bdry(1) = t_coeff * h_source
-    source_bdry(2) = t_coeff**1.5_dp * h_source * vel_source * vect_x
-    source_bdry(3) = t_coeff**1.5_dp * h_source * vel_source * vect_y
+    source_bdry(2) = t_coeff**1.5_wp * h_source * vel_source * vect_x
+    source_bdry(3) = t_coeff**1.5_wp * h_source * vel_source * vect_y
     source_bdry(4) = T_source
     source_bdry(5:4+n_solid) = alphas_source(1:n_solid)
 
@@ -1964,8 +1966,8 @@ CONTAINS
 
     END IF
 
-    source_bdry(n_vars+1) = t_coeff**0.5_dp * vel_source * vect_x
-    source_bdry(n_vars+2) = t_coeff**0.5_dp * vel_source * vect_y 
+    source_bdry(n_vars+1) = t_coeff**0.5_wp * vel_source * vect_x
+    source_bdry(n_vars+2) = t_coeff**0.5_wp * vel_source * vect_y 
 
     RETURN
 
@@ -1986,50 +1988,50 @@ CONTAINS
   !
   !------------------------------------------------------------------------------
 
-  REAL(dp) FUNCTION settling_velocity(diam,rhos,rhoc)
+  REAL(wp) FUNCTION settling_velocity(diam,rhos,rhoc)
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(IN) :: diam          !< particle diameter [m]
-    REAL(dp), INTENT(IN) :: rhos          !< particle density [kg/m3]
-    REAL(dp), INTENT(IN) :: rhoc          !< carrier phase density [kg/m3]
+    REAL(wp), INTENT(IN) :: diam          !< particle diameter [m]
+    REAL(wp), INTENT(IN) :: rhos          !< particle density [kg/m3]
+    REAL(wp), INTENT(IN) :: rhoc          !< carrier phase density [kg/m3]
 
-    REAL(dp) :: Rey           !< Reynolds number
-    REAL(dp) :: C_D           !< Drag coefficient
+    REAL(wp) :: Rey           !< Reynolds number
+    REAL(wp) :: inv_sqrt_C_D  !< Reciprocal of sqrt of Drag coefficient
 
     ! loop variables
     INTEGER :: i              !< loop counter for iterative procedure    
-    REAL(dp) :: const_part    !< term not changing in iterative procedure
-    REAL(dp) :: C_D_old       !< previous iteration drag coefficient
-    REAL(dp) :: set_vel_old   !< previous iteration settling velocity
+    REAL(wp) :: const_part    !< term not changing in iterative procedure
+    REAL(wp) :: inv_sqrt_C_D_old  !< previous iteration sqrt of drag coefficient
+    REAL(wp) :: set_vel_old   !< previous iteration settling velocity
 
     INTEGER :: dig          !< order of magnitude of settling velocity
 
-    C_D = 1.0_dp
+    inv_sqrt_C_D = 1.0_wp
 
-    const_part =  SQRT( 0.75_dp * ( rhos / rhoc - 1.0_dp ) * diam * grav )
+    const_part =  SQRT( 0.75_wp * ( rhos / rhoc - 1.0_wp ) * diam * grav )
 
-    settling_velocity = const_part / SQRT( C_D )
+    settling_velocity = const_part * inv_sqrt_C_D
 
     Rey = diam * settling_velocity / kin_visc_c
 
-    IF ( Rey .LE. 1000.0_dp ) THEN
+    IF ( Rey .LE. 1000.0_wp ) THEN
 
        C_D_loop:DO i=1,20
 
           set_vel_old = settling_velocity
-          C_D_old = C_D
-          C_D = 24.0_dp / Rey * ( 1.0_dp + 0.15_dp * Rey**(0.687_dp) )
+          inv_sqrt_C_D_old = inv_sqrt_C_D
+          inv_sqrt_C_D = SQRT( Rey / ( 24.0_wp * ( 1.0_wp + 0.15_wp*Rey**(0.687_wp) ) ) )
 
-          settling_velocity = const_part / SQRT( C_D )
+          settling_velocity = const_part * inv_sqrt_C_D
 
           IF ( ABS( set_vel_old - settling_velocity ) / set_vel_old             &
                .LT. 1.D-6 ) THEN
 
              ! round to first three significative digits
              dig = FLOOR(LOG10(set_vel_old))
-             settling_velocity = 10.0_dp**(dig-3)                               &
-                  * FLOOR( 10.0_dp**(-dig+3)*set_vel_old ) 
+             settling_velocity = 10.0_wp**(dig-3)                               &
+                  * FLOOR( 10.0_wp**(-dig+3)*set_vel_old ) 
 
              EXIT C_D_loop
 

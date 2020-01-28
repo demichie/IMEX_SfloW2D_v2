@@ -57,7 +57,7 @@ PROGRAM SW_VAR_DENS_MODEL
 
   USE inpout_2d, ONLY : restart
 
-  USE parameters_2d, ONLY : dp
+  USE parameters_2d, ONLY : wp
 
   USE parameters_2d, ONLY : t_start
   USE parameters_2d, ONLY : t_end
@@ -78,22 +78,23 @@ PROGRAM SW_VAR_DENS_MODEL
   
   USE constitutive_2d, ONLY : qc_to_qp
 
-  USE solver_2d, ONLY : solve_mask
+  USE solver_2d, ONLY : solve_mask , solve_cells
+  USE solver_2d, ONLY : j_cent , k_cent
 
   USE OMP_LIB
 
   IMPLICIT NONE
 
-  REAL(dp) :: t1 , t2 , t3
+  REAL(wp) :: t1 , t2 , t3
 
-  REAL(dp) :: rate
+  REAL(wp) :: rate
   INTEGER :: st1 , st2 , st3 , cr , cm
 
-  REAL(dp) :: dt_old , dt_old_old
+  REAL(wp) :: dt_old , dt_old_old
   LOGICAL :: stop_flag
   LOGICAL :: stop_flag_old
 
-  INTEGER j,k
+  INTEGER j,k,l
   INTEGER n_threads
 
   LOGICAL :: use_openmp = .false.
@@ -160,11 +161,11 @@ PROGRAM SW_VAR_DENS_MODEL
 
   IF ( radial_source_flag ) CALL init_source
 
+  t = t_start
+
   CALL check_solve
   
   IF ( topo_change_flag ) CALL topography_reconstruction
-
-  t = t_start
 
   IF ( verbose_level .GE. 0 ) THEN
   
@@ -201,8 +202,16 @@ PROGRAM SW_VAR_DENS_MODEL
      
      DO j = 1,comp_cells_x
         
-        CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars,j,k) )
+        IF ( q(1,j,k) .GT. 0.0_wp ) THEN
+
+           CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars,j,k) )
         
+        ELSE
+
+           qp(1:n_vars,j,k) = 0.0_wp
+
+        END IF
+
      END DO
      
   END DO
@@ -211,7 +220,7 @@ PROGRAM SW_VAR_DENS_MODEL
 
   CALL output_solution(t)
 
-  IF ( SUM(q(1,:,:)) .EQ. 0.0_dp ) t_steady = t_output
+  IF ( SUM(q(1,:,:)) .EQ. 0.0_wp ) t_steady = t_output
 
   IF ( verbose_level .GE. 0.D0 ) THEN
   
@@ -250,7 +259,7 @@ PROGRAM SW_VAR_DENS_MODEL
 
      END IF
 
-     dt = MIN(dt,1.1_dp * 0.5_dp * ( dt_old + dt_old_old ) )
+     dt = MIN(dt,1.1_wp * 0.5_wp * ( dt_old + dt_old_old ) )
      
      dt_old_old = dt_old
      dt_old = dt
@@ -260,24 +269,31 @@ PROGRAM SW_VAR_DENS_MODEL
      CALL update_erosion_deposition_cell(dt)
  
      IF ( topo_change_flag ) CALL topography_reconstruction
-
-     q1max(:,:) = MAX( q1max(:,:) , q(1,:,:) )
      
      t = t+dt
 
      !$OMP PARALLEL DO private(j,k)
-
-     DO k = 1,comp_cells_y
+     
+     DO l = 1,solve_cells
         
-        DO j = 1,comp_cells_x
+        j = j_cent(l)
+        k = k_cent(l)
+        
+        IF ( q(1,j,k) .GT. 0.0_wp ) THEN
            
-           CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars,j,k) )
+           CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) )
            
-        END DO
+           q1max(j,k) = MAX( q1max(j,k) , q(1,j,k) )
 
+        ELSE
+           
+           qp(1:n_vars+2,j,k) = 0.0_wp
+           
+        END IF
+        
      END DO
-  
-     !OMP END PARALLEL DO 
+
+     !$OMP END PARALLEL DO
 
      IF ( verbose_level .GE. 0 ) THEN
      

@@ -12,7 +12,7 @@
 
 MODULE inpout_2d
 
-  USE parameters_2d, ONLY : dp
+  USE parameters_2d, ONLY : wp
 
   ! -- Variables for the namelist RUN_PARAMETERS
   USE parameters_2d, ONLY : t_start , t_end , dt_output 
@@ -160,25 +160,25 @@ MODULE inpout_2d
   ! parameters to read a dem file
   INTEGER :: ncols, nrows, nodata_value
 
-  REAL(dp) :: xllcorner, yllcorner, cellsize
+  REAL(wp) :: xllcorner, yllcorner, cellsize
 
   LOGICAL :: write_first_q
 
   INTEGER :: n_probes
 
-  REAL(dp), ALLOCATABLE :: probes_coords(:,:)
+  REAL(wp), ALLOCATABLE :: probes_coords(:,:)
 
-  REAL(dp) :: dt_runout
+  REAL(wp) :: dt_runout
 
-  REAL(dp), ALLOCATABLE :: h_old(:,:)
+  REAL(wp), ALLOCATABLE :: h_old(:,:)
 
-  REAL(dp) :: x0_runout, y0_runout , init_runout , eps_stop
+  REAL(wp) :: x0_runout, y0_runout , init_runout , eps_stop
 
-  REAL(dp) :: sed_vol_perc(1000) , alphas0_E(1000) , alphas0_W(1000)
+  REAL(wp) :: sed_vol_perc(1000) , alphas0_E(1000) , alphas0_W(1000)
   
-  REAL(dp) :: rho0_s(1000) , diam0_s(1000) , sp_heat0_s(1000), erosion_coeff0(1000)
+  REAL(wp) :: rho0_s(1000) , diam0_s(1000) , sp_heat0_s(1000), erosion_coeff0(1000)
 
-  REAL(dp) :: alpha1_ref
+  REAL(wp) :: alpha1_ref
 
   NAMELIST / run_parameters / run_name , restart , t_start , t_end , dt_output ,&
        output_cons_flag , output_esri_flag , output_phys_flag ,                 &
@@ -281,12 +281,12 @@ CONTAINS
 
     !-- Inizialization of the Variables for the namelist restart parameters
     restart_file = ''
-    T_init = 0.0_dp
-    T_ambient = 0.0_dp
+    T_init = 0.0_wp
+    T_ambient = 0.0_wp
 
     !-- Inizialization of the Variables for the namelist newrun_parameters
-    x0 = 0.0_dp
-    y0 = 0.0_dp
+    x0 = 0.0_wp
+    y0 = 0.0_wp
     comp_cells_x = 1000
     comp_cells_y = 1
     cell_size = 1.0D-3
@@ -300,19 +300,19 @@ CONTAINS
     gas_flag = .TRUE.
 
     !-- Inizialization of the Variables for the namelist left_state
-    riemann_interface = 0.5_dp
-    hB_W = 2.0_dp
-    u_W = 0.0_dp
-    v_W = 0.0_dp
-    ! alphas_W = 0.5_dp
-    T_W = -1.0_dp
+    riemann_interface = 0.5_wp
+    hB_W = 2.0_wp
+    u_W = 0.0_wp
+    v_W = 0.0_wp
+    ! alphas_W = 0.5_wp
+    T_W = -1.0_wp
     
     !-- Inizialization of the Variables for the namelist right_state
-    hB_E = 1.0_dp
-    u_E = 0.0_dp
-    u_E = 0.0_dp
-    ! alphas_E = 0.5_dp
-    T_E = -1.0_dp
+    hB_E = 1.0_wp
+    u_E = 0.0_wp
+    u_E = 0.0_wp
+    ! alphas_E = 0.5_wp
+    T_E = -1.0_wp
 
     !-- Inizialization of the Variables for the namelist west boundary conditions
     h_bcW%flag = -1 
@@ -371,39 +371,39 @@ CONTAINS
     max_dt = 1.d-3
     solver_scheme = 'KT'
     n_RK = 2
-    cfl = 0.24_dp
+    cfl = 0.24_wp
     limiter(1:n_vars+2) = 1
     theta=1.0
     reconstr_coeff = 1.0
 
     !-- Inizialization of the Variables for the namelist EXPL_TERMS_PARAMETERS
-    grav = 9.81_dp
+    grav = 9.81_wp
 
     !-- Inizialization of the Variables for the namelist TEMPERATURE_PARAMETERS
-    exp_area_fract = 0.5_dp
-    emissivity = 0.0_dp                 ! no radiation to atmosphere
-    atm_heat_transf_coeff = 0.0_dp      ! no convection to atmosphere
-    thermal_conductivity = 0.0_dp       ! no conduction to ground
-    enne = 4.0_dp
-    emme = 12.0_dp
-    T_env = 300.0_dp
-    T_ground = 1200.0_dp
-    c_p = 1200.0_dp
+    exp_area_fract = 0.5_wp
+    emissivity = 0.0_wp                 ! no radiation to atmosphere
+    atm_heat_transf_coeff = 0.0_wp      ! no convection to atmosphere
+    thermal_conductivity = 0.0_wp       ! no conduction to ground
+    enne = 4.0_wp
+    emme = 12.0_wp
+    T_env = 300.0_wp
+    T_ground = 1200.0_wp
+    c_p = 1200.0_wp
     
     !-- Inizialization of the Variables for the namelist RHEOLOGY_PARAMETERS
     rheology_model = 0
-    nu_ref = 0.0_dp                     
-    mu = 0.0_dp
-    xi = 0.0_dp
-    tau = 0.0_dp
-    T_ref = 0.0_dp
-    visc_par = 0.0_dp
+    nu_ref = 0.0_wp                     
+    mu = 0.0_wp
+    xi = 0.0_wp
+    tau = 0.0_wp
+    T_ref = 0.0_wp
+    visc_par = 0.0_wp
 
     !-- Inizialization of the Variables for the namelist RUNOUT_PARAMETERS
     x0_runout = -1
     y0_runout = -1
     dt_runout = 60
-    eps_stop = 0.0_dp
+    eps_stop = 0.0_wp
 
     !-------------- Check if input file exists ----------------------------------
     input_file = 'SW_VAR_DENS_MODEL.inp'
@@ -431,21 +431,21 @@ CONTAINS
        ALLOCATE( topography_profile( 3 , n_topography_profile_x ,               &
             n_topography_profile_y) )
 
-       topography_profile(1,1,1) = 0.0_dp
-       topography_profile(2,1,1) = 0.0_dp
-       topography_profile(3,1,1) = 0.0_dp
+       topography_profile(1,1,1) = 0.0_wp
+       topography_profile(2,1,1) = 0.0_wp
+       topography_profile(3,1,1) = 0.0_wp
 
-       topography_profile(1,1,2) = 0.0_dp
-       topography_profile(2,1,2) = 1.0_dp
-       topography_profile(3,1,2) = 0.0_dp
+       topography_profile(1,1,2) = 0.0_wp
+       topography_profile(2,1,2) = 1.0_wp
+       topography_profile(3,1,2) = 0.0_wp
 
-       topography_profile(1,2,1) = 1.0_dp
-       topography_profile(2,2,1) = 0.0_dp
-       topography_profile(3,2,1) = 0.0_dp
+       topography_profile(1,2,1) = 1.0_wp
+       topography_profile(2,2,1) = 0.0_wp
+       topography_profile(3,2,1) = 0.0_wp
 
-       topography_profile(1,2,2) = 1.0_dp
-       topography_profile(2,2,2) = 1.0_dp
-       topography_profile(3,2,2) = 0.0_dp
+       topography_profile(1,2,2) = 1.0_wp
+       topography_profile(2,2,2) = 1.0_wp
+       topography_profile(3,2,2) = 0.0_wp
 
 
 
@@ -503,7 +503,7 @@ CONTAINS
     !alphas_bcN%flag = -1 
     T_bcN%flag = -1 
 
-    ! sed_vol_perc = -1.0_dp
+    ! sed_vol_perc = -1.0_wp
 
     rheology_model = -1
     mu = -1
@@ -522,51 +522,51 @@ CONTAINS
     n_td = -1
     rho0_s = -1
 
-    exp_area_fract = -1.0_dp
-    emissivity = -1.0_dp             
-    atm_heat_transf_coeff = -1.0_dp
-    thermal_conductivity = -1.0_dp  
-    enne = -1.0_dp
-    emme = -1.0_dp
-    T_env = -1.0_dp
-    T_ground = -1.0_dp
-    c_p = -1.0_dp
+    exp_area_fract = -1.0_wp
+    emissivity = -1.0_wp             
+    atm_heat_transf_coeff = -1.0_wp
+    thermal_conductivity = -1.0_wp  
+    enne = -1.0_wp
+    emme = -1.0_wp
+    T_env = -1.0_wp
+    T_ground = -1.0_wp
+    c_p = -1.0_wp
 
-    grav = -1.0_dp
+    grav = -1.0_wp
 
-    x0_runout = -1.0_dp
-    y0_runout = -1.0_dp
+    x0_runout = -1.0_wp
+    y0_runout = -1.0_wp
 
     !- Variables for the namelist SOLID_TRANSPORT_PARAMETERS
-    ! rho_s = -1.0_dp
+    ! rho_s = -1.0_wp
     settling_flag = .FALSE.
-    erosion_coeff0 = -1.0_dp
+    erosion_coeff0 = -1.0_wp
     n_solid = -1
-    T_s_substrate = -1.0_dp
+    T_s_substrate = -1.0_wp
 
     !- Variables for the namelist GAS_TRANSPORT_PARAMETERS
-    sp_heat_a = -1.0_dp
-    sp_gas_const_a = -1.0_dp
-    kin_visc_a = -1.0_dp
-    pres = -1.0_dp
-    T_ambient = -1.0_dp
+    sp_heat_a = -1.0_wp
+    sp_gas_const_a = -1.0_wp
+    kin_visc_a = -1.0_wp
+    pres = -1.0_wp
+    T_ambient = -1.0_wp
 
     !- Variables for the namelist LIQUID_TRANSPORT_PARAMETERS
-    sp_heat_l = -1.0_dp
-    rho_l = -1.0_dp
-    kin_visc_l = -1.0_dp
+    sp_heat_l = -1.0_wp
+    rho_l = -1.0_wp
+    kin_visc_l = -1.0_wp
 
     !- Variables for the namelist RADIAL_SOURCE_PARAMETERS
-    T_source = -1.0_dp
-    h_source = -1.0_dp
-    r_source = -1.0_dp
-    vel_source = -1.0_dp
-    time_param(1:4) = -1.0_dp
+    T_source = -1.0_wp
+    h_source = -1.0_wp
+    r_source = -1.0_wp
+    vel_source = -1.0_wp
+    time_param(1:4) = -1.0_wp
 
     !- Variables for the namelist COLLAPSING_VOLUME_PARAMETERS
-    T_collapse = -1.0_dp
-    h_collapse = -1.0_dp
-    r_collapse = -1.0_dp
+    T_collapse = -1.0_wp
+    h_collapse = -1.0_wp
+    r_collapse = -1.0_wp
  
   END SUBROUTINE init_param
 
@@ -594,10 +594,12 @@ CONTAINS
 
     USE constitutive_2d, ONLY : rho_a_amb
     USE constitutive_2d, ONLY : kin_visc_c
-    
+   
+    USE constitutive_2d, ONLY : inv_pres , inv_rho_l , inv_rho_s
+ 
     IMPLICIT none
 
-    REAL(dp) :: max_cfl
+    REAL(wp) :: max_cfl
 
     LOGICAL :: tend1 
     CHARACTER(LEN=80) :: card
@@ -614,7 +616,7 @@ CONTAINS
 
     INTEGER :: ios
     
-    REAL(dp) :: expA , expB , Tc
+    REAL(wp) :: expA , expB , Tc
 
 
     OPEN(input_unit,FILE=input_file,STATUS='old')
@@ -691,7 +693,7 @@ CONTAINS
        
     END IF
     
-    IF ( sp_heat_a .EQ. -1.0_dp ) THEN
+    IF ( sp_heat_a .EQ. -1.0_wp ) THEN
        
        WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
        WRITE(*,*) 'SP_HEAT_a =' , sp_heat_a
@@ -700,7 +702,7 @@ CONTAINS
        
     END IF
 
-    IF ( sp_gas_const_a .EQ. -1.0_dp ) THEN
+    IF ( sp_gas_const_a .EQ. -1.0_wp ) THEN
        
        WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
        WRITE(*,*) 'SP_GAS_CONST_a =' , sp_gas_const_a
@@ -709,7 +711,7 @@ CONTAINS
        
     END IF
 
-    IF ( kin_visc_a .EQ. -1.0_dp ) THEN
+    IF ( kin_visc_a .EQ. -1.0_wp ) THEN
        
        WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
        WRITE(*,*) 'KIN_VISC_CONST_a =' , kin_visc_a
@@ -732,16 +734,20 @@ CONTAINS
        
     END IF
 
-    IF ( pres .EQ. -1.0_dp ) THEN
+    IF ( pres .EQ. -1.0_wp ) THEN
        
        WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
        WRITE(*,*) 'pres =' , pres
        WRITE(*,*) 'Please check the input file'
        STOP
        
+    ELSE
+
+       inv_pres = 1.0_wp / pres
+
     END IF
 
-    IF ( T_ambient .EQ. -1.0_dp ) THEN
+    IF ( T_ambient .EQ. -1.0_wp ) THEN
        
        WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
        WRITE(*,*) 'T_ambient =' , T_ambient
@@ -789,7 +795,7 @@ CONTAINS
           
        END IF
        
-       IF ( sp_heat_l .EQ. -1.0_dp ) THEN
+       IF ( sp_heat_l .EQ. -1.0_wp ) THEN
           
           WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
           WRITE(*,*) 'SP_HEAT_l =' , sp_heat_l
@@ -798,16 +804,20 @@ CONTAINS
           
        END IF
        
-       IF ( rho_l .EQ. -1.0_dp ) THEN
+       IF ( rho_l .EQ. -1.0_wp ) THEN
           
           WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
           WRITE(*,*) 'RHO_L =' , rho_l
           WRITE(*,*) 'Please check the input file'
           STOP
           
+       ELSE
+
+          inv_rho_l = 1.0_wp / rho_l
+
        END IF
 
-       IF ( kin_visc_l .EQ. -1.0_dp ) THEN
+       IF ( kin_visc_l .EQ. -1.0_wp ) THEN
           
           WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
           WRITE(*,*) 'KIN_VISC_L =' , kin_visc_l
@@ -859,7 +869,7 @@ CONTAINS
        
     END IF
     
-    IF ( ANY(rho0_s(1:n_solid) .EQ. -1.0_dp ) ) THEN
+    IF ( ANY(rho0_s(1:n_solid) .EQ. -1.0_wp ) ) THEN
        
        WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
        WRITE(*,*) 'RHO_s =' , rho0_s(1:n_solid)
@@ -868,7 +878,7 @@ CONTAINS
        
     END IF
     
-    IF ( ANY(sp_heat0_s(1:n_solid) .EQ. -1.0_dp ) ) THEN
+    IF ( ANY(sp_heat0_s(1:n_solid) .EQ. -1.0_wp ) ) THEN
        
        WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
        WRITE(*,*) 'RHO_s =' , rho0_s(1:n_solid)
@@ -877,7 +887,7 @@ CONTAINS
        
     END IF
     
-    IF ( ANY(erosion_coeff0(1:n_solid) .LT. 0.0_dp ) ) THEN
+    IF ( ANY(erosion_coeff0(1:n_solid) .LT. 0.0_wp ) ) THEN
        
        WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
        WRITE(*,*) 'EROSION_COEFF =' , erosion_coeff
@@ -886,7 +896,7 @@ CONTAINS
        
     END IF
           
-    IF ( T_s_substrate .LT. 0.0_dp ) THEN
+    IF ( T_s_substrate .LT. 0.0_wp ) THEN
        
        WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
        WRITE(*,*) 'T_s_substrate =' , T_s_substrate
@@ -913,6 +923,8 @@ CONTAINS
 
     ALLOCATE( rho_s(n_solid) , diam_s(n_solid) , sp_heat_s(n_solid) )
 
+    ALLOCATE( inv_rho_s(n_solid) )
+
     ALLOCATE( alphas_init(n_solid) )
 
     ALLOCATE( erosion_coeff(n_solid) )
@@ -920,13 +932,15 @@ CONTAINS
     ALLOCATE( alphas_E(n_solid) , alphas_W(n_solid) )
     
     rho_s(1:n_solid) = rho0_s(1:n_solid)
+    inv_rho_s(1:n_solid) = 1.0_wp / rho_s(1:n_solid)
+
     diam_s(1:n_solid) = diam0_s(1:n_solid)
     sp_heat_s(1:n_solid) = sp_heat0_s(1:n_solid)
     erosion_coeff(1:n_solid) = erosion_coeff0(1:n_solid)
     
     ALLOCATE( deposit( comp_cells_x , comp_cells_y , n_solid ) )
     
-    deposit(1:comp_cells_x,1:comp_cells_y,1:n_solid ) = 0.0_dp
+    deposit(1:comp_cells_x,1:comp_cells_y,1:n_solid ) = 0.0_wp
 
     IF ( restart ) THEN
 
@@ -948,8 +962,8 @@ CONTAINS
 
           IF ( check_file .EQ. 'asc' ) THEN
 
-             IF ( ( ANY(sed_vol_perc(1:n_solid) .LT. 0.0_dp ) ) .OR.              &
-                  ( ANY(sed_vol_perc(1:n_solid) .GT. 100.0_dp ) ) )   &
+             IF ( ( ANY(sed_vol_perc(1:n_solid) .LT. 0.0_wp ) ) .OR.              &
+                  ( ANY(sed_vol_perc(1:n_solid) .GT. 100.0_wp ) ) )   &
                   THEN
                 
                 WRITE(*,*) 'ERROR: problem with namelist RESTART_PARAMETERS'
@@ -968,7 +982,7 @@ CONTAINS
 
              REWIND(input_unit)
               
-             IF ( T_init*T_ambient .EQ. 0.0_dp ) THEN
+             IF ( T_init*T_ambient .EQ. 0.0_wp ) THEN
           
                 WRITE(*,*) 'ERROR: problem with namelist RESTART_PARAMETERS'
                 WRITE(*,*) 'T_init=',T_init
@@ -1001,7 +1015,7 @@ CONTAINS
              
              REWIND(input_unit)
 
-             IF ( T_W .EQ. -1.0_dp ) THEN
+             IF ( T_W .EQ. -1.0_wp ) THEN
 
                 WRITE(*,*) 'ERROR: problem with namelist LEFT_PARAMETERS'
                 WRITE(*,*) 'Initial temperature T_W not defined'
@@ -1026,7 +1040,7 @@ CONTAINS
              
              REWIND(input_unit)
 
-             IF ( T_E .EQ. -1.0_dp ) THEN
+             IF ( T_E .EQ. -1.0_wp ) THEN
 
                 WRITE(*,*) 'ERROR: problem with namelist RIGHT_PARAMETERS'
                 WRITE(*,*) 'Initial temperature T_E not defined'
@@ -1078,18 +1092,18 @@ CONTAINS
 
        IF ( ( comp_cells_x .EQ. 1 ) .OR. ( comp_cells_y .EQ. 1 ) ) THEN
 
-          max_cfl = 0.50_dp
+          max_cfl = 0.50_wp
 
        ELSE
 
-          max_cfl = 0.25_dp
+          max_cfl = 0.25_wp
 
        END IF
 
     END IF
 
 
-    IF ( ( cfl .GT. max_cfl ) .OR. ( cfl .LT. 0.0_dp ) ) THEN
+    IF ( ( cfl .GT. max_cfl ) .OR. ( cfl .LT. 0.0_wp ) ) THEN
 
        WRITE(*,*) 'WARNING: wrong value of cfl ',cfl
        WRITE(*,*) 'Choose a value between 0.0 and ',max_cfl
@@ -1118,7 +1132,7 @@ CONTAINS
 
     END IF
        
-    IF ( ( reconstr_coeff .GT. 1.0_dp ) .OR. ( reconstr_coeff .LT. 0.0_dp ) ) THEN
+    IF ( ( reconstr_coeff .GT. 1.0_wp ) .OR. ( reconstr_coeff .LT. 0.0_wp ) ) THEN
        
        WRITE(*,*) 'WARNING: wrong value of reconstr_coeff ',reconstr_coeff
        WRITE(*,*) 'Change the value between 0.0 and 1.0 in the input file'
@@ -1168,7 +1182,7 @@ CONTAINS
           ELSE
              
              ! hu_bcW%flag = 1
-             ! hu_bcW%value = 0.0_dp
+             ! hu_bcW%value = 0.0_wp
              
           END IF
           
@@ -1186,7 +1200,7 @@ CONTAINS
           ELSE
              
              hv_bcW%flag = 1
-             hv_bcW%value = 0.0_dp
+             hv_bcW%value = 0.0_wp
              
           END IF
           
@@ -1259,7 +1273,7 @@ CONTAINS
        ELSE
           
           hu_bcE%flag = 1
-          hu_bcE%value = 0.0_dp
+          hu_bcE%value = 0.0_wp
           
        END IF
        
@@ -1277,7 +1291,7 @@ CONTAINS
        ELSE
           
           hv_bcE%flag = 1
-          hv_bcE%value = 0.0_dp
+          hv_bcE%value = 0.0_wp
           
           
        END IF
@@ -1350,7 +1364,7 @@ CONTAINS
        ELSE
           
           hu_bcS%flag = 1
-          hu_bcS%value = 0.0_dp
+          hu_bcS%value = 0.0_wp
           
        END IF
        
@@ -1368,7 +1382,7 @@ CONTAINS
        ELSE
           
           hv_bcS%flag = 1
-          hv_bcS%value = 0.0_dp
+          hv_bcS%value = 0.0_wp
           
        END IF
        
@@ -1438,7 +1452,7 @@ CONTAINS
        ELSE
           
           hu_bcN%flag = 1
-          hu_bcN%value = 0.0_dp
+          hu_bcN%value = 0.0_wp
           
        END IF
        
@@ -1456,7 +1470,7 @@ CONTAINS
        ELSE
           
           hv_bcN%flag = 1
-          hv_bcN%value = 0.0_dp
+          hv_bcN%value = 0.0_wp
           
        END IF
        
@@ -1513,7 +1527,7 @@ CONTAINS
        
     END IF
 
-    IF ( grav .EQ. -1.0_dp ) THEN
+    IF ( grav .EQ. -1.0_wp ) THEN
        
        WRITE(*,*) 'ERROR: problem with namelist EXPL_TERMS_PARAMETERS'
        WRITE(*,*) 'GRAV not set properly'
@@ -1526,7 +1540,7 @@ CONTAINS
 
     IF ( radial_source_flag ) THEN
 
-       alphal_source = -1.0_dp
+       alphal_source = -1.0_wp
 
        READ(input_unit,radial_source_parameters,IOSTAT=ios)
 
@@ -1541,7 +1555,7 @@ CONTAINS
           
           REWIND(input_unit)
           
-          IF ( t_source .EQ. -1.0_dp ) THEN
+          IF ( t_source .EQ. -1.0_wp ) THEN
              
              WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
              WRITE(*,*) 'PLEASE CHEC VALUE OF T_SOURCE',t_source
@@ -1549,7 +1563,7 @@ CONTAINS
              
           END IF
 
-          IF ( h_source .EQ. -1.0_dp ) THEN
+          IF ( h_source .EQ. -1.0_wp ) THEN
              
              WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
              WRITE(*,*) 'PLEASE CHEC VALUE OF H_SOURCE',h_source
@@ -1557,7 +1571,7 @@ CONTAINS
              
           END IF
 
-          IF ( r_source .EQ. -1.0_dp ) THEN
+          IF ( r_source .EQ. -1.0_wp ) THEN
              
              WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
              WRITE(*,*) 'PLEASE CHEC VALUE OF R_SOURCE',r_source
@@ -1565,7 +1579,7 @@ CONTAINS
              
           END IF
 
-          IF ( vel_source .EQ. -1.0_dp ) THEN
+          IF ( vel_source .EQ. -1.0_wp ) THEN
              
              WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
              WRITE(*,*) 'PLEASE CHEC VALUE OF VEL_SOURCE',vel_source
@@ -1611,7 +1625,7 @@ CONTAINS
 
           IF ( gas_flag .AND. liquid_flag ) THEN
 
-             IF ( alphal_source .LT. 0.0_dp ) THEN
+             IF ( alphal_source .LT. 0.0_wp ) THEN
              
                 WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
                 WRITE(*,*) 'PLEASE CHECK VALUE OF ALPHAL_SOURCE',alphal_source
@@ -1621,7 +1635,7 @@ CONTAINS
 
           END IF
 
-          IF ( ANY(alphas_source(1:n_solid) .EQ. -1.0_dp ) ) THEN
+          IF ( ANY(alphas_source(1:n_solid) .EQ. -1.0_wp ) ) THEN
        
              WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
              WRITE(*,*) 'alphas_source =' , alphas_source(1:n_solid)
@@ -1631,14 +1645,14 @@ CONTAINS
           END IF
 
                  
-          IF ( ANY(time_param .LT. 0.0_dp ) ) THEN
+          IF ( ANY(time_param .LT. 0.0_wp ) ) THEN
 
              WRITE(*,*)
              WRITE(*,*) 'WARNING: problem with namelist RADIAL_SOURCEPARAMETERS'
              WRITE(*,*) 'time_param =' , time_param
              time_param(1) = t_end
              time_param(2) = t_end
-             time_param(3) = 0.0_dp
+             time_param(3) = 0.0_wp
              time_param(4) = t_end
              WRITE(*,*) 'CHANGED TO time_param =',time_param
              WRITE(*,*) 'Radial source now constant in time' 
@@ -1655,7 +1669,7 @@ CONTAINS
                 
              END IF
 
-             IF ( time_param(3) .GT. ( 0.5_dp*time_param(2) ) ) THEN
+             IF ( time_param(3) .GT. ( 0.5_wp*time_param(2) ) ) THEN
 
                 WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
                 WRITE(*,*) 'time_param(3) =', time_param(3)
@@ -1691,7 +1705,7 @@ CONTAINS
           
           REWIND(input_unit)
           
-          IF ( t_collapse .EQ. -1.0_dp ) THEN
+          IF ( t_collapse .EQ. -1.0_wp ) THEN
              
              WRITE(*,*) 'ERROR: problem with namelist COLLAPSING_VOLUME_PARAMETERS'
              WRITE(*,*) 'PLEASE CHECK VALUE OF T_COLLAPSE',t_collapse
@@ -1699,7 +1713,7 @@ CONTAINS
              
           END IF
 
-          IF ( h_collapse .EQ. -1.0_dp ) THEN
+          IF ( h_collapse .EQ. -1.0_wp ) THEN
              
              WRITE(*,*) 'ERROR: problem with namelist COLLAPSING_VOLUME_PARAMETERS'
              WRITE(*,*) 'PLEASE CHECK VALUE OF H_COLLAPSE',h_collapse
@@ -1707,7 +1721,7 @@ CONTAINS
              
           END IF
 
-          IF ( r_collapse .EQ. -1.0_dp ) THEN
+          IF ( r_collapse .EQ. -1.0_wp ) THEN
              
              WRITE(*,*) 'ERROR: problem with namelist COLLAPSING_VOLUME_PARAMETERS'
              WRITE(*,*) 'PLEASE CHECK VALUE OF R_COLLAPSE',r_collapse
@@ -1751,7 +1765,7 @@ CONTAINS
 
           END IF
 
-          IF ( ANY(alphas_collapse(1:n_solid) .EQ. -1.0_dp ) ) THEN
+          IF ( ANY(alphas_collapse(1:n_solid) .EQ. -1.0_wp ) ) THEN
        
              WRITE(*,*) 'ERROR: problem with namelist COLLAPSING_VOLUME_PARAMETERS'
              WRITE(*,*) 'alphas_collpase =' , alphas_collapse(1:n_solid)
@@ -1812,7 +1826,7 @@ CONTAINS
           
        ELSEIF ( rheology_model .EQ. 1 ) THEN
 
-          IF ( ( mu .EQ. -1.0_dp ) .AND. ( xi .EQ. -1.0_dp ) ) THEN
+          IF ( ( mu .EQ. -1.0_wp ) .AND. ( xi .EQ. -1.0_wp ) ) THEN
 
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'RHEOLOGY_MODEL =' , rheology_model
@@ -1822,14 +1836,14 @@ CONTAINS
              
           END IF
 
-          IF ( ( T_ref .NE. -1.0_dp ) .OR. ( nu_ref .NE. -1.0_dp ) .OR.             &
-               ( visc_par .NE. -1.0_dp ) .OR. ( tau .NE. -1.0_dp ) ) THEN
+          IF ( ( T_ref .NE. -1.0_wp ) .OR. ( nu_ref .NE. -1.0_wp ) .OR.             &
+               ( visc_par .NE. -1.0_wp ) .OR. ( tau .NE. -1.0_wp ) ) THEN
 
              WRITE(*,*) 'WARNING: parameters not used in RHEOLOGY_PARAMETERS'
-             IF ( T_ref .NE. -1.0_dp ) WRITE(*,*) 'T_ref =',T_ref 
-             IF ( nu_ref .NE. -1.0_dp ) WRITE(*,*) 'nu_ref =',nu_ref 
-             IF ( visc_par .NE. -1.0_dp ) WRITE(*,*) 'visc_par =',visc_par
-             IF ( tau .NE. -1.0_dp ) WRITE(*,*) 'tau =',tau 
+             IF ( T_ref .NE. -1.0_wp ) WRITE(*,*) 'T_ref =',T_ref 
+             IF ( nu_ref .NE. -1.0_wp ) WRITE(*,*) 'nu_ref =',nu_ref 
+             IF ( visc_par .NE. -1.0_wp ) WRITE(*,*) 'visc_par =',visc_par
+             IF ( tau .NE. -1.0_wp ) WRITE(*,*) 'tau =',tau 
              WRITE(*,*) 'Press ENTER to continue'
              READ(*,*)
 
@@ -1837,7 +1851,7 @@ CONTAINS
 
        ELSEIF ( rheology_model .EQ. 2 ) THEN
 
-          IF ( tau .EQ. -1.0_dp )  THEN
+          IF ( tau .EQ. -1.0_wp )  THEN
 
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'RHEOLOGY_MODEL =' , rheology_model
@@ -1847,16 +1861,16 @@ CONTAINS
              
           END IF
           
-          IF ( ( T_ref .NE. -1.0_dp ) .OR. ( nu_ref .NE. -1.0_dp ) .OR.             &
-               ( visc_par .NE. -1.0_dp ) .OR. ( mu .NE. -1.0_dp ) .OR.              &
-               ( xi .NE. -1.0_dp ) ) THEN
+          IF ( ( T_ref .NE. -1.0_wp ) .OR. ( nu_ref .NE. -1.0_wp ) .OR.             &
+               ( visc_par .NE. -1.0_wp ) .OR. ( mu .NE. -1.0_wp ) .OR.              &
+               ( xi .NE. -1.0_wp ) ) THEN
 
              WRITE(*,*) 'WARNING: parameters not used in RHEOLOGY_PARAMETERS'
-             IF ( T_ref .NE. -1.0_dp ) WRITE(*,*) 'T_ref =',T_ref 
-             IF ( nu_ref .NE. -1.0_dp ) WRITE(*,*) 'nu_ref =',nu_ref 
-             IF ( visc_par .NE. -1.0_dp ) WRITE(*,*) 'visc_par =',visc_par
-             IF ( mu .NE. -1.0_dp ) WRITE(*,*) 'mu =',mu 
-             IF ( xi .NE. -1.0_dp ) WRITE(*,*) 'xi =',xi
+             IF ( T_ref .NE. -1.0_wp ) WRITE(*,*) 'T_ref =',T_ref 
+             IF ( nu_ref .NE. -1.0_wp ) WRITE(*,*) 'nu_ref =',nu_ref 
+             IF ( visc_par .NE. -1.0_wp ) WRITE(*,*) 'visc_par =',visc_par
+             IF ( mu .NE. -1.0_wp ) WRITE(*,*) 'mu =',mu 
+             IF ( xi .NE. -1.0_wp ) WRITE(*,*) 'xi =',xi
              WRITE(*,*) 'Press ENTER to continue'
              READ(*,*)
 
@@ -1865,7 +1879,7 @@ CONTAINS
 
        ELSEIF ( rheology_model .EQ. 3 ) THEN
 
-          IF ( nu_ref .EQ. -1.0_dp ) THEN
+          IF ( nu_ref .EQ. -1.0_wp ) THEN
              
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'NU_REF =' , nu_ref 
@@ -1874,14 +1888,14 @@ CONTAINS
              
           END IF
 
-          IF ( visc_par .EQ. -1.0_dp ) THEN
+          IF ( visc_par .EQ. -1.0_wp ) THEN
              
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'VISC_PAR =' , visc_par
              WRITE(*,*) 'Please check the input file'
              STOP
           
-          ELSEIF ( visc_par .EQ. 0.0_dp ) THEN
+          ELSEIF ( visc_par .EQ. 0.0_wp ) THEN
              
              WRITE(*,*) 'WARNING: temperature and momentum uncoupled'
              WRITE(*,*) 'VISC_PAR =' , visc_par
@@ -1890,7 +1904,7 @@ CONTAINS
 
           ELSE
 
-             IF ( T_ref .EQ. -1.0_dp ) THEN
+             IF ( T_ref .EQ. -1.0_wp ) THEN
                 
                 WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
                 WRITE(*,*) 'T_REF =' , T_ref 
@@ -1901,13 +1915,13 @@ CONTAINS
 
           END IF
 
-          IF ( ( mu .NE. -1.0_dp ) .OR. ( xi .NE. -1.0_dp ) .OR. ( tau .NE. -1.0_dp ) )  &
+          IF ( ( mu .NE. -1.0_wp ) .OR. ( xi .NE. -1.0_wp ) .OR. ( tau .NE. -1.0_wp ) )  &
                THEN
 
              WRITE(*,*) 'WARNING: parameters not used in RHEOLOGY_PARAMETERS'
-             IF ( mu .NE. -1.0_dp ) WRITE(*,*) 'mu =',mu 
-             IF ( xi .NE. -1.0_dp ) WRITE(*,*) 'xi =',xi
-             IF ( tau .NE. -1.0_dp ) WRITE(*,*) 'tau =',tau 
+             IF ( mu .NE. -1.0_wp ) WRITE(*,*) 'mu =',mu 
+             IF ( xi .NE. -1.0_wp ) WRITE(*,*) 'xi =',xi
+             IF ( tau .NE. -1.0_wp ) WRITE(*,*) 'tau =',tau 
              WRITE(*,*) 'Press ENTER to continue'
              READ(*,*)
 
@@ -1925,7 +1939,7 @@ CONTAINS
              
           END IF
           
-          IF ( ANY(sed_vol_perc(1:n_solid) .EQ. -1.0_dp ) ) THEN
+          IF ( ANY(sed_vol_perc(1:n_solid) .EQ. -1.0_wp ) ) THEN
              
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'RHEOLOGY_MODEL =' , rheology_model
@@ -1934,7 +1948,7 @@ CONTAINS
              
           END IF
           
-          IF ( alpha2 .EQ. -1.0_dp ) THEN
+          IF ( alpha2 .EQ. -1.0_wp ) THEN
              
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'ALPHA2 =' , alpha2 
@@ -1943,7 +1957,7 @@ CONTAINS
              
           END IF
 
-          IF ( beta2 .EQ. -1.0_dp ) THEN
+          IF ( beta2 .EQ. -1.0_wp ) THEN
              
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'BETA2 =' , beta2 
@@ -1952,7 +1966,7 @@ CONTAINS
              
           END IF
 
-          IF ( T_ref .LE. 273.15_dp ) THEN
+          IF ( T_ref .LE. 273.15_wp ) THEN
              
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'T_REF =' , T_ref
@@ -1961,7 +1975,7 @@ CONTAINS
              
           END IF
 
-          IF ( alpha1_ref .EQ. -1.0_dp ) THEN
+          IF ( alpha1_ref .EQ. -1.0_wp ) THEN
              
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'ALPHA1 =' , alpha1_ref 
@@ -1970,21 +1984,21 @@ CONTAINS
              
           ELSE
 
-             Tc = T_ref - 273.15_dp
+             Tc = T_ref - 273.15_wp
              
-             IF ( Tc .LT. 20.0_dp ) THEN
+             IF ( Tc .LT. 20.0_wp ) THEN
                 
-                expA = 1301.0_dp / ( 998.333_dp + 8.1855_dp * ( Tc - 20.0_dp )        &
-                     + 0.00585_dp * ( Tc - 20.0_dp )**2 ) - 1.30223_dp
+                expA = 1301.0_wp / ( 998.333_wp + 8.1855_wp * ( Tc - 20.0_wp )        &
+                     + 0.00585_wp * ( Tc - 20.0_wp )**2 ) - 1.30223_wp
                 
-                alpha1_coeff = alpha1_ref / ( 1.D-3 * 10.0_dp**expA )
+                alpha1_coeff = alpha1_ref / ( 1.D-3 * 10.0_wp**expA )
                 
              ELSE
                 
-                expB = ( 1.3272_dp * ( 20.0_dp - Tc ) - 0.001053_dp *               &
-                     ( Tc - 20.0_dp )**2 ) / ( Tc + 105.0_dp )
+                expB = ( 1.3272_wp * ( 20.0_wp - Tc ) - 0.001053_wp *               &
+                     ( Tc - 20.0_wp )**2 ) / ( Tc + 105.0_wp )
                 
-                alpha1_coeff = alpha1_ref / ( 1.002D-3 * 10.0_dp**expB )
+                alpha1_coeff = alpha1_ref / ( 1.002D-3 * 10.0_wp**expB )
                 
              END IF
              
@@ -1992,7 +2006,7 @@ CONTAINS
 
           END IF
 
-          IF ( beta1 .EQ. -1.0_dp ) THEN
+          IF ( beta1 .EQ. -1.0_wp ) THEN
              
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'BETA1 =' , beta1 
@@ -2001,7 +2015,7 @@ CONTAINS
              
           END IF
 
-          IF ( Kappa .EQ. -1.0_dp ) THEN
+          IF ( Kappa .EQ. -1.0_wp ) THEN
              
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'KAPPA =' , kappa 
@@ -2010,7 +2024,7 @@ CONTAINS
              
           END IF
 
-          IF ( n_td .EQ. -1.0_dp ) THEN
+          IF ( n_td .EQ. -1.0_wp ) THEN
              
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'N_TD =' , n_td 
@@ -2037,7 +2051,7 @@ CONTAINS
 
           END IF
              
-          IF ( friction_factor .LT. 0.0_dp ) THEN
+          IF ( friction_factor .LT. 0.0_wp ) THEN
              
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'FRICTION_FACTOR =' , friction_factor 
@@ -2087,10 +2101,10 @@ CONTAINS
     ! The values read from the DEM files are associated to the center of the
     ! pixels. x0 is the left margin of the computational domain and has to be
     ! greater than the center of the first pixel.
-    IF ( x0 - ( xllcorner + 0.5_dp * cellsize ) .LT. -1.D-10  ) THEN 
+    IF ( x0 - ( xllcorner + 0.5_wp * cellsize ) .LT. -1.D-10  ) THEN 
 
        WRITE(*,*) 'Computational domain problem'
-       WRITE(*,*) 'x0 < xllcorner+0.5*cellsize',x0,xllcorner+0.5_dp*cellsize
+       WRITE(*,*) 'x0 < xllcorner+0.5*cellsize',x0,xllcorner+0.5_wp*cellsize
        STOP
 
     END IF
@@ -2098,29 +2112,29 @@ CONTAINS
     ! The right margin of the computational domain should be smaller then the
     ! center of the last pixel
     IF ( x0 + ( comp_cells_x ) * cell_size .GT.                              &
-         xllcorner + ( 0.5_dp + ncols ) * cellsize ) THEN 
+         xllcorner + ( 0.5_wp + ncols ) * cellsize ) THEN 
 
        WRITE(*,*) 'Computational domain problem'
        WRITE(*,*) 'right edge > xllcorner+ncols*cellsize',                   &
-            x0+comp_cells_x*cell_size , xllcorner+(0.5_dp+ncols)*cellsize
+            x0+comp_cells_x*cell_size , xllcorner+(0.5_wp+ncols)*cellsize
        STOP
 
     END IF
 
-    IF ( y0 - ( yllcorner+0.5_dp*cellsize ) .LT. -1.D-10 ) THEN 
+    IF ( y0 - ( yllcorner+0.5_wp*cellsize ) .LT. -1.D-10 ) THEN 
 
        WRITE(*,*) 'Computational domain problem'
-       WRITE(*,*) 'y0 < yllcorner+0.5*cellsize',y0,yllcorner+0.5_dp*cellsize
+       WRITE(*,*) 'y0 < yllcorner+0.5*cellsize',y0,yllcorner+0.5_wp*cellsize
        STOP
 
     END IF
 
-    IF ( ABS( ( y0 + comp_cells_y * cell_size ) - ( yllcorner + 0.5_dp +      &
+    IF ( ABS( ( y0 + comp_cells_y * cell_size ) - ( yllcorner + 0.5_wp +      &
          nrows * cellsize ) ) .LT. 1.D-10 ) THEN 
 
        WRITE(*,*) 'Computational domain problem'
        WRITE(*,*) 'top edge > yllcorner+nrows*cellsize',                     &
-            y0+comp_cells_y*cell_size , yllcorner+(0.5_dp+nrows)*cellsize
+            y0+comp_cells_y*cell_size , yllcorner+(0.5_wp+nrows)*cellsize
        STOP
 
     END IF
@@ -2142,13 +2156,13 @@ CONTAINS
 
     DO j=1,n_topography_profile_x 
 
-       topography_profile(1,j,:) = xllcorner + ( j - 0.5_dp ) * cellsize
+       topography_profile(1,j,:) = xllcorner + ( j - 0.5_wp ) * cellsize
 
     ENDDO
 
     DO k=1,n_topography_profile_y
 
-       topography_profile(2,:,k) = yllcorner + ( k - 0.5_dp ) * cellsize
+       topography_profile(2,:,k) = yllcorner + ( k - 0.5_wp ) * cellsize
 
     ENDDO
 
@@ -2168,7 +2182,7 @@ CONTAINS
 
     ENDDO
 
-    topography_profile(3,:,:) = MAX(0.0_dp,topography_profile(3,:,:))
+    topography_profile(3,:,:) = MAX(0.0_wp,topography_profile(3,:,:))
 
     IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) ''
 
@@ -2195,7 +2209,7 @@ CONTAINS
           
        END IF
        
-       IF ( ( x0_runout .EQ. -1.0_dp ) .AND. ( y0_runout .EQ. -1.0_dp ) ) THEN
+       IF ( ( x0_runout .EQ. -1.0_wp ) .AND. ( y0_runout .EQ. -1.0_wp ) ) THEN
           
           WRITE(*,*) 'Runout reference location not defined'
           
@@ -2388,9 +2402,9 @@ CONTAINS
 
     CHARACTER(LEN=40) :: run_name_org
     LOGICAL :: restart_org
-    REAL(dp) :: t_start_org
-    REAL(dp) :: t_end_org
-    REAL(dp) :: dt_output_org
+    REAL(wp) :: t_start_org
+    REAL(wp) :: t_end_org
+    REAL(wp) :: dt_output_org
     LOGICAL :: output_cons_flag_org
     LOGICAL :: output_phys_flag_org
     LOGICAL :: output_esri_flag_org
@@ -2512,19 +2526,19 @@ CONTAINS
 
     INTEGER :: ncols , nrows , nodata_value
 
-    REAL(dp) :: xllcorner , yllcorner , cellsize
+    REAL(wp) :: xllcorner , yllcorner , cellsize
 
-    REAL(dp) :: xj , yk
+    REAL(wp) :: xj , yk
 
-    REAL(dp), ALLOCATABLE :: thickness_input(:,:)
+    REAL(wp), ALLOCATABLE :: thickness_input(:,:)
 
-    REAL(dp), ALLOCATABLE :: x1(:) , y1(:)
+    REAL(wp), ALLOCATABLE :: x1(:) , y1(:)
 
-    REAL(dp) :: xl , xr , yl , yr 
+    REAL(wp) :: xl , xr , yl , yr 
     
-    REAL(dp) :: rho_c , rho_m , mass_fract(n_solid)
+    REAL(wp) :: rho_c , rho_m , mass_fract(n_solid)
 
-    REAL(dp) :: sp_heat_c
+    REAL(wp) :: sp_heat_c
 
     INTEGER :: solid_idx
 
@@ -2656,7 +2670,7 @@ CONTAINS
 
        WHERE ( thickness_init .EQ. nodata_value )
 
-          thickness_init = 0.0_dp
+          thickness_init = 0.0_wp
           
        END WHERE
               
@@ -2706,7 +2720,7 @@ CONTAINS
 
        END IF
           
-       rho_m = SUM( rho_s(1:n_solid)*alphas_init(1:n_solid) ) + ( 1.0_dp -      &
+       rho_m = SUM( rho_s(1:n_solid)*alphas_init(1:n_solid) ) + ( 1.0_wp -      &
             SUM( alphas_init(1:n_solid) ) ) * rho_c 
 
        mass_fract = rho_s * alphas_init / rho_m
@@ -2722,27 +2736,27 @@ CONTAINS
 
        END IF
        ! rhom*h*u
-       q(2,:,:) = 0.0_dp
+       q(2,:,:) = 0.0_wp
        ! rhom*h*v
-       q(3,:,:) = 0.0_dp
+       q(3,:,:) = 0.0_wp
 
        ! energy (total or internal)
-       q(4,:,:) = 0.0_dp
+       q(4,:,:) = 0.0_wp
        
-       WHERE ( thickness_init .GT. 0.0_dp )
+       WHERE ( thickness_init .GT. 0.0_wp )
 
           q(4,:,:) = q(1,:,:) * T_init *  ( SUM( mass_fract(1:n_solid) *        &
                sp_heat_s(1:n_solid) ) +    &
-               ( 1.0_dp - SUM( mass_fract ) ) * sp_heat_l )
+               ( 1.0_wp - SUM( mass_fract ) ) * sp_heat_l )
 
        END WHERE
 
        DO solid_idx=5,4+n_solid
 
           ! rhos*h*alphas
-          q(solid_idx,:,:) = 0.0_dp
+          q(solid_idx,:,:) = 0.0_wp
 
-          WHERE ( thickness_init .GT. 0.0_dp )
+          WHERE ( thickness_init .GT. 0.0_wp )
 
              q(solid_idx,:,:) = thickness_init(:,:) * alphas_init(solid_idx-4) *&
                   rho_s(solid_idx-4)
@@ -2793,7 +2807,7 @@ CONTAINS
              READ(restart_unit,'(2e20.12,100(e20.12))') xj , yk ,                 &
                   (q(i_vars,j,k),i_vars=1,n_vars) 
 
-             IF ( q(1,j,k) .LE. 0.0_dp ) q(1:n_vars,j,k) = 0.0_dp
+             IF ( q(1,j,k) .LE. 0.0_wp ) q(1:n_vars,j,k) = 0.0_wp
 
           ENDDO
           
@@ -2868,17 +2882,17 @@ CONTAINS
 
     IMPLICIT none
 
-    REAL(dp), INTENT(IN) :: time
+    REAL(wp), INTENT(IN) :: time
 
     CHARACTER(LEN=4) :: idx_string
 
-    REAL(dp) :: qp(n_vars+2)
+    REAL(wp) :: qp(n_vars+2)
 
-    REAL(dp) :: B_out
+    REAL(wp) :: B_out
 
-    REAL(dp) :: r_u , r_v , r_h , r_alphas(n_solid) , r_T , r_Ri , r_rho_m
-    REAL(dp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
-    REAL(dp) :: r_red_grav   !< real-value reduced gravity
+    REAL(wp) :: r_u , r_v , r_h , r_alphas(n_solid) , r_T , r_Ri , r_rho_m
+    REAL(wp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
+    REAL(wp) :: r_red_grav   !< real-value reduced gravity
 
 
     INTEGER :: j,k
@@ -2949,12 +2963,12 @@ CONTAINS
              r_T = qp(4)
              r_alphas(1:n_solid) = qp(5:4+n_solid)
 
-             IF ( ABS( r_h ) .LT. 1d-99) r_h = 0.0_dp
-             IF ( ABS( r_u ) .LT. 1d-99) r_u = 0.0_dp
-             IF ( ABS( r_v ) .LT. 1d-99) r_v = 0.0_dp
+             IF ( ABS( r_h ) .LT. 1d-99) r_h = 0.0_wp
+             IF ( ABS( r_u ) .LT. 1d-99) r_u = 0.0_wp
+             IF ( ABS( r_v ) .LT. 1d-99) r_v = 0.0_wp
              IF ( ABS(B_cent(j,k)) .LT. 1d-99) THEN 
 
-                B_out = 0.0_dp
+                B_out = 0.0_wp
                 
              ELSE
 
@@ -2964,14 +2978,14 @@ CONTAINS
 
              DO i=1,n_solid
 
-                IF ( ABS( r_alphas(i) ) .LT. 1d-99) r_alphas(i) = 0.0_dp
+                IF ( ABS( r_alphas(i) ) .LT. 1d-99) r_alphas(i) = 0.0_wp
                 IF ( ABS( DEPOSIT(j,k,i) ) .LT. 1d-99) DEPOSIT(j,k,i) = 0.d0 
 
              END DO
              
-             IF ( ABS( r_T ) .LT. 1d-99) r_T = 0.0_dp
-             IF ( ABS( r_rho_m ) .LT. 1d-99) r_rho_m = 0.0_dp
-             IF ( ABS( r_red_grav ) .LT. 1d-99) r_red_grav = 0.0_dp
+             IF ( ABS( r_T ) .LT. 1d-99) r_T = 0.0_wp
+             IF ( ABS( r_rho_m ) .LT. 1d-99) r_rho_m = 0.0_wp
+             IF ( ABS( r_red_grav ) .LT. 1d-99) r_red_grav = 0.0_wp
 
              WRITE(output_unit_2d,1010) x_comp(j), y_comp(k), r_h , r_u , r_v , &
                   B_out , r_h + B_out , r_alphas , r_T , r_rho_m , r_red_grav , &
@@ -3190,7 +3204,7 @@ CONTAINS
        
        grid_output = -9999 
        
-       WHERE ( deposit(:,:,i_solid) .GT. 0.0_dp )
+       WHERE ( deposit(:,:,i_solid) .GT. 0.0_wp )
           
           grid_output = deposit(:,:,i_solid)
        
@@ -3285,7 +3299,7 @@ CONTAINS
 
     CHARACTER(LEN=4) :: idx_string
 
-    REAL(dp) :: f2
+    REAL(wp) :: f2
 
     INTEGER :: k 
 
@@ -3331,18 +3345,18 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(dp), INTENT(IN) :: time
+    REAL(wp), INTENT(IN) :: time
     LOGICAL, INTENT(INOUT) :: stop_flag
 
-    REAL(dp), ALLOCATABLE :: X(:,:), Y(:,:) , dist(:,:)
+    REAL(wp), ALLOCATABLE :: X(:,:), Y(:,:) , dist(:,:)
     INTEGER :: sX, sY
     INTEGER :: imax(2) , imin(2)
 
     INTEGER :: j,k
 
-    REAL(dp) :: max_mom
-    REAL(dp) :: area , area0 , dareaRel_dt
-    REAL(dp) :: dhRel_dt
+    REAL(wp) :: max_mom
+    REAL(wp) :: area , area0 , dareaRel_dt
+    REAL(wp) :: dhRel_dt
 
     sX = size(x_comp) 
     sY = size(y_comp) 
@@ -3371,7 +3385,7 @@ CONTAINS
     !$OMP END DO
     !$OMP END PARALLEL
 
-    dist(:,:) = 0.0_dp
+    dist(:,:) = 0.0_wp
 
     IF ( time .EQ. t_start ) THEN
 
@@ -3390,7 +3404,7 @@ CONTAINS
           WRITE(*,*) 'Runout calculated as linear distance from: (' ,           &
                x0_runout ,',',y0_runout,')'
 
-          dist(:,:) = 0.0_dp
+          dist(:,:) = 0.0_wp
           
           WHERE( q(1,:,:) >1.D-5 ) dist = SQRT( (X-x0_runout)**2 &
                + ( Y - y0_runout )**2 )
@@ -3401,7 +3415,7 @@ CONTAINS
 
        END IF
 
-       max_mom = 0.0_dp
+       max_mom = 0.0_wp
        
     ELSE
 
@@ -3413,7 +3427,7 @@ CONTAINS
 
     END IF
 
-    dist(:,:) = 0.0_dp
+    dist(:,:) = 0.0_wp
 
     WHERE( q(1,:,:)  > 1.D-5 ) dist = SQRT( ( X - x0_runout )**2 &
          + ( Y - y0_runout )**2 )
@@ -3435,7 +3449,7 @@ CONTAINS
     
     CALL flush(runout_unit)
 
-    dist(:,:) = 0.0_dp
+    dist(:,:) = 0.0_wp
     
     WHERE( q(1,:,:)  > 1.D-5 ) dist = ABS(q(1,:,:)-q0(1,:,:)) /                 &
          MAX(q(1,:,:),q0(1,:,:))

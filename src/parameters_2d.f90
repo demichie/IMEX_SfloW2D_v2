@@ -8,20 +8,26 @@ MODULE parameters_2d
 
   IMPLICIT NONE
 
-  INTEGER, PARAMETER :: dp = KIND(1.D0)
+  INTEGER, PARAMETER :: sp = Selected_Real_Kind (P=6,R=35)
+  INTEGER, PARAMETER :: dp = Selected_Real_Kind (P=15,R=300)
 
-  REAL(dp) :: eps_newton        !< threshold for the convergence of the
+  !> working precision
+  INTEGER, PARAMETER :: wp = sp
+
+  REAL(wp), PARAMETER :: tolh = 10.0_wp * EPSILON(1.0_wp)
+
+  REAL(wp) :: eps_newton        !< threshold for the convergence of the
                                 !< Newton's method 
 
-  REAL(dp) :: dt0               !< Initial time step
+  REAL(wp) :: dt0               !< Initial time step
 
-  REAL(dp) :: max_dt            !< Largest time step allowed
+  REAL(wp) :: max_dt            !< Largest time step allowed
 
-  REAL(dp) :: cfl               !< Courant-Friedrichs-Lewy parameter 
+  REAL(wp) :: cfl               !< Courant-Friedrichs-Lewy parameter 
 
-  REAL(dp) :: eps_sing          !< parameter for desingularization
+  REAL(wp) :: eps_sing          !< parameter for desingularization
 
-  REAL(dp) :: reconstr_coeff    !< Slope coefficient in the linear reconstruction
+  REAL(wp) :: reconstr_coeff    !< Slope coefficient in the linear reconstruction
 
   !> Flag to add the relaxation terms after the linear reconstruction:\n
   !> - T      => evaluate the relaxation terms
@@ -74,51 +80,51 @@ MODULE parameters_2d
 
   LOGICAL :: radial_source_flag
 
-  REAL(dp) :: x_source
-  REAL(dp) :: y_source
-  REAL(dp) :: r_source
-  REAL(dp) :: vel_source
-  REAL(dp) :: T_source
-  REAL(dp) :: h_source
-  REAL(dp) :: alphas_source(100)
-  REAL(dp) :: alphal_source
-  REAL(dp) :: time_param(4)
+  REAL(wp) :: x_source
+  REAL(wp) :: y_source
+  REAL(wp) :: r_source
+  REAL(wp) :: vel_source
+  REAL(wp) :: T_source
+  REAL(wp) :: h_source
+  REAL(wp) :: alphas_source(100)
+  REAL(wp) :: alphal_source
+  REAL(wp) :: time_param(4)
   
 
   LOGICAL :: collapsing_volume_flag
 
-  REAL(dp) :: x_collapse
-  REAL(dp) :: y_collapse
-  REAL(dp) :: r_collapse
-  REAL(dp) :: T_collapse
-  REAL(dp) :: h_collapse
-  REAL(dp) :: alphas_collapse(100)
+  REAL(wp) :: x_collapse
+  REAL(wp) :: y_collapse
+  REAL(wp) :: r_collapse
+  REAL(wp) :: T_collapse
+  REAL(wp) :: h_collapse
+  REAL(wp) :: alphas_collapse(100)
 
 
   !> Initial volume of the flow
-  REAL(dp) :: released_volume
+  REAL(wp) :: released_volume
 
   !> Initial x-coordiante of the pile
-  REAL(dp) :: x_release
+  REAL(wp) :: x_release
 
   !> Initial y-coordinate of the pile
-  REAL(dp) :: y_release
+  REAL(wp) :: y_release
   
     !> Initial velocity module of the pile
-  REAL(dp) :: velocity_mod_release
+  REAL(wp) :: velocity_mod_release
 
   !> Initial velocity direction (angle in degree):\n
   !> - >=0    => departing from positive x-axis
   !> - <0     => departign from maximum slope direction
   !.
   
-  REAL(dp) :: velocity_ang_release
+  REAL(wp) :: velocity_ang_release
 
   !> Initial temperature of the pile of material
-  REAL(dp) :: T_init
+  REAL(wp) :: T_init
 
   !> Initial sediment concentration in the pile of material
-  REAL(dp), ALLOCATABLE :: alphas_init(:)
+  REAL(wp), ALLOCATABLE :: alphas_init(:)
 
   INTEGER :: n_vars   !< Number of conservative variables
   INTEGER :: n_eqns   !< Number of equations
@@ -131,8 +137,8 @@ MODULE parameters_2d
   
   INTEGER, PARAMETER :: max_nl_iter = 100
 
-  REAL(dp), PARAMETER :: tol_abs = 1.D-5
-  REAL(dp), PARAMETER :: tol_rel = 1.D-5
+  REAL(wp), PARAMETER :: tol_abs = 1.D-5
+  REAL(wp), PARAMETER :: tol_rel = 1.D-5
 
   !> Limiter for the slope in the linear reconstruction:\n
   !> - 'none'     => no limiter (constant value);
@@ -149,19 +155,19 @@ MODULE parameters_2d
   !> .
   CHARACTER(LEN=20) :: solver_scheme     
 
-  REAL(dp) :: theta             !< Van Leer limiter parameter
-  REAL(dp) :: t_start           !< initial time for the run
-  REAL(dp) :: t_end             !< end time for the run
-  REAL(dp) :: t_output          !< time of the next output
-  REAL(dp) :: dt_output         !< time interval for the output of the solution
-  REAL(dp) :: t_runout          !< time of the next runout output
-  REAL(dp) :: t_steady          !< end time when reached steady solution
+  REAL(wp) :: theta             !< Van Leer limiter parameter
+  REAL(wp) :: t_start           !< initial time for the run
+  REAL(wp) :: t_end             !< end time for the run
+  REAL(wp) :: t_output          !< time of the next output
+  REAL(wp) :: dt_output         !< time interval for the output of the solution
+  REAL(wp) :: t_runout          !< time of the next runout output
+  REAL(wp) :: t_steady          !< end time when reached steady solution
 
   INTEGER :: verbose_level
 
   TYPE bc
      INTEGER :: flag
-     REAL(dp) :: value
+     REAL(wp) :: value
   END TYPE bc
 
   ! -------boundary conditions variables
