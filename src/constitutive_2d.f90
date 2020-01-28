@@ -652,7 +652,7 @@ CONTAINS
     ! Richardson number
     IF ( ( r_u**2 + r_v**2 ) .GT. 0.0_wp ) THEN
 
-       r_Ri = r_red_grav * r_h / ( r_u**2 + r_v**2 )
+       r_Ri = MIN(1.D15,r_red_grav * r_h / ( r_u**2 + r_v**2 ))
 
     ELSE
 
