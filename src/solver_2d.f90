@@ -225,7 +225,12 @@ CONTAINS
     ALLOCATE( q_interfaceR( n_vars , comp_interfaces_x, comp_cells_y ) )
     ALLOCATE( a_interface_xNeg( n_eqns , comp_interfaces_x, comp_cells_y ) )
     ALLOCATE( a_interface_xPos( n_eqns , comp_interfaces_x, comp_cells_y ) )
+
+    a_interface_xNeg = 0.0_wp
+    a_interface_xPos = 0.0_wp
+    
     ALLOCATE( H_interface_x( n_eqns , comp_interfaces_x, comp_cells_y ) )
+    ALLOCATE( H_interface_y( n_eqns , comp_cells_x, comp_interfaces_y ) )
 
 
     ALLOCATE( q_interfaceB( n_vars , comp_cells_x, comp_interfaces_y ) )
@@ -233,6 +238,10 @@ CONTAINS
     ALLOCATE( a_interface_yNeg( n_eqns , comp_cells_x, comp_interfaces_y ) )
     ALLOCATE( a_interface_yPos( n_eqns , comp_cells_x, comp_interfaces_y ) )
 
+    a_interface_yNeg = 0.0_wp
+    a_interface_yPos = 0.0_wp
+
+    
     ALLOCATE( qp_interfaceL( n_vars+2 , comp_interfaces_x, comp_cells_y ) )
     ALLOCATE( qp_interfaceR( n_vars+2 , comp_interfaces_x, comp_cells_y ) )
     ALLOCATE( qp_interfaceB( n_vars+2 , comp_cells_x, comp_interfaces_y ) )
@@ -252,9 +261,6 @@ CONTAINS
 
     ALLOCATE ( a_interface_x_max(n_eqns,comp_interfaces_x,comp_cells_y) )
     ALLOCATE ( a_interface_y_max(n_eqns,comp_cells_x,comp_interfaces_y) )
-
-
-    ALLOCATE( H_interface_y( n_eqns , comp_cells_x, comp_interfaces_y ) )
 
     ALLOCATE( solve_mask( comp_cells_x , comp_cells_y ) )
 
@@ -811,10 +817,14 @@ CONTAINS
 
           dt_cfl = MIN( dt_interface_x , dt_interface_y )
 
+          WRITE(*,*) j,k,dt_interface_x,dt_interface_y
+          
           dt = MIN(dt,dt_cfl)
 
        END DO
 
+       READ(*,*)
+       
     END IF
 
     RETURN
@@ -3033,16 +3043,7 @@ CONTAINS
 
        END IF
 
-       IF ( comp_cells_y .EQ. 1 ) THEN
-
-          ! comp_cells_y = 1
-          q_interfaceT(:,j,k) = q_expl(:,j,k)
-          q_interfaceB(:,j,k+1) = q_expl(:,j,k)
-
-          qp_interfaceT(:,j,k) = qp_expl(:,j,k)
-          qp_interfaceB(:,j,k+1) = qp_expl(:,j,k)
-
-       ELSE
+       IF ( comp_cells_y .GT. 1 ) THEN
 
           IF ( ( k .GT. 1 ) .AND. ( k .LT. comp_cells_y ) ) THEN
 
@@ -3181,6 +3182,20 @@ CONTAINS
              END IF
 
           END IF
+
+       ELSE
+
+          ! case comp_cells_y = 1
+
+          q_interfaceB(:,j,k) = q_expl(:,j,k)
+          q_interfaceT(:,j,k) = q_expl(:,j,k)
+          q_interfaceB(:,j,k+1) = q_expl(:,j,k)
+          q_interfaceT(:,j,k+1) = q_expl(:,j,k)
+
+          qp_interfaceB(:,j,k) = qp_expl(:,j,k)
+          qp_interfaceT(:,j,k) = qp_expl(:,j,k)
+          qp_interfaceB(:,j,k+1) = qp_expl(:,j,k)
+          qp_interfaceT(:,j,k+1) = qp_expl(:,j,k)
 
        END IF
 
