@@ -15,22 +15,6 @@ else
 fi
 cd ..
 
-# run TEST_BOX
-cd TEST_BOX
-echo ""
-./cleanFolder.sh
-../../bin/SW_VAR_DENS_MODEL
-FILE=TEST_BOX_400_0001.p_2d
-if test -f "$FILE"; then
-    ./cleanFolder.sh
-    echo "TEST_BOX succesfully run"
-else
-    ./cleanFolder.sh
-    echo "Problems with TEST_BOX"
-    exit 1
-fi
-cd ..
-
 
 echo ""
 echo "All tests succesfully passed"
