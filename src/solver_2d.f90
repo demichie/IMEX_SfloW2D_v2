@@ -817,14 +817,10 @@ CONTAINS
 
           dt_cfl = MIN( dt_interface_x , dt_interface_y )
 
-          WRITE(*,*) j,k,dt_interface_x,dt_interface_y
-          
           dt = MIN(dt,dt_cfl)
 
        END DO
 
-       READ(*,*)
-       
     END IF
 
     RETURN
