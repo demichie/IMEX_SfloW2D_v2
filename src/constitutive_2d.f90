@@ -351,7 +351,6 @@ CONTAINS
     r_red_grav = ( r_rho_m - rho_a_amb ) * r_inv_rhom * grav
 
     ! velocity components
-    eps_sing = 1.D-6
     IF ( r_qj(1) .GT. eps_sing ) THEN
 
        r_u = r_qj(2) / r_qj(1)
