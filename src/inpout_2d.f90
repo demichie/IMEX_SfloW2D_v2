@@ -94,6 +94,7 @@ MODULE inpout_2d
   CHARACTER(LEN=40) :: output_esri_file   !< Name of the esri output files
   CHARACTER(LEN=40) :: output_max_file    !< Name of the esri max. thick. file
   CHARACTER(LEN=40) :: runout_file        !< Name of the runout file 
+  CHARACTER(LEN=40) :: topography_file    !< Name of the esri DEM file
 
   INTEGER, PARAMETER :: input_unit = 7       !< Input data unit
   INTEGER, PARAMETER :: backup_unit = 8      !< Backup input data unit
@@ -186,9 +187,10 @@ MODULE inpout_2d
 
   NAMELIST / restart_parameters / restart_file, T_init, T_ambient , sed_vol_perc
 
-  NAMELIST / newrun_parameters / x0 , y0 , comp_cells_x , comp_cells_y ,        &
-       cell_size , rheology_flag , riemann_flag , energy_flag , liquid_flag ,   &
-       radial_source_flag , collapsing_volume_flag , topo_change_flag , gas_flag
+  NAMELIST / newrun_parameters / topography_file , x0 , y0 , comp_cells_x ,     &
+       comp_cells_y , cell_size , rheology_flag , riemann_flag , energy_flag ,  &
+       liquid_flag , radial_source_flag , collapsing_volume_flag ,              &
+       topo_change_flag , gas_flag
 
   NAMELIST / initial_conditions /  released_volume , x_release , y_release ,    &
        velocity_mod_release , velocity_ang_release , T_init , T_ambient
@@ -285,6 +287,7 @@ CONTAINS
     T_ambient = 0.0_wp
 
     !-- Inizialization of the Variables for the namelist newrun_parameters
+    topography_file = 'topography_dem.asc'
     x0 = 0.0_wp
     y0 = 0.0_wp
     comp_cells_x = 1000
@@ -2078,15 +2081,15 @@ CONTAINS
 
     IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Searching for DEM file'
 
-    INQUIRE(FILE='topography_dem.asc',EXIST=lexist)
+    INQUIRE(FILE=topography_file,EXIST=lexist)
 
     IF(lexist)THEN
 
-       OPEN(2001, file='topography_dem.asc', status='old', action='read')
+       OPEN(2001, file=topography_file, status='old', action='read')
 
     ELSE
 
-       WRITE(*,*) 'no dem file'
+       WRITE(*,*) 'no dem file: ',TRIM(topography_file)
        STOP
 
     ENDIF

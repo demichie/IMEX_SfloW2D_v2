@@ -12,7 +12,7 @@ MODULE parameters_2d
   INTEGER, PARAMETER :: dp = Selected_Real_Kind (P=15,R=300)
 
   !> working precision
-  INTEGER, PARAMETER :: wp = sp
+  INTEGER, PARAMETER :: wp = dp
 
   REAL(wp), PARAMETER :: tolh = 10.0_wp * EPSILON(1.0_wp)
 

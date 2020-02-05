@@ -351,7 +351,7 @@ CONTAINS
     r_red_grav = ( r_rho_m - rho_a_amb ) * r_inv_rhom * grav
 
     ! velocity components
-    eps_sing = 1.D-6
+    ! eps_sing = 1.D-6
     IF ( r_qj(1) .GT. eps_sing ) THEN
 
        r_u = r_qj(2) / r_qj(1)
@@ -775,6 +775,8 @@ CONTAINS
     REAL(wp) :: r_rho_c           !< real-value carrier phase density [kg/m3]
     REAL(wp) :: r_xs(n_solid)     !< real-value solid mass fraction
 
+!    WRITE(*,*) 'qui-1'
+
     r_h = qp(1)
 
     IF ( r_h .GT. 0.0_wp ) THEN
@@ -798,9 +800,15 @@ CONTAINS
 
     END IF
 
+!    WRITE(*,*) 'qui0'
+
     r_T  = qp(4)
 
+!    WRITE(*,*) 'qui0,5'
+
     r_alphas(1:n_solid) = qp(5:4+n_solid)
+
+!    WRITE(*,*) 'qui1'
     
     IF ( gas_flag ) THEN
 
@@ -815,6 +823,8 @@ CONTAINS
        sp_heat_c = sp_heat_l
 
     END IF
+
+!    WRITE(*,*) 'qui2'
 
     IF ( gas_flag .AND. liquid_flag ) THEN
 
@@ -885,6 +895,8 @@ CONTAINS
 
     END IF
 
+!    WRITE(*,*) 'qui3',r_h,r_hu,r_hv
+
     qc(1) = r_rho_m * r_h 
     qc(2) = r_rho_m * r_hu
     qc(3) = r_rho_m * r_hv
@@ -894,8 +906,11 @@ CONTAINS
        IF ( r_h .GT. 0.0_wp ) THEN
 
           ! total energy (internal and kinetic)
-          qc(4) = r_h * r_rho_m * ( r_sp_heat_mix * r_T                         &
-               + 0.5_wp * ( r_hu**2 + r_hv**2 ) / r_h**2 )
+          !qc(4) = r_h * r_rho_m * ( r_sp_heat_mix * r_T                         &
+          !     + 0.5_wp * ( r_hu**2 + r_hv**2 ) / r_h**2 )
+
+          qc(4) = r_h * r_rho_m * ( r_sp_heat_mix * r_T ) +                     &
+                r_rho_m * 0.5_wp * ( r_hu**2 + r_hv**2 ) / r_h
 
        ELSE
 
@@ -909,6 +924,8 @@ CONTAINS
        qc(4) = r_h * r_rho_m * r_sp_heat_mix * r_T 
 
     END IF
+
+!    WRITE(*,*) 'qui4'
 
     qc(5:4+n_solid) = r_h * r_alphas(1:n_solid) * rho_s(1:n_solid)
 

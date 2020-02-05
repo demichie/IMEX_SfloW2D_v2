@@ -417,7 +417,7 @@ contains
     INTEGER :: ios
 
     CHARACTER(LEN=40), INTENT(IN) :: bak_name           !< Backup file for the parameters
-
+    CHARACTER(LEN=40) :: topography_file    !< Name of the esri DEM file
 
     !> Flag to start a run from a previous output:\n
     !> - T     => Restart from a previous output (.asc or .q_2d)
@@ -483,9 +483,10 @@ contains
          output_cons_flag , output_esri_flag , output_phys_flag ,                 &
          output_runout_flag , verbose_level
 
-    NAMELIST / newrun_parameters / x0 , y0 , comp_cells_x , comp_cells_y ,        &
-         cell_size , rheology_flag , riemann_flag , energy_flag , liquid_flag ,   &
-         radial_source_flag , collapsing_volume_flag , topo_change_flag , gas_flag
+    NAMELIST / newrun_parameters / topography_file , x0 , y0 , comp_cells_x ,     &
+         comp_cells_y , cell_size , rheology_flag , riemann_flag , energy_flag ,  &
+         liquid_flag , radial_source_flag , collapsing_volume_flag ,              &
+         topo_change_flag , gas_flag
 
     NAMELIST / solid_transport_parameters / n_solid , rho0_s , diam0_s ,          &
          sp_heat0_s , erosion_coeff0 , settling_flag , T_s_substrate
