@@ -224,7 +224,7 @@ PROGRAM SW_VAR_DENS_MODEL
 
   IF ( verbose_level .GE. 0.D0 ) THEN
   
-     WRITE(*,FMT="(A3,F10.4,A5,F9.5,A9,ES11.3E3,A11,ES11.3E3,A9,ES11.3E3,A15,ES11.3E3)")   &
+     WRITE(*,FMT="(A3,F11.4,A5,F9.5,A9,ES11.3E3,A11,ES11.3E3,A9,ES11.3E3,A15,ES11.3E3)")   &
           't =',t,'dt =',dt0,                                                   &
           ' mass = ',dx*dy*SUM(q(1,:,:)) ,                                      &
           ' volume = ',dx*dy*SUM(qp(1,:,:)) ,                                   &
