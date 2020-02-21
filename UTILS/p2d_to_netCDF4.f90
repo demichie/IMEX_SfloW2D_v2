@@ -417,7 +417,9 @@ contains
     INTEGER :: ios
 
     CHARACTER(LEN=40), INTENT(IN) :: bak_name           !< Backup file for the parameters
-    CHARACTER(LEN=40) :: topography_file    !< Name of the esri DEM file
+
+    CHARACTER(LEN=40) :: topography_file
+
 
     !> Flag to start a run from a previous output:\n
     !> - T     => Restart from a previous output (.asc or .q_2d)
@@ -492,7 +494,7 @@ contains
          sp_heat0_s , erosion_coeff0 , settling_flag , T_s_substrate
 
 
-    OPEN(backup_unit,FILE=bak_name,STATUS='old')
+    OPEN(backup_unit,FILE=bak_name,STATUS='old',DELIM='NONE')
 
     ! ------- READ run_parameters NAMELIST -----------------------------------
     READ(backup_unit, run_parameters,IOSTAT=ios )

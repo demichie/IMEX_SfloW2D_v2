@@ -278,19 +278,21 @@ CONTAINS
                topography_profile(2,:,:), topography_profile(3,:,:) ,           &
                x_comp(j), y_comp(k) , B_cent(j,k) )
 
-          CALL interp_2d_slope( topography_profile(1,:,:) ,                     &
-               topography_profile(2,:,:), topography_profile(3,:,:) ,           &
-               x_comp(j), y_comp(k) , B_prime_x(j,k) , B_prime_y(j,k) )
-
-          B_interfaceR(j,k) = B_cent(j,k) - dx2 * B_prime_x(j,k)
-          B_interfaceL(j+1,k) = B_cent(j,k) + dx2 * B_prime_x(j,k)
-          
-          B_interfaceT(j,k) = B_cent(j,k) - dx2 * B_prime_y(j,k)
-          B_interfaceB(j,k+1) = B_cent(j,k) + dx2 * B_prime_y(j,k)
+!!$          CALL interp_2d_slope( topography_profile(1,:,:) ,                     &
+!!$               topography_profile(2,:,:), topography_profile(3,:,:) ,           &
+!!$               x_comp(j), y_comp(k) , B_prime_x(j,k) , B_prime_y(j,k) )
+!!$
+!!$          B_interfaceR(j,k) = B_cent(j,k) - dx2 * B_prime_x(j,k)
+!!$          B_interfaceL(j+1,k) = B_cent(j,k) + dx2 * B_prime_x(j,k)
+!!$          
+!!$          B_interfaceT(j,k) = B_cent(j,k) - dx2 * B_prime_y(j,k)
+!!$          B_interfaceB(j,k+1) = B_cent(j,k) + dx2 * B_prime_y(j,k)
 
        END DO
 
     ENDDO
+
+    CALL topography_reconstruction
 
     ! this coefficient is used when the the scalar dot between the normal to the 
     ! topography and gravity is computed
