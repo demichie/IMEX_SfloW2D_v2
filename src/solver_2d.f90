@@ -542,9 +542,9 @@ CONTAINS
     !$OMP PARALLEL
     
     !$OMP WORKSHARE
-    solve_mask(2:comp_cells_x,2:comp_cells_y) = .FALSE.
-    WHERE ( q(1,2:comp_cells_x,2:comp_cells_y) .GT. 0.0_wp )  &
-         solve_mask(2:comp_cells_x,2:comp_cells_y) = .TRUE.
+    solve_mask(2:comp_cells_x-1,2:comp_cells_y-1) = .FALSE.
+    WHERE ( q(1,2:comp_cells_x-1,2:comp_cells_y-1) .GT. 0.0_wp )  &
+         solve_mask(2:comp_cells_x-1,2:comp_cells_y-1) = .TRUE.
     
     !$OMP END WORKSHARE
     
