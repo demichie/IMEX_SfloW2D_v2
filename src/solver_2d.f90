@@ -87,7 +87,14 @@ MODULE solver_2d
 
 
   !> Maximum over time of thickness
-  REAL(wp), ALLOCATABLE :: q1max(:,:)
+  REAL(wp), ALLOCATABLE :: hmax(:,:)
+
+  !> Maximum over time of thickness
+  LOGICAL, ALLOCATABLE :: vuln_table(:,:,:)
+
+  LOGICAL, ALLOCATABLE :: thck_table(:,:)
+
+  LOGICAL, ALLOCATABLE :: pdyn_table(:,:)
 
   !> Max local speeds at the x-interface
   REAL(wp), ALLOCATABLE :: a_interface_x_max(:,:,:)
@@ -203,6 +210,8 @@ CONTAINS
 
   SUBROUTINE allocate_solver_variables
 
+    USE parameters_2d, ONLY : n_thickness_levels , n_dyn_pres_levels
+    
     IMPLICIT NONE
 
     REAL(wp) :: gamma , delta
@@ -217,7 +226,14 @@ CONTAINS
     q(1:n_vars,1:comp_cells_x,1:comp_cells_y) = 0.0_wp
     qp(1:n_vars+2,1:comp_cells_x,1:comp_cells_y) = 0.0_wp
 
-    ALLOCATE( q1max( comp_cells_x , comp_cells_y ) )
+    ALLOCATE( hmax( comp_cells_x , comp_cells_y ) )
+
+    ALLOCATE( vuln_table( n_thickness_levels * n_dyn_pres_levels ,              &
+         comp_cells_x , comp_cells_y ) )
+
+    ALLOCATE( thck_table(comp_cells_x , comp_cells_y) )
+
+    ALLOCATE( pdyn_table(comp_cells_x , comp_cells_y) )
 
     ALLOCATE( q_fv( n_vars , comp_cells_x , comp_cells_y ) )
 
@@ -446,7 +462,11 @@ CONTAINS
 
     DEALLOCATE( q , q0 )
 
-    DEALLOCATE( q1max )
+    DEALLOCATE( hmax )
+
+    DEALLOCATE( vuln_table )
+
+    DEALLOCATE( thck_table ,  pdyn_table )
 
     DEALLOCATE( q_fv )
 
@@ -486,7 +506,7 @@ CONTAINS
     DEALLOCATE( solve_mask_x )
     DEALLOCATE( solve_mask_y )
 
-    Deallocate( qp )
+    DEALLOCATE( qp )
 
     DEALLOCATE( source_xy )
 
@@ -1158,7 +1178,7 @@ CONTAINS
 
        negative_thickness_check:IF ( q(1,j,k) .LT. 0.0_wp ) THEN
 
-          IF ( q(1,j,k) .GT. -1.D-7 ) THEN
+          IF ( q(1,j,k) .GT. -1.0E-7_wp ) THEN
 
              q(1,j,k) = 0.0_wp
              q(2:n_vars,j,k) = 0.0_wp
@@ -1197,7 +1217,7 @@ CONTAINS
 
        IF ( SUM(q(5:4+n_solid,j,k)) .GT. q(1,j,k) ) THEN
 
-          IF ( SUM(q(5:4+n_solid,j,k))-q(1,j,k) .LT. 1.D-10 ) THEN
+          IF ( SUM(q(5:4+n_solid,j,k))-q(1,j,k) .LT. 1.0E-10_wp ) THEN
 
              q(5:4+n_solid,j,k) = q(5:4+n_solid,j,k)                            &
                   / SUM(q(5:4+n_solid,j,k)) * q(1,j,k)
@@ -1325,7 +1345,7 @@ CONTAINS
     REAL(wp) :: stpmax
     LOGICAL :: check
 
-    REAL(wp), PARAMETER :: TOLF=1.D-10 , TOLMIN=1.D-6
+    REAL(wp), PARAMETER :: TOLF=1.0E-10_wp , TOLMIN=1.0E-6_wp
     REAL(wp) :: TOLX
 
     ! REAL(wp) :: qpj(n_vars+2)
@@ -1383,7 +1403,7 @@ CONTAINS
 
        qj_org = qj
 
-       qj_org = MAX( ABS(qj_org) , 1.D-3 )
+       qj_org = MAX( ABS(qj_org) , 1.0E-3_wp )
 
     ELSE 
 
@@ -1425,7 +1445,7 @@ CONTAINS
 
        END IF
 
-       IF ( ( normalize_f ) .AND. ( scal_f < 1.D-6 ) ) THEN
+       IF ( ( normalize_f ) .AND. ( scal_f < 1.0E-6_wp ) ) THEN
 
           IF ( verbose_level .GE. 3 ) WRITE(*,*) 'check scal_f',check
           RETURN
@@ -1943,7 +1963,7 @@ CONTAINS
 
     USE constitutive_2d, ONLY : erosion_coeff , settling_flag , rho_s
 
-    USE geometry_2d, ONLY : deposit
+    USE geometry_2d, ONLY : deposit , erosion , erodible
 
     USE constitutive_2d, ONLY : eval_erosion_dep_term
     USE constitutive_2d, ONLY : eval_topo_term
@@ -1966,7 +1986,7 @@ CONTAINS
 
     INTEGER :: j,k,l 
 
-    IF ( ( SUM(erosion_coeff) .EQ. 0.0_wp ) .AND. ( .NOT. settling_flag ) ) RETURN
+    IF ( ( SUM(erosion_coeff) .EQ. 0.0_wp ) .AND. ( .NOT.settling_flag ) ) RETURN
 
     !$OMP PARALLEL DO private(j,k,erosion_term,deposition_term,eqns_term,       &
     !$OMP & topo_term,r_Ri,r_rho_m,r_rho_c,r_red_grav)
@@ -1993,6 +2013,12 @@ CONTAINS
        deposition_term(1:n_solid) = MAX(0.0_wp,MIN( deposition_term(1:n_solid), &
             q(5:4+n_solid,j,k) / ( rho_s(1:n_solid) * dt ) ))
 
+       ! Limit the deposition during a single time step
+       erosion_term(1:n_solid) = MAX(0.0_wp,MIN( erosion_term(1:n_solid),       &
+            erodible(j,k,1:n_solid) / dt ) )
+
+       
+       
        ! Compute the source terms for the equations
        CALL eval_topo_term( qp(1:n_vars+2,j,k) , deposition_term ,              &
             erosion_term , eqns_term , topo_term )
@@ -2010,6 +2036,12 @@ CONTAINS
        deposit(j,k,1:n_solid) = deposit(j,k,1:n_solid)                          &
             + dt * deposition_term(1:n_solid)
 
+       erosion(j,k,1:n_solid) = erosion(j,k,1:n_solid)                          &
+            + dt * erosion_term(1:n_solid)
+
+       erodible(j,k,1:n_solid) = erodible(j,k,1:n_solid)                        &
+            - dt * erosion_term(1:n_solid)
+       
        ! Update the topography with erosion/deposition terms
        IF ( topo_change_flag ) THEN
 
@@ -2020,7 +2052,7 @@ CONTAINS
        ! Check for negative thickness
        IF ( q(1,j,k) .LT. 0.0_wp ) THEN
 
-          IF ( q(1,j,k) .GT. -1.D-10 ) THEN
+          IF ( q(1,j,k) .GT. -1.0E-10_wp ) THEN
 
              q(1:n_vars,j,k) = 0.0_wp
 

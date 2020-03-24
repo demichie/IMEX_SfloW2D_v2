@@ -27,13 +27,14 @@
 PROGRAM SW_VAR_DENS_MODEL
 
   USE constitutive_2d, ONLY : init_problem_param
+  USE constitutive_2d, ONLY : p_dyn
 
   USE geometry_2d, ONLY : init_grid
   USE geometry_2d, ONLY : init_source
   USE geometry_2d, ONLY : topography_reconstruction
 
   USE geometry_2d, ONLY : dx,dy,B_cent
-  USE geometry_2d, ONLY : comp_cells_x,comp_cells_y
+  ! USE geometry_2d, ONLY : comp_cells_x,comp_cells_y
 
   USE init_2d, ONLY : riemann_problem
   USE init_2d, ONLY : collapsing_volume
@@ -73,9 +74,13 @@ PROGRAM SW_VAR_DENS_MODEL
   USE parameters_2d, ONLY : radial_source_flag
   USE parameters_2d, ONLY : collapsing_volume_flag
 
+  USE parameters_2d, ONLY : n_thickness_levels , n_dyn_pres_levels ,          &
+       thickness_levels , dyn_pres_levels
+
   USE solver_2d, ONLY : q , qp , t, dt
-  USE solver_2d, ONLY : q1max
-  
+  USE solver_2d, ONLY : hmax
+  USE solver_2d, ONLY : thck_table ,  pdyn_table , vuln_table
+
   USE constitutive_2d, ONLY : qc_to_qp
 
   USE solver_2d, ONLY : solve_mask , solve_cells
@@ -94,7 +99,10 @@ PROGRAM SW_VAR_DENS_MODEL
   LOGICAL :: stop_flag
   LOGICAL :: stop_flag_old
 
-  INTEGER j,k,l
+  INTEGER :: j,k,l
+
+  INTEGER :: i_pdyn_lev , i_thk_lev , i_table
+
   INTEGER n_threads
 
   LOGICAL :: use_openmp = .false.
@@ -102,7 +110,7 @@ PROGRAM SW_VAR_DENS_MODEL
   WRITE(*,*) '---------------------'
   WRITE(*,*) 'SW_VAR_DENS_MODEL 1.0'
   WRITE(*,*) '---------------------'
-  
+
   !$ use_openmp = .true.
   !$ print *, "OpenMP program"
 
@@ -111,7 +119,7 @@ PROGRAM SW_VAR_DENS_MODEL
      PRINT *, "Non-OpenMP simulation"
 
   ELSE
-     
+
      !$ n_threads = omp_get_max_threads()
      !$ CALL OMP_SET_NUM_THREADS(n_threads)
      IF ( verbose_level .GE. 0.D0 ) WRITE(*,*) 'Number of threads used', n_threads
@@ -120,7 +128,7 @@ PROGRAM SW_VAR_DENS_MODEL
 
 
 
- ! First initialize the system_clock
+  ! First initialize the system_clock
   CALL system_clock(count_rate=cr)
   CALL system_clock(count_max=cm)
   rate = DBLE(cr)
@@ -137,7 +145,7 @@ PROGRAM SW_VAR_DENS_MODEL
   CALL init_problem_param
 
   CALL allocate_solver_variables
- 
+
   IF ( restart ) THEN
 
      CALL read_solution
@@ -164,19 +172,19 @@ PROGRAM SW_VAR_DENS_MODEL
   t = t_start
 
   CALL check_solve
-  
+
   IF ( topo_change_flag ) CALL topography_reconstruction
 
   IF ( verbose_level .GE. 0 ) THEN
-  
+
      WRITE(*,*) 
      WRITE(*,*) '******** START COMPUTATION *********'
      WRITE(*,*)
 
   END IF
-     
+
   IF ( verbose_level .GE. 1 ) THEN
-     
+
      WRITE(*,*) 'Min q(1,:,:)=',MINVAL(q(1,:,:))
      WRITE(*,*) 'Max q(1,:,:)=',MAXVAL(q(1,:,:))
 
@@ -188,33 +196,57 @@ PROGRAM SW_VAR_DENS_MODEL
 
      WRITE(*,*) 'SUM(q(1,:,:)=',SUM(q(1,:,:))
      WRITE(*,*) 'SUM(B_cent(:,:)=',SUM(B_cent(:,:))
-     
+
   END IF
 
-  q1max(:,:) = q(1,:,:)
-  
+
   dt_old = dt0
   dt_old_old = dt_old
   t_steady = t_end
   stop_flag = .FALSE.
 
-  DO k = 1,comp_cells_y
-     
-     DO j = 1,comp_cells_x
+  vuln_table = .FALSE.
+
+  !$OMP PARALLEL DO private(j,k)
+
+  DO l = 1,solve_cells
+
+     j = j_cent(l)
+     k = k_cent(l)
+
+     IF ( q(1,j,k) .GT. 0.0_wp ) THEN
+
+        CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars,j,k) )
+        hmax(j,k) = qp(1,j,k)
+
+        i_table = 0
         
-        IF ( q(1,j,k) .GT. 0.0_wp ) THEN
+        DO i_thk_lev=1,n_thickness_levels
 
-           CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars,j,k) )
-        
-        ELSE
+           thck_table(j,k) = ( qp(1,j,k) .GE. thickness_levels(i_thk_lev) )
 
-           qp(1:n_vars,j,k) = 0.0_wp
+           DO i_pdyn_lev=1,n_dyn_pres_levels
 
-        END IF
+              pdyn_table(j,k) = ( p_dyn .GE. dyn_pres_levels(i_pdyn_lev) ) 
 
-     END DO
-     
+              i_table = i_table + 1
+
+              vuln_table(i_table,j,k) = ( thck_table(j,k) .AND. pdyn_table(j,k) )
+
+           END DO
+
+        END DO
+
+     ELSE
+
+        qp(1:n_vars,j,k) = 0.0_wp
+        hmax(j,k) = 0.0_wp
+
+     END IF
+
   END DO
+
+  !$OMP END PARALLEL DO
 
   IF ( output_runout_flag ) CALL output_runout(t,stop_flag)
 
@@ -223,8 +255,8 @@ PROGRAM SW_VAR_DENS_MODEL
   IF ( SUM(q(1,:,:)) .EQ. 0.0_wp ) t_steady = t_output
 
   IF ( verbose_level .GE. 0.D0 ) THEN
-  
-     WRITE(*,FMT="(A3,F11.4,A5,F9.5,A9,ES11.3E3,A11,ES11.3E3,A9,ES11.3E3,A15,ES11.3E3)")   &
+
+     WRITE(*,FMT="(A3,F10.4,A5,F9.5,A9,ES11.3E3,A11,ES11.3E3,A9,ES11.3E3,A15,ES11.3E3)")   &
           't =',t,'dt =',dt0,                                                   &
           ' mass = ',dx*dy*SUM(q(1,:,:)) ,                                      &
           ' volume = ',dx*dy*SUM(qp(1,:,:)) ,                                   &
@@ -252,7 +284,7 @@ PROGRAM SW_VAR_DENS_MODEL
 
      IF ( t+dt .GT. t_end ) dt = t_end - t
      IF ( t+dt .GT. t_output ) dt = t_output - t
-     
+
      IF ( output_runout_flag ) THEN
 
         IF ( t+dt .GT. t_runout ) dt = t_runout - t
@@ -260,43 +292,62 @@ PROGRAM SW_VAR_DENS_MODEL
      END IF
 
      dt = MIN(dt,1.1_wp * 0.5_wp * ( dt_old + dt_old_old ) )
-     
+
      dt_old_old = dt_old
      dt_old = dt
 
      CALL imex_RK_solver
 
      CALL update_erosion_deposition_cell(dt)
- 
+
      IF ( topo_change_flag ) CALL topography_reconstruction
-     
+
      t = t+dt
 
      !$OMP PARALLEL DO private(j,k)
-     
+
      DO l = 1,solve_cells
-        
+
         j = j_cent(l)
         k = k_cent(l)
-        
+
         IF ( q(1,j,k) .GT. 0.0_wp ) THEN
-           
+
            CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) )
+
+           hmax(j,k) = MAX( hmax(j,k) , qp(1,j,k) )
+
+           i_table = 0
            
-           q1max(j,k) = MAX( q1max(j,k) , q(1,j,k) )
+           DO i_thk_lev=1,n_thickness_levels
+
+              thck_table(j,k) = ( qp(1,j,k) .GE. thickness_levels(i_thk_lev) )
+
+              DO i_pdyn_lev=1,n_dyn_pres_levels
+
+                 pdyn_table(j,k) = ( p_dyn .GE. dyn_pres_levels(i_pdyn_lev) ) 
+
+                 i_table = i_table + 1
+
+                 vuln_table(i_table,j,k) = vuln_table(i_table,j,k) .OR.            &
+                      ( thck_table(j,k) .AND. pdyn_table(j,k) )
+
+              END DO
+
+           END DO
 
         ELSE
-           
+
            qp(1:n_vars+2,j,k) = 0.0_wp
-           
+
         END IF
-        
+
      END DO
 
      !$OMP END PARALLEL DO
 
      IF ( verbose_level .GE. 0 ) THEN
-     
+
         WRITE(*,FMT="(A3,F10.4,A5,F9.5,A9,ES11.3E3,A11,ES11.3E3,A9,ES11.3E3,A15,ES11.3E3)")&
              't =',t,'dt =',dt,                                                    &
              ' mass = ',dx*dy*SUM(q(1,:,:)) ,                                      &
@@ -305,17 +356,17 @@ PROGRAM SW_VAR_DENS_MODEL
              ' solid mass = ',dx*dy*SUM(q(5:4+n_solid,:,:)) 
 
      END IF
-        
+
      IF ( output_runout_flag ) THEN
 
         IF ( ( t .GE. t_runout ) .OR. ( t .GE. t_steady ) ) THEN
 
            stop_flag_old = stop_flag
-           
+
            IF ( output_runout_flag ) CALL output_runout(t,stop_flag)
 
            IF ( ( stop_flag ) .AND. (.NOT.stop_flag_old) ) THEN
-              
+
               t_steady = MIN(t_end,t_output)
               t_runout = t_steady
 
@@ -331,9 +382,9 @@ PROGRAM SW_VAR_DENS_MODEL
 
         CALL cpu_time(t3)
         CALL system_clock(st3)
-        
+
         IF ( verbose_level .GE. 0.D0 ) THEN
-        
+
            WRITE(*,*) 'Time taken by iterations is',t3-t2,'seconds'
            WRITE(*,*) 'Elapsed real time = ', DBLE( st3 - st2 ) / rate,'seconds'
 

@@ -47,7 +47,6 @@ MODULE parameters_2d
   !> .
   LOGICAL :: topography_demfile
 
-
   !> Flag to choose the equation for temperature to solve
   !> - T      => solve the full energy equation
   !> - F      => solve for a simpler transport equation (advection) for temperature
@@ -79,6 +78,17 @@ MODULE parameters_2d
   LOGICAL :: topo_change_flag
 
   LOGICAL :: radial_source_flag
+
+  !> Flag to choose if initial volume is subtracted from topography or erodible layer
+  !> - T      => change initial topography or erodible layer by subtracting initial volume 
+  !> - F      => keep initial topography or erodible layer
+  !> .
+  LOGICAL :: subtract_init_flag
+
+  INTEGER :: n_thickness_levels
+  INTEGER :: n_dyn_pres_levels
+  REAL(wp), ALLOCATABLE :: thickness_levels(:)
+  REAL(wp), ALLOCATABLE :: dyn_pres_levels(:)
 
   REAL(wp) :: x_source
   REAL(wp) :: y_source
@@ -116,8 +126,7 @@ MODULE parameters_2d
   !> Initial velocity direction (angle in degree):\n
   !> - >=0    => departing from positive x-axis
   !> - <0     => departign from maximum slope direction
-  !.
-  
+  !. 
   REAL(wp) :: velocity_ang_release
 
   !> Initial temperature of the pile of material
@@ -137,8 +146,8 @@ MODULE parameters_2d
   
   INTEGER, PARAMETER :: max_nl_iter = 100
 
-  REAL(wp), PARAMETER :: tol_abs = 1.D-5
-  REAL(wp), PARAMETER :: tol_rel = 1.D-5
+  REAL(wp), PARAMETER :: tol_abs = 1.0E-5_wp
+  REAL(wp), PARAMETER :: tol_rel = 1.0E-5_wp
 
   !> Limiter for the slope in the linear reconstruction:\n
   !> - 'none'     => no limiter (constant value);

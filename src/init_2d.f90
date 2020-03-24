@@ -16,7 +16,9 @@ MODULE init_2d
   REAL(wp), ALLOCATABLE :: q_init(:,:,:)
 
   REAL(wp), ALLOCATABLE :: thickness_init(:,:)
-  
+
+  REAL(wp), ALLOCATABLE :: erodible_init(:,:)
+
   !> Riemann problem interface relative position. It is a value
   !> between 0 and 1
   REAL(wp) :: riemann_interface  

@@ -50,6 +50,9 @@ MODULE geometry_2d
   !> Solution in ascii grid format (ESRI)
   REAL(wp), ALLOCATABLE :: grid_output(:,:)
 
+  !> Integer solution in ascii grid format (ESRI)
+  INTEGER, ALLOCATABLE :: grid_output_int(:,:)
+  
   !> gravity vector wrt surface coordinates for each cell
   REAL(wp), ALLOCATABLE :: grav_surf(:,:)
 
@@ -59,6 +62,12 @@ MODULE geometry_2d
   !> deposit for the different classes
   REAL(wp), ALLOCATABLE :: deposit(:,:,:)
 
+  !> erosion for the different classes
+  REAL(wp), ALLOCATABLE :: erosion(:,:,:)
+
+  !> erosdible substrate for the different classes
+  REAL(wp), ALLOCATABLE :: erodible(:,:,:)
+  
   REAL(wp), ALLOCATABLE :: topography_profile(:,:,:)
 
   INTEGER, ALLOCATABLE :: source_cell(:,:)
@@ -165,6 +174,7 @@ CONTAINS
     ALLOCATE( B_interfaceT( comp_cells_x, comp_interfaces_y ) )
 
     ALLOCATE( grid_output(comp_cells_x,comp_cells_y) )
+    ALLOCATE( grid_output_int(comp_cells_x,comp_cells_y) )
 
     ALLOCATE( grav_surf(comp_cells_x,comp_cells_y) )
 
@@ -192,17 +202,17 @@ CONTAINS
     xN = x0 + comp_cells_x * dx
     yN = y0 + comp_cells_y * dy
 
-    dx2 = dx / 2.d0
-    dy2 = dy / 2.d0
+    dx2 = dx / 2.0_wp
+    dy2 = dy / 2.0_wp
 
 
     IF ( wp .EQ. sp ) THEN
 
-       eps_sing=MIN(MIN( dx ** 4.0_wp,dy ** 4.0_wp ),1.d-6)
+       eps_sing=MIN(MIN( dx ** 4.0_wp,dy ** 4.0_wp ),1.0E-6_wp)
 
     ELSE
 
-       eps_sing=MIN(MIN( dx ** 4.0_wp,dy ** 4.0_wp ),1.d-10)
+       eps_sing=MIN(MIN( dx ** 4.0_wp,dy ** 4.0_wp ),1.0E-10_wp)
 
     END IF
 
@@ -300,7 +310,7 @@ CONTAINS
 
        DO k=1,comp_cells_y
 
-          grav_surf(j,k) = - ( 1.d0/ SQRT( 1.d0 + B_prime_x(j,k)**2             & 
+          grav_surf(j,k) = - ( 1.0_wp/ SQRT( 1.0_wp + B_prime_x(j,k)**2             & 
                + B_prime_y(j,k)**2) )
 
        ENDDO
@@ -1037,7 +1047,7 @@ CONTAINS
 
     IF ( a*b .EQ. 0.0_wp ) THEN
 
-       minmod = 0.d0
+       minmod = 0.0_wp
 
     ELSE
 
@@ -1056,9 +1066,9 @@ CONTAINS
 
     REAL(wp) :: a , b , sa , sb 
 
-    IF ( a*b .EQ. 0.d0 ) THEN
+    IF ( a*b .EQ. 0.0_wp ) THEN
 
-       maxmod = 0.d0
+       maxmod = 0.0_wp
 
     ELSE
 

@@ -60,7 +60,7 @@ MODULE constitutive_2d
   REAL(wp) :: exp_area_fract
 
   !> Stephan-Boltzmann constant [W m-2 K-4]
-  REAL(wp), PARAMETER :: SBconst = 5.67D-8
+  REAL(wp), PARAMETER :: SBconst = 5.67E-8_wp
 
   !> emissivity (eps in Costa & Macedonio, 2005)
   REAL(wp) :: emissivity
@@ -117,6 +117,9 @@ MODULE constitutive_2d
   !> Kinematic viscosity of carrier phase (units: m2 s-1)
   REAL(wp) :: kin_visc_c
 
+  !> Dynamic pressure
+  REAL(wp) :: p_dyn
+  
   !> Temperature of ambient air (units: K)
   REAL(wp) :: T_ambient
 
@@ -719,6 +722,8 @@ CONTAINS
     
     qp(n_vars+1) = r_u
     qp(n_vars+2) = r_v
+
+    p_dyn = 0.5_wp * r_rho_m * ( r_u**2 + r_v**2 )
     
     RETURN
 
@@ -934,7 +939,7 @@ CONTAINS
 
     IMPLICIT none
 
-    REAL(wp), INTENT(IN) :: qpj(n_vars)
+    REAL(wp), INTENT(IN) :: qpj(n_vars+2)
     REAL(wp), INTENT(IN) :: Bj
     REAL(wp), INTENT(OUT) :: qp2j(3)
 
@@ -1257,7 +1262,7 @@ CONTAINS
 
     IF ( ( thermal_conductivity .GT. 0.0_wp ) .OR. ( emme .GT. 0.0_wp ) ) THEN
 
-       h_threshold = 1.D-10
+       h_threshold = 1.0E-10_wp
 
     ELSE
 
@@ -1351,7 +1356,7 @@ CONTAINS
           ! in Table 2 from O'Brien 1988, the values reported have different
           ! units ( poises). 1poises = 0.1 kg m-1 s-1
 
-          h_threshold = 1.D-20
+          h_threshold = 1.0E-20_wp
 
           ! convert from Kelvin to Celsius
           Tc = T - 273.15_wp
@@ -1367,14 +1372,14 @@ CONTAINS
              expA = 1301.0_wp / ( 998.333_wp + 8.1855_wp * ( Tc - 20.0_wp )     &
                   + 0.00585_wp * ( Tc - 20.0_wp )**2 ) - 1.30223_wp
 
-             alpha1 = alpha1_coeff * 1.D-3 * 10.0_wp**expA
+             alpha1 = alpha1_coeff * 1.0E-3_wp * 10.0_wp**expA
 
           ELSE
 
              expB = ( 1.3272_wp * ( 20.0_wp - Tc ) - 0.001053_wp *              &
                   ( Tc - 20.0_wp )**2 ) / ( Tc + 105.0_wp )
 
-             alpha1 = alpha1_coeff * 1.002D-3 * 10.0_wp**expB 
+             alpha1 = alpha1_coeff * 1.002E-3_wp * 10.0_wp**expB 
 
           END IF
 
@@ -1417,7 +1422,7 @@ CONTAINS
 
        ELSEIF ( rheology_model .EQ. 5 ) THEN
 
-          tau = 1.D-3 / ( 1.0_wp + 10.0_wp * h ) * mod_vel
+          tau = 1.0E-3_wp / ( 1.0_wp + 10.0_wp * h ) * mod_vel
 
           IF ( REAL(mod_vel) .NE. 0.0_wp ) THEN
 
@@ -1542,7 +1547,7 @@ CONTAINS
           ! Lahars rheology (O'Brien 1993, FLO2D)
        ELSEIF ( rheology_model .EQ. 4 ) THEN
 
-          h_threshold = 1.D-20
+          h_threshold = 1.0E-20_wp
 
           ! Yield strength (units: kg m-1 s-2)
           tau_y = alpha2 * EXP( beta2 * SUM(r_alphas) )
@@ -1733,7 +1738,7 @@ CONTAINS
 
        mod_vel = SQRT( r_u**2 + r_v**2 )
 
-       IF ( r_h .GT. 1.D-2) THEN
+       IF ( r_h .GT. 1.0E-2_wp ) THEN
 
           ! empirical formulation (see Fagents & Baloga 2006, Eq. 5)
           ! here we use the solid volume fraction instead of relative density
@@ -2020,12 +2025,13 @@ CONTAINS
 
           set_vel_old = settling_velocity
           inv_sqrt_C_D_old = inv_sqrt_C_D
-          inv_sqrt_C_D = SQRT( Rey / ( 24.0_wp * ( 1.0_wp + 0.15_wp*Rey**(0.687_wp) ) ) )
+          inv_sqrt_C_D = SQRT( Rey / ( 24.0_wp * ( 1.0_wp +                     &
+               0.15_wp*Rey**(0.687_wp) ) ) )
 
           settling_velocity = const_part * inv_sqrt_C_D
 
           IF ( ABS( set_vel_old - settling_velocity ) / set_vel_old             &
-               .LT. 1.D-6 ) THEN
+               .LT. 1.0E-6_wp ) THEN
 
              ! round to first three significative digits
              dig = FLOOR(LOG10(set_vel_old))

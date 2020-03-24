@@ -26,7 +26,7 @@ MODULE inpout_2d
   USE init_2d, ONLY : riemann_interface
   USE parameters_2d, ONLY : riemann_flag , rheology_flag , energy_flag ,        &
        topo_change_flag , radial_source_flag , collapsing_volume_flag ,         &
-       liquid_flag , gas_flag
+       liquid_flag , gas_flag , subtract_init_flag
 
   ! -- Variables for the namelist INITIAL_CONDITIONS
   USE parameters_2d, ONLY : released_volume , x_release , y_release
@@ -81,6 +81,10 @@ MODULE inpout_2d
   ! --- Variables for the namelist LIQUID_TRANSPORT_PARAMETERS
   USE constitutive_2d, ONLY : sp_heat_l , rho_l , kin_visc_l
 
+  ! --- Variables for the namelist VULNERABILITY_TABLE_PARAMETERS
+  USE parameters_2d, ONLY : n_thickness_levels , n_dyn_pres_levels ,          &
+       thickness_levels , dyn_pres_levels
+  
 
   IMPLICIT NONE
 
@@ -95,6 +99,7 @@ MODULE inpout_2d
   CHARACTER(LEN=40) :: output_max_file    !< Name of the esri max. thick. file
   CHARACTER(LEN=40) :: runout_file        !< Name of the runout file 
   CHARACTER(LEN=40) :: topography_file    !< Name of the esri DEM file
+  CHARACTER(LEN=40) :: erodible_file      !< Name of the esri DEM file
 
   INTEGER, PARAMETER :: input_unit = 7       !< Input data unit
   INTEGER, PARAMETER :: backup_unit = 8      !< Backup input data unit
@@ -107,6 +112,7 @@ MODULE inpout_2d
   INTEGER, PARAMETER :: dem_esri_unit = 15   !< Computational grid Esri fmt unit
   INTEGER, PARAMETER :: runout_unit = 16
   INTEGER, PARAMETER :: dakota_unit = 17
+  INTEGER, PARAMETER :: erodible_unit = 18
 
   !> Counter for the output files
   INTEGER :: output_idx 
@@ -175,22 +181,29 @@ MODULE inpout_2d
 
   REAL(wp) :: x0_runout, y0_runout , init_runout , eps_stop
 
-  REAL(wp) :: sed_vol_perc(1000) , alphas0_E(1000) , alphas0_W(1000)
+  REAL(wp) :: sed_vol_perc(10) , alphas0_E(10) , alphas0_W(10)
   
-  REAL(wp) :: rho0_s(1000) , diam0_s(1000) , sp_heat0_s(1000), erosion_coeff0(1000)
+  REAL(wp) :: rho0_s(10)
+  REAL(wp) :: diam0_s(10)
+  REAL(wp) :: sp_heat0_s(10)
+  REAL(wp) :: erosion_coeff0(10)
 
+  REAL(wp) :: erodible_fract0(10)
+  
   REAL(wp) :: alpha1_ref
 
+  REAL(wp) :: thickness_levels0(10)
+  REAL(wp) :: dyn_pres_levels0(10)
+  
   NAMELIST / run_parameters / run_name , restart , t_start , t_end , dt_output ,&
        output_cons_flag , output_esri_flag , output_phys_flag ,                 &
        output_runout_flag , verbose_level
-
   NAMELIST / restart_parameters / restart_file, T_init, T_ambient , sed_vol_perc
 
   NAMELIST / newrun_parameters / topography_file , x0 , y0 , comp_cells_x ,     &
        comp_cells_y , cell_size , rheology_flag , riemann_flag , energy_flag ,  &
        liquid_flag , radial_source_flag , collapsing_volume_flag ,              &
-       topo_change_flag , gas_flag
+       topo_change_flag , gas_flag , subtract_init_flag
 
   NAMELIST / initial_conditions /  released_volume , x_release , y_release ,    &
        velocity_mod_release , velocity_ang_release , T_init , T_ambient
@@ -235,12 +248,15 @@ MODULE inpout_2d
        eps_stop
 
   NAMELIST / solid_transport_parameters / n_solid , rho0_s , diam0_s ,          &
-       sp_heat0_s , erosion_coeff0 , settling_flag , T_s_substrate
+       sp_heat0_s , erosion_coeff0 , settling_flag , T_s_substrate ,            &
+       erodible_file , erodible_fract0
 
   NAMELIST / gas_transport_parameters / sp_heat_a , sp_gas_const_a , kin_visc_a,&
        pres , T_ambient , entrainment_flag
 
   NAMELIST / liquid_transport_parameters / sp_heat_l , rho_l , kin_visc_l
+
+  NAMELIST / vulnerability_table_parameters / thickness_levels0 , dyn_pres_levels0
   
 CONTAINS
 
@@ -273,8 +289,8 @@ CONTAINS
     run_name = 'default'
     restart = .FALSE.
     t_start = 0.0
-    t_end = 5.0d-2
-    dt_output = 5.d-3
+    t_end = 5.0E-2_wp
+    dt_output = 5.0E-3_wp
     output_cons_flag = .TRUE.
     output_esri_flag = .TRUE.
     output_phys_flag = .TRUE.
@@ -292,7 +308,7 @@ CONTAINS
     y0 = 0.0_wp
     comp_cells_x = 1000
     comp_cells_y = 1
-    cell_size = 1.0D-3
+    cell_size = 1.0E-3_wp
     rheology_flag = .FALSE.
     riemann_flag =.TRUE.
     energy_flag = .FALSE.
@@ -301,6 +317,7 @@ CONTAINS
     collapsing_volume_flag = .FALSE.
     liquid_flag = .FALSE.
     gas_flag = .TRUE.
+    subtract_init_flag = .FALSE.
 
     !-- Inizialization of the Variables for the namelist left_state
     riemann_interface = 0.5_wp
@@ -319,59 +336,59 @@ CONTAINS
 
     !-- Inizialization of the Variables for the namelist west boundary conditions
     h_bcW%flag = -1 
-    h_bcW%value = 0.d0 
+    h_bcW%value = 0.0_wp 
 
     hu_bcW%flag = 1 
-    hu_bcW%value = 0.d0
+    hu_bcW%value = 0.0_wp
     
     hv_bcW%flag = 1 
-    hv_bcW%value = 0.d0 
+    hv_bcW%value = 0.0_wp 
 
     !alphas_bcW%flag = 1 
-    !alphas_bcW%value = 0.d0 
+    !alphas_bcW%value = 0.0_wp 
 
     !-- Inizialization of the Variables for the namelist east boundary conditions
     h_bcE%flag = -1 
-    h_bcE%value = 0.d0 
+    h_bcE%value = 0.0_wp 
 
     hu_bcE%flag = 1 
-    hu_bcE%value = 0.d0
+    hu_bcE%value = 0.0_wp
     
     hv_bcE%flag = 1 
-    hv_bcE%value = 0.d0 
+    hv_bcE%value = 0.0_wp 
 
     !alphas_bcE%flag = 1 
-    !alphas_bcE%value = 0.d0 
+    !alphas_bcE%value = 0.0_wp 
 
     !-- Inizialization of the Variables for the namelist south boundary conditions
     h_bcS%flag = -1 
-    h_bcS%value = 0.d0 
+    h_bcS%value = 0.0_wp 
 
     hu_bcS%flag = 1 
-    hu_bcS%value = 0.d0
+    hu_bcS%value = 0.0_wp
     
     hv_bcS%flag = 1 
-    hv_bcS%value = 0.d0 
+    hv_bcS%value = 0.0_wp 
 
     !alphas_bcS%flag = 1 
-    !alphas_bcS%value = 0.d0 
+    !alphas_bcS%value = 0.0_wp 
 
     !-- Inizialization of the Variables for the namelist north boundary conditions
     h_bcN%flag = -1 
-    h_bcN%value = 0.d0 
+    h_bcN%value = 0.0_wp 
 
     hu_bcN%flag = 1 
-    hu_bcN%value = 0.d0
+    hu_bcN%value = 0.0_wp
     
     hv_bcN%flag = 1 
-    hv_bcN%value = 0.d0 
+    hv_bcN%value = 0.0_wp 
 
     !alphas_bcN%flag = 1 
-    !alphas_bcN%value = 0.d0 
+    !alphas_bcN%value = 0.0_wp 
 
     !-- Inizialization of the Variables for the namelist NUMERIC_PARAMETERS
-    dt0 = 1.d-4
-    max_dt = 1.d-3
+    dt0 = 1.0E-4_wp
+    max_dt = 1.0E-3_wp
     solver_scheme = 'KT'
     n_RK = 2
     cfl = 0.24_wp
@@ -546,7 +563,9 @@ CONTAINS
     erosion_coeff0 = -1.0_wp
     n_solid = -1
     T_s_substrate = -1.0_wp
-
+    erodible_file = ""
+    erodible_fract0 = -1.0_wp
+    
     !- Variables for the namelist GAS_TRANSPORT_PARAMETERS
     sp_heat_a = -1.0_wp
     sp_gas_const_a = -1.0_wp
@@ -570,7 +589,13 @@ CONTAINS
     T_collapse = -1.0_wp
     h_collapse = -1.0_wp
     r_collapse = -1.0_wp
- 
+
+    !- Variables for the namelist VULNERABILTY_TABLE_PARAMETERS
+    n_thickness_levels = -1
+    n_dyn_pres_levels = -1
+    thickness_levels0 = -1.0_wp
+    dyn_pres_levels0 = -1.0_wp
+    
   END SUBROUTINE init_param
 
   !******************************************************************************
@@ -593,7 +618,7 @@ CONTAINS
     USE parameters_2d, ONLY : limiter
     USE parameters_2d, ONLY : bcW , bcE , bcS , bcN
 
-    USE geometry_2d, ONLY : deposit
+    USE geometry_2d, ONLY : deposit , erosion , erodible
 
     USE constitutive_2d, ONLY : rho_a_amb
     USE constitutive_2d, ONLY : kin_visc_c
@@ -893,7 +918,7 @@ CONTAINS
     IF ( ANY(erosion_coeff0(1:n_solid) .LT. 0.0_wp ) ) THEN
        
        WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
-       WRITE(*,*) 'EROSION_COEFF =' , erosion_coeff
+       WRITE(*,*) 'EROSION_COEFF =' , erosion_coeff0(1:n_solid)
        WRITE(*,*) 'Please check the input file'
        STOP
        
@@ -905,6 +930,56 @@ CONTAINS
        WRITE(*,*) 'T_s_substrate =' , T_s_substrate
        WRITE(*,*) 'Please check the input file'
        STOP
+       
+    END IF
+
+    ALLOCATE( erodible( comp_cells_x , comp_cells_y , n_solid ) )
+    erodible(1:comp_cells_x,1:comp_cells_y,1:n_solid ) = 0.0_wp
+
+    IF ( TRIM(erodible_file) .EQ. '' ) THEN
+
+       erodible(:,:,1:n_solid) = 1.0E+5_wp
+
+       IF ( verbose_level .GE. 0.0_wp ) THEN
+     
+          WRITE(*,*)
+          WRITE(*,*) 'WARNING: no file defined for erobile layer'
+          WRITE(*,*) 'Unlimited erosion'
+          WRITE(*,*)
+
+       END IF
+          
+    ELSE
+
+       IF ( verbose_level .GE. 0.0_wp ) THEN
+
+          WRITE(*,*) 'Maximum thick. for erosion read from : ',TRIM(erodible_file)
+
+       END IF
+          
+       IF ( n_solid .EQ. 1 ) THEN
+
+          erodible_fract0(1) = 1.0_wp
+
+       ELSE
+
+          IF ( ANY(erodible_fract0(1:n_solid) .LT. 0.0_wp ) ) THEN
+
+             WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
+             WRITE(*,*) 'EROSION_COEFF =' , erodible_fract0(1:n_solid)
+             WRITE(*,*) 'Please check the input file'
+             STOP
+
+          ELSE
+
+             erodible_fract0(1:n_solid) = erodible_fract0(1:n_solid) /          &
+                  SUM(erodible_fract0(1:n_solid) )
+             
+          END IF
+
+       END IF
+           
+       CALL read_erodible
        
     END IF
     
@@ -924,27 +999,43 @@ CONTAINS
     bcS(1:n_vars)%flag = -1
     bcN(1:n_vars)%flag = -1
 
-    ALLOCATE( rho_s(n_solid) , diam_s(n_solid) , sp_heat_s(n_solid) )
+    ALLOCATE( rho_s(n_solid) )
+    rho_s(1:n_solid) = rho0_s(1:n_solid)
+    !DEALLOCATE( rho0_s )
+    !ALLOCATE( rho0_s(n_solid) )
+    !rho0_s(1:n_solid) = rho_s(1:n_solid)
+    
+
+    ALLOCATE( diam_s(n_solid) )
+    diam_s(1:n_solid) = diam0_s(1:n_solid)
+    !DEALLOCATE( diam0_s )
+    !ALLOCATE( diam0_s(n_solid) )
+    !diam0_s(1:n_solid) = diam_s(1:n_solid)
+
+    ALLOCATE( sp_heat_s(n_solid) )
+    sp_heat_s(1:n_solid) = sp_heat0_s(1:n_solid)
+    !DEALLOCATE( sp_heat0_s )
+    !ALLOCATE( sp_heat0_s(n_solid) )
+    !sp_heat0_s(1:n_solid) = sp_heat_s(1:n_solid)
 
     ALLOCATE( inv_rho_s(n_solid) )
 
     ALLOCATE( alphas_init(n_solid) )
 
     ALLOCATE( erosion_coeff(n_solid) )
+    erosion_coeff(1:n_solid) = erosion_coeff0(1:n_solid)
 
     ALLOCATE( alphas_E(n_solid) , alphas_W(n_solid) )
     
-    rho_s(1:n_solid) = rho0_s(1:n_solid)
     inv_rho_s(1:n_solid) = 1.0_wp / rho_s(1:n_solid)
 
-    diam_s(1:n_solid) = diam0_s(1:n_solid)
-    sp_heat_s(1:n_solid) = sp_heat0_s(1:n_solid)
-    erosion_coeff(1:n_solid) = erosion_coeff0(1:n_solid)
     
-    ALLOCATE( deposit( comp_cells_x , comp_cells_y , n_solid ) )
-    
+    ALLOCATE( deposit( comp_cells_x , comp_cells_y , n_solid ) )    
     deposit(1:comp_cells_x,1:comp_cells_y,1:n_solid ) = 0.0_wp
 
+    ALLOCATE( erosion( comp_cells_x , comp_cells_y , n_solid ) )
+    erosion(1:comp_cells_x,1:comp_cells_y,1:n_solid ) = 0.0_wp
+       
     IF ( restart ) THEN
 
        ! ------- READ restart_parameters NAMELIST --------------------------
@@ -975,7 +1066,7 @@ CONTAINS
                 
              END IF
              
-             alphas_init(1:n_solid) = 1.D-2 * sed_vol_perc(1:n_solid)
+             alphas_init(1:n_solid) = 1.0E-2_wp * sed_vol_perc(1:n_solid)
 
              IF ( verbose_level .GE. 0 ) THEN
 
@@ -1994,14 +2085,14 @@ CONTAINS
                 expA = 1301.0_wp / ( 998.333_wp + 8.1855_wp * ( Tc - 20.0_wp )        &
                      + 0.00585_wp * ( Tc - 20.0_wp )**2 ) - 1.30223_wp
                 
-                alpha1_coeff = alpha1_ref / ( 1.D-3 * 10.0_wp**expA )
+                alpha1_coeff = alpha1_ref / ( 1.0E-3_wp * 10.0_wp**expA )
                 
              ELSE
                 
                 expB = ( 1.3272_wp * ( 20.0_wp - Tc ) - 0.001053_wp *               &
                      ( Tc - 20.0_wp )**2 ) / ( Tc + 105.0_wp )
                 
-                alpha1_coeff = alpha1_ref / ( 1.002D-3 * 10.0_wp**expB )
+                alpha1_coeff = alpha1_ref / ( 1.002E-3_wp * 10.0_wp**expB )
                 
              END IF
              
@@ -2104,7 +2195,7 @@ CONTAINS
     ! The values read from the DEM files are associated to the center of the
     ! pixels. x0 is the left margin of the computational domain and has to be
     ! greater than the center of the first pixel.
-    IF ( x0 - ( xllcorner + 0.5_wp * cellsize ) .LT. -1.D-10  ) THEN 
+    IF ( x0 - ( xllcorner + 0.5_wp * cellsize ) .LT. -1.E-10_wp  ) THEN 
 
        WRITE(*,*) 'Computational domain problem'
        WRITE(*,*) 'x0 < xllcorner+0.5*cellsize',x0,xllcorner+0.5_wp*cellsize
@@ -2124,7 +2215,7 @@ CONTAINS
 
     END IF
 
-    IF ( y0 - ( yllcorner+0.5_wp*cellsize ) .LT. -1.D-10 ) THEN 
+    IF ( y0 - ( yllcorner+0.5_wp*cellsize ) .LT. -1.E-10_wp ) THEN 
 
        WRITE(*,*) 'Computational domain problem'
        WRITE(*,*) 'y0 < yllcorner+0.5*cellsize',y0,yllcorner+0.5_wp*cellsize
@@ -2133,7 +2224,7 @@ CONTAINS
     END IF
 
     IF ( ABS( ( y0 + comp_cells_y * cell_size ) - ( yllcorner + 0.5_wp +      &
-         nrows * cellsize ) ) .LT. 1.D-10 ) THEN 
+         nrows * cellsize ) ) .LT. 1.E-10_wp ) THEN 
 
        WRITE(*,*) 'Computational domain problem'
        WRITE(*,*) 'top edge > yllcorner+nrows*cellsize',                     &
@@ -2260,6 +2351,84 @@ CONTAINS
   
     END IF
 
+    ! ----------- READ vulnerability_table_parameters NAMELIST ------------------
+
+    READ(input_unit, vulnerability_table_parameters,IOSTAT=ios)
+    
+    IF ( ios .NE. 0 ) THEN
+
+       IF ( verbose_level .GE. 0.0_wp ) THEN
+       
+          WRITE(*,*) 'IOSTAT=',ios
+          WRITE(*,*) 'WARNING: namelist VULNERABILITY_TABLE_PARAMETERS not found'
+
+       END IF
+          
+    ELSE
+       
+       REWIND(input_unit)
+
+       n_thickness_levels = COUNT( thickness_levels0 .GT. 0.0_wp )
+       n_dyn_pres_levels = COUNT( dyn_pres_levels0 .GT. 0.0_wp )
+       
+       IF ( n_thickness_levels .GT. 0 ) THEN
+
+          ALLOCATE( thickness_levels(n_thickness_levels) )
+          thickness_levels(1:n_thickness_levels) = thickness_levels0(1:n_thickness_levels)
+          IF ( ANY(thickness_levels .LT. 0.0_wp ) ) THEN
+
+             WRITE(*,*) 'ERROR: problem with namelist VULNERABILITY_TABLE_PARAMETERS'
+             WRITE(*,*) 'Please check the input file'
+             WRITE(*,*) 'thickness_levels(1:n_thickness_levels)', &
+                  thickness_levels(1:n_thickness_levels)
+            
+             STOP
+
+          END IF
+
+          IF ( n_dyn_pres_levels .LE. 0 ) THEN
+
+             n_dyn_pres_levels = 1
+             dyn_pres_levels0(1:n_dyn_pres_levels) = 0.0_wp
+
+          END IF
+             
+       END IF
+
+       IF ( n_dyn_pres_levels .GT. 0 ) THEN
+
+          ALLOCATE( dyn_pres_levels(n_dyn_pres_levels) )
+          dyn_pres_levels(1:n_dyn_pres_levels) = dyn_pres_levels0(1:n_dyn_pres_levels)
+          IF ( ANY(dyn_pres_levels .LT. 0.0_wp ) ) THEN
+
+             WRITE(*,*) 'ERROR: problem with namelist VULNERABILITY_TABLE_PARAMETERS'
+             WRITE(*,*) 'Please check the input file'
+             WRITE(*,*) 'dyn_pres_levels(1:n_thickness_levels)', &
+                  dyn_pres_levels(1:n_dyn_pres_levels)
+            
+             STOP
+
+          END IF
+
+          IF ( n_thickness_levels .LE. 0 ) THEN
+
+             n_thickness_levels = 1
+             ALLOCATE( thickness_levels(n_thickness_levels) )
+             thickness_levels(1:n_thickness_levels) = 0.0_wp
+
+          END IF
+          
+       END IF
+     
+    END IF
+
+    IF ( verbose_level .GE. 0 ) THEN
+       
+       WRITE(*,*) 'thickness_levels',n_thickness_levels,thickness_levels
+       WRITE(*,*) 'dyn_pres_levels',n_dyn_pres_levels,dyn_pres_levels
+
+    END IF
+       
 
     !------ search for check points --------------------------------------------
 
@@ -2300,11 +2469,7 @@ CONTAINS
 300 tend1 = .TRUE.
 310 CONTINUE
    
-
- 
-
     ! ----- end search for check points -----------------------------------------
-
 
     CLOSE( input_unit )
 
@@ -2508,8 +2673,8 @@ CONTAINS
 
     ! External variables
     USE geometry_2d, ONLY : comp_cells_x , x0 , comp_cells_y , y0 , dx , dy
-    USE geometry_2d, ONLY : B_cent
-    USE init_2d, ONLY : thickness_init
+    USE geometry_2d, ONLY : B_cent , erodible
+    USE init_2d, ONLY : thickness_init , erodible_init
     USE parameters_2d, ONLY : n_vars
     USE solver_2d, ONLY : q
 
@@ -2545,7 +2710,7 @@ CONTAINS
 
     INTEGER :: solid_idx
 
-    INTEGER :: i_vars
+    INTEGER :: i_vars , i_solid
 
     INQUIRE (FILE=restart_file,exist=lexist)
 
@@ -2614,7 +2779,7 @@ CONTAINS
        ALLOCATE( thickness_init(comp_cells_x,comp_cells_y) )
        ALLOCATE( thickness_input(ncols,nrows) )
 
-       IF ( ( xllcorner - x0 ) .GT. 1.D-5*cellsize ) THEN
+       IF ( ( xllcorner - x0 ) .GT. 1.E-5_wp*cellsize ) THEN
           
           WRITE(*,*)
           WRITE(*,*) 'WARNING: initial solution and domain extent'
@@ -2622,7 +2787,7 @@ CONTAINS
           
        END IF
        
-       IF ( ( yllcorner - y0 ) .GT. 1.D-5*cellsize ) THEN
+       IF ( ( yllcorner - y0 ) .GT. 1.E-5_wp*cellsize ) THEN
           
           WRITE(*,*)
           WRITE(*,*) 'WARNING: initial solution and domain extent'
@@ -2631,7 +2796,7 @@ CONTAINS
        END IF
 
        IF ( x0+cell_size*(comp_cells_x+1) - ( xllcorner+cellsize*(ncols+1) )    &
-            .GT. 1.D-5*cellsize ) THEN
+            .GT. 1.E-5_wp*cellsize ) THEN
           
           WRITE(*,*)
           WRITE(*,*) 'WARNING: initial solution and domain extent'
@@ -2640,15 +2805,14 @@ CONTAINS
        END IF
        
        IF ( x0+cell_size*(comp_cells_x+1) - ( xllcorner+cellsize*(ncols+1) )    &
-            .GT. 1.D-5*cellsize ) THEN
+            .GT. 1.E-5_wp*cellsize ) THEN
 
           WRITE(*,*)
           WRITE(*,*) 'WARNING: initial solution and domain extent'
           WRITE(*,*) 'yllcorner greater then y0', yllcorner , y0
           
        END IF
-
-       
+  
        IF ( cellsize .NE. cell_size ) THEN
 
           WRITE(*,*)
@@ -2671,9 +2835,9 @@ CONTAINS
        IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Total volume from restart =',    &
             cellsize**2*SUM(thickness_input)
 
-       WHERE ( thickness_init .EQ. nodata_value )
+       WHERE ( thickness_input .EQ. nodata_value )
 
-          thickness_init = 0.0_wp
+          thickness_input = 0.0_wp
           
        END WHERE
               
@@ -2708,6 +2872,33 @@ CONTAINS
           END DO
 
        END DO
+
+       IF ( subtract_init_flag ) THEN
+          
+          IF ( MAXVAL(erodible_init(:,:)) .GT. 0.0_wp ) THEN
+             
+             WRITE(*,*) 'Subtracting initial thickness from erodible thickness'
+             erodible_init(:,:) = erodible_init(:,:) - thickness_init(:,:)
+             
+             IF ( MINVAL(erodible_init(:,:)) .LT. 0.0_wp ) THEN
+                
+                WRITE(*,*) 'WARNING: MINVAL(erodible_init) = ',MINVAL(erodible_init(:,:)) 
+                WRITE(*,*) 'initial erodible thickness negative values changed to 0'
+                
+                erodible_init = MAX( 0.0_wp , erodible_init )
+                
+             END IF
+             
+             DO i_solid=1,n_solid
+                
+                erodible(:,:,i_solid) = erodible_fract0(i_solid) * erodible_init(:,:)
+                
+             END DO
+             
+          END IF
+          
+       END IF
+       
        
        !----- END NEW INITIALIZATION OF THICKNESS FROM RESTART
 
@@ -2849,10 +3040,218 @@ CONTAINS
     END IF
  
     CLOSE(restart_unit)
-
       
   END SUBROUTINE read_solution
 
+  !******************************************************************************
+  !> \brief Read the solution from the restart unit
+  !
+  !> This subroutine is called when the parameter "restart" in the input 
+  !> file is TRUE. Then the initial solution is read from a file. 
+  !
+  !> \date 07/10/2016
+  !> @author 
+  !> Mattia de' Michieli Vitturi
+  !
+  !******************************************************************************
+
+  SUBROUTINE read_erodible
+
+    ! External procedures
+    USE geometry_2d, ONLY : interp_2d_scalarB , regrid_scalar
+    USE solver_2d, ONLY : allocate_solver_variables
+
+    ! External variables
+    USE geometry_2d, ONLY : comp_cells_x , x0 , comp_cells_y , y0
+    USE geometry_2d, ONLY : erodible
+    USE init_2d, ONLY : erodible_init
+
+    IMPLICIT none
+
+    CHARACTER(LEN=15) :: chara
+
+    INTEGER :: j,k
+
+    INTEGER :: dot_idx
+
+    LOGICAL :: lexist
+
+    CHARACTER(LEN=3) :: check_file
+
+    INTEGER :: ncols , nrows , nodata_value
+
+    REAL(wp) :: xllcorner , yllcorner , cellsize
+
+    REAL(wp), ALLOCATABLE :: erodible_input(:,:)
+    
+    REAL(wp), ALLOCATABLE :: x1(:) , y1(:)
+
+    REAL(wp) :: xl , xr , yl , yr 
+    
+    INTEGER :: i_solid
+
+    
+    IF ( TRIM(erodible_file) .EQ. '' ) THEN
+
+       DO i_solid=1,n_solid
+
+          erodible(:,:,i_solid) = 1.0E+5_wp
+
+       END DO
+       
+    ELSE
+
+       INQUIRE (FILE=erodible_file,exist=lexist)
+
+       WRITE(*,*)
+
+       IF ( lexist .EQV. .FALSE.) THEN
+          
+          WRITE(*,*) 'Erodible file: ',TRIM(erodible_file) , ' not found'
+          STOP
+          
+       END IF
+       
+       OPEN(erodible_unit,FILE=erodible_file,STATUS='old')
+       
+       IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Erodible file: ',TRIM(erodible_file),   &
+            ' found'
+
+       dot_idx = SCAN(erodible_file, ".", .TRUE.)
+
+       check_file = erodible_file(dot_idx+1:dot_idx+3)
+
+       IF ( check_file .NE. 'asc' ) THEN
+
+          WRITE(*,*) 'Erodible file not in the right format (*.asc)'
+          STOP
+          
+       END IF
+                    
+       READ(erodible_unit,*) chara, ncols
+       READ(erodible_unit,*) chara, nrows
+       READ(erodible_unit,*) chara, xllcorner
+       READ(erodible_unit,*) chara, yllcorner
+       READ(erodible_unit,*) chara, cellsize
+       READ(erodible_unit,*) chara, nodata_value
+       
+       ALLOCATE( erodible_init(comp_cells_x,comp_cells_y) )
+       ALLOCATE( erodible_input(ncols,nrows) )
+
+       IF ( ( xllcorner - x0 ) .GT. 1.E-5_wp*cellsize ) THEN
+          
+          WRITE(*,*)
+          WRITE(*,*) 'WARNING: initial solution and domain extent'
+          WRITE(*,*) 'xllcorner greater than x0', xllcorner , x0
+          
+       END IF
+       
+       IF ( ( yllcorner - y0 ) .GT. 1.E-5_wp*cellsize ) THEN
+          
+          WRITE(*,*)
+          WRITE(*,*) 'WARNING: initial solution and domain extent'
+          WRITE(*,*) 'yllcorner greater then y0', yllcorner , y0
+          
+       END IF
+
+       IF ( x0+cell_size*(comp_cells_x+1) - ( xllcorner+cellsize*(ncols+1) )    &
+            .GT. 1.E-5_wp*cellsize ) THEN
+          
+          WRITE(*,*)
+          WRITE(*,*) 'WARNING: initial solution and domain extent'
+          WRITE(*,*) 'xrrcorner greater than ', xllcorner , x0
+          
+       END IF
+       
+       IF ( x0+cell_size*(comp_cells_x+1) - ( xllcorner+cellsize*(ncols+1) )    &
+            .GT. 1.E-5_wp*cellsize ) THEN
+
+          WRITE(*,*)
+          WRITE(*,*) 'WARNING: initial solution and domain extent'
+          WRITE(*,*) 'yllcorner greater then y0', yllcorner , y0
+          
+       END IF
+
+       
+       IF ( cellsize .NE. cell_size ) THEN
+
+          WRITE(*,*)
+          WRITE(*,*) 'WARNING: changing resolution of erodible layer' 
+          WRITE(*,*) 'cellsize not equal to cell_size', cellsize , cell_size
+          WRITE(*,*)
+
+       END IF
+
+       DO k=1,nrows
+
+          WRITE(*,FMT="(A1,A,t21,F6.2,A)",ADVANCE="NO") ACHAR(13),              &
+               & " Percent Complete: ",( REAL(k) / REAL(nrows))*100.0, "%"
+          
+          READ(erodible_unit,*) erodible_input(1:ncols,nrows-k+1)
+          
+       ENDDO
+
+       WRITE(*,*) 
+       IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Total erodible volume =',        &
+            cellsize**2*SUM(erodible_input)
+
+       WHERE ( erodible_input .EQ. nodata_value )
+
+          erodible_input = 0.0_wp
+          
+       END WHERE
+              
+       !----- NEW INITIALIZATION OF THICKNESS FROM RESTART
+       ALLOCATE( x1(ncols+1) , y1(nrows+1) )
+       
+       DO j=1,ncols+1
+
+          x1(j) = xllcorner + (j-1)*cellsize
+
+       END DO
+       
+       DO k=1,nrows+1
+
+          y1(k) = yllcorner + (k-1)*cellsize
+
+       END DO
+
+       DO j=1,comp_cells_x
+          
+          xl = x0 + (j-1)*cell_size
+          xr = x0 + (j)*cell_size
+          
+          DO k=1,comp_cells_y
+             
+             yl = y0 + (k-1)*cell_size
+             yr = y0 + (k)*cell_size
+             
+             CALL regrid_scalar( x1 , y1 , erodible_input , xl , xr , yl ,     &
+                  yr , erodible_init(j,k) )
+             
+          END DO
+
+       END DO
+
+       IF ( VERBOSE_LEVEL .GE. 0 ) THEN
+          
+          WRITE(*,*) 'Total erodible volume on computational grid =' ,          &
+               cell_size**2 * SUM( erodible_init(:,:) )
+
+       END IF
+
+       DO i_solid=1,n_solid
+
+          erodible(:,:,i_solid) = erodible_fract0(i_solid) * erodible_init(:,:)
+
+       END DO
+              
+    END IF
+
+      
+  END SUBROUTINE read_erodible
+
+  
   !******************************************************************************
   !> \brief Write the solution on the output unit
   !
@@ -2875,7 +3274,7 @@ CONTAINS
     USE constitutive_2d, ONLY : qc_to_qp, mixt_var
 
     USE geometry_2d, ONLY : comp_cells_x , B_cent , comp_cells_y , x_comp,      &
-         y_comp , deposit
+         y_comp , deposit , erosion
 
     USE parameters_2d, ONLY : n_vars
     USE parameters_2d, ONLY : t_output , dt_output 
@@ -2924,7 +3323,7 @@ CONTAINS
                 
                 ! Exponents with more than 2 digits cause problems reading
                 ! into matlab... reset tiny values to zero:
-                IF ( abs(q(i,j,k)) .LT. 1d-99) q(i,j,k) = 0.d0
+                IF ( abs(q(i,j,k)) .LT. 1.0E-20_wp ) q(i,j,k) = 0.0_wp
                 
              ENDDO
 
@@ -2966,10 +3365,10 @@ CONTAINS
              r_T = qp(4)
              r_alphas(1:n_solid) = qp(5:4+n_solid)
 
-             IF ( ABS( r_h ) .LT. 1d-99) r_h = 0.0_wp
-             IF ( ABS( r_u ) .LT. 1d-99) r_u = 0.0_wp
-             IF ( ABS( r_v ) .LT. 1d-99) r_v = 0.0_wp
-             IF ( ABS(B_cent(j,k)) .LT. 1d-99) THEN 
+             IF ( ABS( r_h ) .LT. 1.0E-20_wp ) r_h = 0.0_wp
+             IF ( ABS( r_u ) .LT. 1.0E-20_wp ) r_u = 0.0_wp
+             IF ( ABS( r_v ) .LT. 1.0E-20_wp ) r_v = 0.0_wp
+             IF ( ABS(B_cent(j,k)) .LT. 1.0E-20_wp ) THEN 
 
                 B_out = 0.0_wp
                 
@@ -2981,18 +3380,19 @@ CONTAINS
 
              DO i=1,n_solid
 
-                IF ( ABS( r_alphas(i) ) .LT. 1d-99) r_alphas(i) = 0.0_wp
-                IF ( ABS( DEPOSIT(j,k,i) ) .LT. 1d-99) DEPOSIT(j,k,i) = 0.d0 
+                IF ( ABS( r_alphas(i) ) .LT. 1.0E-20_wp ) r_alphas(i) = 0.0_wp
+                IF ( ABS( DEPOSIT(j,k,i) ) .LT. 1.0E-20_wp ) DEPOSIT(j,k,i) = 0.0_wp 
+                IF ( ABS( EROSION(j,k,i) ) .LT. 1.0E-20_wp ) EROSION(j,k,i) = 0.0_wp 
 
              END DO
              
-             IF ( ABS( r_T ) .LT. 1d-99) r_T = 0.0_wp
-             IF ( ABS( r_rho_m ) .LT. 1d-99) r_rho_m = 0.0_wp
-             IF ( ABS( r_red_grav ) .LT. 1d-99) r_red_grav = 0.0_wp
+             IF ( ABS( r_T ) .LT. 1.0E-20_wp ) r_T = 0.0_wp
+             IF ( ABS( r_rho_m ) .LT. 1.0E-20_wp ) r_rho_m = 0.0_wp
+             IF ( ABS( r_red_grav ) .LT. 1.0E-20_wp ) r_red_grav = 0.0_wp
 
              WRITE(output_unit_2d,1010) x_comp(j), y_comp(k), r_h , r_u , r_v , &
                   B_out , r_h + B_out , r_alphas , r_T , r_rho_m , r_red_grav , &
-                  DEPOSIT(j,k,:)
+                  DEPOSIT(j,k,:) , EROSION(j,k,:)
 
           END DO
           
@@ -3032,7 +3432,7 @@ CONTAINS
   !> \brief Write the maximum thickness in ESRI format
   !
   !> This subroutine write the maximum thickness in the ascii ESRI format. 
-  !> A masking is applied to the region with thickness less than 1D-5.
+  !> A masking is applied to the region with thickness less than 1E-5.
   !
   !> @author 
   !> Mattia de' Michieli Vitturi
@@ -3042,12 +3442,16 @@ CONTAINS
   
   SUBROUTINE output_max
 
-    USE geometry_2d, ONLY : grid_output
-    USE solver_2d, ONLY : q1max
+    USE geometry_2d, ONLY : grid_output , grid_output_int
+    USE solver_2d, ONLY : hmax , vuln_table
+
+    IMPLICIT NONE
+    
+    CHARACTER(LEN=4) :: idx_string
 
     INTEGER :: j
+    INTEGER :: i_pdyn_lev , i_thk_lev , i_table
 
-    
     !Save max thickness
     output_max_file = TRIM(run_name)//'_max.asc'
 
@@ -3057,9 +3461,9 @@ CONTAINS
 
     grid_output = -9999 
 
-    WHERE ( q1max(:,:).GE. 1.D-5 )
+    WHERE ( hmax(:,:).GE. 1.E-5_wp )
 
-       grid_output = q1max(:,:) 
+       grid_output = hmax(:,:) 
 
     END WHERE
 
@@ -3069,14 +3473,49 @@ CONTAINS
     WRITE(output_max_unit,'(A,F15.3)') 'yllcorner ', y0
     WRITE(output_max_unit,'(A,F15.3)') 'cellsize ', cell_size
     WRITE(output_max_unit,'(A,I5)') 'NODATA_value ', -9999
-        
+
     DO j = comp_cells_y,1,-1
 
        WRITE(output_max_unit,*) grid_output(1:comp_cells_x,j)
 
     ENDDO
-    
+
     CLOSE(output_max_unit)
+
+    i_table = 0
+    
+    DO i_thk_lev=1,n_thickness_levels
+
+       DO i_pdyn_lev=1,n_dyn_pres_levels
+
+          i_table = i_table + 1
+
+          idx_string = lettera(i_table)
+
+          grid_output_int(:,:) = MERGE(1,-9999,vuln_table(i_table,:,:))
+          
+          output_max_file = TRIM(run_name)//'_VT_'//idx_string//'.asc'
+          OPEN(output_max_unit,FILE=output_max_file,status='unknown',form='formatted')
+
+          WRITE(output_max_unit,'(A,I5)') 'ncols ', comp_cells_x
+          WRITE(output_max_unit,'(A,I5)') 'nrows ', comp_cells_y
+          WRITE(output_max_unit,'(A,F15.3)') 'xllcorner ', x0
+          WRITE(output_max_unit,'(A,F15.3)') 'yllcorner ', y0
+          WRITE(output_max_unit,'(A,F15.3)') 'cellsize ', cell_size
+          WRITE(output_max_unit,'(A,I5)') 'NODATA_value ', -9999
+
+          DO j = comp_cells_y,1,-1
+
+             WRITE(output_max_unit,*) grid_output_int(1:comp_cells_x,j)
+
+          ENDDO
+
+          CLOSE(output_max_unit)
+
+
+       END DO
+
+    END DO
 
     RETURN
 
@@ -3086,7 +3525,7 @@ CONTAINS
   !> \brief Write the thickness in ESRI format
   !
   !> This subroutine write the thickness in the ascii ESRI format. 
-  !> A masking is applied to the region with thickness less than 1D-5.
+  !> A masking is applied to the region with thickness less than 1E-5.
   !
   !> \param[in]   output_idx      output index
   !
@@ -3098,7 +3537,7 @@ CONTAINS
 
   SUBROUTINE output_esri(output_idx)
 
-    USE geometry_2d, ONLY : B_cent , grid_output , deposit
+    USE geometry_2d, ONLY : B_cent , grid_output , deposit , erosion
     ! USE geometry_2d, ONLY : comp_interfaces_x , comp_interfaces_y
     USE solver_2d, ONLY : qp
 
@@ -3143,7 +3582,7 @@ CONTAINS
 
     grid_output = -9999 
 
-    WHERE ( qp(1,:,:).GE. 1.D-5 )
+    WHERE ( qp(1,:,:).GE. 1.0E-5_wp )
 
        grid_output = qp(1,:,:) 
 
@@ -3173,7 +3612,7 @@ CONTAINS
     
     grid_output = -9999 
     
-    WHERE ( qp(1,:,:) .GE. 1.D-5 )
+    WHERE ( qp(1,:,:) .GE. 1.0E-5_wp )
        
        grid_output = qp(4,:,:)
        
@@ -3230,6 +3669,43 @@ CONTAINS
        
     END DO
 
+    !Save erosion
+    DO i_solid=1,n_solid
+
+       isolid_string = lettera(i_solid)
+
+       output_esri_file = TRIM(run_name)//'_ers_'//isolid_string//'_'//idx_string//'.asc'
+       
+       IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'WRITING ',output_esri_file
+       
+       OPEN(output_esri_unit,FILE=output_esri_file,status='unknown',form='formatted')
+       
+       grid_output = -9999 
+       
+       WHERE ( erosion(:,:,i_solid) .GT. 0.0_wp )
+          
+          grid_output = erosion(:,:,i_solid)
+       
+       END WHERE
+       
+       WRITE(output_esri_unit,'(A,I5)') 'ncols ', comp_cells_x
+       WRITE(output_esri_unit,'(A,I5)') 'nrows ', comp_cells_y
+       WRITE(output_esri_unit,'(A,F15.3)') 'xllcorner ', x0
+       WRITE(output_esri_unit,'(A,F15.3)') 'yllcorner ', y0
+       WRITE(output_esri_unit,'(A,F15.3)') 'cellsize ', cell_size
+       WRITE(output_esri_unit,'(A,I5)') 'NODATA_value ', -9999
+       
+       DO j = comp_cells_y,1,-1
+          
+          WRITE(output_esri_unit,'(2000ES12.3E3)') grid_output(1:comp_cells_x,j)
+          
+       ENDDO
+       
+       CLOSE(output_esri_unit)
+       
+    END DO
+
+    
     RETURN
        
   END SUBROUTINE output_esri
@@ -3398,7 +3874,7 @@ CONTAINS
       
        IF ( ( x0_runout .EQ. -1 ) .AND. ( y0_runout .EQ. -1 ) ) THEN
           
-          WHERE( q(1,:,:) > 1.D-5 ) dist = B_cent
+          WHERE( q(1,:,:) > 1.0E-5_wp ) dist = B_cent
           imin = MAXLOC( dist )
           
           x0_runout = X(imin(1),imin(2))
@@ -3409,7 +3885,7 @@ CONTAINS
 
           dist(:,:) = 0.0_wp
           
-          WHERE( q(1,:,:) >1.D-5 ) dist = SQRT( (X-x0_runout)**2 &
+          WHERE( q(1,:,:) >1.0E-5_wp ) dist = SQRT( (X-x0_runout)**2 &
                + ( Y - y0_runout )**2 )
 
           imax = MAXLOC( dist )
@@ -3422,7 +3898,7 @@ CONTAINS
        
     ELSE
 
-       WHERE( h_old(:,:) > 1.D-5 ) dist = SQRT( q(2,:,:)**2 + q(3,:,:)**2 )  
+       WHERE( h_old(:,:) > 1.0E-5_wp ) dist = SQRT( q(2,:,:)**2 + q(3,:,:)**2 )  
 
        max_mom = MAXVAL( dist )
 
@@ -3432,7 +3908,7 @@ CONTAINS
 
     dist(:,:) = 0.0_wp
 
-    WHERE( q(1,:,:)  > 1.D-5 ) dist = SQRT( ( X - x0_runout )**2 &
+    WHERE( q(1,:,:)  > 1.0E-5_wp ) dist = SQRT( ( X - x0_runout )**2 &
          + ( Y - y0_runout )**2 )
 
     imax = MAXLOC( dist )
@@ -3443,8 +3919,8 @@ CONTAINS
     
     CLOSE(dakota_unit)
 
-    area0 = dx*dy*COUNT(q0(1,:,:).GT.1.D-7)
-    area = dx*dy*COUNT(q(1,:,:).GT.1.D-7)
+    area0 = dx*dy*COUNT( q0(1,:,:) .GT. 1.0E-7_wp )
+    area = dx*dy*COUNT( q(1,:,:) .GT. 1.0E-7_wp )
     
     WRITE(runout_unit,'(A,F12.3,A,F12.3,A,F14.3)') 'Time (s) = ',time ,         &
          ' Runout (m) = ',dist(imax(1),imax(2)) - init_runout,' Area (m^2) = ', &
@@ -3454,14 +3930,14 @@ CONTAINS
 
     dist(:,:) = 0.0_wp
     
-    WHERE( q(1,:,:)  > 1.D-5 ) dist = ABS(q(1,:,:)-q0(1,:,:)) /                 &
+    WHERE( q(1,:,:)  > 1.0E-5_wp ) dist = ABS( q(1,:,:) - q0(1,:,:) ) /         &
          MAX(q(1,:,:),q0(1,:,:))
 
     IF ( time .GT. t_start ) THEN
 
        dareaRel_dt = ABS( area - area0 ) / ( area * dt )
 
-       dhRel_dt = SUM( dist / dt ) / COUNT(q(1,:,:).GT.1.D-5)
+       dhRel_dt = SUM( dist / dt ) / COUNT( q(1,:,:) .GT. 1.0E-5_wp )
 
        IF ( ( MAX(dareaRel_dt,dhRel_dt) .LT. eps_stop ) .AND.                   &
             (.NOT.stop_flag) ) THEN
