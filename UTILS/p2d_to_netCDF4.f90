@@ -420,6 +420,9 @@ contains
 
     CHARACTER(LEN=40) :: topography_file
 
+    CHARACTER(LEN=40) :: erodible_file
+
+    
 
     !> Flag to start a run from a previous output:\n
     !> - T     => Restart from a previous output (.asc or .q_2d)
@@ -477,6 +480,10 @@ contains
 
     LOGICAL :: collapsing_volume_flag
 
+    LOGICAL :: subtract_init_flag
+
+    REAL(dp) :: erodible_fract0(1000)
+
     REAL(dp) :: rho0_s(1000) , diam0_s(1000) , sp_heat0_s(1000), erosion_coeff0(1000)
     LOGICAL :: settling_flag
     REAL(dp) :: T_s_substrate
@@ -488,10 +495,11 @@ contains
     NAMELIST / newrun_parameters / topography_file , x0 , y0 , comp_cells_x ,     &
          comp_cells_y , cell_size , rheology_flag , riemann_flag , energy_flag ,  &
          liquid_flag , radial_source_flag , collapsing_volume_flag ,              &
-         topo_change_flag , gas_flag
+         topo_change_flag , gas_flag , subtract_init_flag
 
     NAMELIST / solid_transport_parameters / n_solid , rho0_s , diam0_s ,          &
-         sp_heat0_s , erosion_coeff0 , settling_flag , T_s_substrate
+         sp_heat0_s , erosion_coeff0 , settling_flag , T_s_substrate ,            &
+         erodible_file , erodible_fract0
 
 
     OPEN(backup_unit,FILE=bak_name,STATUS='old',DELIM='NONE')
