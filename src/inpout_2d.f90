@@ -24,6 +24,7 @@ MODULE inpout_2d
   USE geometry_2d, ONLY : topography_profile , n_topography_profile_x ,         &
        n_topography_profile_y
   USE init_2d, ONLY : riemann_interface
+  USE parameters_2d, ONLY : n_solid
   USE parameters_2d, ONLY : riemann_flag , rheology_flag , energy_flag ,        &
        topo_change_flag , radial_source_flag , collapsing_volume_flag ,         &
        liquid_flag , gas_flag , subtract_init_flag
@@ -69,7 +70,6 @@ MODULE inpout_2d
   USE constitutive_2d, ONLY : friction_factor
   
   ! --- Variables for the namelist SOLID_TRANSPORT_PARAMETERS
-  USE parameters_2d, ONLY : n_solid
   USE constitutive_2d, ONLY : rho_s , diam_s , sp_heat_s
   USE constitutive_2d, ONLY : settling_flag , erosion_coeff
   USE constitutive_2d, ONLY : T_s_substrate
@@ -100,7 +100,8 @@ MODULE inpout_2d
   CHARACTER(LEN=40) :: runout_file        !< Name of the runout file 
   CHARACTER(LEN=40) :: topography_file    !< Name of the esri DEM file
   CHARACTER(LEN=40) :: erodible_file      !< Name of the esri DEM file
-
+  CHARACTER(LEN=40) :: output_VT_file
+  
   INTEGER, PARAMETER :: input_unit = 7       !< Input data unit
   INTEGER, PARAMETER :: backup_unit = 8      !< Backup input data unit
   INTEGER, PARAMETER :: output_unit = 9      !< Output data unit
@@ -113,7 +114,8 @@ MODULE inpout_2d
   INTEGER, PARAMETER :: runout_unit = 16
   INTEGER, PARAMETER :: dakota_unit = 17
   INTEGER, PARAMETER :: erodible_unit = 18
-
+  INTEGER, PARAMETER :: output_VT_unit = 19
+  
   !> Counter for the output files
   INTEGER :: output_idx 
 
@@ -149,19 +151,23 @@ MODULE inpout_2d
 
   ! -- Variables for the namelists WEST_BOUNDARY_CONDITIONS
   TYPE(bc) :: h_bcW , hu_bcW , hv_bcW , T_bcW
-  TYPE(bc) :: alphas_bcW(100)
+  ! TYPE(bc) :: alphas_bcW(10)
+  TYPE(bc),ALLOCATABLE :: alphas_bcW(:)
 
   ! -- Variables for the namelists EAST_BOUNDARY_CONDITIONS
   TYPE(bc) :: h_bcE , hu_bcE , hv_bcE , T_bcE
-  TYPE(bc):: alphas_bcE(100)
+  !TYPE(bc):: alphas_bcE(10)
+  TYPE(bc),ALLOCATABLE :: alphas_bcE(:)
 
   ! -- Variables for the namelists SOUTH_BOUNDARY_CONDITIONS
   TYPE(bc) :: h_bcS , hu_bcS , hv_bcS , T_bcS
-  TYPE(bc) :: alphas_bcS(100)
+  !TYPE(bc) :: alphas_bcS(10)
+  TYPE(bc),ALLOCATABLE :: alphas_bcS(:)
 
   ! -- Variables for the namelists NORTH_BOUNDARY_CONDITIONS
   TYPE(bc) :: h_bcN , hu_bcN , hv_bcN , T_bcN
-  TYPE(bc) :: alphas_bcN(100)
+  !TYPE(bc) :: alphas_bcN(10)
+  TYPE(bc),ALLOCATABLE :: alphas_bcN(:)
 
 
   ! parameters to read a dem file
@@ -183,12 +189,13 @@ MODULE inpout_2d
 
   REAL(wp) :: sed_vol_perc(10) , alphas0_E(10) , alphas0_W(10)
   
-  REAL(wp) :: rho0_s(10)
-  REAL(wp) :: diam0_s(10)
-  REAL(wp) :: sp_heat0_s(10)
-  REAL(wp) :: erosion_coeff0(10)
+  !REAL(wp) :: rho0_s(10)
+  !REAL(wp) :: diam0_s(10)
+  !REAL(wp) :: sp_heat0_s(10)
+  !REAL(wp) :: erosion_coeff0(10)
 
-  REAL(wp) :: erodible_fract0(10)
+  !REAL(wp) :: erodible_fract0(10)
+  REAL(wp), ALLOCATABLE :: erodible_fract(:)
   
   REAL(wp) :: alpha1_ref
 
@@ -200,9 +207,9 @@ MODULE inpout_2d
        output_runout_flag , verbose_level
   NAMELIST / restart_parameters / restart_file, T_init, T_ambient , sed_vol_perc
 
-  NAMELIST / newrun_parameters / topography_file , x0 , y0 , comp_cells_x ,     &
-       comp_cells_y , cell_size , rheology_flag , riemann_flag , energy_flag ,  &
-       liquid_flag , radial_source_flag , collapsing_volume_flag ,              &
+  NAMELIST / newrun_parameters / n_solid , topography_file , x0 , y0 ,          &
+       comp_cells_x , comp_cells_y , cell_size , rheology_flag , riemann_flag , &
+       energy_flag , liquid_flag , radial_source_flag , collapsing_volume_flag ,&
        topo_change_flag , gas_flag , subtract_init_flag
 
   NAMELIST / initial_conditions /  released_volume , x_release , y_release ,    &
@@ -211,18 +218,6 @@ MODULE inpout_2d
   NAMELIST / left_state / riemann_interface , hB_W , u_W , v_W , alphas0_W , T_W
 
   NAMELIST / right_state / hB_E , u_E , v_E , alphas0_E , T_E
-
-  NAMELIST / west_boundary_conditions / h_bcW , hu_bcW , hv_bcW , alphas_bcW ,  &
-       T_bcW
-
-  NAMELIST / east_boundary_conditions / h_bcE , hu_bcE , hv_bcE , alphas_bcE ,  &
-       T_bcE
-
-  NAMELIST / south_boundary_conditions / h_bcS , hu_bcS , hv_bcS , alphas_bcS , &
-       T_bcS
-
-  NAMELIST / north_boundary_conditions / h_bcN , hu_bcN , hv_bcN , alphas_bcN , &
-       T_bcN
 
   NAMELIST / numeric_parameters / solver_scheme, dt0 , max_dt , cfl, limiter ,  &
        theta , reconstr_coeff , interfaces_relaxation , n_RK   
@@ -246,10 +241,6 @@ MODULE inpout_2d
 
   NAMELIST / runout_parameters / x0_runout , y0_runout , dt_runout ,            &
        eps_stop
-
-  NAMELIST / solid_transport_parameters / n_solid , rho0_s , diam0_s ,          &
-       sp_heat0_s , erosion_coeff0 , settling_flag , T_s_substrate ,            &
-       erodible_file , erodible_fract0
 
   NAMELIST / gas_transport_parameters / sp_heat_a , sp_gas_const_a , kin_visc_a,&
        pres , T_ambient , entrainment_flag
@@ -280,8 +271,7 @@ CONTAINS
     IMPLICIT none
 
     LOGICAL :: lexist
-
-    INTEGER :: j , k
+    INTEGER :: ios
 
     n_vars = 3
 
@@ -326,65 +316,13 @@ CONTAINS
     v_W = 0.0_wp
     ! alphas_W = 0.5_wp
     T_W = -1.0_wp
-    
+
     !-- Inizialization of the Variables for the namelist right_state
     hB_E = 1.0_wp
     u_E = 0.0_wp
     u_E = 0.0_wp
     ! alphas_E = 0.5_wp
     T_E = -1.0_wp
-
-    !-- Inizialization of the Variables for the namelist west boundary conditions
-    h_bcW%flag = -1 
-    h_bcW%value = 0.0_wp 
-
-    hu_bcW%flag = 1 
-    hu_bcW%value = 0.0_wp
-    
-    hv_bcW%flag = 1 
-    hv_bcW%value = 0.0_wp 
-
-    !alphas_bcW%flag = 1 
-    !alphas_bcW%value = 0.0_wp 
-
-    !-- Inizialization of the Variables for the namelist east boundary conditions
-    h_bcE%flag = -1 
-    h_bcE%value = 0.0_wp 
-
-    hu_bcE%flag = 1 
-    hu_bcE%value = 0.0_wp
-    
-    hv_bcE%flag = 1 
-    hv_bcE%value = 0.0_wp 
-
-    !alphas_bcE%flag = 1 
-    !alphas_bcE%value = 0.0_wp 
-
-    !-- Inizialization of the Variables for the namelist south boundary conditions
-    h_bcS%flag = -1 
-    h_bcS%value = 0.0_wp 
-
-    hu_bcS%flag = 1 
-    hu_bcS%value = 0.0_wp
-    
-    hv_bcS%flag = 1 
-    hv_bcS%value = 0.0_wp 
-
-    !alphas_bcS%flag = 1 
-    !alphas_bcS%value = 0.0_wp 
-
-    !-- Inizialization of the Variables for the namelist north boundary conditions
-    h_bcN%flag = -1 
-    h_bcN%value = 0.0_wp 
-
-    hu_bcN%flag = 1 
-    hu_bcN%value = 0.0_wp
-    
-    hv_bcN%flag = 1 
-    hv_bcN%value = 0.0_wp 
-
-    !alphas_bcN%flag = 1 
-    !alphas_bcN%value = 0.0_wp 
 
     !-- Inizialization of the Variables for the namelist NUMERIC_PARAMETERS
     dt0 = 1.0E-4_wp
@@ -409,7 +347,7 @@ CONTAINS
     T_env = 300.0_wp
     T_ground = 1200.0_wp
     c_p = 1200.0_wp
-    
+
     !-- Inizialization of the Variables for the namelist RHEOLOGY_PARAMETERS
     rheology_model = 0
     nu_ref = 0.0_wp                     
@@ -432,66 +370,51 @@ CONTAINS
 
     IF (lexist .EQV. .FALSE.) THEN
 
-       OPEN(input_unit,FILE=input_file,STATUS='NEW')
-
-       WRITE(input_unit, run_parameters )
-       WRITE(input_unit, newrun_parameters )
-       WRITE(input_unit, left_state )
-       WRITE(input_unit, right_state )
-       WRITE(input_unit, numeric_parameters )
-       WRITE(input_unit, west_boundary_conditions )
-       WRITE(input_unit, east_boundary_conditions )
-       WRITE(input_unit, south_boundary_conditions )
-       WRITE(input_unit, north_boundary_conditions )
-       WRITE(input_unit, expl_terms_parameters )
-
-       n_topography_profile_x = 2
-       n_topography_profile_y = 2
-
-       ALLOCATE( topography_profile( 3 , n_topography_profile_x ,               &
-            n_topography_profile_y) )
-
-       topography_profile(1,1,1) = 0.0_wp
-       topography_profile(2,1,1) = 0.0_wp
-       topography_profile(3,1,1) = 0.0_wp
-
-       topography_profile(1,1,2) = 0.0_wp
-       topography_profile(2,1,2) = 1.0_wp
-       topography_profile(3,1,2) = 0.0_wp
-
-       topography_profile(1,2,1) = 1.0_wp
-       topography_profile(2,2,1) = 0.0_wp
-       topography_profile(3,2,1) = 0.0_wp
-
-       topography_profile(1,2,2) = 1.0_wp
-       topography_profile(2,2,2) = 1.0_wp
-       topography_profile(3,2,2) = 0.0_wp
-
-
-
-       WRITE(input_unit,*) '''TOPOGRAPHY_PROFILE'''
-       WRITE(input_unit,*) n_topography_profile_x
-       WRITE(input_unit,*) n_topography_profile_y
-
-       DO j = 1, n_topography_profile_x
-
-          DO k = 1, n_topography_profile_y
-
-            WRITE(input_unit,108) topography_profile(1:3,j,k)
-
-108         FORMAT(3(1x,e14.7))
-
-          ENDDO
-
-       END DO
-
-       CLOSE(input_unit)
-
        WRITE(*,*) 'Input file SW_VAR_DENS_MODEL.inp not found'
-       WRITE(*,*) 'A new one with default values has been created'
        STOP
 
     ELSE
+
+       OPEN(input_unit,FILE=input_file,STATUS='old')
+
+       ! ------- READ run_parameters NAMELIST -----------------------------------
+       READ(input_unit, newrun_parameters,IOSTAT=ios )
+
+       IF ( ios .NE. 0 ) THEN
+
+          WRITE(*,*) 'IOSTAT=',ios
+          WRITE(*,*) 'ERROR: problem with namelist NEWRUN_PARAMETERS'
+          WRITE(*,*) 'Please check the input file'
+          STOP
+
+       ELSE
+
+          REWIND(input_unit)
+
+       END IF
+
+       IF ( n_solid .LT. 1 ) THEN
+
+          WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
+          WRITE(*,*) 'n_solid =' , n_solid
+          WRITE(*,*) 'Please check the input file'
+          STOP
+
+       END IF
+
+
+       ALLOCATE ( alphas_bcW(n_solid) )
+       ALLOCATE ( alphas_bcE(n_solid) )
+       ALLOCATE ( alphas_bcS(n_solid) )
+       ALLOCATE ( alphas_bcN(n_solid) )
+
+       ALLOCATE( rho_s(n_solid) )
+       ALLOCATE( diam_s(n_solid) )
+       ALLOCATE( sp_heat_s(n_solid) )
+       ALLOCATE( erosion_coeff(n_solid) )
+       ALLOCATE( erodible_fract(n_solid) )
+
+       CLOSE(input_unit)
 
     END IF
 
@@ -502,25 +425,25 @@ CONTAINS
     h_bcW%flag = -1 
     hu_bcW%flag = -1 
     hv_bcW%flag = -1 
-    !alphas_bcW%flag = -1 
+    alphas_bcW%flag = -1 
     T_bcW%flag = -1 
 
     h_bcE%flag = -1 
     hu_bcE%flag = -1 
     hv_bcE%flag = -1 
-    !alphas_bcE%flag = -1 
+    alphas_bcE%flag = -1 
     T_bcE%flag = -1 
 
     h_bcS%flag = -1 
     hu_bcS%flag = -1 
     hv_bcS%flag = -1 
-    !alphas_bcS%flag = -1 
+    alphas_bcS%flag = -1 
     T_bcS%flag = -1 
 
     h_bcN%flag = -1 
     hu_bcN%flag = -1 
     hv_bcN%flag = -1 
-    !alphas_bcN%flag = -1 
+    alphas_bcN%flag = -1 
     T_bcN%flag = -1 
 
     ! sed_vol_perc = -1.0_wp
@@ -533,14 +456,14 @@ CONTAINS
     visc_par = -1
     T_ref = -1
     friction_factor = -1
-    
+
     alpha2 = -1 
     beta2 = -1
     alpha1_ref = -1
     beta1 = -1
     Kappa = -1
     n_td = -1
-    rho0_s = -1
+    rho_s = -1
 
     exp_area_fract = -1.0_wp
     emissivity = -1.0_wp             
@@ -558,14 +481,16 @@ CONTAINS
     y0_runout = -1.0_wp
 
     !- Variables for the namelist SOLID_TRANSPORT_PARAMETERS
-    ! rho_s = -1.0_wp
+    rho_s = -1.0_wp
+    diam_s = -1.0_wp
+    sp_heat_s = -1.0_wp
     settling_flag = .FALSE.
-    erosion_coeff0 = -1.0_wp
+    erosion_coeff = -1.0_wp
     n_solid = -1
     T_s_substrate = -1.0_wp
     erodible_file = ""
-    erodible_fract0 = -1.0_wp
-    
+    erodible_fract = -1.0_wp
+
     !- Variables for the namelist GAS_TRANSPORT_PARAMETERS
     sp_heat_a = -1.0_wp
     sp_gas_const_a = -1.0_wp
@@ -595,7 +520,7 @@ CONTAINS
     n_dyn_pres_levels = -1
     thickness_levels0 = -1.0_wp
     dyn_pres_levels0 = -1.0_wp
-    
+
   END SUBROUTINE init_param
 
   !******************************************************************************
@@ -627,6 +552,23 @@ CONTAINS
  
     IMPLICIT none
 
+    NAMELIST / west_boundary_conditions / h_bcW , hu_bcW , hv_bcW ,             &
+         alphas_bcW , T_bcW
+
+    NAMELIST / east_boundary_conditions / h_bcE , hu_bcE , hv_bcE ,             &
+         alphas_bcE , T_bcE
+
+    NAMELIST / south_boundary_conditions / h_bcS , hu_bcS , hv_bcS ,            &
+         alphas_bcS , T_bcS
+
+    NAMELIST / north_boundary_conditions / h_bcN , hu_bcN , hv_bcN ,            &
+         alphas_bcN , T_bcN
+
+    NAMELIST / solid_transport_parameters / rho_s , diam_s , sp_heat_s ,        &
+         erosion_coeff , settling_flag , T_s_substrate , erodible_file ,        &
+         erodible_fract
+
+    
     REAL(wp) :: max_cfl
 
     LOGICAL :: tend1 
@@ -645,7 +587,6 @@ CONTAINS
     INTEGER :: ios
     
     REAL(wp) :: expA , expB , Tc
-
 
     OPEN(input_unit,FILE=input_file,STATUS='old')
 
@@ -682,6 +623,15 @@ CONTAINS
 
     END IF
 
+    IF ( n_solid .LT. 1 ) THEN
+       
+       WRITE(*,*) 'ERROR: problem with namelist NEWRUN_PARAMETERS'
+       WRITE(*,*) 'n_solid =' , n_solid
+       WRITE(*,*) 'Please check the input file'
+       STOP
+       
+    END IF
+    
     IF ( ( comp_cells_x .EQ. 1 ) .OR. ( comp_cells_y .EQ. 1 ) ) THEN
 
        IF ( verbose_level .GE. 0 ) WRITE(*,*) '----- 1D SIMULATION -----' 
@@ -880,6 +830,7 @@ CONTAINS
        WRITE(*,*) 'IOSTAT=',ios
        WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
        WRITE(*,*) 'Please check the input file'
+       WRITE(*,solid_transport_parameters) 
        STOP
        
     ELSE
@@ -887,38 +838,38 @@ CONTAINS
        REWIND(input_unit)
        
     END IF
-    
-    IF ( n_solid .LT. 1 ) THEN
+        
+    IF ( ANY(rho_s(1:n_solid) .EQ. -1.0_wp ) ) THEN
        
        WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
-       WRITE(*,*) 'n_solid =' , n_solid
+       WRITE(*,*) 'RHO_s =' , rho_s(1:n_solid)
+       WRITE(*,*) 'Please check the input file'
+       STOP
+       
+    END IF
+
+    IF ( ANY(diam_s(1:n_solid) .EQ. -1.0_wp ) ) THEN
+       
+       WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
+       WRITE(*,*) 'DIAM_s =' , diam_s(1:n_solid)
        WRITE(*,*) 'Please check the input file'
        STOP
        
     END IF
     
-    IF ( ANY(rho0_s(1:n_solid) .EQ. -1.0_wp ) ) THEN
+    IF ( ANY(sp_heat_s(1:n_solid) .EQ. -1.0_wp ) ) THEN
        
        WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
-       WRITE(*,*) 'RHO_s =' , rho0_s(1:n_solid)
+       WRITE(*,*) 'SP_HEAT_S =' , sp_heat_s(1:n_solid)
        WRITE(*,*) 'Please check the input file'
        STOP
        
     END IF
     
-    IF ( ANY(sp_heat0_s(1:n_solid) .EQ. -1.0_wp ) ) THEN
+    IF ( ANY(erosion_coeff(1:n_solid) .LT. 0.0_wp ) ) THEN
        
        WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
-       WRITE(*,*) 'RHO_s =' , rho0_s(1:n_solid)
-       WRITE(*,*) 'Please check the input file'
-       STOP
-       
-    END IF
-    
-    IF ( ANY(erosion_coeff0(1:n_solid) .LT. 0.0_wp ) ) THEN
-       
-       WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
-       WRITE(*,*) 'EROSION_COEFF =' , erosion_coeff0(1:n_solid)
+       WRITE(*,*) 'EROSION_COEFF =' , erosion_coeff(1:n_solid)
        WRITE(*,*) 'Please check the input file'
        STOP
        
@@ -959,21 +910,21 @@ CONTAINS
           
        IF ( n_solid .EQ. 1 ) THEN
 
-          erodible_fract0(1) = 1.0_wp
+          erodible_fract(1) = 1.0_wp
 
        ELSE
 
-          IF ( ANY(erodible_fract0(1:n_solid) .LT. 0.0_wp ) ) THEN
+          IF ( ANY(erodible_fract(1:n_solid) .LT. 0.0_wp ) ) THEN
 
              WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
-             WRITE(*,*) 'EROSION_COEFF =' , erodible_fract0(1:n_solid)
+             WRITE(*,*) 'ERODIBLE_FRACT =' , erodible_fract(1:n_solid)
              WRITE(*,*) 'Please check the input file'
              STOP
 
           ELSE
 
-             erodible_fract0(1:n_solid) = erodible_fract0(1:n_solid) /          &
-                  SUM(erodible_fract0(1:n_solid) )
+             erodible_fract(1:n_solid) = erodible_fract(1:n_solid) /          &
+                  SUM(erodible_fract(1:n_solid) )
              
           END IF
 
@@ -999,31 +950,17 @@ CONTAINS
     bcS(1:n_vars)%flag = -1
     bcN(1:n_vars)%flag = -1
 
-    ALLOCATE( rho_s(n_solid) )
-    rho_s(1:n_solid) = rho0_s(1:n_solid)
-    !DEALLOCATE( rho0_s )
-    !ALLOCATE( rho0_s(n_solid) )
-    !rho0_s(1:n_solid) = rho_s(1:n_solid)
-    
+    ! rho_s(1:n_solid) = rho0_s(1:n_solid)    
 
-    ALLOCATE( diam_s(n_solid) )
-    diam_s(1:n_solid) = diam0_s(1:n_solid)
-    !DEALLOCATE( diam0_s )
-    !ALLOCATE( diam0_s(n_solid) )
-    !diam0_s(1:n_solid) = diam_s(1:n_solid)
+    ! diam_s(1:n_solid) = diam0_s(1:n_solid)
 
-    ALLOCATE( sp_heat_s(n_solid) )
-    sp_heat_s(1:n_solid) = sp_heat0_s(1:n_solid)
-    !DEALLOCATE( sp_heat0_s )
-    !ALLOCATE( sp_heat0_s(n_solid) )
-    !sp_heat0_s(1:n_solid) = sp_heat_s(1:n_solid)
+    ! sp_heat_s(1:n_solid) = sp_heat0_s(1:n_solid)
 
     ALLOCATE( inv_rho_s(n_solid) )
 
     ALLOCATE( alphas_init(n_solid) )
 
-    ALLOCATE( erosion_coeff(n_solid) )
-    erosion_coeff(1:n_solid) = erosion_coeff0(1:n_solid)
+    ! erosion_coeff(1:n_solid) = erosion_coeff0(1:n_solid)
 
     ALLOCATE( alphas_E(n_solid) , alphas_W(n_solid) )
     
@@ -1247,6 +1184,7 @@ CONTAINS
           WRITE(*,*) 'IOSTAT=',ios
           WRITE(*,*) 'ERROR: problem with namelist WEST_BOUNDARY_CONDITIONS'
           WRITE(*,*) 'Please check the input file'
+          WRITE(*,west_boundary_conditions)
           STOP
           
        ELSE
@@ -1876,20 +1814,20 @@ CONTAINS
 
     ! ------- READ temperature_parameters NAMELIST ------------------------------
 
-    READ(input_unit, temperature_parameters,IOSTAT=ios)
-       
-    IF ( ios .NE. 0 ) THEN
-       
-       WRITE(*,*) 'IOSTAT=',ios
-       WRITE(*,*) 'ERROR: problem with namelist TEMPERATURE_PARAMETERS'
-       WRITE(*,*) 'Please check the input file'
-       STOP
-       
-    ELSE
-       
-       REWIND(input_unit)
-       
-    END IF
+!!$    READ(input_unit, temperature_parameters,IOSTAT=ios)
+!!$       
+!!$    IF ( ios .NE. 0 ) THEN
+!!$       
+!!$       WRITE(*,*) 'IOSTAT=',ios
+!!$       WRITE(*,*) 'ERROR: problem with namelist TEMPERATURE_PARAMETERS'
+!!$       WRITE(*,*) 'Please check the input file'
+!!$       STOP
+!!$       
+!!$    ELSE
+!!$       
+!!$       REWIND(input_unit)
+!!$       
+!!$    END IF
 
     ! ------- READ rheology_parameters NAMELIST ---------------------------------
 
@@ -2501,8 +2439,6 @@ CONTAINS
 
     END IF
 
-    WRITE(backup_unit, numeric_parameters )
-
     IF ( comp_cells_x .GT. 1 ) THEN
 
        WRITE(backup_unit,west_boundary_conditions)
@@ -2517,18 +2453,29 @@ CONTAINS
 
     END IF
 
+    WRITE(backup_unit, numeric_parameters )
+
     WRITE(backup_unit, expl_terms_parameters )
-
-    WRITE(backup_unit,temperature_parameters)
-
-    WRITE(backup_unit,solid_transport_parameters)
-    WRITE(backup_unit,gas_transport_parameters)
-    WRITE(backup_unit,liquid_transport_parameters)
 
     IF ( rheology_flag ) WRITE(backup_unit,rheology_parameters)
 
+    ! WRITE(backup_unit,temperature_parameters)
+
+    WRITE(backup_unit,solid_transport_parameters)
+    WRITE(backup_unit,gas_transport_parameters)
+
+    IF ( liquid_flag ) WRITE(backup_unit,liquid_transport_parameters)
+
+
     IF ( output_runout_flag ) WRITE(backup_unit, runout_parameters)
 
+    IF ( ( COUNT( thickness_levels0 .GT. 0.0_wp ) .GT. 0 ) .OR.                 &
+         ( COUNT( dyn_pres_levels0 .GT. 0.0_wp ) .GT. 0 ) ) THEN
+
+       WRITE(backup_unit, vulnerability_table_parameters)
+
+    END IF
+       
     IF ( n_probes .GT. 0 ) THEN
        
        WRITE(backup_unit,*) '''PROBES_COORDS'''
@@ -2891,7 +2838,7 @@ CONTAINS
              
              DO i_solid=1,n_solid
                 
-                erodible(:,:,i_solid) = erodible_fract0(i_solid) * erodible_init(:,:)
+                erodible(:,:,i_solid) = erodible_fract(i_solid) * erodible_init(:,:)
                 
              END DO
              
@@ -3242,7 +3189,7 @@ CONTAINS
 
        DO i_solid=1,n_solid
 
-          erodible(:,:,i_solid) = erodible_fract0(i_solid) * erodible_init(:,:)
+          erodible(:,:,i_solid) = erodible_fract(i_solid) * erodible_init(:,:)
 
        END DO
               
@@ -3446,7 +3393,7 @@ CONTAINS
     USE solver_2d, ONLY : hmax , vuln_table
 
     IMPLICIT NONE
-    
+
     CHARACTER(LEN=4) :: idx_string
 
     INTEGER :: j
@@ -3483,39 +3430,54 @@ CONTAINS
     CLOSE(output_max_unit)
 
     i_table = 0
-    
-    DO i_thk_lev=1,n_thickness_levels
 
-       DO i_pdyn_lev=1,n_dyn_pres_levels
+    IF ( n_thickness_levels * n_thickness_levels .GT. 1 ) THEN
 
-          i_table = i_table + 1
+       output_VT_file = TRIM(run_name)//'_VT.txt'
+       OPEN( output_VT_unit , FILE=output_VT_file , status='unknown' ,          &
+            form='formatted')
 
-          idx_string = lettera(i_table)
+       WRITE(output_VT_unit,*) 'ID file        thickness (m)           dynamic pressure (Pa)'
 
-          grid_output_int(:,:) = MERGE(1,-9999,vuln_table(i_table,:,:))
-          
-          output_max_file = TRIM(run_name)//'_VT_'//idx_string//'.asc'
-          OPEN(output_max_unit,FILE=output_max_file,status='unknown',form='formatted')
+       DO i_thk_lev=1,n_thickness_levels
 
-          WRITE(output_max_unit,'(A,I5)') 'ncols ', comp_cells_x
-          WRITE(output_max_unit,'(A,I5)') 'nrows ', comp_cells_y
-          WRITE(output_max_unit,'(A,F15.3)') 'xllcorner ', x0
-          WRITE(output_max_unit,'(A,F15.3)') 'yllcorner ', y0
-          WRITE(output_max_unit,'(A,F15.3)') 'cellsize ', cell_size
-          WRITE(output_max_unit,'(A,I5)') 'NODATA_value ', -9999
+          DO i_pdyn_lev=1,n_dyn_pres_levels
 
-          DO j = comp_cells_y,1,-1
+             i_table = i_table + 1
+             
+             idx_string = lettera(i_table)
 
-             WRITE(output_max_unit,*) grid_output_int(1:comp_cells_x,j)
+             WRITE(output_VT_unit,*) idx_string ,'      ', thickness_levels(i_thk_lev),  &
+                  dyn_pres_levels(i_pdyn_lev)
 
-          ENDDO
+             grid_output_int(:,:) = MERGE(1,-9999,vuln_table(i_table,:,:))
 
-          CLOSE(output_max_unit)
+             output_max_file = TRIM(run_name)//'_VT_'//idx_string//'.asc'
+             OPEN(output_max_unit,FILE=output_max_file,status='unknown' ,       &
+                  form='formatted')
 
+             WRITE(output_max_unit,'(A,I5)') 'ncols ', comp_cells_x
+             WRITE(output_max_unit,'(A,I5)') 'nrows ', comp_cells_y
+             WRITE(output_max_unit,'(A,F15.3)') 'xllcorner ', x0
+             WRITE(output_max_unit,'(A,F15.3)') 'yllcorner ', y0
+             WRITE(output_max_unit,'(A,F15.3)') 'cellsize ', cell_size
+             WRITE(output_max_unit,'(A,I5)') 'NODATA_value ', -9999
+
+             DO j = comp_cells_y,1,-1
+
+                WRITE(output_max_unit,*) grid_output_int(1:comp_cells_x,j)
+
+             ENDDO
+
+             CLOSE(output_max_unit)
+
+          END DO
 
        END DO
 
-    END DO
+       CLOSE(output_VT_unit)
+
+    END IF
 
     RETURN
 
