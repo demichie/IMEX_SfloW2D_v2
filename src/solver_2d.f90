@@ -1986,7 +1986,7 @@ CONTAINS
 
     INTEGER :: j,k,l 
 
-    IF ( ( SUM(erosion_coeff) .EQ. 0.0_wp ) .AND. ( .NOT.settling_flag ) ) RETURN
+    IF ( ( erosion_coeff .EQ. 0.0_wp ) .AND. ( .NOT.settling_flag ) ) RETURN
 
     !$OMP PARALLEL DO private(j,k,erosion_term,deposition_term,eqns_term,       &
     !$OMP & topo_term,r_Ri,r_rho_m,r_rho_c,r_red_grav)

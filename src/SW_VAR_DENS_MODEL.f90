@@ -122,7 +122,7 @@ PROGRAM SW_VAR_DENS_MODEL
 
      !$ n_threads = omp_get_max_threads()
      !$ CALL OMP_SET_NUM_THREADS(n_threads)
-     IF ( verbose_level .GE. 0.D0 ) WRITE(*,*) 'Number of threads used', n_threads
+     IF ( verbose_level .GE. 0 ) WRITE(*,*) 'Number of threads used',n_threads
 
   END IF
 
@@ -254,9 +254,10 @@ PROGRAM SW_VAR_DENS_MODEL
 
   IF ( SUM(q(1,:,:)) .EQ. 0.0_wp ) t_steady = t_output
 
-  IF ( verbose_level .GE. 0.D0 ) THEN
+  IF ( verbose_level .GE. 0 ) THEN
 
-     WRITE(*,FMT="(A3,F10.4,A5,F9.5,A9,ES11.3E3,A11,ES11.3E3,A9,ES11.3E3,A15,ES11.3E3)")   &
+     WRITE(*,FMT="(A3,F10.4,A5,F9.5,A9,ES11.3E3,A11,ES11.3E3,A9,ES11.3E3,A15,   &
+          &ES11.3E3)")                                                          &
           't =',t,'dt =',dt0,                                                   &
           ' mass = ',dx*dy*SUM(q(1,:,:)) ,                                      &
           ' volume = ',dx*dy*SUM(qp(1,:,:)) ,                                   &
@@ -348,7 +349,8 @@ PROGRAM SW_VAR_DENS_MODEL
 
      IF ( verbose_level .GE. 0 ) THEN
 
-        WRITE(*,FMT="(A3,F10.4,A5,F9.5,A9,ES11.3E3,A11,ES11.3E3,A9,ES11.3E3,A15,ES11.3E3)")&
+        WRITE(*,FMT="(A3,F10.4,A5,F9.5,A9,ES11.3E3,A11,ES11.3E3,A9,ES11.3E3,A15,   &
+             &ES11.3E3)")                                                          &
              't =',t,'dt =',dt,                                                    &
              ' mass = ',dx*dy*SUM(q(1,:,:)) ,                                      &
              ' volume = ',dx*dy*SUM(qp(1,:,:)) ,                                   &
@@ -383,7 +385,7 @@ PROGRAM SW_VAR_DENS_MODEL
         CALL cpu_time(t3)
         CALL system_clock(st3)
 
-        IF ( verbose_level .GE. 0.D0 ) THEN
+        IF ( verbose_level .GE. 0 ) THEN
 
            WRITE(*,*) 'Time taken by iterations is',t3-t2,'seconds'
            WRITE(*,*) 'Elapsed real time = ', DBLE( st3 - st2 ) / rate,'seconds'

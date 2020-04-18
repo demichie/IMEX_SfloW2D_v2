@@ -71,8 +71,8 @@ MODULE inpout_2d
   
   ! --- Variables for the namelist SOLID_TRANSPORT_PARAMETERS
   USE constitutive_2d, ONLY : rho_s , diam_s , sp_heat_s
-  USE constitutive_2d, ONLY : settling_flag , erosion_coeff
-  USE constitutive_2d, ONLY : T_s_substrate
+  USE constitutive_2d, ONLY : settling_flag , erosion_coeff , erodible_porosity
+  USE constitutive_2d, ONLY : erodible_fract , T_erodible
 
   ! --- Variables for the namelist GAS_TRANSPORT_PARAMETERS
   USE constitutive_2d, ONLY : sp_heat_a , sp_gas_const_a , kin_visc_a , pres ,  &
@@ -82,7 +82,7 @@ MODULE inpout_2d
   USE constitutive_2d, ONLY : sp_heat_l , rho_l , kin_visc_l
 
   ! --- Variables for the namelist VULNERABILITY_TABLE_PARAMETERS
-  USE parameters_2d, ONLY : n_thickness_levels , n_dyn_pres_levels ,          &
+  USE parameters_2d, ONLY : n_thickness_levels , n_dyn_pres_levels ,            &
        thickness_levels , dyn_pres_levels
   
 
@@ -187,15 +187,10 @@ MODULE inpout_2d
 
   REAL(wp) :: x0_runout, y0_runout , init_runout , eps_stop
 
-  REAL(wp) :: sed_vol_perc(10) , alphas0_E(10) , alphas0_W(10)
-  
-  !REAL(wp) :: rho0_s(10)
-  !REAL(wp) :: diam0_s(10)
-  !REAL(wp) :: sp_heat0_s(10)
-  !REAL(wp) :: erosion_coeff0(10)
+  ! absolute precentages of solids in the initial volume
+  REAL(wp), ALLOCATABLE :: sed_vol_perc(:)
 
-  !REAL(wp) :: erodible_fract0(10)
-  REAL(wp), ALLOCATABLE :: erodible_fract(:)
+  REAL(wp) :: alphas0_E(10) , alphas0_W(10)
   
   REAL(wp) :: alpha1_ref
 
@@ -408,10 +403,12 @@ CONTAINS
        ALLOCATE ( alphas_bcS(n_solid) )
        ALLOCATE ( alphas_bcN(n_solid) )
 
+       ALLOCATE( sed_vol_perc(n_solid) )
+       sed_vol_perc(1:n_solid) = -1.0_wp
+       
        ALLOCATE( rho_s(n_solid) )
        ALLOCATE( diam_s(n_solid) )
        ALLOCATE( sp_heat_s(n_solid) )
-       ALLOCATE( erosion_coeff(n_solid) )
        ALLOCATE( erodible_fract(n_solid) )
 
        CLOSE(input_unit)
@@ -487,9 +484,10 @@ CONTAINS
     settling_flag = .FALSE.
     erosion_coeff = -1.0_wp
     n_solid = -1
-    T_s_substrate = -1.0_wp
+    T_erodible = -1.0_wp
     erodible_file = ""
     erodible_fract = -1.0_wp
+    erodible_porosity = -1.0_wp
 
     !- Variables for the namelist GAS_TRANSPORT_PARAMETERS
     sp_heat_a = -1.0_wp
@@ -546,6 +544,7 @@ CONTAINS
     USE geometry_2d, ONLY : deposit , erosion , erodible
 
     USE constitutive_2d, ONLY : rho_a_amb
+    USE constitutive_2d, ONLY : rho_c_sub
     USE constitutive_2d, ONLY : kin_visc_c
    
     USE constitutive_2d, ONLY : inv_pres , inv_rho_l , inv_rho_s
@@ -565,8 +564,8 @@ CONTAINS
          alphas_bcN , T_bcN
 
     NAMELIST / solid_transport_parameters / rho_s , diam_s , sp_heat_s ,        &
-         erosion_coeff , settling_flag , T_s_substrate , erodible_file ,        &
-         erodible_fract
+         erosion_coeff , erodible_porosity , settling_flag , T_erodible ,       &
+         erodible_file , erodible_fract
 
     
     REAL(wp) :: max_cfl
@@ -590,7 +589,7 @@ CONTAINS
 
     OPEN(input_unit,FILE=input_file,STATUS='old')
 
-    ! ------- READ run_parameters NAMELIST -----------------------------------
+    ! ---------- READ run_parameters NAMELIST -----------------------------------
     READ(input_unit, run_parameters,IOSTAT=ios )
     
     IF ( ios .NE. 0 ) THEN
@@ -607,7 +606,7 @@ CONTAINS
 
     END IF
 
-    ! ------- READ newrun_parameters NAMELIST --------------------------------
+    ! ---------- READ newrun_parameters NAMELIST --------------------------------
     READ(input_unit,newrun_parameters,IOSTAT=ios)
 
     IF ( ios .NE. 0 ) THEN
@@ -866,24 +865,87 @@ CONTAINS
        
     END IF
     
-    IF ( ANY(erosion_coeff(1:n_solid) .LT. 0.0_wp ) ) THEN
+    IF ( erosion_coeff .LT. 0.0_wp ) THEN
        
        WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
-       WRITE(*,*) 'EROSION_COEFF =' , erosion_coeff(1:n_solid)
+       WRITE(*,*) 'EROSION_COEFF =' , erosion_coeff
        WRITE(*,*) 'Please check the input file'
        STOP
+
+    ELSE
+
+       IF ( erosion_coeff .EQ. 0.0_wp ) THEN
+
+          erodible_porosity = 0.0_wp
+          erodible_fract(1:n_solid) = 1.0_wp / n_solid
+          T_erodible = 300.0_wp
+          subtract_init_flag = .FALSE.
+          
+       ELSE
        
+          IF ( ( erodible_porosity .LT. 0.0_wp ) .OR.                           &
+               ( erodible_porosity .GT. 1.0_wp ) ) THEN
+             
+             WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
+             WRITE(*,*) 'erodible_porosity =' , erodible_porosity
+             WRITE(*,*) 'Please check the input file'
+             STOP
+          
+          END IF
+
+          read_erodible_fract:IF ( n_solid .EQ. 1 ) THEN
+
+             erodible_fract(1) = 1.0_wp
+             
+          ELSE
+             
+             IF ( ANY(erodible_fract(1:n_solid) .LT. 0.0_wp ) ) THEN
+                
+                WRITE(*,*) 'ERROR: problem with namelist ',                     &
+                     'SOLID_TRANSPORT_PARAMETERS'
+                WRITE(*,*) 'ERODIBLE_FRACT =' , erodible_fract(1:n_solid)
+                WRITE(*,*) 'Please check the input file'
+                STOP
+                
+             ELSE
+                
+                IF ( SUM(erodible_fract(1:n_solid)) .NE. 1.0_wp ) THEN
+                   
+                   WRITE(*,*) 'WARNING: sum of ERODIBLE_FRACT not 1:',          &
+                        SUM(erodible_fract(1:n_solid))
+                   
+                   erodible_fract(1:n_solid) = erodible_fract(1:n_solid) /      &
+                        SUM(erodible_fract(1:n_solid) )
+                   
+                END IF
+                
+             END IF
+             
+          END IF read_erodible_fract
+
+          IF ( T_erodible .LT. 0.0_wp ) THEN
+       
+             WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
+             WRITE(*,*) 'T_erodible =' , T_erodible
+             WRITE(*,*) 'Please check the input file'
+             STOP
+             
+          END IF
+
+       END IF
+       
+    END IF
+    
+    IF ( gas_flag ) THEN
+    
+       rho_c_sub = pres / ( sp_gas_const_a * T_erodible )
+
+    ELSE
+
+       rho_c_sub = rho_l
+
     END IF
           
-    IF ( T_s_substrate .LT. 0.0_wp ) THEN
-       
-       WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
-       WRITE(*,*) 'T_s_substrate =' , T_s_substrate
-       WRITE(*,*) 'Please check the input file'
-       STOP
-       
-    END IF
-
     ALLOCATE( erodible( comp_cells_x , comp_cells_y , n_solid ) )
     erodible(1:comp_cells_x,1:comp_cells_y,1:n_solid ) = 0.0_wp
 
@@ -900,36 +962,22 @@ CONTAINS
 
        END IF
           
-    ELSE
+    ELSEIF ( erosion_coeff .EQ. 0.0_wp ) THEN
 
+       WRITE(*,*) 'WARNING: erodible_file not used'
+       WRITE(*,*) 'erosion_coeff = ', erosion_coeff
+
+       erodible(:,:,1:n_solid) = 1.0E+5_wp
+       
+    ELSE
+       
        IF ( verbose_level .GE. 0.0_wp ) THEN
 
-          WRITE(*,*) 'Maximum thick. for erosion read from : ',TRIM(erodible_file)
+          WRITE(*,*) 'Maximum thick. for erosion read from : ',                 &
+               TRIM(erodible_file)
 
        END IF
-          
-       IF ( n_solid .EQ. 1 ) THEN
-
-          erodible_fract(1) = 1.0_wp
-
-       ELSE
-
-          IF ( ANY(erodible_fract(1:n_solid) .LT. 0.0_wp ) ) THEN
-
-             WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
-             WRITE(*,*) 'ERODIBLE_FRACT =' , erodible_fract(1:n_solid)
-             WRITE(*,*) 'Please check the input file'
-             STOP
-
-          ELSE
-
-             erodible_fract(1:n_solid) = erodible_fract(1:n_solid) /          &
-                  SUM(erodible_fract(1:n_solid) )
-             
-          END IF
-
-       END IF
-           
+                     
        CALL read_erodible
        
     END IF
@@ -960,8 +1008,6 @@ CONTAINS
 
     ALLOCATE( alphas_init(n_solid) )
 
-    ! erosion_coeff(1:n_solid) = erosion_coeff0(1:n_solid)
-
     ALLOCATE( alphas_E(n_solid) , alphas_W(n_solid) )
     
     inv_rho_s(1:n_solid) = 1.0_wp / rho_s(1:n_solid)
@@ -975,7 +1021,7 @@ CONTAINS
        
     IF ( restart ) THEN
 
-       ! ------- READ restart_parameters NAMELIST --------------------------
+       ! ---------- READ restart_parameters NAMELIST ----------------------------
        READ(input_unit,restart_parameters,IOSTAT=ios)
 
        IF ( ios .NE. 0 ) THEN
@@ -993,9 +1039,9 @@ CONTAINS
 
           IF ( check_file .EQ. 'asc' ) THEN
 
-             IF ( ( ANY(sed_vol_perc(1:n_solid) .LT. 0.0_wp ) ) .OR.              &
-                  ( ANY(sed_vol_perc(1:n_solid) .GT. 100.0_wp ) ) )   &
-                  THEN
+             IF ( ( ANY(sed_vol_perc(1:n_solid) .LT. 0.0_wp ) ) .OR.            &
+                  ( ANY(sed_vol_perc(1:n_solid) .GT. 100.0_wp ) ) .OR.          &
+                  ( SUM(sed_vol_perc(1:n_solid)) .GT. 100.0_wp) ) THEN
                 
                 WRITE(*,*) 'ERROR: problem with namelist RESTART_PARAMETERS'
                 WRITE(*,*) 'SED_VOL_PERC =' , sed_vol_perc(1:n_solid)
@@ -1163,7 +1209,7 @@ CONTAINS
 
     END IF
        
-    IF ( ( reconstr_coeff .GT. 1.0_wp ) .OR. ( reconstr_coeff .LT. 0.0_wp ) ) THEN
+    IF ( ( reconstr_coeff .GT. 1.0_wp ).OR.( reconstr_coeff .LT. 0.0_wp ) ) THEN
        
        WRITE(*,*) 'WARNING: wrong value of reconstr_coeff ',reconstr_coeff
        WRITE(*,*) 'Change the value between 0.0 and 1.0 in the input file'
@@ -1646,7 +1692,7 @@ CONTAINS
 
           END IF
 
-          IF ( ( y_source + r_source ) .GE. Y0 +(comp_cells_y-1)*cell_size ) THEN
+          IF ( ( y_source + r_source ) .GE. Y0+(comp_cells_y-1)*cell_size ) THEN
              
              WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
              WRITE(*,*) 'SOURCE TOO LARGE'
@@ -1659,7 +1705,8 @@ CONTAINS
 
              IF ( alphal_source .LT. 0.0_wp ) THEN
              
-                WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+                WRITE(*,*) 'ERROR: problem with namelist ',                     &
+                     'RADIAL_SOURCE_PARAMETERS'
                 WRITE(*,*) 'PLEASE CHECK VALUE OF ALPHAL_SOURCE',alphal_source
                 STOP
                 
@@ -1739,7 +1786,8 @@ CONTAINS
           
           IF ( t_collapse .EQ. -1.0_wp ) THEN
              
-             WRITE(*,*) 'ERROR: problem with namelist COLLAPSING_VOLUME_PARAMETERS'
+             WRITE(*,*) 'ERROR: problem with namelist                           &
+                  &COLLAPSING_VOLUME_PARAMETERS'
              WRITE(*,*) 'PLEASE CHECK VALUE OF T_COLLAPSE',t_collapse
              STOP
              
@@ -1747,7 +1795,8 @@ CONTAINS
 
           IF ( h_collapse .EQ. -1.0_wp ) THEN
              
-             WRITE(*,*) 'ERROR: problem with namelist COLLAPSING_VOLUME_PARAMETERS'
+             WRITE(*,*) 'ERROR: problem with namelist                           &
+                  &COLLAPSING_VOLUME_PARAMETERS'
              WRITE(*,*) 'PLEASE CHECK VALUE OF H_COLLAPSE',h_collapse
              STOP
              
@@ -1755,7 +1804,8 @@ CONTAINS
 
           IF ( r_collapse .EQ. -1.0_wp ) THEN
              
-             WRITE(*,*) 'ERROR: problem with namelist COLLAPSING_VOLUME_PARAMETERS'
+             WRITE(*,*) 'ERROR: problem with namelist                           &
+                  &COLLAPSING_VOLUME_PARAMETERS'
              WRITE(*,*) 'PLEASE CHECK VALUE OF R_COLLAPSE',r_collapse
              STOP
              
@@ -1763,16 +1813,18 @@ CONTAINS
 
           IF ( ( x_collapse - r_collapse ) .LE. X0 + cell_size ) THEN
              
-             WRITE(*,*) 'ERROR: problem with namelist COLLAPSING_VOLUME_PARAMETERS'
+             WRITE(*,*) 'ERROR: problem with namelist                           &
+                  &COLLAPSING_VOLUME_PARAMETERS'
              WRITE(*,*) 'COLLAPSING VOLUME TOO LARGE'
              WRITE(*,*) ' x_collapse - radius ',x_collapse-r_collapse
              STOP
 
           END IF
 
-          IF ( ( x_collapse + r_collapse ) .GE. X0+(comp_cells_x-1)*cell_size ) THEN
+          IF ( (x_collapse+r_collapse) .GE. X0+(comp_cells_x-1)*cell_size ) THEN
              
-             WRITE(*,*) 'ERROR: problem with namelist COLLAPSING_VOLUME_PARAMETERS'
+             WRITE(*,*) 'ERROR: problem with namelist                           &
+                  &COLLAPSING_VOLUME_PARAMETERS'
              WRITE(*,*) 'COLLAPSING VOLUME TOO LARGE'
              WRITE(*,*) ' x_collapse + radius ',x_collapse+r_collapse
              STOP
@@ -1781,16 +1833,18 @@ CONTAINS
 
           IF ( ( y_collapse - r_collapse ) .LE. Y0 + cell_size ) THEN
              
-             WRITE(*,*) 'ERROR: problem with namelist COLLAPSING_VOLUME_PARAMETERS'
+             WRITE(*,*) 'ERROR: problem with namelist                           &
+                  &COLLAPSING_VOLUME_PARAMETERS'
              WRITE(*,*) 'COLLAPSING VOLUME TOO LARGE'
              WRITE(*,*) ' y_collapse - radius ',y_collapse-r_collapse
              STOP
 
           END IF
 
-          IF ( ( y_collapse + r_collapse ) .GE. Y0 +(comp_cells_y-1)*cell_size ) THEN
+          IF ( (y_collapse+r_collapse) .GE. Y0+(comp_cells_y-1)*cell_size ) THEN
              
-             WRITE(*,*) 'ERROR: problem with namelist COLLAPSING_VOLUME_PARAMETERS'
+             WRITE(*,*) 'ERROR: problem with namelist                           &
+                  &COLLAPSING_VOLUME_PARAMETERS'
              WRITE(*,*) 'COLLAPSING VOLUME TOO LARGE'
              WRITE(*,*) ' y_collapse + radius ',y_collapse+r_collapse
              STOP
@@ -1799,7 +1853,8 @@ CONTAINS
 
           IF ( ANY(alphas_collapse(1:n_solid) .EQ. -1.0_wp ) ) THEN
        
-             WRITE(*,*) 'ERROR: problem with namelist COLLAPSING_VOLUME_PARAMETERS'
+             WRITE(*,*) 'ERROR: problem with namelist                           &
+                  &COLLAPSING_VOLUME_PARAMETERS'
              WRITE(*,*) 'alphas_collpase =' , alphas_collapse(1:n_solid)
              WRITE(*,*) 'Please check the input file'
              STOP
@@ -1868,7 +1923,7 @@ CONTAINS
              
           END IF
 
-          IF ( ( T_ref .NE. -1.0_wp ) .OR. ( nu_ref .NE. -1.0_wp ) .OR.             &
+          IF ( ( T_ref .NE. -1.0_wp ) .OR. ( nu_ref .NE. -1.0_wp ) .OR.         &
                ( visc_par .NE. -1.0_wp ) .OR. ( tau .NE. -1.0_wp ) ) THEN
 
              WRITE(*,*) 'WARNING: parameters not used in RHEOLOGY_PARAMETERS'
@@ -1893,8 +1948,8 @@ CONTAINS
              
           END IF
           
-          IF ( ( T_ref .NE. -1.0_wp ) .OR. ( nu_ref .NE. -1.0_wp ) .OR.             &
-               ( visc_par .NE. -1.0_wp ) .OR. ( mu .NE. -1.0_wp ) .OR.              &
+          IF ( ( T_ref .NE. -1.0_wp ) .OR. ( nu_ref .NE. -1.0_wp ) .OR.         &
+               ( visc_par .NE. -1.0_wp ) .OR. ( mu .NE. -1.0_wp ) .OR.          &
                ( xi .NE. -1.0_wp ) ) THEN
 
              WRITE(*,*) 'WARNING: parameters not used in RHEOLOGY_PARAMETERS'
@@ -1947,8 +2002,8 @@ CONTAINS
 
           END IF
 
-          IF ( ( mu .NE. -1.0_wp ) .OR. ( xi .NE. -1.0_wp ) .OR. ( tau .NE. -1.0_wp ) )  &
-               THEN
+          IF ( ( mu .NE. -1.0_wp ) .OR. ( xi .NE. -1.0_wp ) .OR.                &
+               ( tau .NE. -1.0_wp ) ) THEN
 
              WRITE(*,*) 'WARNING: parameters not used in RHEOLOGY_PARAMETERS'
              IF ( mu .NE. -1.0_wp ) WRITE(*,*) 'mu =',mu 
@@ -2020,14 +2075,14 @@ CONTAINS
              
              IF ( Tc .LT. 20.0_wp ) THEN
                 
-                expA = 1301.0_wp / ( 998.333_wp + 8.1855_wp * ( Tc - 20.0_wp )        &
+                expA = 1301.0_wp / ( 998.333_wp + 8.1855_wp * ( Tc - 20.0_wp )  &
                      + 0.00585_wp * ( Tc - 20.0_wp )**2 ) - 1.30223_wp
                 
                 alpha1_coeff = alpha1_ref / ( 1.0E-3_wp * 10.0_wp**expA )
                 
              ELSE
                 
-                expB = ( 1.3272_wp * ( 20.0_wp - Tc ) - 0.001053_wp *               &
+                expB = ( 1.3272_wp * ( 20.0_wp - Tc ) - 0.001053_wp *           &
                      ( Tc - 20.0_wp )**2 ) / ( Tc + 105.0_wp )
                 
                 alpha1_coeff = alpha1_ref / ( 1.002E-3_wp * 10.0_wp**expB )
@@ -2143,11 +2198,11 @@ CONTAINS
 
     ! The right margin of the computational domain should be smaller then the
     ! center of the last pixel
-    IF ( x0 + ( comp_cells_x ) * cell_size .GT.                              &
+    IF ( x0 + ( comp_cells_x ) * cell_size .GT.                                 &
          xllcorner + ( 0.5_wp + ncols ) * cellsize ) THEN 
 
        WRITE(*,*) 'Computational domain problem'
-       WRITE(*,*) 'right edge > xllcorner+ncols*cellsize',                   &
+       WRITE(*,*) 'right edge > xllcorner+ncols*cellsize',                      &
             x0+comp_cells_x*cell_size , xllcorner+(0.5_wp+ncols)*cellsize
        STOP
 
@@ -2161,11 +2216,11 @@ CONTAINS
 
     END IF
 
-    IF ( ABS( ( y0 + comp_cells_y * cell_size ) - ( yllcorner + 0.5_wp +      &
+    IF ( ABS( ( y0 + comp_cells_y * cell_size ) - ( yllcorner + 0.5_wp +        &
          nrows * cellsize ) ) .LT. 1.E-10_wp ) THEN 
 
        WRITE(*,*) 'Computational domain problem'
-       WRITE(*,*) 'top edge > yllcorner+nrows*cellsize',                     &
+       WRITE(*,*) 'top edge > yllcorner+nrows*cellsize',                        &
             y0+comp_cells_y*cell_size , yllcorner+(0.5_wp+nrows)*cellsize
        STOP
 
@@ -2183,7 +2238,7 @@ CONTAINS
 
     n_topography_profile_y = nrows
 
-    ALLOCATE( topography_profile( 3 , n_topography_profile_x ,               &
+    ALLOCATE( topography_profile( 3 , n_topography_profile_x ,                  &
          n_topography_profile_y) )
 
     DO j=1,n_topography_profile_x 
@@ -2306,18 +2361,20 @@ CONTAINS
        
        REWIND(input_unit)
 
-       n_thickness_levels = COUNT( thickness_levels0 .GT. 0.0_wp )
-       n_dyn_pres_levels = COUNT( dyn_pres_levels0 .GT. 0.0_wp )
+       n_thickness_levels = COUNT( thickness_levels0 .GE. 0.0_wp )
+       n_dyn_pres_levels = COUNT( dyn_pres_levels0 .GE. 0.0_wp )
        
        IF ( n_thickness_levels .GT. 0 ) THEN
 
           ALLOCATE( thickness_levels(n_thickness_levels) )
-          thickness_levels(1:n_thickness_levels) = thickness_levels0(1:n_thickness_levels)
+          thickness_levels(1:n_thickness_levels) =                              &
+               thickness_levels0(1:n_thickness_levels)
           IF ( ANY(thickness_levels .LT. 0.0_wp ) ) THEN
 
-             WRITE(*,*) 'ERROR: problem with namelist VULNERABILITY_TABLE_PARAMETERS'
+             WRITE(*,*) 'ERROR: problem with namelist ',                        &
+                  'VULNERABILITY_TABLE_PARAMETERS'
              WRITE(*,*) 'Please check the input file'
-             WRITE(*,*) 'thickness_levels(1:n_thickness_levels)', &
+             WRITE(*,*) 'thickness_levels(1:n_thickness_levels)',               &
                   thickness_levels(1:n_thickness_levels)
             
              STOP
@@ -2336,12 +2393,14 @@ CONTAINS
        IF ( n_dyn_pres_levels .GT. 0 ) THEN
 
           ALLOCATE( dyn_pres_levels(n_dyn_pres_levels) )
-          dyn_pres_levels(1:n_dyn_pres_levels) = dyn_pres_levels0(1:n_dyn_pres_levels)
+          dyn_pres_levels(1:n_dyn_pres_levels) =                                &
+               dyn_pres_levels0(1:n_dyn_pres_levels)
           IF ( ANY(dyn_pres_levels .LT. 0.0_wp ) ) THEN
 
-             WRITE(*,*) 'ERROR: problem with namelist VULNERABILITY_TABLE_PARAMETERS'
+             WRITE(*,*) 'ERROR: problem with namelist ',                        &
+                  'VULNERABILITY_TABLE_PARAMETERS'
              WRITE(*,*) 'Please check the input file'
-             WRITE(*,*) 'dyn_pres_levels(1:n_thickness_levels)', &
+             WRITE(*,*) 'dyn_pres_levels(1:n_thickness_levels)',                &
                   dyn_pres_levels(1:n_dyn_pres_levels)
             
              STOP
@@ -2823,24 +2882,34 @@ CONTAINS
        IF ( subtract_init_flag ) THEN
           
           IF ( MAXVAL(erodible_init(:,:)) .GT. 0.0_wp ) THEN
-             
+
+             WRITE(*,*)
              WRITE(*,*) 'Subtracting initial thickness from erodible thickness'
-             erodible_init(:,:) = erodible_init(:,:) - thickness_init(:,:)
+             erodible_init(:,:) = erodible_init(:,:) - thickness_init(:,:) *    &
+                  ( SUM(alphas_init(1:n_solid))  /                              &
+                  ( 1.0_wp - erodible_porosity ) )
              
              IF ( MINVAL(erodible_init(:,:)) .LT. 0.0_wp ) THEN
                 
-                WRITE(*,*) 'WARNING: MINVAL(erodible_init) = ',MINVAL(erodible_init(:,:)) 
-                WRITE(*,*) 'initial erodible thickness negative values changed to 0'
+                WRITE(*,*) 'WARNING: MINVAL(erodible_init) = ',                 &
+                     MINVAL(erodible_init(:,:)) 
+                WRITE(*,*) 'Initial erodible thick. negative values changed to 0'
                 
                 erodible_init = MAX( 0.0_wp , erodible_init )
                 
              END IF
+
+             WRITE(*,*) 'Absolute fractions of solide phases in deposit:'
              
              DO i_solid=1,n_solid
-                
-                erodible(:,:,i_solid) = erodible_fract(i_solid) * erodible_init(:,:)
+
+                WRITE(*,*) erodible_fract(i_solid) * ( 1.0_wp-erodible_porosity )
+                erodible(:,:,i_solid) = erodible_fract(i_solid) *               &
+                     ( 1.0_wp - erodible_porosity ) * erodible_init(:,:)
                 
              END DO
+
+             WRITE(*,*)
              
           END IF
           
@@ -2945,7 +3014,7 @@ CONTAINS
           
           DO j=1,comp_cells_x
 
-             READ(restart_unit,'(2e20.12,100(e20.12))') xj , yk ,                 &
+             READ(restart_unit,'(2e20.12,100(e20.12))') xj , yk ,               &
                   (q(i_vars,j,k),i_vars=1,n_vars) 
 
              IF ( q(1,j,k) .LE. 0.0_wp ) q(1:n_vars,j,k) = 0.0_wp
@@ -3061,8 +3130,8 @@ CONTAINS
        
        OPEN(erodible_unit,FILE=erodible_file,STATUS='old')
        
-       IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Erodible file: ',TRIM(erodible_file),   &
-            ' found'
+       IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Erodible file: ',                &
+            TRIM(erodible_file),' found'
 
        dot_idx = SCAN(erodible_file, ".", .TRUE.)
 
@@ -3274,7 +3343,7 @@ CONTAINS
                 
              ENDDO
 
-             WRITE(output_unit_2d,'(2e20.12,100(e20.12))') x_comp(j), y_comp(k),  &
+             WRITE(output_unit_2d,'(2e20.12,100(e20.12))') x_comp(j), y_comp(k),&
                   (q(i_vars,j,k),i_vars=1,n_vars) 
     
           ENDDO
@@ -3328,8 +3397,10 @@ CONTAINS
              DO i=1,n_solid
 
                 IF ( ABS( r_alphas(i) ) .LT. 1.0E-20_wp ) r_alphas(i) = 0.0_wp
-                IF ( ABS( DEPOSIT(j,k,i) ) .LT. 1.0E-20_wp ) DEPOSIT(j,k,i) = 0.0_wp 
-                IF ( ABS( EROSION(j,k,i) ) .LT. 1.0E-20_wp ) EROSION(j,k,i) = 0.0_wp 
+                IF ( ABS( DEPOSIT(j,k,i) ) .LT. 1.0E-20_wp )                    &
+                     DEPOSIT(j,k,i) = 0.0_wp 
+                IF ( ABS( EROSION(j,k,i) ) .LT. 1.0E-20_wp )                    &
+                     EROSION(j,k,i) = 0.0_wp 
 
              END DO
              
@@ -3437,7 +3508,8 @@ CONTAINS
        OPEN( output_VT_unit , FILE=output_VT_file , status='unknown' ,          &
             form='formatted')
 
-       WRITE(output_VT_unit,*) 'ID file        thickness (m)           dynamic pressure (Pa)'
+       WRITE(output_VT_unit,*) 'ID file        thickness (m)            dynamic &
+            &pressure (Pa)'
 
        DO i_thk_lev=1,n_thickness_levels
 
@@ -3447,8 +3519,8 @@ CONTAINS
              
              idx_string = lettera(i_table)
 
-             WRITE(output_VT_unit,*) idx_string ,'      ', thickness_levels(i_thk_lev),  &
-                  dyn_pres_levels(i_pdyn_lev)
+             WRITE(output_VT_unit,*) idx_string ,'      ',                      &
+                  thickness_levels(i_thk_lev) , dyn_pres_levels(i_pdyn_lev)
 
              grid_output_int(:,:) = MERGE(1,-9999,vuln_table(i_table,:,:))
 
@@ -3600,11 +3672,13 @@ CONTAINS
 
        isolid_string = lettera(i_solid)
 
-       output_esri_file = TRIM(run_name)//'_dep_'//isolid_string//'_'//idx_string//'.asc'
+       output_esri_file =                                                       &
+            TRIM(run_name)//'_dep_'//isolid_string//'_'//idx_string//'.asc'
        
        IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'WRITING ',output_esri_file
        
-       OPEN(output_esri_unit,FILE=output_esri_file,status='unknown',form='formatted')
+       OPEN(output_esri_unit,FILE=output_esri_file,status='unknown',            &
+            form='formatted')
        
        grid_output = -9999 
        
@@ -3636,11 +3710,13 @@ CONTAINS
 
        isolid_string = lettera(i_solid)
 
-       output_esri_file = TRIM(run_name)//'_ers_'//isolid_string//'_'//idx_string//'.asc'
+       output_esri_file =                                                       &
+            TRIM(run_name)//'_ers_'//isolid_string//'_'//idx_string//'.asc'
        
        IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'WRITING ',output_esri_file
        
-       OPEN(output_esri_unit,FILE=output_esri_file,status='unknown',form='formatted')
+       OPEN(output_esri_unit,FILE=output_esri_file,status='unknown',            &
+            form='formatted')
        
        grid_output = -9999 
        

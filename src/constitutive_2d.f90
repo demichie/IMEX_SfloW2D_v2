@@ -99,6 +99,9 @@ MODULE constitutive_2d
   !> Specific heat of carrier phase (gas or liquid)
   REAL(wp) :: sp_heat_c  ! ( initialized from input)   
 
+  !> Density of carrier phase in substrate ( units: kg m-3 )
+  REAL(wp) :: rho_c_sub
+  
   !> Ambient density of air ( units: kg m-3 )
   REAL(wp) :: rho_a_amb
 
@@ -142,10 +145,16 @@ MODULE constitutive_2d
   REAL(wp) :: settling_vel
 
   !> erosion model coefficient  (units: m-1 )
-  REAL(wp), ALLOCATABLE :: erosion_coeff(:)
+  REAL(wp), ALLOCATABLE :: erosion_coeff
 
-  !> temperature of solid substrate (units: K)
-  REAL(wp) :: T_s_substrate
+  !> erodible substrate solid relative volume fractions
+  REAL(wp), ALLOCATABLE :: erodible_fract(:)
+
+  !> erodible substrate porosity (we assume filled by continous phase)
+  REAL(wp) :: erodible_porosity
+  
+  !> temperature of erodible substrate (units: K)
+  REAL(wp) :: T_erodible
 
   !> ambient pressure (units: Pa)
   REAL(wp) :: pres
@@ -1695,7 +1704,7 @@ CONTAINS
     REAL(wp) :: r_rho_m      !< real-value mixture density [kg/m3]
     REAL(wp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
     REAL(wp) :: r_red_grav   !< real-value reduced gravity
-
+    REAL(wp) :: tot_erosion
 
     ! parameters for Michaels and Bolger (1962) sedimentation correction
     alpha_max = 0.6_wp
@@ -1713,6 +1722,12 @@ CONTAINS
 
     CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav)
 
+    mod_vel = SQRT( r_u**2 + r_v**2 )
+    ! empirical formulation (see Fagents & Baloga 2006, Eq. 5)
+    ! here we use the solid volume fraction instead of relative density
+    ! This term has units: m s-1    
+    tot_erosion = erosion_coeff * mod_vel * r_h * ( 1.0_wp-SUM(r_alphas) )
+    
     DO i_solid=1,n_solid
 
        IF ( ( r_alphas(i_solid) .GT. 0.0_wp ) .AND. ( settling_flag ) ) THEN
@@ -1736,15 +1751,10 @@ CONTAINS
 
        END IF
 
-       mod_vel = SQRT( r_u**2 + r_v**2 )
+       IF ( erosion_coeff .GT. 0.0_wp ) THEN
 
-       IF ( r_h .GT. 1.0E-2_wp ) THEN
-
-          ! empirical formulation (see Fagents & Baloga 2006, Eq. 5)
-          ! here we use the solid volume fraction instead of relative density
-          ! This term has units: m s-1
-          erosion_term(i_solid) = erosion_coeff(i_solid) * mod_vel * r_h        &
-               * ( 1.0_wp - SUM(r_alphas) )
+          erosion_term(i_solid) = erodible_fract(i_solid) * ( 1.0_wp -          &
+               erodible_porosity ) * tot_erosion
 
        ELSE
 
@@ -1834,39 +1844,49 @@ CONTAINS
 
     eqns_term(1:n_eqns) = 0.0_wp
 
-    ! free surface (topography+flow) equation
+    ! total mass equation source term
     eqns_term(1) = SUM( rho_s * ( erosion_avg_term - deposition_avg_term ) ) +  &
-         rho_a_amb * air_entr
-
-    ! x-momenutm equation
+         rho_c_sub * erodible_porosity / ( 1.0_wp - erodible_porosity ) *       &
+         SUM( erosion_avg_term ) + rho_a_amb * air_entr
+    
+    ! x-momenutm equation source term
+    ! only deposition contribute to change in momentum, erosion does not carry
+    ! any momentum inside the flow
     eqns_term(2) = - r_u * SUM( rho_s * deposition_avg_term )
 
-    ! y-momentum equation
+    ! y-momentum equation source term
+    ! only deposition contribute to change in momentum, erosion does not carry
+    ! any momentum inside the flow
     eqns_term(3) = - r_v * SUM( rho_s * deposition_avg_term )
 
-    ! Temperature/Energy equation
+    ! Temperature/Energy equation source term
+    ! deposition, erosion and entrainment are considered
     IF ( energy_flag ) THEN
 
        eqns_term(4) = - r_T * SUM( rho_s * sp_heat_s * deposition_avg_term )    &
             - 0.5_wp * mag_vel**2 * SUM( rho_s * deposition_avg_term )          &
-            + T_s_substrate * SUM( rho_s * sp_heat_s * erosion_avg_term )       &
+            + T_erodible * SUM( rho_s * sp_heat_s * erosion_avg_term )          &
+            + T_erodible * rho_c_sub * sp_heat_c * SUM( erosion_avg_term )      &
+            * erodible_porosity / ( 1.0_wp - erodible_porosity )                &
             + T_ambient * sp_heat_a * rho_a_amb * air_entr
 
     ELSE
 
        eqns_term(4) = - r_T * SUM( rho_s * sp_heat_s * deposition_avg_term )    &
-            + T_s_substrate * SUM( rho_s * sp_heat_s * erosion_avg_term )       &
+            + T_erodible * SUM( rho_s * sp_heat_s * erosion_avg_term )          &
+            + T_erodible * rho_c_sub * sp_heat_c * SUM( erosion_avg_term )      &
+            * erodible_porosity / ( 1.0_wp - erodible_porosity )                &
             + T_ambient * sp_heat_a * rho_a_amb * air_entr
 
     END IF
 
-    ! solid phase thickness equation
+    ! solid phase mass equation source term
     eqns_term(5:4+n_solid) = rho_s(1:n_solid) * ( erosion_avg_term(1:n_solid)   &
          - deposition_avg_term(1:n_solid) )
-
-    ! solid deposit rate terms
+    
+    ! erodible layer thickness source terms
     topo_term = SUM( deposition_avg_term(1:n_solid)                             &
-         - erosion_avg_term(1:n_solid) )
+         - erosion_avg_term(1:n_solid) / ( 1.0_wp - erodible_porosity ) )
 
     RETURN
 
