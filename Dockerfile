@@ -9,7 +9,8 @@ MAINTAINER Mattia de' Michieli Vitturi <demichie@gmail.com>
 # install packages from alpine edge repositories
 
 ADD repositories /etc/apk/repositories
-RUN apk add --no-cache bash bash-doc bash-completion nano musl-dev m4 zlib-dev git gfortran gdb make curl py3-numpy@community hdf5-dev@testing openmpi-dev@testing lapack-dev@community
+RUN apk update \
+    && apk add --no-cache bash bash-doc bash-completion nano musl-dev m4 zlib-dev git gfortran gdb make curl py3-numpy@community hdf5-dev@testing openmpi-dev@testing lapack-dev@community
 
 
 # install netcdf libreries
