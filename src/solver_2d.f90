@@ -769,7 +769,6 @@ CONTAINS
        ! Compute the max/min eigenvalues at the interfaces
        CALL eval_speeds
 
-
        !$OMP PARALLEL DO private(j,k)
        DO l = 1,solve_interfaces_x
 
@@ -975,7 +974,7 @@ CONTAINS
                 ! Eval the semi-implicit terms
                 ! (terms which non depend on velocity magnitude)
                 CALL eval_nh_semi_impl_terms( grav_surf(j,k) ,                  &
-                     q_fv( 1:n_vars , j , k ) , SI_NH(1:n_eqns,j,k,i_RK) ) 
+                     q_fv( 1:n_vars , j , k ) , SI_NH(1:n_eqns,j,k,i_RK) )
 
                 ! Assemble the initial guess for the implicit solver
                 q_si(1:n_vars) = q_fv(1:n_vars,j,k ) + dt * a_diag *            &
@@ -1154,11 +1153,12 @@ CONTAINS
 
           WRITE(*,*) 'cell jk =',j,k
           WRITE(*,*) 'before imex_RK_solver: qc',q0(1:n_vars,j,k)
+
           IF ( q0(1,j,k) .GT. 0.0_wp ) THEN
 
              CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k))
              WRITE(*,*) 'before imex_RK_solver: qp',qp(1:n_vars+2,j,k)
-
+ 
           END IF
 
        END IF
@@ -2366,10 +2366,10 @@ CONTAINS
 
           CALL eval_fluxes( q_interfaceL(1:n_vars,j,k) ,                        &
                qp_interfaceL(1:n_vars+2,j,k) , 1 , fluxL)
-
+          
           CALL eval_fluxes( q_interfaceR(1:n_vars,j,k) ,                        &
                qp_interfaceR(1:n_vars+2,j,k) , 1 , fluxR)
-
+          
           CALL average_KT( a_interface_xNeg(:,j,k), a_interface_xPos(:,j,k) ,   &
                fluxL , fluxR , flux_avg_x )
 
@@ -3007,7 +3007,7 @@ CONTAINS
                    qrecE(1:n_vars+2) = source_bdry(1:n_vars+2)
 
                 ELSEIF ( sourceW(j,k) ) THEN
-
+                   
                    CALL eval_source_bdry( t, sourceW_vect_x(j,k) ,              &
                         sourceW_vect_y(j,k) , source_bdry )
 
@@ -3030,9 +3030,6 @@ CONTAINS
              ! Interface value at the left of first x-interface (external)
              q_interfaceL(:,j,k) = q_interfaceR(:,j,k)
              qp_interfaceL(:,j,k) = qp_interfaceR(:,j,k)
-
-             !WRITE(*,*) 'q_interfaceL(:,j,k)',q_interfaceL(:,j,k)
-             !READ(*,*)
 
           ELSEIF ( j.EQ.comp_cells_x ) THEN
 
@@ -3175,7 +3172,7 @@ CONTAINS
 
           CALL qp_to_qc( qrecS, q_interfaceT(:,j,k))
           CALL qp_to_qc( qrecN, q_interfaceB(:,j,k+1))
-
+          
           qp_interfaceT(1:n_vars+2,j,k) = qrecS(1:n_vars+2)
           qp_interfaceB(1:n_vars+2,j,k+1) = qrecN(1:n_vars+2)
 

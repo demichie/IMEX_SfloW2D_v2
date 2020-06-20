@@ -250,7 +250,7 @@ CONTAINS
     REAL(wp) :: r_sp_heat_mix   !< Specific heat of mixture
 
     REAL(wp) :: r_inv_rho_c
-
+    
     ! compute solid mass fractions
     IF ( r_qj(1) .GT. eps_sing ) THEN
 
@@ -332,7 +332,6 @@ CONTAINS
        sp_heat_c = sp_heat_l
 
     END IF
-
 
     IF ( gas_flag .AND. liquid_flag ) THEN
 
@@ -907,8 +906,10 @@ CONTAINS
        IF ( r_h .GT. 0.0_wp ) THEN
 
           ! total energy (internal and kinetic)
+          !qc(4) = r_h * r_rho_m * ( r_sp_heat_mix * r_T                         &
+          !     + 0.5_wp * ( r_hu**2 + r_hv**2 ) / r_h**2 )
           qc(4) = r_h * r_rho_m * ( r_sp_heat_mix * r_T                         &
-               + 0.5_wp * ( r_hu**2 + r_hv**2 ) / r_h**2 )
+               + 0.5_wp * ( r_u**2 + r_v**2 ) )
 
        ELSE
 
@@ -1089,6 +1090,8 @@ CONTAINS
 
   SUBROUTINE eval_fluxes(qcj,qpj,dir,flux)
 
+    USE parameters_2d, ONLY : eps_sing
+
     IMPLICIT none
 
     REAL(wp), INTENT(IN) :: qcj(n_vars)
@@ -1105,7 +1108,7 @@ CONTAINS
     REAL(wp) :: r_rho_c      !< real-value carrier phase density [kg m-3]
     REAL(wp) :: r_red_grav   !< real-value reduced gravity [m s-2]
 
-    pos_thick:IF ( qcj(1) .GT. 0.0_wp ) THEN
+    pos_thick:IF ( qpj(1) .GT. eps_sing ) THEN
 
        r_h = qpj(1)
        r_u = qpj(n_vars+1)
@@ -1527,12 +1530,12 @@ CONTAINS
     IF (rheology_flag) THEN
 
        CALL r_phys_var(qcj,r_h,r_u,r_v,r_alphas,r_rho_m,r_T,r_alphal)
-
-       mod_vel = SQRT( r_u**2 + r_v**2 )
-
+       
        ! Voellmy Salm rheology
        IF ( rheology_model .EQ. 1 ) THEN
 
+          mod_vel = SQRT( r_u**2 + r_v**2 )
+          
           IF ( mod_vel .GT. 0.0_wp ) THEN
 
              ! units of dqc(2)/dt=d(rho h v)/dt (kg m-1 s-2)
@@ -1573,6 +1576,8 @@ CONTAINS
 
           END IF
 
+          mod_vel = SQRT( r_u**2 + r_v**2 )
+          
           IF ( mod_vel .GT. 0.0_wp ) THEN
 
              ! units of dqc(2)/dt (kg m-1 s-2)

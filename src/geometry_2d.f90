@@ -1045,7 +1045,7 @@ CONTAINS
 
     REAL(wp) :: a , b , sa , sb 
 
-    IF ( a*b .EQ. 0.0_wp ) THEN
+    IF ( MIN(ABS(a),ABS(b)) .LT. 1.0e-30_wp ) THEN
 
        minmod = 0.0_wp
 
@@ -1053,11 +1053,11 @@ CONTAINS
 
        sa = a / ABS(a)
        sb = b / ABS(b)
-
+       
        minmod = 0.5_wp * ( sa+sb ) * MIN( ABS(a) , ABS(b) )
 
     END IF
-
+    
   END FUNCTION minmod
 
   REAL(wp) function maxmod(a,b)
@@ -1066,7 +1066,7 @@ CONTAINS
 
     REAL(wp) :: a , b , sa , sb 
 
-    IF ( a*b .EQ. 0.0_wp ) THEN
+    IF ( ABS(a*b) .LT. 1.0e-30_wp ) THEN
 
        maxmod = 0.0_wp
 

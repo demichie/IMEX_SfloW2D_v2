@@ -24,7 +24,7 @@ with open(bakfile) as f:
         if "DT_OUTPUT" in line:
              line1 = line.replace(',','')
              dt = float(line1.split()[-1])
-             print 'dt='+str(dt)
+             print('dt='+str(dt))
 
 
 filelist = sorted(glob.glob(runname+'_*[0-9].p_2d'))
