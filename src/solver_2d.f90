@@ -590,8 +590,7 @@ CONTAINS
 
     END IF
 
-
-    !$OMP SINGLE
+    !$OMP MASTER
 
     DO i = 1,n_RK
 
@@ -605,7 +604,7 @@ CONTAINS
 
     END DO
 
-    !$OMP END SINGLE
+    !$OMP END MASTER
 
     !$OMP DO private(j,k)
     
