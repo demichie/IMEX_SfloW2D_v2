@@ -567,6 +567,8 @@ CONTAINS
          solve_mask(2:comp_cells_x-1,2:comp_cells_y-1) = .TRUE.
     
     !$OMP END WORKSHARE
+
+    !$OMP BARRIER
     
     IF ( radial_source_flag ) THEN
              
@@ -590,6 +592,7 @@ CONTAINS
 
     END IF
 
+    !$OMP BARRIER
     !$OMP MASTER
 
     DO i = 1,n_RK
@@ -605,7 +608,8 @@ CONTAINS
     END DO
 
     !$OMP END MASTER
-
+    !$OMP BARRIER
+    
     !$OMP DO private(j,k)
     
     DO k = 1,comp_cells_y
