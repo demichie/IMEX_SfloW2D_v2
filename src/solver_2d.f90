@@ -19,7 +19,6 @@ MODULE solver_2d
   USE geometry_2d, ONLY : comp_interfaces_x,comp_interfaces_y
 
   USE geometry_2d, ONLY : B_cent , B_prime_x , B_prime_y
-  USE geometry_2d, ONLY : B_interfaceL , B_interfaceR , B_interfaceT , B_interfaceB
   USE geometry_2d, ONLY : grav_surf
   USE geometry_2d, ONLY : source_cell
 
@@ -2568,8 +2567,6 @@ CONTAINS
     ! External variables
     USE geometry_2d, ONLY : x_comp , x_stag , y_comp , y_stag , dx , dx2 , dy , &
          dy2
-
-    USE geometry_2d, ONLY : B_cent
 
     USE geometry_2d, ONLY : sourceW , sourceE , sourceN , sourceS
     USE geometry_2d, ONLY : sourceW_vect_x , sourceW_vect_y

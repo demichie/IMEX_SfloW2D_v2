@@ -26,18 +26,6 @@ MODULE geometry_2d
   !> Topography at the vertices of the control volumes
   REAL(wp), ALLOCATABLE :: B_ver(:,:)
 
-  !> Reconstructed value at the left of the x-interface
-  REAL(wp), ALLOCATABLE :: B_interfaceL(:,:)        
-
-  !> Reconstructed value at the right of the x-interface
-  REAL(wp), ALLOCATABLE :: B_interfaceR(:,:)
-
-  !> Reconstructed value at the bottom of the y-interface
-  REAL(wp), ALLOCATABLE :: B_interfaceB(:,:)        
-
-  !> Reconstructed value at the top of the y-interface
-  REAL(wp), ALLOCATABLE :: B_interfaceT(:,:)
-
   !> Topography at the centers of the control volumes 
   REAL(wp), ALLOCATABLE :: B_cent(:,:)
 
@@ -168,11 +156,6 @@ CONTAINS
     ALLOCATE( B_prime_x(comp_cells_x,comp_cells_y) )
     ALLOCATE( B_prime_y(comp_cells_x,comp_cells_y) )
 
-    ALLOCATE( B_interfaceL( comp_interfaces_x, comp_cells_y ) )
-    ALLOCATE( B_interfaceR( comp_interfaces_x, comp_cells_y ) )
-    ALLOCATE( B_interfaceB( comp_cells_x, comp_interfaces_y ) )
-    ALLOCATE( B_interfaceT( comp_cells_x, comp_interfaces_y ) )
-
     ALLOCATE( grid_output(comp_cells_x,comp_cells_y) )
     ALLOCATE( grid_output_int(comp_cells_x,comp_cells_y) )
 
@@ -255,31 +238,6 @@ CONTAINS
        
     END DO
 
-!!$    DO j=1,comp_cells_x
-!!$
-!!$       DO k=1,comp_cells_y
-!!$
-!!$          B_interfaceR(j,k) = 0.5_wp * ( B_ver(j,k+1) + B_ver(j,k) )
-!!$          B_interfaceL(j+1,k) = 0.5_wp * ( B_ver(j+1,k+1) + B_ver(j+1,k) ) 
-!!$
-!!$          B_interfaceT(j,k) = 0.5_wp * ( B_ver(j+1,k) + B_ver(j,k) )
-!!$          B_interfaceB(j,k+1) = 0.5_wp * ( B_ver(j+1,k+1) + B_ver(j,k+1) )
-!!$          
-!!$          B_cent(j,k) = 0.25_wp * ( B_ver(j,k) + B_ver(j+1,k) + B_ver(j,k+1)     &
-!!$               + B_ver(j+1,k+1) )
-!!$
-!!$             ! Second factor in RHS 1st Eq. 3.16 K&P
-!!$          B_prime_x(j,k) = ( B_interfaceL(j+1,k) - B_interfaceR(j,k) ) /        &
-!!$               (  x_stag(j+1) - x_stag(j) )
-!!$          
-!!$          ! Second factor in RHS 2nd Eq. 3.16 K&P
-!!$          B_prime_y(j,k) = ( B_interfaceB(j,k+1) - B_interfaceT(j,k) ) /        &
-!!$               (  y_stag(k+1) - y_stag(k) )
-!!$          
-!!$       END DO
-!!$       
-!!$    ENDDO
-
     DO k=1,comp_cells_y
     
        DO j=1,comp_cells_x
@@ -287,16 +245,6 @@ CONTAINS
           CALL interp_2d_scalar( topography_profile(1,:,:) ,                    &
                topography_profile(2,:,:), topography_profile(3,:,:) ,           &
                x_comp(j), y_comp(k) , B_cent(j,k) )
-
-!!$          CALL interp_2d_slope( topography_profile(1,:,:) ,                     &
-!!$               topography_profile(2,:,:), topography_profile(3,:,:) ,           &
-!!$               x_comp(j), y_comp(k) , B_prime_x(j,k) , B_prime_y(j,k) )
-!!$
-!!$          B_interfaceR(j,k) = B_cent(j,k) - dx2 * B_prime_x(j,k)
-!!$          B_interfaceL(j+1,k) = B_cent(j,k) + dx2 * B_prime_x(j,k)
-!!$          
-!!$          B_interfaceT(j,k) = B_cent(j,k) - dx2 * B_prime_y(j,k)
-!!$          B_interfaceB(j,k+1) = B_cent(j,k) + dx2 * B_prime_y(j,k)
 
        END DO
 
@@ -871,20 +819,6 @@ CONTAINS
        END DO x_loop
        
     END DO y_loop
-
-    DO j = 1,comp_cells_x
-    
-       DO k = 1,comp_cells_y
-
-          B_interfaceR(j,k) = B_cent(j,k) - dx2 * B_prime_x(j,k)
-          B_interfaceL(j+1,k) = B_cent(j,k) + dx2 * B_prime_x(j,k)
-       
-          B_interfaceT(j,k) = B_cent(j,k) - dx2 * B_prime_y(j,k)
-          B_interfaceB(j,k+1) = B_cent(j,k) + dx2 * B_prime_y(j,k)
-
-       END DO
-
-    END DO
 
     RETURN
 
