@@ -771,7 +771,8 @@ CONTAINS
        ! Compute the max/min eigenvalues at the interfaces
        CALL eval_speeds
 
-       !$OMP PARALLEL DO private(j,k)
+       !$OMP PARALLEL
+       !$OMP DO private(j,k)
        DO l = 1,solve_interfaces_x
 
           j = j_stag_x(l)
@@ -785,10 +786,9 @@ CONTAINS
           END DO
 
        END DO
-       !$OMP END PARALLEL DO
+       !$OMP END DO NOWAIT
     
-
-       !$OMP PARALLEL DO private(j,k)
+       !$OMP DO private(j,k)
        DO l = 1,solve_interfaces_y
 
           j = j_stag_y(l)
@@ -803,8 +803,9 @@ CONTAINS
           END DO
 
        END DO
-       !$OMP END PARALLEL DO
-       
+       !$OMP DO
+
+       !$OMP DO private(j,k,max_a,dt_interface_x,dt_interface_y,dt_cfl)       
        DO l = 1,solve_cells
 
           j = j_cent(l)
@@ -838,9 +839,13 @@ CONTAINS
 
           dt_cfl = MIN( dt_interface_x , dt_interface_y )
 
+          !$OMP ATOMIC
           dt = MIN(dt,dt_cfl)
+          !$OMP END ATOMIC
 
        END DO
+       !$OMP END DO
+       !$OMP END PARALLEL
 
     END IF
 
@@ -1737,7 +1742,7 @@ CONTAINS
 
        END IF
 
-       IF ( scal_f .LE. 0.9 * scal_f_old ) THEN   
+       IF ( scal_f .LE. 0.9_wp * scal_f_old ) THEN   
           ! sufficient function decrease
 
           IF ( verbose_level .GE. 4 ) THEN
@@ -2234,6 +2239,8 @@ CONTAINS
 
     IF ( comp_cells_x .GT. 1 ) THEN
 
+       !$OMP PARALLEL DO private(l,j,k,fluxL,fluxR)
+
        DO l = 1,solve_interfaces_x
 
           j = j_stag_x(l)
@@ -2271,11 +2278,15 @@ CONTAINS
 
        END DO
 
+       !$OMP END PARALLEL DO
+
     END IF
 
 
     IF ( comp_cells_y .GT. 1 ) THEN
 
+       !$OMP PARALLEL DO private(l,j,k,fluxB,fluxT)
+       
        DO l = 1,solve_interfaces_y
 
           j = j_stag_y(l)
@@ -2315,6 +2326,8 @@ CONTAINS
 
        END DO
 
+       !$OMP END PARALLEL DO
+       
     END IF
 
     RETURN
