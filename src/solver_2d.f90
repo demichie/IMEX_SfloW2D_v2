@@ -803,7 +803,7 @@ CONTAINS
           END DO
 
        END DO
-       !$OMP DO
+       !$OMP END DO
 
        !$OMP DO private(j,k,max_a,dt_interface_x,dt_interface_y,dt_cfl)       
        DO l = 1,solve_cells
