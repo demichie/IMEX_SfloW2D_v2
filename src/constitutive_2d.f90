@@ -1851,36 +1851,45 @@ CONTAINS
 
     ! total mass equation source term
     eqns_term(1) = SUM( rho_s * ( erosion_avg_term - deposition_avg_term ) ) +  &
-         rho_c_sub * erodible_porosity / ( 1.0_wp - erodible_porosity ) *       &
-         SUM( erosion_avg_term ) + rho_a_amb * air_entr
+         erodible_porosity / ( 1.0_wp - erodible_porosity ) * ( rho_c_sub *     &
+         SUM( erosion_avg_term ) - r_rho_c * SUM( deposition_avg_term ) ) +     &
+         rho_a_amb * air_entr
     
     ! x-momenutm equation source term
     ! only deposition contribute to change in momentum, erosion does not carry
     ! any momentum inside the flow
-    eqns_term(2) = - r_u * SUM( rho_s * deposition_avg_term )
+    eqns_term(2) = - r_u * ( SUM( rho_s * deposition_avg_term ) + r_rho_c *     &
+         erodible_porosity / ( 1.0_wp - erodible_porosity ) *                   &
+         SUM( deposition_avg_term ) )
 
     ! y-momentum equation source term
     ! only deposition contribute to change in momentum, erosion does not carry
     ! any momentum inside the flow
-    eqns_term(3) = - r_v * SUM( rho_s * deposition_avg_term )
+    eqns_term(3) = - r_v * ( SUM( rho_s * deposition_avg_term ) + r_rho_c *     &
+         erodible_porosity / ( 1.0_wp - erodible_porosity ) *                   &
+         SUM( deposition_avg_term ) )
 
     ! Temperature/Energy equation source term
     ! deposition, erosion and entrainment are considered
     IF ( energy_flag ) THEN
-
-       eqns_term(4) = - r_T * SUM( rho_s * sp_heat_s * deposition_avg_term )    &
+       
+       eqns_term(4) = - r_T * ( SUM( rho_s * sp_heat_s * deposition_avg_term )  &
+            + r_rho_c * sp_heat_c * erodible_porosity / ( 1.0_wp                &
+            - erodible_porosity ) * SUM( deposition_avg_term ) )                &
             - 0.5_wp * mag_vel**2 * SUM( rho_s * deposition_avg_term )          &
-            + T_erodible * SUM( rho_s * sp_heat_s * erosion_avg_term )          &
-            + T_erodible * rho_c_sub * sp_heat_c * SUM( erosion_avg_term )      &
-            * erodible_porosity / ( 1.0_wp - erodible_porosity )                &
+            + T_erodible * ( SUM( rho_s * sp_heat_s * erosion_avg_term )        &
+            + rho_c_sub * sp_heat_c * SUM( erosion_avg_term )                   &
+            * erodible_porosity / ( 1.0_wp - erodible_porosity ) )              &
             + T_ambient * sp_heat_a * rho_a_amb * air_entr
-
+       
     ELSE
-
-       eqns_term(4) = - r_T * SUM( rho_s * sp_heat_s * deposition_avg_term )    &
-            + T_erodible * SUM( rho_s * sp_heat_s * erosion_avg_term )          &
-            + T_erodible * rho_c_sub * sp_heat_c * SUM( erosion_avg_term )      &
-            * erodible_porosity / ( 1.0_wp - erodible_porosity )                &
+       
+       eqns_term(4) = - r_T * ( SUM( rho_s * sp_heat_s * deposition_avg_term )  &
+            + r_rho_c * sp_heat_c * erodible_porosity / ( 1.0_wp                &
+            - erodible_porosity ) * SUM( deposition_avg_term ) )                &
+            + T_erodible * ( SUM( rho_s * sp_heat_s * erosion_avg_term )        &
+            + rho_c_sub * sp_heat_c * SUM( erosion_avg_term )                   &
+            * erodible_porosity / ( 1.0_wp - erodible_porosity ) )              &
             + T_ambient * sp_heat_a * rho_a_amb * air_entr
 
     END IF
@@ -1891,7 +1900,7 @@ CONTAINS
     
     ! erodible layer thickness source terms
     topo_term = SUM( deposition_avg_term(1:n_solid)                             &
-         - erosion_avg_term(1:n_solid) / ( 1.0_wp - erodible_porosity ) )
+         - erosion_avg_term(1:n_solid) ) / ( 1.0_wp - erodible_porosity ) 
 
     RETURN
 

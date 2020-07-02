@@ -3667,7 +3667,7 @@ CONTAINS
     
     CLOSE(output_esri_unit)
 
-    !Save deposit
+    !Save solid classes deposit
     DO i_solid=1,n_solid
 
        isolid_string = lettera(i_solid)
@@ -3705,6 +3705,38 @@ CONTAINS
        
     END DO
 
+    ! Save total deposit (solid+continous phase associated with porosity)
+    output_esri_file =                                                          &
+         TRIM(run_name)//'_depTot_'//idx_string//'.asc'
+    
+    IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'WRITING ',output_esri_file
+    
+    OPEN(output_esri_unit,FILE=output_esri_file,status='unknown',               &
+         form='formatted')
+    
+    grid_output = -9999 
+    
+    WHERE ( SUM(deposit(:,:,:),DIM=3) .GT. 0.0_wp )
+       
+       grid_output = SUM(deposit(:,:,:),DIM=3) / ( 1.0_wp - erodible_porosity )  
+       
+    END WHERE
+    
+    WRITE(output_esri_unit,'(A,I5)') 'ncols ', comp_cells_x
+    WRITE(output_esri_unit,'(A,I5)') 'nrows ', comp_cells_y
+    WRITE(output_esri_unit,'(A,F15.3)') 'xllcorner ', x0
+    WRITE(output_esri_unit,'(A,F15.3)') 'yllcorner ', y0
+    WRITE(output_esri_unit,'(A,F15.3)') 'cellsize ', cell_size
+    WRITE(output_esri_unit,'(A,I5)') 'NODATA_value ', -9999
+    
+    DO j = comp_cells_y,1,-1
+       
+       WRITE(output_esri_unit,'(2000ES12.3E3)') grid_output(1:comp_cells_x,j)
+       
+    ENDDO
+    
+    CLOSE(output_esri_unit)
+    
     !Save erosion
     DO i_solid=1,n_solid
 
@@ -3743,7 +3775,38 @@ CONTAINS
        
     END DO
 
+    ! Save total erosion (solid+continous phase associated with porosity)
+    output_esri_file =                                                          &
+         TRIM(run_name)//'_ersTot_'//idx_string//'.asc'
     
+    IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'WRITING ',output_esri_file
+    
+    OPEN(output_esri_unit,FILE=output_esri_file,status='unknown',               &
+         form='formatted')
+    
+    grid_output = -9999 
+    
+    WHERE ( SUM(erosion(:,:,:),DIM=3) .GT. 0.0_wp )
+       
+       grid_output = SUM(erosion(:,:,:),DIM=3) / ( 1.0_wp - erodible_porosity )  
+       
+    END WHERE
+    
+    WRITE(output_esri_unit,'(A,I5)') 'ncols ', comp_cells_x
+    WRITE(output_esri_unit,'(A,I5)') 'nrows ', comp_cells_y
+    WRITE(output_esri_unit,'(A,F15.3)') 'xllcorner ', x0
+    WRITE(output_esri_unit,'(A,F15.3)') 'yllcorner ', y0
+    WRITE(output_esri_unit,'(A,F15.3)') 'cellsize ', cell_size
+    WRITE(output_esri_unit,'(A,I5)') 'NODATA_value ', -9999
+    
+    DO j = comp_cells_y,1,-1
+       
+       WRITE(output_esri_unit,'(2000ES12.3E3)') grid_output(1:comp_cells_x,j)
+       
+    ENDDO
+    
+    CLOSE(output_esri_unit) 
+   
     RETURN
        
   END SUBROUTINE output_esri
