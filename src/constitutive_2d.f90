@@ -1312,8 +1312,8 @@ CONTAINS
        mod_vel2 = u**2 + v**2 
        mod_vel = SQRT( mod_vel2 )
 
-       ! Voellmy Salm rheology
        IF ( rheology_model .EQ. 1 ) THEN
+          ! Voellmy Salm rheology
 
           IF ( REAL(mod_vel) .NE. 0.0_wp ) THEN 
 
@@ -1326,9 +1326,9 @@ CONTAINS
 
           ENDIF
 
-          ! Plastic rheology
        ELSEIF ( rheology_model .EQ. 2 ) THEN
 
+          ! Plastic rheology
           IF ( REAL(mod_vel) .NE. 0.0_wp ) THEN 
 
              forces_term(2) = forces_term(2) - rho_m * tau * (u/mod_vel)
@@ -1337,9 +1337,9 @@ CONTAINS
 
           ENDIF
 
-          ! Temperature dependent rheology
        ELSEIF ( rheology_model .EQ. 3 ) THEN
 
+          ! Temperature dependent rheology
           IF ( REAL(h) .GT. h_threshold ) THEN
 
              ! Equation 6 from Costa & Macedonio, 2005
@@ -1363,8 +1363,9 @@ CONTAINS
 
           ENDIF
 
-          ! Lahars rheology (O'Brien 1993, FLO2D)
        ELSEIF ( rheology_model .EQ. 4 ) THEN
+
+          ! Lahars rheology (O'Brien 1993, FLO2D)
 
           ! alpha1 here has units: kg m-1 s-1
           ! in Table 2 from O'Brien 1988, the values reported have different
@@ -1397,7 +1398,7 @@ CONTAINS
 
           END IF
 
-          ! Fluid viscosity 
+          ! Fluid dynamic viscosity [kg m-1 s-1] 
           fluid_visc = alpha1 * EXP( beta1 * SUM(alphas) )
 
           IF ( REAL(h) .GT. h_threshold ) THEN
@@ -1582,11 +1583,11 @@ CONTAINS
           
           IF ( mod_vel .GT. 0.0_wp ) THEN
 
-             ! units of dqc(2)/dt (kg m-1 s-2)
+             ! units of dqc(2)/dt [kg m-1 s-2]
              forces_term(2) = forces_term(2) - grav * r_rho_m * r_h *           &
                   ( r_u / mod_vel ) * s_y
 
-             ! units of dqc(3)/dt (kg m-1 s-2)
+             ! units of dqc(3)/dt [kg m-1 s-2]
              forces_term(3) = forces_term(3) - grav * r_rho_m * r_h *           &
                   ( r_v / mod_vel ) * s_y
 
@@ -1652,8 +1653,10 @@ CONTAINS
 
     CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav)
 
+    ! units of dqc(2)/dt [kg m-1 s-2]
     expl_term(2) = r_red_grav * r_rho_m * r_h * Bprimej_x
 
+    ! units of dqc(3)/dt [kg m-1 s-2]
     expl_term(3) = r_red_grav * r_rho_m * r_h * Bprimej_y
 
     IF ( energy_flag ) THEN
@@ -1782,13 +1785,14 @@ CONTAINS
           
        END IF
        
-       ! Fluid dynamic viscosity 
+       ! Fluid dynamic viscosity [kg m-1 s-1]
        fluid_visc = alpha1 * EXP( beta1 * alphas_tot )
-       ! Kinematic viscosity 
+       ! Kinematic viscosity [m2 s-1]
        kin_visc = fluid_visc / r_rho_m
 
     ELSE
 
+       ! Viscosity read from input file [m2 s-1]
        kin_visc = kin_visc_c
        
     END IF
@@ -1881,6 +1885,7 @@ CONTAINS
     REAL(wp) :: entr_coeff
     REAL(wp) :: air_entr
     REAL(wp) :: mag_vel 
+    REAL(wp) :: mag_vel2 
 
     REAL(wp) :: r_h          !< real-value flow thickness
     REAL(wp) :: r_u          !< real-value x-velocity
@@ -1915,14 +1920,14 @@ CONTAINS
     r_v = qpj(n_vars+2)
     r_T = qpj(4)
 
-    mag_vel = SQRT( r_u**2 + r_v**2 ) 
+    mag_vel2 = r_u**2 + r_v**2
 
-    IF ( entrainment_flag .AND. ( mag_vel**2 .GT. 0.0_wp ) .AND.                &
+    IF ( entrainment_flag .AND. ( mag_vel .GT. 0.0_wp ) .AND.                &
          ( r_h .GT. 0.0_wp ) .AND. ( r_Ri .GT. 0.0_wp ) ) THEN
 
        entr_coeff = 0.075_wp / SQRT( 1.0_wp + 718.0_wp * r_Ri**2.4_wp )
 
-       air_entr = entr_coeff * mag_vel
+       air_entr = entr_coeff * SQRT(mag_vel2)
 
     ELSE
 
@@ -1932,38 +1937,44 @@ CONTAINS
 
     eqns_term(1:n_eqns) = 0.0_wp
 
-    dep_tot = SUM( deposition_avg_term )
-    ers_tot = SUM( erosion_avg_term )
     
+    ! solid total volume deposition rate [m s-1]
+    dep_tot = SUM( deposition_avg_term )
+    ! solid total volume deposition rate [m s-1]
+    ers_tot = SUM( erosion_avg_term )
+
+    ! solid total mass deposition rate [kg m-2 s-1]
     rho_dep_tot = SUM( rho_s * deposition_avg_term )
+    ! solid total mass erosion rate [kg m-2 s-1]
     rho_ers_tot = SUM( rho_s * erosion_avg_term )
 
     ! coefficient to compute (eroded/deposited) volume of continuous phase
     ! from volume of solid  
     coeff_porosity = erodible_porosity / ( 1.0_wp - erodible_porosity )
     
-    ! total mass equation source term
+    ! total mass equation source term [kg m-2 s-1]:
+    ! deposition, erosion and entrainment are considered
     eqns_term(1) = rho_ers_tot - rho_dep_tot +                                  &
          coeff_porosity * ( rho_c_sub *     &
          ers_tot - r_rho_c * dep_tot ) + rho_a_amb * air_entr
     
-    ! x-momenutm equation source term
+    ! x-momenutm equation source term [kg m-1 s-2]:
     ! only deposition contribute to change in momentum, erosion does not carry
     ! any momentum inside the flow
     eqns_term(2) = - r_u * ( rho_dep_tot + r_rho_c * coeff_porosity * dep_tot )
 
-    ! y-momentum equation source term
+    ! y-momentum equation source term [kg m-1 s-2]:
     ! only deposition contribute to change in momentum, erosion does not carry
     ! any momentum inside the flow
     eqns_term(3) = - r_v * ( rho_dep_tot + r_rho_c * coeff_porosity * dep_tot )
 
-    ! Temperature/Energy equation source term
+    ! Temperature/Energy equation source term [kg s-3]:
     ! deposition, erosion and entrainment are considered
     IF ( energy_flag ) THEN
        
        eqns_term(4) = - r_T * ( SUM( rho_s * sp_heat_s * deposition_avg_term )  &
             + r_rho_c * sp_heat_c * coeff_porosity * dep_tot )                  &
-            - 0.5_wp*mag_vel**2 * rho_dep_tot &
+            - 0.5_wp*mag_vel2 * rho_dep_tot                                     &
             + T_erodible * ( SUM( rho_s * sp_heat_s * erosion_avg_term )        &
             + rho_c_sub * sp_heat_c * ers_tot * coeff_porosity )                &
             + T_ambient * sp_heat_a * rho_a_amb * air_entr
@@ -1978,11 +1989,13 @@ CONTAINS
 
     END IF
 
-    ! solid phase mass equation source term
+    ! solid phase mass equation source term [kg m-2 s-1]:
+    ! due to solid erosion and deposition
     eqns_term(5:4+n_solid) = rho_s(1:n_solid) * ( erosion_avg_term(1:n_solid)   &
          - deposition_avg_term(1:n_solid) )
     
-    ! erodible layer thickness source terms
+    ! erodible layer thickness source terms [m s-1]:
+    ! due to erosion and deposition of solid+continuous phase
     topo_term = ( dep_tot - ers_tot ) / ( 1.0_wp - erodible_porosity ) 
 
     RETURN
