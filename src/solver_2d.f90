@@ -1973,7 +1973,7 @@ CONTAINS
     USE geometry_2d, ONLY : deposit , erosion , erodible
 
     USE constitutive_2d, ONLY : eval_erosion_dep_term
-    USE constitutive_2d, ONLY : eval_topo_term
+    USE constitutive_2d, ONLY : eval_bulk_debulk_term
 
     USE constitutive_2d, ONLY : qc_to_qp , mixt_var
     USE parameters_2d, ONLY : topo_change_flag
@@ -2027,7 +2027,7 @@ CONTAINS
        
        
        ! Compute the source terms for the equations
-       CALL eval_topo_term( qp(1:n_vars+2,j,k) , deposition_term ,              &
+       CALL eval_bulk_debulk_term( qp(1:n_vars+2,j,k) , deposition_term ,       &
             erosion_term , eqns_term , topo_term )
 
        IF ( verbose_level .GE. 2 ) THEN

@@ -794,15 +794,32 @@ CONTAINS
 
        END IF
 
+       READ(input_unit, rheology_parameters,IOSTAT=ios)
+       REWIND(input_unit)
+       
        IF ( kin_visc_l .EQ. -1.0_wp ) THEN
           
-          WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
-          WRITE(*,*) 'KIN_VISC_L =' , kin_visc_l
-          WRITE(*,*) 'Please check the input file'
-          STOP
+          IF ( RHEOLOGY_MODEL .NE. 4 ) THEN
+          
+             WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
+             WRITE(*,*) 'KIN_VISC_L =' , kin_visc_l
+             WRITE(*,*) 'Please check the input file'
+             STOP
 
+          END IF
+             
        ELSE
 
+          IF ( RHEOLOGY_MODEL .EQ. 4 ) THEN
+          
+             WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
+             WRITE(*,*) 'KIN_VISC_L =' , kin_visc_l
+             WRITE(*,*) 'Viscosity already is computed by REHOLOGY MODEL=4' 
+             WRITE(*,*) 'Please check the input file'
+             STOP
+
+          END IF    
+          
           IF ( .NOT. gas_flag ) THEN
 
              IF ( verbose_level .GE. 0 ) THEN

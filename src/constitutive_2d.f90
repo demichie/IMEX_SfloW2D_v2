@@ -1245,6 +1245,7 @@ CONTAINS
     COMPLEX(wp) :: forces_term(n_eqns)
 
     COMPLEX(wp) :: mod_vel
+    COMPLEX(wp) :: mod_vel2
     COMPLEX(wp) :: gamma
     REAL(wp) :: h_threshold
 
@@ -1308,7 +1309,8 @@ CONTAINS
 
        CALL c_phys_var(qj,h,u,v,T,rho_m,red_grav,alphas)
 
-       mod_vel = SQRT( u**2 + v**2 )
+       mod_vel2 = u**2 + v**2 
+       mod_vel = SQRT( mod_vel2 )
 
        ! Voellmy Salm rheology
        IF ( rheology_model .EQ. 1 ) THEN
@@ -1317,10 +1319,10 @@ CONTAINS
 
              ! IMPORTANT: grav3_surf is always negative 
              forces_term(2) = forces_term(2) - rho_m * ( u / mod_vel ) *        &
-                  ( grav / xi ) * mod_vel ** 2
+                  ( grav / xi ) * mod_vel2
 
              forces_term(3) = forces_term(3) - rho_m * ( v / mod_vel ) *        &
-                  ( grav / xi ) * mod_vel ** 2
+                  ( grav / xi ) * mod_vel2
 
           ENDIF
 
@@ -1404,7 +1406,7 @@ CONTAINS
              s_v = Kappa * fluid_visc * mod_vel / ( 8.0_wp * rho_m * grav *h**2 )
 
              ! Turbulent dispersive component (dimensionless)
-             s_td = n_td**2 * mod_vel**2 / ( h**(4.0_wp/3.0_wp) )
+             s_td = n_td**2 * mod_vel2 / ( h**(4.0_wp/3.0_wp) )
 
           ELSE
 
@@ -1413,7 +1415,7 @@ CONTAINS
                   h_threshold**2 )
 
              ! Turbulent dispersive components (dimensionless)
-             s_td = n_td**2 * (mod_vel**2) / ( h_threshold**(4.0_wp/3.0_wp) )
+             s_td = n_td**2 * mod_vel2 / ( h_threshold**(4.0_wp/3.0_wp) )
 
           END IF
 
@@ -1705,12 +1707,20 @@ CONTAINS
     REAL(wp) :: r_u          !< real-value x-velocity
     REAL(wp) :: r_v          !< real-value y-velocity
     REAL(wp) :: r_alphas(n_solid) !< real-value solid volume fractions
-    REAL(wp) :: r_Ri         !< real-value Richardson number
-    REAL(wp) :: r_rho_m      !< real-value mixture density [kg/m3]
     REAL(wp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
-    REAL(wp) :: r_red_grav   !< real-value reduced gravity
-    REAL(wp) :: tot_erosion
+    REAL(wp) :: r_T
+    REAL(wp) :: r_rho_m
+    REAL(wp) :: tot_solid_erosion
 
+    REAL(wp) :: alphas_tot
+    
+    REAL(wp) :: Tc
+    
+    REAL(wp) :: alpha1
+    REAL(wp) :: fluid_visc
+    REAL(wp) :: kin_visc
+    REAL(wp) :: expA , expB
+    
     ! parameters for Michaels and Bolger (1962) sedimentation correction
     alpha_max = 0.6_wp
     hind_exp = 4.65_wp
@@ -1724,25 +1734,85 @@ CONTAINS
     r_u = qpj(n_vars+1)
     r_v = qpj(n_vars+2)
     r_alphas(1:n_solid) = qpj(5:4+n_solid)
+    alphas_tot = SUM(r_alphas)
+    
+    r_T = qpj(4)
+    r_rho_m = ( 1.0_wp - alphas_tot ) * r_rho_c + SUM( r_alphas * rho_s ) 
 
-    CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav)
+    IF ( gas_flag ) THEN
 
-    mod_vel = SQRT( r_u**2 + r_v**2 )
-    ! empirical formulation (see Fagents & Baloga 2006, Eq. 5)
-    ! here we use the solid volume fraction instead of relative density
-    ! This term has units: m s-1    
-    tot_erosion = erosion_coeff * mod_vel * r_h * ( 1.0_wp-SUM(r_alphas) )
+       ! continuous phase is air
+       r_rho_c = pres / ( sp_gas_const_a * r_T )
+
+    ELSE
+
+       ! continuous phase is liquid
+       r_rho_c = rho_l
+
+    END IF
+
+    IF ( rheology_model .EQ. 4 ) THEN
+       
+       ! alpha1 here has units: kg m-1 s-1
+       ! in Table 2 from O'Brien 1988, the values reported have different
+       ! units ( poises). 1poises = 0.1 kg m-1 s-1
+       
+       ! convert from Kelvin to Celsius
+       Tc = r_T - 273.15_wp
+       
+       ! the dependance of viscosity on temperature is modeled with the
+       ! equation presented at:
+       ! https://onlinelibrary.wiley.com/doi/pdf/10.1002/9781118131473.app3
+       !
+       ! In addition, we use a reference value provided in input at a 
+       ! reference temperature. This value is used to scale the equation
+       IF ( REAL(Tc) .LT. 20.0_wp ) THEN
+          
+          expA = 1301.0_wp / ( 998.333_wp + 8.1855_wp * ( Tc - 20.0_wp )     &
+               + 0.00585_wp * ( Tc - 20.0_wp )**2 ) - 1.30223_wp
+          
+          alpha1 = alpha1_coeff * 1.0E-3_wp * 10.0_wp**expA
+          
+       ELSE
+          
+          expB = ( 1.3272_wp * ( 20.0_wp - Tc ) - 0.001053_wp *              &
+               ( Tc - 20.0_wp )**2 ) / ( Tc + 105.0_wp )
+          
+          alpha1 = alpha1_coeff * 1.002E-3_wp * 10.0_wp**expB 
+          
+       END IF
+       
+       ! Fluid dynamic viscosity 
+       fluid_visc = alpha1 * EXP( beta1 * alphas_tot )
+       ! Kinematic viscosity 
+       kin_visc = fluid_visc / r_rho_m
+
+    ELSE
+
+       kin_visc = kin_visc_c
+       
+    END IF
     
     DO i_solid=1,n_solid
 
        IF ( ( r_alphas(i_solid) .GT. 0.0_wp ) .AND. ( settling_flag ) ) THEN
 
           settling_vel = settling_velocity( diam_s(i_solid) , rho_s(i_solid) ,  &
-               r_rho_c )
+               r_rho_c , kin_visc )
 
-          deposition_term(i_solid) = r_alphas(i_solid) * settling_vel *         &
-               ( 1.0_wp - MIN( 1.0_wp , SUM( r_alphas ) / alpha_max ) )**hind_exp
+          deposition_term(i_solid) = r_alphas(i_solid) * settling_vel
 
+          IF ( rheology_model .NE. 4 ) THEN
+
+             ! Michaels and Bolger (1962) sedimentation correction accounting 
+             ! for hindered settling due to the presence of particles
+             deposition_term(i_solid) = deposition_term(i_solid) *              &
+               ( 1.0_wp - MIN( 1.0_wp , alphas_tot / alpha_max ) )**hind_exp
+
+          END IF
+
+          ! limit the deposition (cannot be remove more than particles present
+          ! in the flow)
           deposition_term(i_solid) = MIN( deposition_term(i_solid) ,            &
                r_h * r_alphas(i_solid) / dt )
 
@@ -1756,19 +1826,25 @@ CONTAINS
 
        END IF
 
-       IF ( erosion_coeff .GT. 0.0_wp ) THEN
-
-          erosion_term(i_solid) = erodible_fract(i_solid) * ( 1.0_wp -          &
-               erodible_porosity ) * tot_erosion
-
-       ELSE
-
-          erosion_term(i_solid) = 0.0_wp
-
-       END IF
-
     END DO
 
+    IF ( erosion_coeff .GT. 0.0_wp ) THEN
+
+       mod_vel = SQRT( r_u**2 + r_v**2 )
+       ! empirical formulation (see Fagents & Baloga 2006, Eq. 5)
+       ! here we use the solid volume fraction instead of relative density
+       ! This term has units: m s-1    
+       tot_solid_erosion = erosion_coeff * mod_vel * r_h * ( 1.0_wp-alphas_tot )&
+            * ( 1.0_wp - erodible_porosity )
+       
+       erosion_term(1:n_solid) = erodible_fract(1:n_solid)  * tot_solid_erosion
+
+    ELSE
+
+       erosion_term(1:n_solid) = 0.0_wp
+       
+    END IF
+    
     RETURN
 
   END SUBROUTINE eval_erosion_dep_term
@@ -1790,7 +1866,7 @@ CONTAINS
   !
   !******************************************************************************
 
-  SUBROUTINE eval_topo_term( qpj , deposition_avg_term , erosion_avg_term ,      &
+  SUBROUTINE eval_bulk_debulk_term( qpj, deposition_avg_term, erosion_avg_term, &
        eqns_term, topo_term )
 
     IMPLICIT NONE
@@ -1815,6 +1891,13 @@ CONTAINS
     REAL(wp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
     REAL(wp) :: r_red_grav   !< real-value reduced gravity
 
+    REAL(wp) :: dep_tot
+    REAL(wp) :: ers_tot
+    REAL(wp) :: rho_dep_tot
+    REAL(wp) :: rho_ers_tot
+
+    REAL(wp) :: coeff_porosity
+    
 
     IF ( qpj(1) .LE. 0.0_wp ) THEN
 
@@ -1849,47 +1932,48 @@ CONTAINS
 
     eqns_term(1:n_eqns) = 0.0_wp
 
+    dep_tot = SUM( deposition_avg_term )
+    ers_tot = SUM( erosion_avg_term )
+    
+    rho_dep_tot = SUM( rho_s * deposition_avg_term )
+    rho_ers_tot = SUM( rho_s * erosion_avg_term )
+
+    ! coefficient to compute (eroded/deposited) volume of continuous phase
+    ! from volume of solid  
+    coeff_porosity = erodible_porosity / ( 1.0_wp - erodible_porosity )
+    
     ! total mass equation source term
-    eqns_term(1) = SUM( rho_s * ( erosion_avg_term - deposition_avg_term ) ) +  &
-         erodible_porosity / ( 1.0_wp - erodible_porosity ) * ( rho_c_sub *     &
-         SUM( erosion_avg_term ) - r_rho_c * SUM( deposition_avg_term ) ) +     &
-         rho_a_amb * air_entr
+    eqns_term(1) = rho_ers_tot - rho_dep_tot +                                  &
+         coeff_porosity * ( rho_c_sub *     &
+         ers_tot - r_rho_c * dep_tot ) + rho_a_amb * air_entr
     
     ! x-momenutm equation source term
     ! only deposition contribute to change in momentum, erosion does not carry
     ! any momentum inside the flow
-    eqns_term(2) = - r_u * ( SUM( rho_s * deposition_avg_term ) + r_rho_c *     &
-         erodible_porosity / ( 1.0_wp - erodible_porosity ) *                   &
-         SUM( deposition_avg_term ) )
+    eqns_term(2) = - r_u * ( rho_dep_tot + r_rho_c * coeff_porosity * dep_tot )
 
     ! y-momentum equation source term
     ! only deposition contribute to change in momentum, erosion does not carry
     ! any momentum inside the flow
-    eqns_term(3) = - r_v * ( SUM( rho_s * deposition_avg_term ) + r_rho_c *     &
-         erodible_porosity / ( 1.0_wp - erodible_porosity ) *                   &
-         SUM( deposition_avg_term ) )
+    eqns_term(3) = - r_v * ( rho_dep_tot + r_rho_c * coeff_porosity * dep_tot )
 
     ! Temperature/Energy equation source term
     ! deposition, erosion and entrainment are considered
     IF ( energy_flag ) THEN
        
        eqns_term(4) = - r_T * ( SUM( rho_s * sp_heat_s * deposition_avg_term )  &
-            + r_rho_c * sp_heat_c * erodible_porosity / ( 1.0_wp                &
-            - erodible_porosity ) * SUM( deposition_avg_term ) )                &
-            - 0.5_wp * mag_vel**2 * SUM( rho_s * deposition_avg_term )          &
+            + r_rho_c * sp_heat_c * coeff_porosity * dep_tot )                  &
+            - 0.5_wp*mag_vel**2 * rho_dep_tot &
             + T_erodible * ( SUM( rho_s * sp_heat_s * erosion_avg_term )        &
-            + rho_c_sub * sp_heat_c * SUM( erosion_avg_term )                   &
-            * erodible_porosity / ( 1.0_wp - erodible_porosity ) )              &
+            + rho_c_sub * sp_heat_c * ers_tot * coeff_porosity )                &
             + T_ambient * sp_heat_a * rho_a_amb * air_entr
        
     ELSE
        
        eqns_term(4) = - r_T * ( SUM( rho_s * sp_heat_s * deposition_avg_term )  &
-            + r_rho_c * sp_heat_c * erodible_porosity / ( 1.0_wp                &
-            - erodible_porosity ) * SUM( deposition_avg_term ) )                &
+            + r_rho_c * sp_heat_c * coeff_porosity * dep_tot )                  &
             + T_erodible * ( SUM( rho_s * sp_heat_s * erosion_avg_term )        &
-            + rho_c_sub * sp_heat_c * SUM( erosion_avg_term )                   &
-            * erodible_porosity / ( 1.0_wp - erodible_porosity ) )              &
+            + rho_c_sub * sp_heat_c * ers_tot * coeff_porosity )                &
             + T_ambient * sp_heat_a * rho_a_amb * air_entr
 
     END IF
@@ -1899,12 +1983,11 @@ CONTAINS
          - deposition_avg_term(1:n_solid) )
     
     ! erodible layer thickness source terms
-    topo_term = SUM( deposition_avg_term(1:n_solid)                             &
-         - erosion_avg_term(1:n_solid) ) / ( 1.0_wp - erodible_porosity ) 
+    topo_term = ( dep_tot - ers_tot ) / ( 1.0_wp - erodible_porosity ) 
 
     RETURN
 
-  END SUBROUTINE eval_topo_term
+  END SUBROUTINE eval_bulk_debulk_term
 
   !******************************************************************************
   !> \brief Internal boundary source fluxes
@@ -2026,13 +2109,14 @@ CONTAINS
   !
   !------------------------------------------------------------------------------
 
-  REAL(wp) FUNCTION settling_velocity(diam,rhos,rhoc)
+  REAL(wp) FUNCTION settling_velocity(diam,rhos,rhoc,kin_visc)
 
     IMPLICIT NONE
 
     REAL(wp), INTENT(IN) :: diam          !< particle diameter [m]
     REAL(wp), INTENT(IN) :: rhos          !< particle density [kg/m3]
     REAL(wp), INTENT(IN) :: rhoc          !< carrier phase density [kg/m3]
+    REAL(wp), INTENT(IN) :: kin_visc      !< carrier phase viscosity
 
     REAL(wp) :: Rey           !< Reynolds number
     REAL(wp) :: inv_sqrt_C_D  !< Reciprocal of sqrt of Drag coefficient
@@ -2051,7 +2135,7 @@ CONTAINS
 
     settling_velocity = const_part * inv_sqrt_C_D
 
-    Rey = diam * settling_velocity / kin_visc_c
+    Rey = diam * settling_velocity / kin_visc
 
     IF ( Rey .LE. 1000.0_wp ) THEN
 
@@ -2065,18 +2149,18 @@ CONTAINS
           settling_velocity = const_part * inv_sqrt_C_D
 
           IF ( ABS( set_vel_old - settling_velocity ) / set_vel_old             &
-               .LT. 1.0E-6_wp ) THEN
+               .LT. 1.0E-5_wp ) THEN
 
              ! round to first three significative digits
-             dig = FLOOR(LOG10(set_vel_old))
-             settling_velocity = 10.0_wp**(dig-3)                               &
-                  * FLOOR( 10.0_wp**(-dig+3)*set_vel_old ) 
+             ! dig = FLOOR(LOG10(set_vel_old))
+             ! settling_velocity = 10.0_wp**(dig-3)                             &
+             !      * FLOOR( 10.0_wp**(-dig+3)*set_vel_old ) 
 
-             EXIT C_D_loop
+             RETURN
 
           END IF
 
-          Rey = diam * settling_velocity / kin_visc_c
+          Rey = diam * settling_velocity / kin_visc
 
        END DO C_D_loop
 
