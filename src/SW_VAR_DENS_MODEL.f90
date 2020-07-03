@@ -282,7 +282,7 @@ PROGRAM SW_VAR_DENS_MODEL
      END IF
 
      CALL timestep
-
+     
      IF ( t+dt .GT. t_end ) dt = t_end - t
      IF ( t+dt .GT. t_output ) dt = t_output - t
 
@@ -300,7 +300,7 @@ PROGRAM SW_VAR_DENS_MODEL
      CALL imex_RK_solver
 
      CALL update_erosion_deposition_cell(dt)
-
+     
      IF ( topo_change_flag ) CALL topography_reconstruction
 
      t = t+dt

@@ -1421,7 +1421,6 @@ CONTAINS
     qj_rel = qj / qj_org
 
     ! -----------------------------------------------
-
     newton_raphson_loop:DO nl_iter=1,max_nl_iter
 
        TOLX = epsilon(qj_rel)
@@ -1430,7 +1429,7 @@ CONTAINS
 
        CALL eval_f( qj , qj_old , a_diag , coeff_f , Rj_not_impl , right_term , &
             scal_f )
-
+       
        IF ( verbose_level .GE. 2 ) THEN
 
           WRITE(*,*) 'solve_rk_step: right_term',right_term
@@ -1463,7 +1462,7 @@ CONTAINS
 
        IF ( COUNT( implicit_flag ) .EQ. n_eqns ) THEN
 
-          CALL eval_jacobian( qj_rel , qj_org, coeff_f , left_matrix )
+          CALL eval_jacobian( qj_rel , qj_org , coeff_f , left_matrix )
 
           desc_dir_temp = - right_term
 
@@ -1483,7 +1482,7 @@ CONTAINS
 
        ELSE
 
-          CALL eval_jacobian( qj_rel , qj_org,coeff_f , left_matrix )
+          CALL eval_jacobian( qj_rel , qj_org , coeff_f , left_matrix )
 
           left_matrix_small11 = reshape(pack(left_matrix, mask11),              &
                [n_eqns-n_nh,n_eqns-n_nh]) 

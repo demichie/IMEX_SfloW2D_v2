@@ -3,7 +3,7 @@
 !********************************************************************************
 MODULE constitutive_2d
 
-  USE parameters_2d, ONLY : wp, tolh
+  USE parameters_2d, ONLY : wp, sp ,tolh
   USE parameters_2d, ONLY : n_eqns , n_vars , n_solid
   USE parameters_2d, ONLY : rheology_flag , rheology_model , energy_flag ,      &
        liquid_flag , gas_flag
@@ -1371,8 +1371,16 @@ CONTAINS
           ! in Table 2 from O'Brien 1988, the values reported have different
           ! units ( poises). 1poises = 0.1 kg m-1 s-1
 
-          h_threshold = 1.0E-20_wp
+          IF ( wp .EQ. sp ) THEN
 
+             h_threshold = 1.0E-10_wp
+
+          ELSE
+
+             h_threshold = 1.0E-20_wp
+
+          END IF
+          
           ! convert from Kelvin to Celsius
           Tc = T - 273.15_wp
 
@@ -1722,6 +1730,7 @@ CONTAINS
     REAL(wp) :: alpha1
     REAL(wp) :: fluid_visc
     REAL(wp) :: kin_visc
+    REAL(wp) :: rhoc
     REAL(wp) :: expA , expB
     
     ! parameters for Michaels and Bolger (1962) sedimentation correction
@@ -1731,7 +1740,7 @@ CONTAINS
     deposition_term(1:n_solid) = 0.0_wp
     erosion_term(1:n_solid) = 0.0_wp
 
-    IF ( qpj(1) .LE. 0.0_wp ) RETURN
+    IF ( qpj(1) .LE. 1.0e-5_wp ) RETURN
     
     r_h = qpj(1)
     r_u = qpj(n_vars+1)
@@ -1740,7 +1749,6 @@ CONTAINS
     alphas_tot = SUM(r_alphas)
     
     r_T = qpj(4)
-    r_rho_m = ( 1.0_wp - alphas_tot ) * r_rho_c + SUM( r_alphas * rho_s ) 
 
     IF ( gas_flag ) THEN
 
@@ -1753,6 +1761,8 @@ CONTAINS
        r_rho_c = rho_l
 
     END IF
+
+    r_rho_m = ( 1.0_wp - alphas_tot ) * r_rho_c + SUM( r_alphas * rho_s ) 
 
     IF ( rheology_model .EQ. 4 ) THEN
        
@@ -1789,20 +1799,22 @@ CONTAINS
        fluid_visc = alpha1 * EXP( beta1 * alphas_tot )
        ! Kinematic viscosity [m2 s-1]
        kin_visc = fluid_visc / r_rho_m
+       rhoc = r_rho_m
 
     ELSE
 
        ! Viscosity read from input file [m2 s-1]
        kin_visc = kin_visc_c
+       rhoc = r_rho_c
        
     END IF
-    
+
     DO i_solid=1,n_solid
 
        IF ( ( r_alphas(i_solid) .GT. 0.0_wp ) .AND. ( settling_flag ) ) THEN
 
           settling_vel = settling_velocity( diam_s(i_solid) , rho_s(i_solid) ,  &
-               r_rho_c , kin_visc )
+               rhoc , kin_visc )
 
           deposition_term(i_solid) = r_alphas(i_solid) * settling_vel
 
