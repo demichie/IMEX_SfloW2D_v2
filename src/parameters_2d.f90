@@ -14,6 +14,9 @@ MODULE parameters_2d
   !> working precision
   INTEGER, PARAMETER :: wp = dp
 
+  REAL, PARAMETER :: four_thirds = 1.0_wp / 3.0_wp
+  REAL, PARAMETER :: neg_four_thirds = -1.0_wp / 3.0_wp
+
   REAL(wp), PARAMETER :: tolh = 10.0_wp * EPSILON(1.0_wp)
 
   REAL(wp) :: eps_newton        !< threshold for the convergence of the
@@ -26,6 +29,7 @@ MODULE parameters_2d
   REAL(wp) :: cfl               !< Courant-Friedrichs-Lewy parameter 
 
   REAL(wp) :: eps_sing          !< parameter for desingularization
+  REAL(wp) :: eps_sing4         !< parameter for desingularization**4
 
   REAL(wp) :: reconstr_coeff    !< Slope coefficient in the linear reconstruction
 

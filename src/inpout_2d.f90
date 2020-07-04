@@ -49,7 +49,7 @@ MODULE inpout_2d
        reconstr_coeff , interfaces_relaxation , n_RK   
 
   ! -- Variables for the namelist EXPL_TERMS_PARAMETERS
-  USE constitutive_2d, ONLY : grav
+  USE constitutive_2d, ONLY : grav , inv_grav
 
   ! -- Variables for the namelist RADIAL_SOURCE_PARAMETERS
   USE parameters_2d, ONLY : x_source , y_source , r_source , vel_source ,       &
@@ -331,6 +331,7 @@ CONTAINS
 
     !-- Inizialization of the Variables for the namelist EXPL_TERMS_PARAMETERS
     grav = 9.81_wp
+    inv_grav = 1.0_wp / grav
 
     !-- Inizialization of the Variables for the namelist TEMPERATURE_PARAMETERS
     exp_area_fract = 0.5_wp
@@ -545,10 +546,13 @@ CONTAINS
 
     USE constitutive_2d, ONLY : rho_a_amb
     USE constitutive_2d, ONLY : rho_c_sub
-    USE constitutive_2d, ONLY : kin_visc_c
+    USE constitutive_2d, ONLY : kin_visc_c , rho_c , inv_rho_c , sp_heat_c ,    &
+         r_rho_c , r_inv_rho_c
    
-    USE constitutive_2d, ONLY : inv_pres , inv_rho_l , inv_rho_s
+    USE constitutive_2d, ONLY : inv_pres , inv_rho_l , inv_rho_s , c_inv_rho_s
  
+    USE constitutive_2d, ONLY : n_td2
+
     IMPLICIT none
 
     NAMELIST / west_boundary_conditions / h_bcW , hu_bcW , hv_bcW ,             &
@@ -573,7 +577,7 @@ CONTAINS
     LOGICAL :: tend1 
     CHARACTER(LEN=80) :: card
 
-    INTEGER :: j,k
+    INTEGER :: i_solid , j , k
 
     INTEGER :: dot_idx
     
@@ -752,42 +756,42 @@ CONTAINS
     ! ------- READ liquid_transport_parameters NAMELIST -------------------------
     
     n_vars = 4
-
+    
     IF ( liquid_flag ) THEN
 
        IF ( gas_flag ) n_vars = n_vars + 1
 
        READ(input_unit, liquid_transport_parameters,IOSTAT=ios)
-       
+
        IF ( ios .NE. 0 ) THEN
-          
+
           WRITE(*,*) 'IOSTAT=',ios
           WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
           WRITE(*,*) 'Please check the input file'
           STOP
-          
+
        ELSE
-       
+
           REWIND(input_unit)
-          
+
        END IF
-       
+
        IF ( sp_heat_l .EQ. -1.0_wp ) THEN
-          
+
           WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
           WRITE(*,*) 'SP_HEAT_l =' , sp_heat_l
           WRITE(*,*) 'Please check the input file'
           STOP
-          
+
        END IF
-       
+
        IF ( rho_l .EQ. -1.0_wp ) THEN
-          
+
           WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
           WRITE(*,*) 'RHO_L =' , rho_l
           WRITE(*,*) 'Please check the input file'
           STOP
-          
+
        ELSE
 
           inv_rho_l = 1.0_wp / rho_l
@@ -796,45 +800,50 @@ CONTAINS
 
        READ(input_unit, rheology_parameters,IOSTAT=ios)
        REWIND(input_unit)
-       
+
        IF ( kin_visc_l .EQ. -1.0_wp ) THEN
-          
+
           IF ( RHEOLOGY_MODEL .NE. 4 ) THEN
-          
+
              WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
              WRITE(*,*) 'KIN_VISC_L =' , kin_visc_l
              WRITE(*,*) 'Please check the input file'
              STOP
 
           END IF
-             
+
        ELSE
 
           IF ( RHEOLOGY_MODEL .EQ. 4 ) THEN
-          
+
              WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
              WRITE(*,*) 'KIN_VISC_L =' , kin_visc_l
              WRITE(*,*) 'Viscosity already is computed by REHOLOGY MODEL=4' 
              WRITE(*,*) 'Please check the input file'
              STOP
 
-          END IF    
-          
-          IF ( .NOT. gas_flag ) THEN
+          END IF
 
-             IF ( verbose_level .GE. 0 ) THEN
-                
-                WRITE(*,*) 'CARRIER PHASE: liquid'
-                WRITE(*,*) 'Carrier phase kinematic viscosity:',kin_visc_l
-                kin_visc_c = kin_visc_l
-
-             END IF
-                
-       END IF
-
-          
        END IF
        
+       IF ( .NOT. gas_flag ) THEN
+
+          IF ( verbose_level .GE. 0 ) THEN
+
+             WRITE(*,*) 'CARRIER PHASE: liquid'
+             WRITE(*,*) 'Carrier phase kinematic viscosity:',kin_visc_l
+
+          END IF
+
+          kin_visc_c = kin_visc_l
+          r_rho_c = rho_l
+          r_inv_rho_c = inv_rho_l
+          rho_c = CMPLX(rho_l,0.0_wp,wp)
+          inv_rho_c = CMPLX(inv_rho_l,0.0_wp,wp)
+          sp_heat_c = sp_heat_l
+
+       END IF
+
     END IF
 
     ! ------- READ solid_transport_parameters NAMELIST --------------------------
@@ -1022,14 +1031,20 @@ CONTAINS
     ! sp_heat_s(1:n_solid) = sp_heat0_s(1:n_solid)
 
     ALLOCATE( inv_rho_s(n_solid) )
+    ALLOCATE( c_inv_rho_s(n_solid) )
 
     ALLOCATE( alphas_init(n_solid) )
 
     ALLOCATE( alphas_E(n_solid) , alphas_W(n_solid) )
     
     inv_rho_s(1:n_solid) = 1.0_wp / rho_s(1:n_solid)
-
     
+    DO i_solid=1,n_solid
+       
+       c_inv_rho_s(i_solid) = CMPLX(inv_rho_s(i_solid),0.0_wp,wp)
+
+    END DO
+
     ALLOCATE( deposit( comp_cells_x , comp_cells_y , n_solid ) )    
     deposit(1:comp_cells_x,1:comp_cells_y,1:n_solid ) = 0.0_wp
 
@@ -1629,6 +1644,10 @@ CONTAINS
        WRITE(*,*) 'Please check the input file'
        STOP
        
+    ELSE
+
+       inv_grav = 1.0_wp / grav
+
     END IF
 
     ! ------- READ radial_source_parameters NAMELIST ----------------------------
@@ -2134,7 +2153,11 @@ CONTAINS
              WRITE(*,*) 'N_TD =' , n_td 
              WRITE(*,*) 'Please check the input file'
              STOP
-             
+           
+          ELSE
+
+             n_td2 = n_td**2
+  
           END IF
 
        ELSEIF ( rheology_model .EQ. 5 ) THEN

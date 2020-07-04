@@ -111,7 +111,7 @@ CONTAINS
 
   SUBROUTINE init_grid
 
-    USE parameters_2d, ONLY: eps_sing
+    USE parameters_2d, ONLY: eps_sing , eps_sing4
 
     IMPLICIT none
 
@@ -198,6 +198,8 @@ CONTAINS
        eps_sing=MIN(MIN( dx ** 4.0_wp,dy ** 4.0_wp ),1.0E-10_wp)
 
     END IF
+
+    eps_sing4 = eps_sing**4
 
     IF ( verbose_level .GE. 1 ) WRITE(*,*) 'eps_sing = ',eps_sing
     
