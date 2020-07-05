@@ -8,8 +8,8 @@ MODULE parameters_2d
 
   IMPLICIT NONE
 
-  INTEGER, PARAMETER :: sp = Selected_Real_Kind (P=6,R=35)
-  INTEGER, PARAMETER :: dp = Selected_Real_Kind (P=15,R=300)
+  INTEGER, PARAMETER :: sp = Selected_Real_Kind (P=6,R=37)
+  INTEGER, PARAMETER :: dp = Selected_Real_Kind (P=15,R=307)
 
   !> working precision
   INTEGER, PARAMETER :: wp = dp
