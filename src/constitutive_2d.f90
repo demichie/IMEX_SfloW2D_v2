@@ -460,30 +460,30 @@ CONTAINS
 
     xs_tot = SUM(xs)
 
+    ! compute carrier phase (gas or liquid) mass fraction
+    xc = CMPLX(1.0_wp,0.0_wp,wp) - xs_tot
+
     IF ( gas_flag .AND. liquid_flag ) THEN
 
        ! compute liquid mass fraction
        xl = c_qj(n_vars) * inv_cqj1
 
        ! compute carrier phase (gas) mass fraction
-       xc =  CMPLX(1.0_wp,0.0_wp,wp) - xs_tot - xl
-
-       ! specific heaf of the mixutre: mass average of sp. heat pf phases
-       sp_heat_mix = DOT_PRODUCT( xs(1:n_solid) , sp_heat_s(1:n_solid) )        &
-            + xl * sp_heat_l + xc * sp_heat_c
-
-
-    ELSE
-
-       ! compute carrier phase (gas or liquid) mass fraction
-       xc = CMPLX(1.0_wp,0.0_wp,wp) - xs_tot
-
-       ! specific heaf of the mixutre: mass average of sp. heat pf phases
-       sp_heat_mix = DOT_PRODUCT( xs(1:n_solid) , sp_heat_s(1:n_solid) )        &
-            + xc * sp_heat_c
-
+       xc =  xc - xl
 
     END IF
+
+    ! specific heaf of the mixutre: mass average of sp. heat pf phases
+    sp_heat_mix = DOT_PRODUCT( xs(1:n_solid) , sp_heat_s(1:n_solid) )        &
+         + xc * sp_heat_c
+
+    IF ( gas_flag .AND. liquid_flag ) THEN
+
+       ! specific heaf of the mixutre: mass average of sp. heat pf phases
+       sp_heat_mix = sp_heat_mix + xl * sp_heat_l
+
+    END IF
+
 
     ! compute temperature from energy
     IF ( REAL(c_qj(1)) .GT. eps_sing ) THEN
@@ -496,7 +496,7 @@ CONTAINS
        ELSE
 
           T = c_qj(4) / ( c_qj(1) * sp_heat_mix ) 
-
+          
        END IF
 
        IF ( REAL(T) .LE. 0.0_wp ) T = CMPLX(T_ambient,0.0_wp,wp)

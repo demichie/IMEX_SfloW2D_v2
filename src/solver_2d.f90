@@ -886,31 +886,30 @@ CONTAINS
 
     IF ( verbose_level .GE. 2 ) WRITE(*,*) 'solver, imex_RK_solver: beginning'
 
-    !$OMP PARALLEL DO private(j,k,q_guess,q_si,Rj_not_impl)
-    init_cells_loop:DO l = 1,solve_cells
+    !$OMP PARALLEL
+ 
+    !$OMP DO private(j,k)
+    DO l = 1,solve_cells
 
        j = j_cent(l)
        k = k_cent(l)
 
        ! Initialization of the solution guess
-       q0( 1:n_vars , j , k ) =                          &
-            q( 1:n_vars , j , k )
-       
+       q0( 1:n_vars , j , k ) = q( 1:n_vars , j , k )
        ! Initialization of the variables for the Runge-Kutta scheme
        q_rk( 1:n_vars , j , k , 1:n_RK ) = 0.0_wp
-       
        qp_rk( 1:n_vars+2 , j , k , 1:n_RK ) = 0.0_wp
-       
+
        divFlux(1:n_eqns , j , k , 1:n_RK ) = 0.0_wp
-       
        NH( 1:n_eqns, j , k , 1:n_RK ) = 0.0_wp
-       
        SI_NH( 1:n_eqns , j , k , 1:n_RK ) = 0.0_wp
-       
        expl_terms(1:n_eqns , j , k , 1:n_RK) = 0.0_wp
        
-    END DO init_cells_loop
-    !$OMP END PARALLEL DO
+    END DO
+    !$OMP END DO
+
+    !$OMP END PARALLEL
+
 
     runge_kutta:DO i_RK = 1,n_RK
 
