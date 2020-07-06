@@ -73,6 +73,7 @@ MODULE inpout_2d
   USE constitutive_2d, ONLY : rho_s , diam_s , sp_heat_s
   USE constitutive_2d, ONLY : settling_flag , erosion_coeff , erodible_porosity
   USE constitutive_2d, ONLY : erodible_fract , T_erodible
+  USE constitutive_2d, ONLY : alphastot_min
 
   ! --- Variables for the namelist GAS_TRANSPORT_PARAMETERS
   USE constitutive_2d, ONLY : sp_heat_a , sp_gas_const_a , kin_visc_a , pres ,  &
@@ -489,7 +490,8 @@ CONTAINS
     erodible_file = ""
     erodible_fract = -1.0_wp
     erodible_porosity = -1.0_wp
-
+    alphastot_min = 0.0_wp
+    
     !- Variables for the namelist GAS_TRANSPORT_PARAMETERS
     sp_heat_a = -1.0_wp
     sp_gas_const_a = -1.0_wp
@@ -569,7 +571,7 @@ CONTAINS
 
     NAMELIST / solid_transport_parameters / rho_s , diam_s , sp_heat_s ,        &
          erosion_coeff , erodible_porosity , settling_flag , T_erodible ,       &
-         erodible_file , erodible_fract
+         erodible_file , erodible_fract , alphastot_min
 
     
     REAL(wp) :: max_cfl
@@ -1050,7 +1052,21 @@ CONTAINS
 
     ALLOCATE( erosion( comp_cells_x , comp_cells_y , n_solid ) )
     erosion(1:comp_cells_x,1:comp_cells_y,1:n_solid ) = 0.0_wp
+
+    IF ( ( alphastot_min .LT. 0.0_wp ) .OR. ( alphastot_min .GE. 1.0_wp ) ) THEN
+
+       WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
+       WRITE(*,*) 'alphastot_min should be >0 and <1'
+       WRITE(*,*) 'alphastot_min =',alphastot_min
+       STOP
+
+    ELSEIF ( alphastot_min .EQ. 0.0_wp) THEN
+
+       WRITE(*,*) 'WARNING: minimum total solid fraction = 0'
        
+    END IF
+
+    
     IF ( restart ) THEN
 
        ! ---------- READ restart_parameters NAMELIST ----------------------------
@@ -1082,7 +1098,18 @@ CONTAINS
              END IF
              
              alphas_init(1:n_solid) = 1.0E-2_wp * sed_vol_perc(1:n_solid)
-
+             
+             IF ( alphastot_min .GE. SUM(alphas_init(1:n_solid)) ) THEN
+                
+                WRITE(*,*) 'IOSTAT=',ios
+                WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
+                WRITE(*,*) 'alphastot_min should be < SUM(0.01*sed_vol_perc)'
+                WRITE(*,*) 'alphastot_min =',alphastot_min
+                WRITE(*,*) '0.01*SUM(sed_vol_perc) =',0.01_wp*sed_vol_perc(1:n_solid)
+                STOP
+                
+             END IF
+             
              IF ( verbose_level .GE. 0 ) THEN
 
                 WRITE(*,*) 'INITIAL VOLUME FRACTION OF SOLIDS:', alphas_init

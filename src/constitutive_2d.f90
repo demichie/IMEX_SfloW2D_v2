@@ -157,6 +157,9 @@ MODULE constitutive_2d
   !> Hindered settling velocity (units: m s-1 )
   REAL(wp) :: settling_vel
 
+  !> Minimum volume fraction of solids in the flow
+  REAL(wp) :: alphastot_min
+  
   !> erosion model coefficient  (units: m-1 )
   REAL(wp), ALLOCATABLE :: erosion_coeff
 
@@ -1722,6 +1725,25 @@ CONTAINS
     r_v = qpj(n_vars+2)
     r_alphas(1:n_solid) = qpj(5:4+n_solid)
     alphas_tot = SUM(r_alphas)
+
+    IF ( erosion_coeff .GT. 0.0_wp ) THEN
+
+       mod_vel = SQRT( r_u**2 + r_v**2 )
+       ! empirical formulation (see Fagents & Baloga 2006, Eq. 5)
+       ! here we use the solid volume fraction instead of relative density
+       ! This term has units: m s-1    
+       tot_solid_erosion = erosion_coeff * mod_vel * r_h * ( 1.0_wp-alphas_tot )&
+            * ( 1.0_wp - erodible_porosity )
+       
+       erosion_term(1:n_solid) = erodible_fract(1:n_solid)  * tot_solid_erosion
+
+    ELSE
+
+       erosion_term(1:n_solid) = 0.0_wp
+       
+    END IF
+
+    IF ( alphas_tot .LE. alphastot_min ) RETURN
     
     r_T = qpj(4)
 
@@ -1819,23 +1841,6 @@ CONTAINS
        END IF
 
     END DO
-
-    IF ( erosion_coeff .GT. 0.0_wp ) THEN
-
-       mod_vel = SQRT( r_u**2 + r_v**2 )
-       ! empirical formulation (see Fagents & Baloga 2006, Eq. 5)
-       ! here we use the solid volume fraction instead of relative density
-       ! This term has units: m s-1    
-       tot_solid_erosion = erosion_coeff * mod_vel * r_h * ( 1.0_wp-alphas_tot )&
-            * ( 1.0_wp - erodible_porosity )
-       
-       erosion_term(1:n_solid) = erodible_fract(1:n_solid)  * tot_solid_erosion
-
-    ELSE
-
-       erosion_term(1:n_solid) = 0.0_wp
-       
-    END IF
     
     RETURN
 
