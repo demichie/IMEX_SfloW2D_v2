@@ -27,7 +27,7 @@ MODULE inpout_2d
   USE parameters_2d, ONLY : n_solid
   USE parameters_2d, ONLY : riemann_flag , rheology_flag , energy_flag ,        &
        topo_change_flag , radial_source_flag , collapsing_volume_flag ,         &
-       liquid_flag , gas_flag , subtract_init_flag
+       liquid_flag , gas_flag , subtract_init_flag , bottom_radial_source_flag
 
   ! -- Variables for the namelist INITIAL_CONDITIONS
   USE parameters_2d, ONLY : released_volume , x_release , y_release
@@ -206,7 +206,8 @@ MODULE inpout_2d
   NAMELIST / newrun_parameters / n_solid , topography_file , x0 , y0 ,          &
        comp_cells_x , comp_cells_y , cell_size , rheology_flag , riemann_flag , &
        energy_flag , liquid_flag , radial_source_flag , collapsing_volume_flag ,&
-       topo_change_flag , gas_flag , subtract_init_flag
+       topo_change_flag , gas_flag , subtract_init_flag ,                       &
+       bottom_radial_source_flag
 
   NAMELIST / initial_conditions /  released_volume , x_release , y_release ,    &
        velocity_mod_release , velocity_ang_release , T_init , T_ambient
@@ -223,7 +224,7 @@ MODULE inpout_2d
   NAMELIST / radial_source_parameters / x_source , y_source , r_source ,        &
        vel_source , T_source , h_source , alphas_source , alphal_source ,       &
        time_param
-
+  
   NAMELIST / collapsing_volume_parameters / x_collapse , y_collapse ,           &
        r_collapse , T_collapse , h_collapse , alphas_collapse
  
@@ -301,6 +302,7 @@ CONTAINS
     topo_change_flag = .FALSE.
     radial_source_flag = .FALSE.
     collapsing_volume_flag = .FALSE.
+    bottom_radial_source_flag = .FALSE.
     liquid_flag = .FALSE.
     gas_flag = .TRUE.
     subtract_init_flag = .FALSE.
@@ -348,8 +350,8 @@ CONTAINS
     !-- Inizialization of the Variables for the namelist RHEOLOGY_PARAMETERS
     rheology_model = 0
     nu_ref = 0.0_wp                     
-    mu = 0.0_wp
-    xi = 0.0_wp
+    mu = -1.0_wp
+    xi = -1.0_wp
     tau = 0.0_wp
     T_ref = 0.0_wp
     visc_par = 0.0_wp
@@ -491,6 +493,10 @@ CONTAINS
     erodible_fract = -1.0_wp
     erodible_porosity = -1.0_wp
     alphastot_min = 0.0_wp
+
+    !- Variables for the namelist RHEOLOGY_PARAMETERS
+    xi = -1.0_wp
+    mu = -1.0_wp
     
     !- Variables for the namelist GAS_TRANSPORT_PARAMETERS
     sp_heat_a = -1.0_wp
@@ -802,7 +808,7 @@ CONTAINS
 
        READ(input_unit, rheology_parameters,IOSTAT=ios)
        REWIND(input_unit)
-
+       
        IF ( kin_visc_l .EQ. -1.0_wp ) THEN
 
           IF ( RHEOLOGY_MODEL .NE. 4 ) THEN
@@ -1679,7 +1685,7 @@ CONTAINS
 
     ! ------- READ radial_source_parameters NAMELIST ----------------------------
 
-    IF ( radial_source_flag ) THEN
+    IF ( ( radial_source_flag ) .OR. ( bottom_radial_source_flag ) ) THEN
 
        alphal_source = -1.0_wp
 
@@ -1689,6 +1695,7 @@ CONTAINS
              
           WRITE(*,*) 'IOSTAT=',ios
           WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+          WRITE(*,radial_source_parameters)
           WRITE(*,*) 'Please check the input file'
           STOP
           
@@ -1699,23 +1706,34 @@ CONTAINS
           IF ( t_source .EQ. -1.0_wp ) THEN
              
              WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
-             WRITE(*,*) 'PLEASE CHEC VALUE OF T_SOURCE',t_source
+             WRITE(*,*) 'PLEASE CHECK VALUE OF T_SOURCE',t_source
              STOP
              
           END IF
 
-          IF ( h_source .EQ. -1.0_wp ) THEN
+          IF ( ( h_source .EQ. -1.0_wp ) .AND. (.NOT. bottom_radial_source_flag) ) THEN
              
              WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
-             WRITE(*,*) 'PLEASE CHEC VALUE OF H_SOURCE',h_source
+             WRITE(*,*) 'PLEASE CHECK VALUE OF H_SOURCE',h_source
              STOP
+
+          ELSE
+
+             IF ( ( h_source .GE. 0.0_wp ) .AND. ( bottom_radial_source_flag ) ) THEN
+                
+                WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+                WRITE(*,*) 'When BOTTOM_RADIAL_SOURCE_FLAG = TRUE'
+                WRITE(*,*) 'h_source should not be given',h_source
+                STOP
+                
+             END IF
              
           END IF
 
           IF ( r_source .EQ. -1.0_wp ) THEN
              
              WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
-             WRITE(*,*) 'PLEASE CHEC VALUE OF R_SOURCE',r_source
+             WRITE(*,*) 'PLEASE CHECK VALUE OF R_SOURCE',r_source
              STOP
              
           END IF
@@ -1723,7 +1741,7 @@ CONTAINS
           IF ( vel_source .EQ. -1.0_wp ) THEN
              
              WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
-             WRITE(*,*) 'PLEASE CHEC VALUE OF VEL_SOURCE',vel_source
+             WRITE(*,*) 'PLEASE CHECK VALUE OF VEL_SOURCE',vel_source
              STOP
              
           END IF
@@ -1975,7 +1993,7 @@ CONTAINS
           STOP
           
        ELSEIF ( rheology_model .EQ. 1 ) THEN
-
+          
           IF ( ( mu .EQ. -1.0_wp ) .AND. ( xi .EQ. -1.0_wp ) ) THEN
 
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'

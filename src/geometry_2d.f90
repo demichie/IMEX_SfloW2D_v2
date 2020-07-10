@@ -81,6 +81,8 @@ MODULE geometry_2d
   REAL(wp), ALLOCATABLE :: sourceN_vect_x(:,:)
   REAL(wp), ALLOCATABLE :: sourceN_vect_y(:,:)
 
+  REAL(wp), ALLOCATABLE :: cell_source_fractions(:,:)
+  
   REAL(wp) :: pi_g
 
   INTEGER :: n_topography_profile_x, n_topography_profile_y
@@ -112,6 +114,8 @@ CONTAINS
   SUBROUTINE init_grid
 
     USE parameters_2d, ONLY: eps_sing , eps_sing4
+    USE parameters_2d, ONLY : bottom_radial_source_flag
+    USE parameters_2d, ONLY : x_source , y_source , r_source
 
     IMPLICIT none
 
@@ -161,6 +165,8 @@ CONTAINS
 
     ALLOCATE( grav_surf(comp_cells_x,comp_cells_y) )
 
+    ALLOCATE( cell_source_fractions(comp_cells_x,comp_cells_y) )
+    
     IF ( comp_cells_x .GT. 1 ) THEN
 
        dx = cell_size
@@ -267,7 +273,13 @@ CONTAINS
 
     ENDDO
 
-    pi_g = 4.0_wp * ATAN(1.0_wp) 
+    pi_g = 4.0_wp * ATAN(1.0_wp)
+
+    IF ( bottom_radial_source_flag ) THEN
+
+       CALL compute_cell_fract(x_source,y_source,r_source,cell_source_fractions)
+
+    END IF
 
     RETURN
 

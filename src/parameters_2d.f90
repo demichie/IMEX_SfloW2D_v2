@@ -114,7 +114,9 @@ MODULE parameters_2d
   REAL(wp) :: h_collapse
   REAL(wp) :: alphas_collapse(100)
 
+  LOGICAL :: bottom_radial_source_flag
 
+  
   !> Initial volume of the flow
   REAL(wp) :: released_volume
 

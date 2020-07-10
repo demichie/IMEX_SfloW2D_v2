@@ -21,6 +21,7 @@ MODULE solver_2d
   USE geometry_2d, ONLY : B_cent , B_prime_x , B_prime_y
   USE geometry_2d, ONLY : grav_surf
   USE geometry_2d, ONLY : source_cell
+  USE geometry_2d, ONLY : cell_source_fractions
 
   USE parameters_2d, ONLY : wp , sp
 
@@ -84,6 +85,11 @@ MODULE solver_2d
   !> Reconstructed physical value at the SE corner of cell
   REAL(wp), ALLOCATABLE :: qp_cellSE(:,:,:)
 
+  LOGICAL, ALLOCATABLE :: diverg_interfaceL(:,:)
+  LOGICAL, ALLOCATABLE :: diverg_interfaceR(:,:)
+  LOGICAL, ALLOCATABLE :: diverg_interfaceB(:,:)
+  LOGICAL, ALLOCATABLE :: diverg_interfaceT(:,:)
+  
 
   !> Maximum over time of thickness
   REAL(wp), ALLOCATABLE :: hmax(:,:)
@@ -255,13 +261,11 @@ CONTAINS
 
     a_interface_yNeg = 0.0_wp
     a_interface_yPos = 0.0_wp
-
-    
+   
     ALLOCATE( qp_interfaceL( n_vars+2 , comp_interfaces_x, comp_cells_y ) )
     ALLOCATE( qp_interfaceR( n_vars+2 , comp_interfaces_x, comp_cells_y ) )
     ALLOCATE( qp_interfaceB( n_vars+2 , comp_cells_x, comp_interfaces_y ) )
     ALLOCATE( qp_interfaceT( n_vars+2 , comp_cells_x, comp_interfaces_y ) )
-
 
     ALLOCATE( q_cellNW( n_vars , comp_cells_x , comp_cells_y ) )
     ALLOCATE( q_cellNE( n_vars , comp_cells_x , comp_cells_y ) )
@@ -273,7 +277,11 @@ CONTAINS
     ALLOCATE( qp_cellSW( n_vars+2 , comp_cells_x , comp_cells_y ) )
     ALLOCATE( qp_cellSE( n_vars+2 , comp_cells_x , comp_cells_y ) )
 
-
+    ALLOCATE( diverg_interfaceL( comp_interfaces_x, comp_cells_y ) )
+    ALLOCATE( diverg_interfaceR( comp_interfaces_x, comp_cells_y ) )
+    ALLOCATE( diverg_interfaceB( comp_cells_x, comp_interfaces_y ) )
+    ALLOCATE( diverg_interfaceT( comp_cells_x, comp_interfaces_y ) )
+    
     ALLOCATE ( a_interface_x_max(n_eqns,comp_interfaces_x,comp_cells_y) )
     ALLOCATE ( a_interface_y_max(n_eqns,comp_cells_x,comp_interfaces_y) )
 
@@ -283,7 +291,6 @@ CONTAINS
     solve_mask(comp_cells_x,1:comp_cells_y) = .TRUE.
     solve_mask(1:comp_cells_x,1) = .TRUE.
     solve_mask(1:comp_cells_x,comp_cells_y) = .TRUE.
-
 
     ALLOCATE( solve_mask_x( comp_interfaces_x , comp_cells_y ) )
     ALLOCATE( solve_mask_y( comp_cells_x , comp_interfaces_y ) )
@@ -489,7 +496,12 @@ CONTAINS
     DEALLOCATE( qp_cellSW )
     DEALLOCATE( qp_cellSE )
 
+    DEALLOCATE( diverg_interfaceL )
+    DEALLOCATE( diverg_interfaceR )
+    DEALLOCATE( diverg_interfaceB )
+    DEALLOCATE( diverg_interfaceT )
 
+    
     DEALLOCATE( a_interface_xNeg )
     DEALLOCATE( a_interface_xPos )
     DEALLOCATE( a_interface_yNeg )
@@ -552,16 +564,29 @@ CONTAINS
   !
   !******************************************************************************
 
-  SUBROUTINE check_solve
+  SUBROUTINE check_solve(solve_all)
 
     IMPLICIT NONE
 
+    LOGICAL, INTENT(IN) :: solve_all
+    
     INTEGER :: i,j,k
 
+
+    
     !$OMP PARALLEL
     
     !$OMP WORKSHARE
-    solve_mask(2:comp_cells_x-1,2:comp_cells_y-1) = .FALSE.
+       
+    IF ( solve_all ) THEN
+
+       solve_mask(2:comp_cells_x-1,2:comp_cells_y-1) = .TRUE. 
+
+    ELSE
+       solve_mask(2:comp_cells_x-1,2:comp_cells_y-1) = .FALSE.
+
+    END IF
+    
     WHERE ( q(1,2:comp_cells_x-1,2:comp_cells_y-1) .GT. 0.0_wp )  &
          solve_mask(2:comp_cells_x-1,2:comp_cells_y-1) = .TRUE.
     
@@ -661,7 +686,7 @@ CONTAINS
     END DO
 
     solve_cells = i
-
+    
     !----- check for y-interfaces where computation is needed
     i = 0
         
@@ -1120,7 +1145,7 @@ CONTAINS
              ! forces)
              CALL eval_expl_terms( B_prime_x(j,k), B_prime_y(j,k),              &
                   source_xy(j,k) , qp_rk(1:n_vars+2,j,k,i_RK) ,                 &
-                  expl_terms(1:n_eqns,j,k,i_RK) )
+                  expl_terms(1:n_eqns,j,k,i_RK) , t, cell_source_fractions(j,k) )
              
           END IF
 
@@ -2615,6 +2640,8 @@ CONTAINS
 
     REAL(wp) :: dq
 
+    LOGICAL :: diverging_flag
+    
     !$OMP PARALLEL DO private(j,k,i,qrecW,qrecE,qrecS,qrecN,x_stencil,y_stencil,&
     !$OMP & qrec_stencil,qrec_prime_x,qrec_prime_y,qp2recW,qp2recE,qp2recS,     &
     !$OMP & qp2recN,source_bdry,dq)
@@ -2683,7 +2710,7 @@ CONTAINS
 
                 ELSEIF ( bcE(i)%flag .EQ. 2 ) THEN
 
-                   qrec_prime_x(i) = ( qp_expl(i,comp_cells_x,k) -                 &
+                   qrec_prime_x(i) = ( qp_expl(i,comp_cells_x,k) -              &
                         qp_expl(i,comp_cells_x-1,k) ) / dx
 
                 END IF
@@ -2925,6 +2952,9 @@ CONTAINS
 
        ENDDO add_vars_loop
 
+       ! check if du/dx + dv/dy > 0 (flow locally diverges)
+       diverging_flag = ( ( qrec_prime_x(n_vars+1) + qrec_prime_y(n_vars+2) )   &
+            .GT. 0.0_wp )
 
        IF ( comp_cells_x .GT. 1 ) THEN
 
@@ -2951,6 +2981,9 @@ CONTAINS
                    qp_interfaceL(4:n_vars,j+1,k) = qrecE(4:n_vars)
                    qp_interfaceL(n_vars+1:n_vars+2,j+1,k) = 0.0_wp
 
+                   diverg_interfaceR(j,k) = .FALSE.
+                   diverg_interfaceL(j+1,k) = .FALSE.
+                   
                 END IF
 
              END IF
@@ -3036,11 +3069,16 @@ CONTAINS
           qp_interfaceR(1:n_vars+2,j,k) = qrecW(1:n_vars+2)
           qp_interfaceL(1:n_vars+2,j+1,k) = qrecE(1:n_vars+2)
 
+          diverg_interfaceR(j,k) = diverging_flag
+          diverg_interfaceL(j+1,k) = diverging_flag
+          
           IF ( j.EQ.1 ) THEN
 
              ! Interface value at the left of first x-interface (external)
              q_interfaceL(:,j,k) = q_interfaceR(:,j,k)
              qp_interfaceL(:,j,k) = qp_interfaceR(:,j,k)
+
+             diverg_interfaceR(j,k) = diverg_interfaceL(j,k)
 
           ELSEIF ( j.EQ.comp_cells_x ) THEN
 
@@ -3048,6 +3086,8 @@ CONTAINS
              q_interfaceR(:,j+1,k) = q_interfaceL(:,j+1,k)
              qp_interfaceR(:,j+1,k) = qp_interfaceL(:,j+1,k)
 
+             diverg_interfaceR(j+1,k) = diverg_interfaceL(j+1,k)
+             
           ELSE
 
              IF ( radial_source_flag .AND. ( source_cell(j,k) .EQ. 2 ) ) THEN
@@ -3077,6 +3117,9 @@ CONTAINS
           qp_interfaceR(1:n_vars+2,j,k) = qp_expl(1:n_vars+2,j,k)
           qp_interfaceL(1:n_vars+2,j+1,k) = qp_expl(1:n_vars+2,j,k)
 
+          diverg_interfaceR(j,k) = diverging_flag
+          diverg_interfaceL(j+1,k) = diverging_flag
+          
        END IF
 
        IF ( comp_cells_y .GT. 1 ) THEN
@@ -3105,6 +3148,9 @@ CONTAINS
                    qp_interfaceB(4:n_vars,j,k+1) = qrecN(4:n_vars)
                    qp_interfaceB(n_vars+1:n_vars+2,j,k+1) = 0.0_wp
 
+                   diverg_interfaceT(j,k) = .FALSE.
+                   diverg_interfaceB(j,k+1) = .FALSE.
+                   
                 END IF
 
              END IF
@@ -3181,17 +3227,22 @@ CONTAINS
 
           END IF
 
-          CALL qp_to_qc( qrecS, q_interfaceT(:,j,k))
-          CALL qp_to_qc( qrecN, q_interfaceB(:,j,k+1))
+          CALL qp_to_qc( qrecS, q_interfaceT(:,j,k) )
+          CALL qp_to_qc( qrecN, q_interfaceB(:,j,k+1) )
           
           qp_interfaceT(1:n_vars+2,j,k) = qrecS(1:n_vars+2)
           qp_interfaceB(1:n_vars+2,j,k+1) = qrecN(1:n_vars+2)
 
+          diverg_interfaceT(j,k) = diverging_flag
+          diverg_interfaceB(j,k+1) = diverging_flag
+          
           IF ( k .EQ. 1 ) THEN
 
              ! Interface value at the bottom of first y-interface (external)
              q_interfaceB(:,j,k) = q_interfaceT(:,j,k)
              qp_interfaceB(:,j,k) = qp_interfaceT(:,j,k)
+
+             diverg_interfaceB(j,k) = diverg_interfaceT(j,k)
 
           ELSEIF ( k .EQ. comp_cells_y ) THEN
 
@@ -3199,6 +3250,8 @@ CONTAINS
              q_interfaceT(:,j,k+1) = q_interfaceB(:,j,k+1)
              qp_interfaceT(:,j,k+1) = qp_interfaceB(:,j,k+1)
 
+             diverg_interfaceT(j,k+1) = diverg_interfaceB(j,k+1)
+             
           ELSE
 
              IF ( radial_source_flag .AND. ( source_cell(j,k) .EQ. 2 ) ) THEN

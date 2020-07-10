@@ -1610,8 +1610,13 @@ CONTAINS
   !
   !******************************************************************************
 
-  SUBROUTINE eval_expl_terms( Bprimej_x, Bprimej_y, source_xy, qpj, expl_term )
+  SUBROUTINE eval_expl_terms( Bprimej_x, Bprimej_y, source_xy, qpj, expl_term , &
+       time, cell_fract_jk )
 
+    USE parameters_2d, ONLY : h_source , vel_source , T_source , alphas_source ,&
+         alphal_source , time_param , bottom_radial_source_flag
+
+    
     IMPLICIT NONE
 
     REAL(wp), INTENT(IN) :: Bprimej_x
@@ -1621,6 +1626,9 @@ CONTAINS
     REAL(wp), INTENT(IN) :: qpj(n_vars+2)      !< local physical variables 
     REAL(wp), INTENT(OUT) :: expl_term(n_eqns) !< local explicit forces 
 
+    REAL(wp), INTENT(IN) :: time
+    REAL(wp), INTENT(IN) :: cell_fract_jk
+    
     REAL(wp) :: r_h          !< real-value flow thickness
     REAL(wp) :: r_u          !< real-value x-velocity
     REAL(wp) :: r_v          !< real-value y-velocity
@@ -1628,10 +1636,26 @@ CONTAINS
     REAL(wp) :: r_rho_m      !< real-value mixture density [kg/m3]
     REAL(wp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
     REAL(wp) :: r_red_grav   !< real-value reduced gravity
+    REAL(wp) :: r_alphas(n_solid)
+    REAL(wp) :: r_xs(n_solid)
+    REAL(wp) :: r_alphal
+    REAL(wp) :: r_xl    
+    REAL(wp) :: r_alphac
+    REAL(wp) :: r_xc
+    
+    REAL(wp) :: alphas_tot
+    REAL(wp) :: sum_sl
+    REAL(wp) :: r_sp_heat_mix
+    
+    REAL(wp) :: t_rem
+    REAL(wp) :: t_coeff
+    REAL(wp) :: pi_g
+    REAL(wp) :: h_dot
 
+    
     expl_term(1:n_eqns) = 0.0_wp
 
-    IF ( qpj(1) .LE. 0.0_wp ) RETURN
+    IF ( ( qpj(1) .LE. 0.0_wp ) .AND. ( cell_fract_jk .EQ. 0.0_wp ) ) RETURN
 
     r_h = qpj(1)
     r_u = qpj(n_vars+1)
@@ -1655,7 +1679,159 @@ CONTAINS
        expl_term(4) = 0.0_wp
 
     END IF
+    
+    IF ( ( time .GE. time_param(4) ) .OR. ( .NOT.bottom_radial_source_flag) ) THEN
 
+       RETURN
+
+    END IF
+
+    t_rem = MOD( time , time_param(1) )
+
+    pi_g = 4.0_wp * ATAN(1.0_wp) 
+
+    t_coeff = 0.0_wp
+
+    IF ( time_param(3) .EQ. 0.0_wp ) THEN
+
+       IF ( t_rem .LE. time_param(2) ) t_coeff = 1.0_wp
+
+    ELSE
+
+       IF ( t_rem .LT. time_param(3) ) THEN
+
+          t_coeff = 0.5_wp * ( 1.0_wp - COS( pi_g * t_rem / time_param(3) ) )
+
+       ELSEIF ( t_rem .LE. ( time_param(2) - time_param(3) ) ) THEN
+
+          t_coeff = 1.0_wp
+
+       ELSEIF ( t_rem .LE. time_param(2) ) THEN
+
+          t_coeff = 0.5_wp * ( 1.0_wp + COS( pi_g * ( ( t_rem - time_param(2) ) &
+               / time_param(3) + 1.0_wp ) ) )
+
+       END IF
+
+    END IF
+
+    h_dot = -cell_fract_jk * vel_source
+
+    r_alphas(1:n_solid) = alphas_source(1:n_solid) 
+    alphas_tot = SUM(r_alphas)
+        
+    IF ( gas_flag ) THEN
+
+       ! carrier phase is gas
+       r_rho_c = pres / ( sp_gas_const_a * t_source )
+       sp_heat_c = sp_heat_a
+
+    ELSE
+
+       ! carrier phase is liquid
+       r_rho_c = rho_l
+       sp_heat_c = sp_heat_l
+
+    END IF
+
+    IF ( gas_flag .AND. liquid_flag ) THEN
+
+       ! mixture of gas, liquid and solid
+       r_alphal = qpj(n_vars)
+
+       ! check and correction on dispersed phases volume fractions
+       IF ( ( alphas_tot + r_alphal ) .GT. 1.0_wp ) THEN
+
+          sum_sl = alphas_tot + r_alphal
+          r_alphas(1:n_solid) = r_alphas(1:n_solid) / sum_sl
+          r_alphal = r_alphal / sum_sl
+
+       ELSEIF ( ( alphas_tot + r_alphal ) .LT. 0.0_wp ) THEN
+
+          r_alphas(1:n_solid) = 0.0_wp
+          r_alphal = 0.0_wp
+
+       END IF
+
+       ! carrier phase volume fraction
+       r_alphac = 1.0_wp - alphas_tot - r_alphal
+
+       ! volume averaged mixture density: carrier (gas) + solids + liquid
+       r_rho_m = r_alphac * r_rho_c + DOT_PRODUCT( r_alphas , rho_s )           &
+            + r_alphal * rho_l
+
+       ! liquid mass fraction
+       r_xl = r_alphal * rho_l / r_rho_m
+
+       ! solid mass fractions
+       r_xs(1:n_solid) = r_alphas(1:n_solid) * rho_s(1:n_solid) / r_rho_m
+
+       ! carrier (gas) mass fraction
+       r_xc = r_alphac * r_rho_c / r_rho_m
+
+       ! mass averaged mixture specific heat
+       r_sp_heat_mix =  DOT_PRODUCT( r_xs , sp_heat_s ) + r_xl * sp_heat_l      &
+            + r_xc * sp_heat_c
+
+    ELSE
+
+       ! mixture of carrier phase ( gas or liquid ) and solid
+
+       ! check and corrections on dispersed phases
+       IF ( alphas_tot .GT. 1.0_wp ) THEN
+
+          r_alphas(1:n_solid) = r_alphas(1:n_solid) / alphas_tot
+
+       ELSEIF ( alphas_tot .LT. 0.0_wp ) THEN
+
+          r_alphas(1:n_solid) = 0.0_wp
+
+       END IF
+
+       ! carrier (gas or liquid) volume fraction
+       r_alphac = 1.0_wp - alphas_tot 
+
+       ! volume averaged mixture density: carrier (gas or liquid) + solids
+       r_rho_m = r_alphac * r_rho_c + DOT_PRODUCT( r_alphas , rho_s ) 
+
+       ! solid mass fractions
+       r_xs(1:n_solid) = r_alphas(1:n_solid) * rho_s(1:n_solid) / r_rho_m
+
+       ! carrier (gas or liquid) mass fraction
+       r_xc = r_alphac * r_rho_c / r_rho_m
+
+       ! mass averaged mixture specific heat
+       r_sp_heat_mix =  DOT_PRODUCT( r_xs , sp_heat_s ) + r_xc * sp_heat_c
+
+    END IF
+    
+    expl_term(1) = expl_term(1) + t_coeff * h_dot * r_rho_m
+    expl_term(2) = expl_term(2) + 0.0_wp
+    expl_term(3) = expl_term(3) + 0.0_wp
+
+    IF ( energy_flag ) THEN
+
+       expl_term(4) = expl_term(4) + t_coeff * h_dot * r_rho_m * r_sp_heat_mix  &
+            * t_source
+
+    ELSE
+
+       expl_term(4) = expl_term(4) + t_coeff * h_dot * r_rho_m * r_sp_heat_mix  &
+            * t_source
+
+    END IF
+       
+    expl_term(5:4+n_solid) = expl_term(5:4+n_solid) + t_coeff                     &
+         * h_dot * alphas_source(1:n_solid) * rho_s(1:n_solid)
+
+    IF ( gas_flag .AND. liquid_flag ) THEN
+
+       expl_term(n_vars) = expl_term(n_vars) + t_coeff * h_dot * alphal_source  &
+            * rho_l
+
+    END IF
+
+    
     RETURN
 
   END SUBROUTINE eval_expl_terms

@@ -72,6 +72,7 @@ PROGRAM SW_VAR_DENS_MODEL
   USE parameters_2d, ONLY : n_solid
   USE parameters_2d, ONLY : n_vars
   USE parameters_2d, ONLY : radial_source_flag
+  USE parameters_2d, ONLY : bottom_radial_source_flag
   USE parameters_2d, ONLY : collapsing_volume_flag
 
   USE parameters_2d, ONLY : n_thickness_levels , n_dyn_pres_levels ,          &
@@ -171,7 +172,7 @@ PROGRAM SW_VAR_DENS_MODEL
 
   t = t_start
 
-  CALL check_solve
+  CALL check_solve(.TRUE.)
 
   IF ( topo_change_flag ) CALL topography_reconstruction
 
@@ -273,8 +274,16 @@ PROGRAM SW_VAR_DENS_MODEL
 
      CALL update_param
 
-     CALL check_solve
+     IF ( t.EQ. t_start ) THEN
 
+        CALL check_solve(.TRUE.)
+
+     ELSE
+
+        CALL check_solve(.FALSE.)
+
+     END IF
+        
      IF ( verbose_level .GE. 1 ) THEN
 
         WRITE(*,*) 'cells to solve and reconstruct:' , COUNT(solve_mask)
