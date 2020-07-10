@@ -575,23 +575,24 @@ CONTAINS
 
     
     !$OMP PARALLEL
-    
-    !$OMP WORKSHARE
-       
+         
     IF ( solve_all ) THEN
 
+       !$OMP WORKSHARE
        solve_mask(2:comp_cells_x-1,2:comp_cells_y-1) = .TRUE. 
+       !$OMP END WORKSHARE
 
     ELSE
+       
+       !$OMP WORKSHARE
        solve_mask(2:comp_cells_x-1,2:comp_cells_y-1) = .FALSE.
+       !$OMP END WORKSHARE
 
     END IF
     
     WHERE ( q(1,2:comp_cells_x-1,2:comp_cells_y-1) .GT. 0.0_wp )  &
          solve_mask(2:comp_cells_x-1,2:comp_cells_y-1) = .TRUE.
     
-    !$OMP END WORKSHARE
-
     !$OMP BARRIER
     
     IF ( radial_source_flag ) THEN
