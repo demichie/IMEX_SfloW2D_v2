@@ -589,9 +589,12 @@ CONTAINS
        !$OMP END WORKSHARE
 
     END IF
+    !$OMP BARRIER
     
+    !$OMP WORKSHARE
     WHERE ( q(1,2:comp_cells_x-1,2:comp_cells_y-1) .GT. 0.0_wp )  &
          solve_mask(2:comp_cells_x-1,2:comp_cells_y-1) = .TRUE.
+    !$OMP END WORKSHARE
     
     !$OMP BARRIER
     
