@@ -1250,6 +1250,33 @@ CONTAINS
 
        END IF negative_thickness_check
 
+       negative_alpha_check:IF ( ANY(q(5:4+n_solid,j,k) .LT. 0.0_wp ) ) THEN
+
+          IF ( ANY(q(5:4+n_solid,j,k) .LE. -1.0E-7_wp ) ) THEN
+             
+             WRITE(*,*) 'WARNINIG: negative solid mass'
+             WRITE(*,*) 'j,k,n_RK',j,k,n_RK
+             WRITE(*,*) 'dt',dt
+             WRITE(*,*) 'before imex_RK_solver: qc',q0(1:n_vars,j,k)
+             IF ( q0(1,j,k) .GT. 0.0_wp ) THEN
+                
+                CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k))
+                WRITE(*,*) 'before imex_RK_solver: qp',qp(1:n_vars+2,j,k)
+                
+             END IF
+             WRITE(*,*) 'after imex_RK_solver: qc',q(1:n_vars,j,k)
+             READ(*,*)
+
+          ELSE
+
+             WHERE ( q(5:4+n_solid,j,k) .GT. -1.0E-7_wp )  &
+                  q(5:4+n_solid,j,k) = 0.0_wp
+
+          END IF
+             
+       END IF negative_alpha_check
+          
+
        IF ( SUM(q(5:4+n_solid,j,k)) .GT. q(1,j,k) ) THEN
 
           IF ( SUM(q(5:4+n_solid,j,k))-q(1,j,k) .LT. 1.0E-10_wp ) THEN
@@ -2096,14 +2123,13 @@ CONTAINS
              WRITE(*,*) 'dt',dt
              WRITE(*,*) 'before erosion'
              WRITE(*,*) 'qp',qp(1:n_eqns+2,j,k)
+             WRITE(*,*) 'q',q(1:n_eqns,j,k) - dt * eqns_term(1:n_eqns)
              WRITE(*,*) 'deposition_term',deposition_term
              WRITE(*,*) 'erosion_term',erosion_term
-             IF ( q(1,j,k) .GT. 0.0_wp ) THEN
-
-                CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k))
-                WRITE(*,*) 'qp',qp(1:n_eqns+2,j,k)
+             WRITE(*,*) 'after erosion'
+             CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k))
+             WRITE(*,*) 'qp',qp(1:n_eqns+2,j,k)
                 
-             END IF
              READ(*,*)
 
           END IF

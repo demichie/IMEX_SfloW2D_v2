@@ -3104,6 +3104,12 @@ CONTAINS
 
              IF ( q(1,j,k) .LE. 0.0_wp ) q(1:n_vars,j,k) = 0.0_wp
 
+             DO solid_idx=5,4+n_solid
+
+                IF ( q(solid_idx,j,k) .LE. 0.0_wp ) q(solid_idx,j,k) = 0.0_wp
+
+             END DO
+                
           ENDDO
           
           READ(restart_unit,*)  
