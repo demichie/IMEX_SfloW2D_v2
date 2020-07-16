@@ -2091,8 +2091,8 @@ CONTAINS
 
     mag_vel2 = r_u**2 + r_v**2
 
-    IF ( entrainment_flag .AND. ( mag_vel .GT. 0.0_wp ) .AND.                &
-         ( r_h .GT. 0.0_wp ) .AND. ( r_Ri .GT. 0.0_wp ) ) THEN
+    IF ( entrainment_flag .AND.  ( r_h .GT. 0.0_wp ) .AND.                      &
+         ( r_Ri .GT. 0.0_wp ) ) THEN
 
        entr_coeff = 0.075_wp / SQRT( 1.0_wp + 718.0_wp * r_Ri**2.4_wp )
 
@@ -2123,10 +2123,10 @@ CONTAINS
     
     ! total mass equation source term [kg m-2 s-1]:
     ! deposition, erosion and entrainment are considered
-    eqns_term(1) = rho_ers_tot - rho_dep_tot +                                  &
-         coeff_porosity * ( rho_c_sub *     &
-         ers_tot - r_rho_c * dep_tot ) + rho_a_amb * air_entr
-    
+    eqns_term(1) = rho_a_amb * air_entr + rho_ers_tot - rho_dep_tot +           &
+         coeff_porosity * ( rho_c_sub * ers_tot - r_rho_c * dep_tot )           &
+         
+
     ! x-momenutm equation source term [kg m-1 s-2]:
     ! only deposition contribute to change in momentum, erosion does not carry
     ! any momentum inside the flow
