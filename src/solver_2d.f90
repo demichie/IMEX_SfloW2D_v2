@@ -2030,7 +2030,7 @@ CONTAINS
     USE constitutive_2d, ONLY : eval_bulk_debulk_term
 
     USE constitutive_2d, ONLY : qc_to_qp , mixt_var
-    USE parameters_2d, ONLY : topo_change_flag
+    USE parameters_2d, ONLY : topo_change_flag , bottom_radial_source_flag
 
     IMPLICIT NONE
     
@@ -2045,7 +2045,9 @@ CONTAINS
     REAL(wp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
     REAL(wp) :: r_red_grav   !< real-value reduced gravity
 
-    INTEGER :: j,k,l 
+    INTEGER :: j,k,l
+
+    REAL(wp) :: out_of_source_fraction
 
     IF ( ( erosion_coeff .EQ. 0.0_wp ) .AND. ( .NOT.settling_flag ) ) RETURN
 
@@ -2077,13 +2079,22 @@ CONTAINS
        ! Limit the deposition during a single time step
        erosion_term(1:n_solid) = MAX(0.0_wp,MIN( erosion_term(1:n_solid),       &
             erodible(j,k,1:n_solid) / dt ) )
-
-       
        
        ! Compute the source terms for the equations
        CALL eval_bulk_debulk_term( qp(1:n_vars+2,j,k) , deposition_term ,       &
             erosion_term , eqns_term , topo_term )
 
+       IF ( bottom_radial_source_flag ) THEN
+
+          ! entrainment, erosion and deposition occurs only outside source
+          out_of_source_fraction = 1.0_wp - cell_source_fractions(j,k)
+          deposition_term = deposition_term * out_of_source_fraction
+          erosion_term = erosion_term * out_of_source_fraction
+          eqns_term = eqns_term * out_of_source_fraction
+          topo_term = topo_term * out_of_source_fraction
+
+       END IF
+       
        IF ( verbose_level .GE. 2 ) THEN
 
           WRITE(*,*) 'before update erosion/deposition: j,k,q(:,j,k),B(j,k)',   &

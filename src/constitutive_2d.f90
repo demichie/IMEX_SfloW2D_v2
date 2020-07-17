@@ -2124,9 +2124,8 @@ CONTAINS
     ! total mass equation source term [kg m-2 s-1]:
     ! deposition, erosion and entrainment are considered
     eqns_term(1) = rho_a_amb * air_entr + rho_ers_tot - rho_dep_tot +           &
-         coeff_porosity * ( rho_c_sub * ers_tot - r_rho_c * dep_tot )           &
+         coeff_porosity * ( rho_c_sub * ers_tot - r_rho_c * dep_tot )          
          
-
     ! x-momenutm equation source term [kg m-1 s-2]:
     ! only deposition contribute to change in momentum, erosion does not carry
     ! any momentum inside the flow
