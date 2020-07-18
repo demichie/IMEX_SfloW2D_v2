@@ -186,33 +186,31 @@ if len(sys.argv)==2:
     output_first=0
     output_last=n_output+1
 
+nc_output = 0
 for i_output in range(output_first,output_last):
 
     filename = filename_fix+'_{0:04}'.format(i_output)+'.p_2d'
 
-    if not os.path.isfile(filename):
+    if os.path.isfile(filename):
+        print(filename,'  t=',dt_output*i_output,'s')
 
-        break
+        data = np.loadtxt(filename,skiprows=0)
 
-    print(filename)
+        
+        time[nc_output] = dt_output*i_output
+        h[nc_output,:,:] = data[:,2].reshape((ny,nx))
+        ux[nc_output,:,:] = data[:,3].reshape((ny,nx))
+        uy[nc_output,:,:] = data[:,4].reshape((ny,nx))
+        b[nc_output,:,:] = data[:,5].reshape((ny,nx))
+        W[nc_output,:,:] = data[:,6].reshape((ny,nx))
+        for i in range(nsolid):
+            globals()['alphas'+'_{0:04}'.format(i)][nc_output,:,:] = data[:,7+i].reshape((ny,nx))
+        T[nc_output,:,:] = data[:,7+nsolid].reshape((ny,nx))
+        rhom[nc_output,:,:] = data[:,8+nsolid].reshape((ny,nx))
+        for i in range(nsolid):
+            globals()['dep'+'_{0:04}'.format(i)][nc_output,:,:] = data[:,10+nsolid+i].reshape((ny,nx))
 
-    data = np.loadtxt(filename,skiprows=0)
-
-    nc_output = i_output - output_first
-
-    time[nc_output] = dt_output*(i_output)
-
-    h[nc_output,:,:] = data[:,2].reshape((ny,nx))
-    ux[nc_output,:,:] = data[:,3].reshape((ny,nx))
-    uy[nc_output,:,:] = data[:,4].reshape((ny,nx))
-    b[nc_output,:,:] = data[:,5].reshape((ny,nx))
-    W[nc_output,:,:] = data[:,6].reshape((ny,nx))
-    for i in range(nsolid):
-        globals()['alphas'+'_{0:04}'.format(i)][nc_output,:,:] = data[:,7+i].reshape((ny,nx))
-    T[nc_output,:,:] = data[:,7+nsolid].reshape((ny,nx))
-    rhom[nc_output,:,:] = data[:,8+nsolid].reshape((ny,nx))
-    for i in range(nsolid):
-        globals()['dep'+'_{0:04}'.format(i)][nc_output,:,:] = data[:,10+nsolid+i].reshape((ny,nx))
+        nc_output +=1
 
 
 X[:,:] = data[:,0].reshape((ny,nx))
