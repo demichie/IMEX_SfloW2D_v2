@@ -1686,35 +1686,42 @@ CONTAINS
 
     END IF
 
-    t_rem = MOD( time , time_param(1) )
-
-    pi_g = 4.0_wp * ATAN(1.0_wp) 
-
-    t_coeff = 0.0_wp
+    t_rem = MOD( time + time_param(4) , time_param(1) )
 
     IF ( time_param(3) .EQ. 0.0_wp ) THEN
 
-       IF ( t_rem .LE. time_param(2) ) t_coeff = 1.0_wp
-
-    ELSE
-
-       IF ( t_rem .LT. time_param(3) ) THEN
-
-          t_coeff = 0.5_wp * ( 1.0_wp - COS( pi_g * t_rem / time_param(3) ) )
-
-       ELSEIF ( t_rem .LE. ( time_param(2) - time_param(3) ) ) THEN
+       IF ( t_rem .LE. time_param(2) ) THEN
 
           t_coeff = 1.0_wp
 
+       ELSE
+
+          t_coeff = 0.0_wp
+
+       END IF
+          
+    ELSE
+
+       IF ( t_rem .LE. time_param(3) ) THEN
+
+          t_coeff = ( t_rem / time_param(3) ) 
+
+       ELSEIF ( t_rem .LE. time_param(2) - time_param(3) ) THEN
+
+          t_coeff = 1.0_wp
+          
        ELSEIF ( t_rem .LE. time_param(2) ) THEN
-
-          t_coeff = 0.5_wp * ( 1.0_wp + COS( pi_g * ( ( t_rem - time_param(2) ) &
-               / time_param(3) + 1.0_wp ) ) )
-
+          
+          t_coeff = ( t_rem - time_param(2) + time_param(3) ) / time_param(3)
+          
+       ELSE
+          
+          t_coeff = 0.0_wp
+          
        END IF
 
     END IF
-
+    
     h_dot = -cell_fract_jk * vel_source
 
     r_alphas(1:n_solid) = alphas_source(1:n_solid) 

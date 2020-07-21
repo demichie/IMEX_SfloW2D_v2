@@ -108,6 +108,7 @@
  VEL_SOURCE= source_vel     ,
  T_SOURCE= source_T     ,
  ALPHAS_SOURCE= source_alphas       ,
+ TIME_PARAM = 600.D0 , 100.D0 , 50.0D0, 50.D0 ,
  /
 &GAS_TRANSPORT_PARAMETERS
  SP_HEAT_A = 998.D0 ,
