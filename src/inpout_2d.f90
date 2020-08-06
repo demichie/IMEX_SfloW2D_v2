@@ -2577,8 +2577,18 @@ CONTAINS
 
        ELSE
 
-          WRITE(backup_unit,initial_conditions)
+          IF ( ( radial_source_flag ) .OR. ( bottom_radial_source_flag ) ) THEN
+             
+             alphal_source = -1.0_wp
+             
+             WRITE(backup_unit,radial_source_parameters)
 
+          ELSE
+             
+             WRITE(backup_unit,initial_conditions)
+
+          END IF
+             
        END IF
 
     END IF
