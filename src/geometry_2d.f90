@@ -23,9 +23,6 @@ MODULE geometry_2d
   !> Location of the boundaries (x) of the control volumes of the domain
   REAL(wp), ALLOCATABLE :: y_stag(:)
 
-  !> Topography at the vertices of the control volumes
-  REAL(wp), ALLOCATABLE :: B_ver(:,:)
-
   !> Topography at the centers of the control volumes 
   REAL(wp), ALLOCATABLE :: B_cent(:,:)
 
@@ -154,8 +151,6 @@ CONTAINS
     ALLOCATE( sourceN_vect_x(comp_cells_x,comp_cells_y) )
     ALLOCATE( sourceN_vect_y(comp_cells_x,comp_cells_y) )
 
-    ALLOCATE( B_ver( comp_interfaces_x , comp_interfaces_y ) )
-
     ALLOCATE( B_cent(comp_cells_x,comp_cells_y) )
     ALLOCATE( B_prime_x(comp_cells_x,comp_cells_y) )
     ALLOCATE( B_prime_y(comp_cells_x,comp_cells_y) )
@@ -233,19 +228,6 @@ CONTAINS
 
     END DO
 
-       
-    DO k=1,comp_interfaces_y
-          
-       DO j=1,comp_interfaces_x
-          
-          CALL interp_2d_scalar( topography_profile(1,:,:) ,                    &
-               topography_profile(2,:,:), topography_profile(3,:,:) ,           &
-               x_stag(j), y_stag(k) , B_ver(j,k) )
-          
-       END DO
-       
-    END DO
-
     DO k=1,comp_cells_y
     
        DO j=1,comp_cells_x
@@ -266,7 +248,7 @@ CONTAINS
 
        DO k=1,comp_cells_y
 
-          grav_surf(j,k) = - ( 1.0_wp/ SQRT( 1.0_wp + B_prime_x(j,k)**2             & 
+          grav_surf(j,k) = - ( 1.0_wp/ SQRT( 1.0_wp + B_prime_x(j,k)**2         & 
                + B_prime_y(j,k)**2) )
 
        ENDDO

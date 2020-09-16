@@ -2799,6 +2799,28 @@ CONTAINS
              qrecW(i) = qrec_stencil(2) - dq
              qrecE(i) = qrec_stencil(2) + dq
 
+             IF ( j.EQ.1 ) THEN
+                
+                ! Dirichelet boundary condition at the west of the domain
+                IF ( bcW(i)%flag .EQ. 0 ) THEN
+                   
+                   qrecW(i) = bcW(i)%value 
+                   
+                END IF
+                   
+             END IF
+
+             IF ( j.EQ.comp_cells_x ) THEN
+
+                ! Dirichelet boundary condition at the east of the domain
+                IF ( bcE(i)%flag .EQ. 0 ) THEN
+                      
+                   qrecE(i) = bcE(i)%value 
+                      
+                END IF
+                
+             END IF
+             
           END IF check_comp_cells_x
 
           ! y-direction
@@ -2896,6 +2918,28 @@ CONTAINS
              qrecS(i) = qrec_stencil(2) - dq
              qrecN(i) = qrec_stencil(2) + dq
 
+             IF ( k .EQ. 1 ) THEN
+
+                ! Dirichelet boundary condition at the south of the domain
+                IF ( bcS(i)%flag .EQ. 0 ) THEN
+                   
+                   qrecS(i) = bcS(i)%value 
+                   
+                END IF
+
+             END IF
+
+             IF ( k .EQ. comp_cells_y ) THEN
+                
+                ! Dirichelet boundary condition at the north of the domain
+                IF ( bcN(i)%flag .EQ. 0 ) THEN
+                   
+                   qrecN(i) = bcN(i)%value 
+                   
+                END IF
+
+             END IF
+             
           ENDIF check_comp_cells_y
 
        ENDDO vars_loop
@@ -2906,10 +2950,24 @@ CONTAINS
           ! x direction
           check_comp_cells_x2:IF ( comp_cells_x .GT. 1 ) THEN
 
-             IF ( (j .GT. 1) .AND. (j .LT. comp_cells_x) ) THEN
+             qrec_stencil(2) = qp_expl(i,j,k)
 
-                x_stencil(1:3) = x_comp(j-1:j+1)
-                qrec_stencil(1:3) = qp_expl(i,j-1:j+1,k)
+             IF ( j .EQ. 1 ) THEN
+                
+                CALL qp_to_qp2( qrecW(1:n_vars) , B_cent(j,k) , qp2recW ) 
+                qrec_stencil(1) = qp2recW(i-n_vars+1)
+                qrec_stencil(3) = qp_expl(i,j+1,k)
+                
+             ELSEIF ( j .EQ. comp_cells_x ) THEN
+                
+                CALL qp_to_qp2( qrecE(1:n_vars) , B_cent(j,k) , qp2recE ) 
+                qrec_stencil(1) = qp_expl(i,j-1,k)
+                qrec_stencil(3) = qp2recE(i-n_vars+1)
+                         
+             ELSE
+
+                qrec_stencil(1) = qp_expl(i,j-1,k)
+                qrec_stencil(3) = qp_expl(i,j+1,k)
 
                 ! correction for radial source inlet x-interfaces values 
                 ! used for the linear reconstruction
@@ -2935,25 +2993,60 @@ CONTAINS
 
                 END IF
 
-                CALL limit( qrec_stencil , x_stencil , limiter(i) ,             &
-                     qrec_prime_x(i) )
-
-                dq = reconstr_coeff*dx2*qrec_prime_x(i)
-
-                qrecW(i) = qrec_stencil(2) - dq
-                qrecE(i) = qrec_stencil(2) + dq
-
              END IF
 
+             CALL limit( qrec_stencil , x_stencil , limiter(i) ,             &
+                  qrec_prime_x(i) )
+             
+             dq = reconstr_coeff*dx2*qrec_prime_x(i)
+             
+             qrecW(i) = qrec_stencil(2) - dq
+             qrecE(i) = qrec_stencil(2) + dq
+
+             IF ( ( j.GT.1 ) .AND. ( j.LT.comp_cells_x ) ) THEN
+             
+                ! correction for radial source inlet x-interfaces:
+                ! the physical variables at the x-interfaces qrecW or
+                ! qrecE are computed from the radial inlet values
+                IF ( radial_source_flag .AND. ( source_cell(j,k).EQ.2 ) ) THEN
+                
+                   IF ( sourceE(j,k) ) THEN
+
+                      qrecE(1:n_vars+2) = source_bdry(1:n_vars+2)
+                      
+                   ELSEIF ( sourceW(j,k) ) THEN
+                      
+                      qrecW(1:n_vars+2) = source_bdry(1:n_vars+2)
+                      
+                   END IF
+                   
+                END IF
+                
+             END IF
+             
           END IF check_comp_cells_x2
 
           ! y-direction
           check_comp_cells_y2:IF ( comp_cells_y .GT. 1 ) THEN
 
-             IF ( ( k .GT. 1 ) .AND. ( k .LT. comp_cells_y ) ) THEN
-
-                y_stencil(1:3) = y_comp(k-1:k+1)
-                qrec_stencil = qp_expl(i,j,k-1:k+1)
+             qrec_stencil(2) = qp_expl(i,j,k)
+             
+             IF ( k .EQ. 1 ) THEN
+                
+                CALL qp_to_qp2( qrecS(1:n_vars) , B_cent(j,k) , qp2recS ) 
+                qrec_stencil(1) = qp2recS(i-n_vars+1)
+                qrec_stencil(3) = qp_expl(i,j,k+1)
+                
+             ELSEIF ( k .EQ. comp_cells_y ) THEN
+                
+                CALL qp_to_qp2( qrecN(1:n_vars) , B_cent(j,k) , qp2recN ) 
+                qrec_stencil(1) = qp_expl(i,j,k-1)
+                qrec_stencil(3) = qp2recN(i-n_vars+1)
+                
+             ELSE
+                
+                qrec_stencil(1) = qp_expl(i,j,k-1)
+                qrec_stencil(3) = qp_expl(i,j,k+1)
 
                 ! correction for radial source inlet y-interfaces
                 ! used for the linear reconstruction
@@ -2979,15 +3072,36 @@ CONTAINS
 
                 END IF
 
-                CALL limit( qrec_stencil , y_stencil , limiter(i) ,             &
-                     qrec_prime_y(i) )
-
-                dq = reconstr_coeff*dy2*qrec_prime_y(i) 
-
-                qrecS(i) = qrec_stencil(2) - dq
-                qrecN(i) = qrec_stencil(2) + dq
-
              ENDIF
+
+             CALL limit( qrec_stencil , y_stencil , limiter(i) ,             &
+                  qrec_prime_y(i) )
+             
+             dq = reconstr_coeff*dy2*qrec_prime_y(i) 
+             
+             qrecS(i) = qrec_stencil(2) - dq
+             qrecN(i) = qrec_stencil(2) + dq
+
+             IF ( ( k.GT.1 ) .AND. ( k.LT.comp_cells_y ) ) THEN
+
+                ! correction for radial source inlet y-interfaces:
+                ! the physical variables at the y-interfaces qrecS or
+                ! qrecN are computed from the radial inlet values
+                IF ( radial_source_flag .AND. ( source_cell(j,k) .EQ. 2 ) ) THEN
+
+                   IF ( sourceS(j,k) ) THEN
+
+                      qrecS(1:n_vars+2) = source_bdry(1:n_vars+2)
+
+                   ELSEIF ( sourceN(j,k) ) THEN
+
+                      qrecN(1:n_vars+2) = source_bdry(1:n_vars+2)
+                      
+                   END IF
+                   
+                END IF
+
+             END IF
 
           ENDIF check_comp_cells_y2
 
@@ -3025,79 +3139,6 @@ CONTAINS
                    diverg_interfaceR(j,k) = .FALSE.
                    diverg_interfaceL(j+1,k) = .FALSE.
                    
-                END IF
-
-             END IF
-
-          END IF
-
-          IF ( j.EQ.1 ) THEN
-
-             ! Dirichelet boundary condition at the west of the domain
-             DO i=1,n_vars
-
-                IF ( bcW(i)%flag .EQ. 0 ) THEN
-
-                   qrecW(i) = bcW(i)%value 
-
-                END IF
-
-             ENDDO
-
-             DO i=n_vars+1,n_vars+2
-
-                CALL qp_to_qp2( qrecW(1:n_vars) , B_cent(j,k) , qp2recW ) 
-                qrecW(i) = qp2recW(i-n_vars+1)
-
-                CALL qp_to_qp2( qrecE(1:n_vars) , B_cent(j,k) , qp2recE ) 
-                qrecE(i) = qp2recE(i-n_vars+1)
-
-             END DO
-
-          ELSEIF ( j.EQ.comp_cells_x ) THEN
-
-             ! Dirichelet boundary condition at the east of the domain
-             DO i=1,n_vars
-
-                IF ( bcE(i)%flag .EQ. 0 ) THEN
-
-                   qrecE(i) = bcE(i)%value 
-
-                END IF
-
-             ENDDO
-
-             DO i=n_vars+1,n_vars+2
-
-                CALL qp_to_qp2( qrecW(1:n_vars) , B_cent(j,k) , qp2recW ) 
-                qrecW(i) = qp2recW(i-n_vars+1)
-
-                CALL qp_to_qp2( qrecE(1:n_vars) , B_cent(j,k) , qp2recE ) 
-                qrecE(i) = qp2recE(i-n_vars+1)
-
-             END DO
-
-          ELSE
-
-             ! correction for radial source inlet x-interfaces:
-             ! the physical variables at the x-interfaces qrecW or
-             ! qrecE are computed from the radial inlet values
-             IF ( radial_source_flag .AND. ( source_cell(j,k).EQ.2 ) ) THEN
-
-                IF ( sourceE(j,k) ) THEN
-
-                   CALL eval_source_bdry( t, sourceE_vect_x(j,k) ,              &
-                        sourceE_vect_y(j,k) , source_bdry )
-
-                   qrecE(1:n_vars+2) = source_bdry(1:n_vars+2)
-
-                ELSEIF ( sourceW(j,k) ) THEN
-                   
-                   CALL eval_source_bdry( t, sourceW_vect_x(j,k) ,              &
-                        sourceW_vect_y(j,k) , source_bdry )
-
-                   qrecW(1:n_vars+2) = source_bdry(1:n_vars+2)
-
                 END IF
 
              END IF
@@ -3192,76 +3233,6 @@ CONTAINS
                    diverg_interfaceT(j,k) = .FALSE.
                    diverg_interfaceB(j,k+1) = .FALSE.
                    
-                END IF
-
-             END IF
-
-          END IF
-
-          IF ( k .EQ. 1 ) THEN
-
-             ! Dirichelet boundary condition at the south of the domain
-             DO i=1,n_vars
-
-                IF ( bcS(i)%flag .EQ. 0 ) THEN
-
-                   qrecS(i) = bcS(i)%value 
-
-                END IF
-
-             ENDDO
-
-             DO i=n_vars+1,n_vars+2
-
-                CALL qp_to_qp2( qrecS(1:n_vars) , B_cent(j,k) , qp2recS ) 
-                qrecS(i) = qp2recS(i-n_vars+1)
-
-                CALL qp_to_qp2( qrecN(1:n_vars) , B_cent(j,k) , qp2recN ) 
-                qrecN(i) = qp2recN(i-n_vars+1)
-
-             END DO
-
-          ELSEIF ( k .EQ. comp_cells_y ) THEN
-
-             ! Dirichelet boundary condition at the north of the domain
-             DO i=1,n_vars
-
-                IF ( bcN(i)%flag .EQ. 0 ) THEN
-
-                   qrecN(i) = bcN(i)%value 
-
-                END IF
-
-             ENDDO
-
-             DO i=n_vars+1,n_vars+2
-
-                CALL qp_to_qp2( qrecS(1:n_vars) , B_cent(j,k) , qp2recS ) 
-                qrecS(i) = qp2recS(i-n_vars+1)
-
-                CALL qp_to_qp2( qrecN(1:n_vars) , B_cent(j,k) , qp2recN ) 
-                qrecN(i) = qp2recN(i-n_vars+1)
-
-             END DO
-
-          ELSE
-
-             IF ( radial_source_flag .AND. ( source_cell(j,k) .EQ. 2 ) ) THEN
-
-                IF ( sourceS(j,k) ) THEN
-
-                   CALL eval_source_bdry( t, sourceS_vect_x(j,k) ,              &
-                        sourceS_vect_y(j,k) , source_bdry )
-
-                   qrecS(1:n_vars+2) = source_bdry(1:n_vars+2)
-
-                ELSEIF ( sourceN(j,k) ) THEN
-
-                   CALL eval_source_bdry( t, sourceN_vect_x(j,k) ,              &
-                        sourceN_vect_y(j,k) , source_bdry )
-
-                   qrecN(1:n_vars+2) = source_bdry(1:n_vars+2)
-
                 END IF
 
              END IF
