@@ -437,15 +437,10 @@ CONTAINS
 
     COMPLEX(wp) :: xs(n_solid)             !< sediment mass fractions
     COMPLEX(wp) :: xs_tot                  !< sum of solid mass fraction
-    COMPLEX(wp) :: Ri                      !< Richardson number
     COMPLEX(wp) :: xl                      !< liquid mass fraction
     COMPLEX(wp) :: xc                      !< carrier phase mass fraction
-    COMPLEX(wp) :: alphal                  !< liquid volume fraction
-    COMPLEX(wp) :: alphac                  !< carrier phase volume fraction
     COMPLEX(wp) :: sp_heat_mix             !< Specific heat of mixture
     COMPLEX(wp) :: inv_cqj1
-
-    INTEGER :: i_solid
 
     ! compute solid mass fractions
     IF ( REAL(c_qj(1)) .GT. eps_sing ) THEN
@@ -760,8 +755,11 @@ CONTAINS
     REAL(wp) :: r_rho_m           !< real-value mixture density [kg/m3]
     REAL(wp) :: r_rho_c           !< real-value carrier phase density [kg/m3]
     REAL(wp) :: r_xs(n_solid)     !< real-value solid mass fraction
-
+ 
+    REAL(wp) :: r_alphas_rhos(n_solid)
     REAL(wp) :: alphas_tot
+
+    REAL(wp) :: r_inv_rhom
 
     r_h = qp(1)
 
@@ -790,6 +788,8 @@ CONTAINS
 
     r_alphas(1:n_solid) = qp(5:4+n_solid)
     alphas_tot = SUM(r_alphas)
+
+    r_alphas_rhos(1:n_solid) = r_alphas(1:n_solid) * rho_s(1:n_solid)
  
     IF ( gas_flag ) THEN
 
@@ -828,17 +828,19 @@ CONTAINS
        r_alphac = 1.0_wp - alphas_tot - r_alphal
 
        ! volume averaged mixture density: carrier (gas) + solids + liquid
-       r_rho_m = r_alphac * r_rho_c + DOT_PRODUCT( r_alphas , rho_s )           &
+       r_rho_m = r_alphac * r_rho_c + SUM( r_alphas_rhos(1:n_solid) )           &
             + r_alphal * rho_l
 
+       r_inv_rhom = 1.0_wp / r_rho_m
+
        ! liquid mass fraction
-       r_xl = r_alphal * rho_l / r_rho_m
+       r_xl = r_alphal * rho_l * r_inv_rhom
 
        ! solid mass fractions
-       r_xs(1:n_solid) = r_alphas(1:n_solid) * rho_s(1:n_solid) / r_rho_m
+       r_xs(1:n_solid) = r_alphas_rhos(1:n_solid) * r_inv_rhom
 
        ! carrier (gas) mass fraction
-       r_xc = r_alphac * r_rho_c / r_rho_m
+       r_xc = r_alphac * r_rho_c * r_inv_rhom
 
        ! mass averaged mixture specific heat
        r_sp_heat_mix =  DOT_PRODUCT( r_xs , sp_heat_s ) + r_xl * sp_heat_l      &
@@ -863,13 +865,15 @@ CONTAINS
        r_alphac = 1.0_wp - alphas_tot 
 
        ! volume averaged mixture density: carrier (gas or liquid) + solids
-       r_rho_m = r_alphac * r_rho_c + DOT_PRODUCT( r_alphas , rho_s ) 
+       r_rho_m = r_alphac * r_rho_c + SUM( r_alphas_rhos(1:n_solid) )
+
+       r_inv_rhom = 1.0_wp / r_rho_m
 
        ! solid mass fractions
-       r_xs(1:n_solid) = r_alphas(1:n_solid) * rho_s(1:n_solid) / r_rho_m
+       r_xs(1:n_solid) = r_alphas_rhos(1:n_solid) * r_inv_rhom
 
        ! carrier (gas or liquid) mass fraction
-       r_xc = r_alphac * r_rho_c / r_rho_m
+       r_xc = r_alphac * r_rho_c * r_inv_rhom
 
        ! mass averaged mixture specific heat
        r_sp_heat_mix =  DOT_PRODUCT( r_xs , sp_heat_s ) + r_xc * sp_heat_c
@@ -1613,7 +1617,7 @@ CONTAINS
   SUBROUTINE eval_expl_terms( Bprimej_x, Bprimej_y, source_xy, qpj, expl_term , &
        time, cell_fract_jk )
 
-    USE parameters_2d, ONLY : h_source , vel_source , T_source , alphas_source ,&
+    USE parameters_2d, ONLY : vel_source , T_source , alphas_source ,           &
          alphal_source , time_param , bottom_radial_source_flag
 
     
@@ -1649,7 +1653,6 @@ CONTAINS
     
     REAL(wp) :: t_rem
     REAL(wp) :: t_coeff
-    REAL(wp) :: pi_g
     REAL(wp) :: h_dot
 
     
@@ -2060,7 +2063,6 @@ CONTAINS
 
     REAL(wp) :: entr_coeff
     REAL(wp) :: air_entr
-    REAL(wp) :: mag_vel 
     REAL(wp) :: mag_vel2 
 
     REAL(wp) :: r_h          !< real-value flow thickness
@@ -2315,7 +2317,7 @@ CONTAINS
     REAL(wp) :: inv_sqrt_C_D_old  !< previous iteration sqrt of drag coefficient
     REAL(wp) :: set_vel_old   !< previous iteration settling velocity
 
-    INTEGER :: dig          !< order of magnitude of settling velocity
+    ! INTEGER :: dig          !< order of magnitude of settling velocity
 
     inv_sqrt_C_D = 1.0_wp
 

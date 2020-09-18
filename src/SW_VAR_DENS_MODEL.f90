@@ -72,7 +72,6 @@ PROGRAM SW_VAR_DENS_MODEL
   USE parameters_2d, ONLY : n_solid
   USE parameters_2d, ONLY : n_vars
   USE parameters_2d, ONLY : radial_source_flag
-  USE parameters_2d, ONLY : bottom_radial_source_flag
   USE parameters_2d, ONLY : collapsing_volume_flag
 
   USE parameters_2d, ONLY : n_thickness_levels , n_dyn_pres_levels ,          &

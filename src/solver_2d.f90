@@ -3084,7 +3084,7 @@ CONTAINS
 
              ENDIF
 
-             CALL limit( qrec_stencil , y_stencil , limiter(i) ,             &
+             CALL limit( qrec_stencil , y_stencil , limiter(i) ,                &
                   qrec_prime_y(i) )
              
              dq = reconstr_coeff*dy2*qrec_prime_y(i) 
