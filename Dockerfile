@@ -18,6 +18,8 @@ RUN apk update \
 RUN curl -L https://github.com/Unidata/netcdf-c/archive/v4.7.3.tar.gz > v4.7.3.tar.gz \
     && tar -xzvf v4.7.3.tar.gz \
     && cd netcdf-c-4.7.3 \
+    && export FCFLAGS="-w -fallow-argument-mismatch -O2" \
+    && export FFLAGS="-w -fallow-argument-mismatch -O2" \
     && ./configure --enable-remote-fortran-bootstrap --disable-dap --prefix=/usr/local \
     && make install \
     && make build-netcdf-fortran \
