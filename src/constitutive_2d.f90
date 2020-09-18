@@ -1097,7 +1097,7 @@ CONTAINS
 
           ! Mass flux in x-direction: u * ( rhom * h )
           flux(1) = r_u * qcj(1)
-
+          
           ! x-momentum flux in x-direction + hydrostatic pressure term
           flux(2) = r_u * qcj(2) + 0.5_wp * r_rho_m * r_red_grav * r_h**2
 

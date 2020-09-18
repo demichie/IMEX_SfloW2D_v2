@@ -2708,13 +2708,14 @@ CONTAINS
           check_comp_cells_x:IF ( comp_cells_x .GT. 1 ) THEN
 
              ! west boundary
-             check_x_boundary:IF (j.EQ.1) THEN
+             check_x_boundary:IF ( j .EQ. 1 ) THEN
+
+                x_stencil(1) = x_stag(1)
+                x_stencil(3) = x_comp(j+1)
 
                 IF ( bcW(i)%flag .EQ. 0 ) THEN
 
-                   x_stencil(1) = x_stag(1)
-                   x_stencil(3) = x_comp(j+1)
-
+                   ! Dirichlet boundary condition 
                    qrec_stencil(1) = bcW(i)%value
                    qrec_stencil(3) = qp_expl(i,j+1,k)
 
@@ -2723,6 +2724,7 @@ CONTAINS
 
                 ELSEIF ( bcW(i)%flag .EQ. 1 ) THEN
 
+                   ! Neumann boundary condition 
                    qrec_prime_x(i) = bcW(i)%value
 
                 ELSEIF ( bcW(i)%flag .EQ. 2 ) THEN
@@ -2732,21 +2734,23 @@ CONTAINS
                 END IF
 
                 !east boundary
-             ELSEIF (j.EQ.comp_cells_x) THEN
+             ELSEIF ( j .EQ. comp_cells_x ) THEN
+
+                x_stencil(3) = x_stag(comp_interfaces_x)
+                x_stencil(1) = x_comp(j-1)
 
                 IF ( bcE(i)%flag .EQ. 0 ) THEN
 
+                   ! Dirichlet boundary condition 
                    qrec_stencil(3) = bcE(i)%value
                    qrec_stencil(1)= qp_expl(i,j-1,k)
-
-                   x_stencil(3) = x_stag(comp_interfaces_x)
-                   x_stencil(1) = x_comp(j-1)
 
                    CALL limit( qrec_stencil , x_stencil , limiter(i) ,          &
                         qrec_prime_x(i) ) 
 
                 ELSEIF ( bcE(i)%flag .EQ. 1 ) THEN
 
+                   ! Neumann boundary condition 
                    qrec_prime_x(i) = bcE(i)%value
 
                 ELSEIF ( bcE(i)%flag .EQ. 2 ) THEN
@@ -2756,8 +2760,9 @@ CONTAINS
 
                 END IF
 
-                ! internal x cells
              ELSE
+
+                ! internal x cells
 
                 x_stencil(1) = x_comp(j-1)
                 x_stencil(3) = x_comp(j+1)
@@ -2829,11 +2834,12 @@ CONTAINS
              ! South boundary
              check_y_boundary:IF (k.EQ.1) THEN
 
+                y_stencil(1) = y_stag(1)
+                y_stencil(3) = y_comp(k+1)
+
                 IF ( bcS(i)%flag .EQ. 0 ) THEN
 
-                   y_stencil(1) = y_stag(1)
-                   y_stencil(3) = y_comp(k+1)
-
+                   ! Dirichlet boundary condition
                    qrec_stencil(1) = bcS(i)%value
                    qrec_stencil(3) = qp_expl(i,j,k+1)
 
@@ -2842,6 +2848,7 @@ CONTAINS
 
                 ELSEIF ( bcS(i)%flag .EQ. 1 ) THEN
 
+                   ! Neumann boundary condition 
                    qrec_prime_y(i) = bcS(i)%value
 
                 ELSEIF ( bcS(i)%flag .EQ. 2 ) THEN
@@ -2853,19 +2860,21 @@ CONTAINS
                 ! North boundary
              ELSEIF ( k .EQ. comp_cells_y ) THEN
 
+                y_stencil(1) = y_comp(k-1)
+                y_stencil(3) = y_stag(comp_interfaces_y)
+
                 IF ( bcN(i)%flag .EQ. 0 ) THEN
 
-                   y_stencil(3) = y_stag(comp_interfaces_y)
-                   y_stencil(1) = y_comp(k-1)
-
-                   qrec_stencil(3) = bcN(i)%value
+                   ! Dirichlet boundary condition
                    qrec_stencil(1)= qp_expl(i,j,k-1)
+                   qrec_stencil(3) = bcN(i)%value
 
                    CALL limit( qrec_stencil , y_stencil , limiter(i) ,          &
                         qrec_prime_y(i) ) 
 
                 ELSEIF ( bcN(i)%flag .EQ. 1 ) THEN
 
+                   ! Neumann boundary condition 
                    qrec_prime_y(i) = bcN(i)%value
 
                 ELSEIF ( bcN(i)%flag .EQ. 2 ) THEN
@@ -2875,8 +2884,9 @@ CONTAINS
 
                 END IF
 
-                ! Internal y cells
              ELSE
+
+                ! Internal y cells
 
                 y_stencil(1) = y_comp(k-1)
                 y_stencil(3) = y_comp(k+1)
@@ -2901,7 +2911,7 @@ CONTAINS
                       CALL eval_source_bdry( t, sourceN_vect_x(j,k) ,           &
                            sourceN_vect_y(j,k) , source_bdry )
 
-                      x_stencil(3) = y_stag(k+1)
+                      y_stencil(3) = y_stag(k+1)
                       qrec_stencil(3) = source_bdry(i)
 
                    END IF
