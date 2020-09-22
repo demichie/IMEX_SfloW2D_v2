@@ -7,7 +7,7 @@ import numpy as np
 import time
 import sys
 
-if len(sys.argv)==4: 
+if len(sys.argv)==5: 
 
     print('Number of cells')
     a = sys.argv[1]
@@ -27,7 +27,7 @@ if len(sys.argv)==4:
     except ValueError:
         print("You must enter a float")
 
-    a = sys.argv[5]
+    a = sys.argv[3]
     try:
         T = float(a)
     except ValueError:
