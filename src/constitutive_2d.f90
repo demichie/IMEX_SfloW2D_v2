@@ -1069,7 +1069,8 @@ CONTAINS
   !
   !******************************************************************************
 
-  SUBROUTINE eval_fluxes(qcj,qpj,dir,flux)
+!  SUBROUTINE eval_fluxes(qcj,qpj,dir,flux)
+  SUBROUTINE eval_fluxes(qcj,qpj,dir,flux,src_term)
 
     USE parameters_2d, ONLY : eps_sing
 
@@ -1080,6 +1081,7 @@ CONTAINS
     INTEGER, INTENT(IN) :: dir
 
     REAL(wp), INTENT(OUT) :: flux(n_eqns)
+    REAL(wp), INTENT(OUT) :: src_term(3)
 
     REAL(wp) :: r_h          !< real-value flow thickness [m]
     REAL(wp) :: r_u          !< real-value x-velocity [m s-1]
@@ -1097,6 +1099,10 @@ CONTAINS
 
        CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav)
 
+       src_term(1) = r_rho_m * r_red_grav * r_h
+       src_term(2) = r_rho_m * r_red_grav * r_h * r_u
+       src_term(3) = r_rho_m * r_red_grav * r_h * r_v
+       
        IF ( dir .EQ. 1 ) THEN
 
           ! Mass flux in x-direction: u * ( rhom * h )
@@ -1658,7 +1664,7 @@ CONTAINS
     
     expl_term(1:n_eqns) = 0.0_wp
 
-    IF ( ( qpj(1) .LE. 0.0_wp ) .AND. ( cell_fract_jk .EQ. 0.0_wp ) ) RETURN
+!!$    IF ( ( qpj(1) .LE. 0.0_wp ) .AND. ( cell_fract_jk .EQ. 0.0_wp ) ) RETURN
 
     r_h = qpj(1)
     r_u = qpj(n_vars+1)
@@ -1666,28 +1672,28 @@ CONTAINS
 
     CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav)
 
-    ! units of dqc(2)/dt [kg m-1 s-2]
-    expl_term(2) = r_red_grav * r_rho_m * r_h * Bprimej_x
-
-    ! units of dqc(3)/dt [kg m-1 s-2]
-    expl_term(3) = r_red_grav * r_rho_m * r_h * Bprimej_y
-
-    IF ( energy_flag ) THEN
-
-       expl_term(4) = r_red_grav * r_rho_m * r_h * ( r_u * Bprimej_x            &
-            + r_v * Bprimej_y )  
-
-    ELSE
-
-       expl_term(4) = 0.0_wp
-
-    END IF
-    
-    IF ( ( time .GE. time_param(4) ) .OR. ( .NOT.bottom_radial_source_flag) ) THEN
-
-       RETURN
-
-    END IF
+!!$    ! units of dqc(2)/dt [kg m-1 s-2]
+!!$    expl_term(2) = r_red_grav * r_rho_m * r_h * Bprimej_x
+!!$
+!!$    ! units of dqc(3)/dt [kg m-1 s-2]
+!!$    expl_term(3) = r_red_grav * r_rho_m * r_h * Bprimej_y
+!!$
+!!$    IF ( energy_flag ) THEN
+!!$
+!!$       expl_term(4) = r_red_grav * r_rho_m * r_h * ( r_u * Bprimej_x            &
+!!$            + r_v * Bprimej_y )  
+!!$
+!!$    ELSE
+!!$
+!!$       expl_term(4) = 0.0_wp
+!!$
+!!$    END IF
+!!$    
+!!$    IF ( ( time .GE. time_param(4) ) .OR. ( .NOT.bottom_radial_source_flag) ) THEN
+!!$
+!!$       RETURN
+!!$
+!!$    END IF
 
     t_rem = MOD( time + time_param(4) , time_param(1) )
 
@@ -1840,8 +1846,7 @@ CONTAINS
             * rho_l
 
     END IF
-
-    
+  
     RETURN
 
   END SUBROUTINE eval_expl_terms

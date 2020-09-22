@@ -67,6 +67,11 @@ MODULE solver_2d
   !> Reconstructed physical value at the top of the y-interface
   REAL(wp), ALLOCATABLE :: qp_interfaceT(:,:,:)
 
+  REAL(wp), ALLOCATABLE :: src_termL(:,:,:)        
+  REAL(wp), ALLOCATABLE :: src_termR(:,:,:)        
+  REAL(wp), ALLOCATABLE :: src_termB(:,:,:)        
+  REAL(wp), ALLOCATABLE :: src_termT(:,:,:)        
+  
   !> Reconstructed value at the NW corner of cell
   REAL(wp), ALLOCATABLE :: q_cellNW(:,:,:)        
   !> Reconstructed value at the NE corner of cell
@@ -267,6 +272,11 @@ CONTAINS
     ALLOCATE( qp_interfaceB( n_vars+2 , comp_cells_x, comp_interfaces_y ) )
     ALLOCATE( qp_interfaceT( n_vars+2 , comp_cells_x, comp_interfaces_y ) )
 
+    ALLOCATE( src_termL( 3 , comp_interfaces_x, comp_cells_y ) )
+    ALLOCATE( src_termR( 3 , comp_interfaces_x, comp_cells_y ) )
+    ALLOCATE( src_termB( 3 , comp_cells_x, comp_interfaces_y ) )
+    ALLOCATE( src_termT( 3 , comp_cells_x, comp_interfaces_y ) )
+    
     ALLOCATE( q_cellNW( n_vars , comp_cells_x , comp_cells_y ) )
     ALLOCATE( q_cellNE( n_vars , comp_cells_x , comp_cells_y ) )
     ALLOCATE( q_cellSW( n_vars , comp_cells_x , comp_cells_y ) )
@@ -491,6 +501,11 @@ CONTAINS
     DEALLOCATE( qp_interfaceB )
     DEALLOCATE( qp_interfaceT )
 
+    DEALLOCATE( src_termL )
+    DEALLOCATE( src_termR )
+    DEALLOCATE( src_termB )
+    DEALLOCATE( src_termT )
+    
     DEALLOCATE( qp_cellNW )
     DEALLOCATE( qp_cellNE )
     DEALLOCATE( qp_cellSW )
@@ -906,6 +921,8 @@ CONTAINS
 
     USE constitutive_2d, ONLY : eval_expl_terms
 
+    USE parameters_2d, ONLY : time_param , bottom_radial_source_flag
+    
     IMPLICIT NONE
 
     REAL(wp) :: q_si(n_vars) !< solution after the semi-implicit step
@@ -1144,13 +1161,22 @@ CONTAINS
                 qp_rk(1:n_vars+2,j,k,i_RK) = 0.0_wp
 
              END IF
-             
-             ! Eval and store the other explicit terms (e.g. gravity or viscous 
-             ! forces)
-             CALL eval_expl_terms( B_prime_x(j,k), B_prime_y(j,k),              &
-                  source_xy(j,k) , qp_rk(1:n_vars+2,j,k,i_RK) ,                 &
-                  expl_terms(1:n_eqns,j,k,i_RK) , t, cell_source_fractions(j,k) )
-             
+
+             IF ( ( t .LE. time_param(4) ) .AND. ( bottom_radial_source_flag)   &
+                  .AND. ( cell_source_fractions(j,k) .GT. 0.0_wp ) ) THEN
+
+                ! Eval radial source terms
+                CALL eval_expl_terms( B_prime_x(j,k), B_prime_y(j,k),           &
+                     source_xy(j,k) , qp_rk(1:n_vars+2,j,k,i_RK) ,              &
+                     expl_terms(1:n_eqns,j,k,i_RK) , t,                         &
+                     cell_source_fractions(j,k) )
+
+             ELSE
+
+                expl_terms(1:n_eqns,j,k,i_RK) = 0.0_wp
+
+             END IF
+                
           END IF
 
        END DO solve_cells_loop
@@ -2194,7 +2220,10 @@ CONTAINS
 
     ! External variables
     USE geometry_2d, ONLY : dx,dy
+    USE geometry_2d, ONLY : B_interfaceL , B_interfaceR
+    USE geometry_2d, ONLY : B_interfaceB , B_interfaceT
     USE parameters_2d, ONLY : solver_scheme
+    USE parameters_2d, ONLY : energy_flag
 
     IMPLICIT NONE
 
@@ -2231,16 +2260,8 @@ CONTAINS
 
     END SELECT
 
-    !WRITE(*,*) 'H_interface_x(1,2,1)',H_interface_x(1,2,1)
-    !WRITE(*,*) 'q_interfaceR(1,1,1)',q_interfaceR(1,1,1)
-    !WRITE(*,*) 'qp_interfaceR(1,1,1)',qp_interfaceR(1,1,1)
-    !WRITE(*,*) 'H_interface_x(1,1,1)',H_interface_x(1,1,1)
-    !WRITE(*,*) 'H_interface_y(1,1,2)',H_interface_y(1,1,2)
-    !WRITE(*,*) 'H_interface_y(1,1,1)',H_interface_y(1,1,1)
-
     !$OMP PARALLEL DO private(l,j,k,i)
 
-    ! Advance in time the solution
     cells_loop:DO l = 1,solve_cells
 
        j = j_cent(l)
@@ -2266,6 +2287,48 @@ CONTAINS
 
        END DO
 
+       IF ( comp_cells_x .GT. 1 ) THEN
+
+          divFlux_iRK(2,j,k) = divFlux_iRK(2,j,k) +                             &
+               0.25_wp / dx * ( ( src_termL(1,j,k) + src_termL(1,j+1,k) ) *     &
+               ( B_interfaceL(j+1,k) - B_interfaceL(j,k) ) +                    &
+               ( src_termR(1,j,k) + src_termR(1,j+1,k) ) *                      &
+               ( B_interfaceR(j+1,k) - B_interfaceR(j,k) ) )
+
+          IF ( energy_flag ) THEN
+             
+             divFlux_iRK(4,j,k) = divFlux_iRK(4,j,k) +                          &
+                  0.25_wp / dx * ( ( src_termL(2,j,k) + src_termL(2,j+1,k) ) *  &
+                  ( B_interfaceL(j+1,k) - B_interfaceL(j,k) ) +                 &
+                  ( src_termR(2,j,k) + src_termR(2,j+1,k) ) *                   &
+                  ( B_interfaceR(j+1,k) - B_interfaceR(j,k) ) )
+             
+             
+          END IF
+          
+       END IF
+
+       IF ( comp_cells_y .GT. 1 ) THEN
+          
+          divFlux_iRK(3,j,k) = divFlux_iRK(3,j,k) +                             &
+               0.25_wp / dy * ( ( src_termB(1,j,k) + src_termB(1,j,k+1) ) *     &
+               ( B_interfaceB(j,k+1) - B_interfaceB(j,k) ) +                    &
+               ( src_termT(1,j,k) + src_termT(1,j,k+1) ) *                      &
+               ( B_interfaceT(j,k+1) - B_interfaceT(j,k) ) )
+
+          IF ( energy_flag ) THEN
+             
+             divFlux_iRK(4,j,k) = divFlux_iRK(4,j,k) +                          &
+                  0.25_wp / dx * ( ( src_termL(3,j,k) + src_termL(3,j+1,k) ) *  &
+                  ( B_interfaceL(j+1,k) - B_interfaceL(j,k) ) +                 &
+                  ( src_termR(3,j,k) + src_termR(3,j+1,k) ) *                   &
+                  ( B_interfaceR(j+1,k) - B_interfaceR(j,k) ) )
+             
+             
+          END IF
+          
+       END IF
+       
     END DO cells_loop
 
     !$OMP END PARALLEL DO
@@ -2310,12 +2373,18 @@ CONTAINS
           j = j_stag_x(l)
           k = k_stag_x(l)
 
+!!$          CALL eval_fluxes( q_interfaceL(1:n_vars,j,k) ,                        &
+!!$               qp_interfaceL(1:n_vars+2,j,k) , 1 , fluxL)
+!!$
+!!$          CALL eval_fluxes( q_interfaceR(1:n_vars,j,k) ,                        &
+!!$               qp_interfaceR(1:n_vars+2,j,k) , 1 , fluxR)
+
           CALL eval_fluxes( q_interfaceL(1:n_vars,j,k) ,                        &
-               qp_interfaceL(1:n_vars+2,j,k) , 1 , fluxL)
+               qp_interfaceL(1:n_vars+2,j,k) , 1 , fluxL , src_termL(1:3,j,k) )
 
           CALL eval_fluxes( q_interfaceR(1:n_vars,j,k) ,                        &
-               qp_interfaceR(1:n_vars+2,j,k) , 1 , fluxR)
-
+               qp_interfaceR(1:n_vars+2,j,k) , 1 , fluxR , src_termR(1:3,j,k) )
+          
           IF ( ( q_interfaceL(2,j,k) .GT. 0.0_wp ) .AND.                        &
                ( q_interfaceR(2,j,k) .GE. 0.0_wp ) ) THEN
 
@@ -2356,12 +2425,18 @@ CONTAINS
           j = j_stag_y(l)
           k = k_stag_y(l)
 
+!!$          CALL eval_fluxes( q_interfaceB(1:n_vars,j,k) ,                        &
+!!$               qp_interfaceB(1:n_vars+2,j,k) , 2 , fluxB)
+!!$
+!!$          CALL eval_fluxes( q_interfaceT(1:n_vars,j,k) ,                        &
+!!$               qp_interfaceT(1:n_vars+2,j,k) ,2 , fluxT)
+
           CALL eval_fluxes( q_interfaceB(1:n_vars,j,k) ,                        &
-               qp_interfaceB(1:n_vars+2,j,k) , 2 , fluxB)
+               qp_interfaceB(1:n_vars+2,j,k) , 2 , fluxB , src_termB(1:3,j,k) )
 
           CALL eval_fluxes( q_interfaceT(1:n_vars,j,k) ,                        &
-               qp_interfaceT(1:n_vars+2,j,k) ,2 , fluxT)
-
+               qp_interfaceT(1:n_vars+2,j,k) , 2 , fluxT , src_termT(1:3,j,k) )
+          
           IF ( ( q_interfaceB(3,j,k) .GT. 0.0_wp ) .AND.                        &
                ( q_interfaceT(3,j,k) .GE. 0.0_wp ) ) THEN
 
@@ -2443,11 +2518,17 @@ CONTAINS
           j = j_stag_x(l)
           k = k_stag_x(l)
 
+!!$          CALL eval_fluxes( q_interfaceL(1:n_vars,j,k) ,                        &
+!!$               qp_interfaceL(1:n_vars+2,j,k) , 1 , fluxL)
+!!$          
+!!$          CALL eval_fluxes( q_interfaceR(1:n_vars,j,k) ,                        &
+!!$               qp_interfaceR(1:n_vars+2,j,k) , 1 , fluxR)
+
           CALL eval_fluxes( q_interfaceL(1:n_vars,j,k) ,                        &
-               qp_interfaceL(1:n_vars+2,j,k) , 1 , fluxL)
-          
+               qp_interfaceL(1:n_vars+2,j,k) , 1 , fluxL , src_termL(1:3,j,k) )
+
           CALL eval_fluxes( q_interfaceR(1:n_vars,j,k) ,                        &
-               qp_interfaceR(1:n_vars+2,j,k) , 1 , fluxR)
+               qp_interfaceR(1:n_vars+2,j,k) , 1 , fluxR , src_termR(1:3,j,k) )
           
           CALL average_KT( a_interface_xNeg(:,j,k), a_interface_xPos(:,j,k) ,   &
                fluxL , fluxR , flux_avg_x )
@@ -2495,12 +2576,18 @@ CONTAINS
           j = j_stag_y(l)
           k = k_stag_y(l)
 
+!!$          CALL eval_fluxes( q_interfaceB(1:n_vars,j,k) ,                        &
+!!$               qp_interfaceB(1:n_vars+2,j,k) , 2 , fluxB)    
+!!$
+!!$          CALL eval_fluxes( q_interfaceT(1:n_vars,j,k) ,                        &
+!!$               qp_interfaceT(1:n_vars+2,j,k) , 2 , fluxT)
+
           CALL eval_fluxes( q_interfaceB(1:n_vars,j,k) ,                        &
-               qp_interfaceB(1:n_vars+2,j,k) , 2 , fluxB)    
+               qp_interfaceB(1:n_vars+2,j,k) , 2 , fluxB , src_termB(1:3,j,k) )
 
           CALL eval_fluxes( q_interfaceT(1:n_vars,j,k) ,                        &
-               qp_interfaceT(1:n_vars+2,j,k) , 2 , fluxT)
-
+               qp_interfaceT(1:n_vars+2,j,k) , 2 , fluxT , src_termT(1:3,j,k) )
+          
           CALL average_KT( a_interface_yNeg(:,j,k) ,                            &
                a_interface_yPos(:,j,k) , fluxB , fluxT , flux_avg_y )
 
