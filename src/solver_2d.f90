@@ -1175,7 +1175,7 @@ CONTAINS
 !!$                expl_terms(1:n_eqns,j,k,i_RK) = 0.0_wp
 !!$
 !!$             END IF
-                
+  
           END IF
 
        END DO solve_cells_loop
@@ -2384,13 +2384,13 @@ CONTAINS
 !!$          CALL eval_fluxes( q_interfaceR(1:n_vars,j,k) ,                        &
 !!$               qp_interfaceR(1:n_vars+2,j,k) , 1 , fluxR , src_termR(1:3,j,k) )
           
-          IF ( ( q_interfaceL(2,j,k) .GT. 0.0_wp ) .AND.                        &
-               ( q_interfaceR(2,j,k) .GE. 0.0_wp ) ) THEN
+          IF ( ( qp_interfaceL(n_vars+1,j,k) .GT. 0.0_wp ) .AND.                        &
+               ( qp_interfaceR(n_vars+1,j,k) .GE. 0.0_wp ) ) THEN
 
              H_interface_x(:,j,k) = fluxL
 
-          ELSEIF ( ( q_interfaceL(2,j,k) .LE. 0.0_wp ) .AND.                    &
-               ( q_interfaceR(2,j,k) .LT. 0.0_wp ) ) THEN
+          ELSEIF ( ( qp_interfaceL(n_vars+1,j,k) .LE. 0.0_wp ) .AND.                    &
+               ( qp_interfaceR(n_vars+1,j,k) .LT. 0.0_wp ) ) THEN
 
              H_interface_x(:,j,k) = fluxR
 
@@ -2400,8 +2400,8 @@ CONTAINS
 
           END IF
 
-          IF ( (  q_interfaceL(2,j,k) .EQ. 0.0_wp ) .AND.                       &
-               (  q_interfaceR(2,j,k) .EQ. 0.0_wp ) ) THEN
+          IF ( (  q_interfaceL(n_vars+1,j,k) .EQ. 0.0_wp ) .AND.                       &
+               (  q_interfaceR(n_vars+1,j,k) .EQ. 0.0_wp ) ) THEN
 
              H_interface_x(1,j,k) = 0.0_wp
              H_interface_x(4:n_vars,j,k) = 0.0_wp

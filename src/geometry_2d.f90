@@ -730,7 +730,7 @@ CONTAINS
     
     
     ! centered approximation for the topography slope
-    limiterB = limiter(1)
+    limiterB = MAX(limiter(1),1)
 
     y_loop:DO k = 1,comp_cells_y
 
