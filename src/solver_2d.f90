@@ -768,6 +768,7 @@ CONTAINS
     INTEGER :: i,j,k,l          !< loop counter
 
     REAL(wp) :: max_a
+    REAL(wp) p_dyn
 
     dt = max_dt
 
@@ -782,7 +783,7 @@ CONTAINS
 
           IF ( q(1,j,k) .GT. 0.0_wp ) THEN
 
-             CALL qc_to_qp( q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) )
+             CALL qc_to_qp( q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
 
           ELSE
 
@@ -915,6 +916,8 @@ CONTAINS
     INTEGER :: j,k,l            !< loop counter over the grid volumes
     REAL(wp) :: Rj_not_impl(n_eqns)
 
+    REAL(wp) :: p_dyn
+
     IF ( verbose_level .GE. 2 ) WRITE(*,*) 'solver, imex_RK_solver: beginning'
 
     !$OMP PARALLEL
@@ -997,7 +1000,7 @@ CONTAINS
              WRITE(*,*) 'q_guess',q_guess
              IF ( q_guess(1) .GT. 0.0_wp  ) THEN 
 
-                CALL qc_to_qp( q_guess , qp(1:n_vars+2,j,k) )
+                CALL qc_to_qp( q_guess , qp(1:n_vars+2,j,k) , p_dyn )
                 WRITE(*,*) 'q_guess: qp',qp(1:n_vars+2,j,k)
 
              END IF
@@ -1125,7 +1128,7 @@ CONTAINS
 
              IF ( q_guess(1) .GT. 0.0_wp ) THEN
 
-                CALL qc_to_qp( q_guess , qp(1:n_vars+2,j,k) )
+                CALL qc_to_qp( q_guess , qp(1:n_vars+2,j,k) , p_dyn )
                 WRITE(*,*) 'imex_RK_solver: qp',qp(1:n_vars+2,j,k)
 
              END IF
@@ -1139,7 +1142,7 @@ CONTAINS
              IF ( q_rk(1,j,k,i_RK) .GT. 0.0_wp ) THEN
 
                 CALL qc_to_qp( q_rk(1:n_vars,j,k,i_RK) ,                        &
-                     qp_rk(1:n_vars+2,j,k,i_RK) )
+                     qp_rk(1:n_vars+2,j,k,i_RK) , p_dyn )
 
              ELSE
 
@@ -1201,7 +1204,7 @@ CONTAINS
 
           IF ( q0(1,j,k) .GT. 0.0_wp ) THEN
 
-             CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k))
+             CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
              WRITE(*,*) 'before imex_RK_solver: qp',qp(1:n_vars+2,j,k)
  
           END IF
@@ -1235,7 +1238,7 @@ CONTAINS
              WRITE(*,*) 'before imex_RK_solver: qc',q0(1:n_vars,j,k)
              IF ( q0(1,j,k) .GT. 0.0_wp ) THEN
 
-                CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k))
+                CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
                 WRITE(*,*) 'before imex_RK_solver: qp',qp(1:n_vars+2,j,k)
 
              END IF
@@ -1270,7 +1273,7 @@ CONTAINS
              WRITE(*,*) 'before imex_RK_solver: qc',q0(1:n_vars,j,k)
              IF ( q0(1,j,k) .GT. 0.0_wp ) THEN
                 
-                CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k))
+                CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
                 WRITE(*,*) 'before imex_RK_solver: qp',qp(1:n_vars+2,j,k)
                 
              END IF
@@ -1302,7 +1305,7 @@ CONTAINS
              WRITE(*,*) 'before imex_RK_solver: qc',q0(1:n_vars,j,k)
              IF ( q0(1,j,k) .GT. 0.0_wp ) THEN
 
-                CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k))
+                CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
                 WRITE(*,*) 'before imex_RK_solver: qp',qp(1:n_vars+2,j,k)
 
              END IF
@@ -1310,7 +1313,7 @@ CONTAINS
              
              IF ( q(1,j,k) .GT. 0.0_wp ) THEN
 
-                CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k))
+                CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
                 WRITE(*,*) 'after imex_RK_solver: qp',qp(1:n_vars+2,j,k)
 
              END IF
@@ -2059,6 +2062,8 @@ CONTAINS
 
     REAL(wp) :: out_of_source_fraction
 
+    REAL(wp) :: p_dyn
+
     IF ( ( erosion_coeff .EQ. 0.0_wp ) .AND. ( .NOT.settling_flag ) ) RETURN
 
     !$OMP PARALLEL DO private(j,k,erosion_term,deposition_term,eqns_term,       &
@@ -2071,7 +2076,7 @@ CONTAINS
 
        IF ( q(1,j,k) .GT. 0.0_wp ) THEN
 
-          CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) )
+          CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
 
        ELSE
 
@@ -2148,7 +2153,7 @@ CONTAINS
              WRITE(*,*) 'deposition_term',deposition_term
              WRITE(*,*) 'erosion_term',erosion_term
              WRITE(*,*) 'after erosion'
-             CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k))
+             CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
              WRITE(*,*) 'qp',qp(1:n_eqns+2,j,k)
                 
              READ(*,*)
@@ -2159,7 +2164,7 @@ CONTAINS
 
        IF ( q(1,j,k) .GT. 0.0_wp ) THEN
 
-          CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) )
+          CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
           CALL mixt_var(qp(1:n_vars+2,j,k),r_Ri,r_rho_m,r_rho_c,r_red_grav)
 
        ELSE

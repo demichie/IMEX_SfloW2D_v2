@@ -27,7 +27,7 @@
 PROGRAM SW_VAR_DENS_MODEL
 
   USE constitutive_2d, ONLY : init_problem_param
-  USE constitutive_2d, ONLY : p_dyn
+
 
   USE geometry_2d, ONLY : init_grid
   USE geometry_2d, ONLY : init_source
@@ -106,6 +106,11 @@ PROGRAM SW_VAR_DENS_MODEL
   INTEGER n_threads
 
   LOGICAL :: use_openmp = .false.
+
+  !> Dynamic pressure
+  REAL(wp) :: p_dyn
+  
+
 
   WRITE(*,*) '---------------------'
   WRITE(*,*) 'SW_VAR_DENS_MODEL 1.0'
@@ -207,7 +212,7 @@ PROGRAM SW_VAR_DENS_MODEL
 
   vuln_table = .FALSE.
 
-  !$OMP PARALLEL DO private(j,k)
+  !$OMP PARALLEL DO private(j,k,p_dyn,i_table,i_thk_lev,i_pdyn_lev)
 
   DO l = 1,solve_cells
 
@@ -216,7 +221,7 @@ PROGRAM SW_VAR_DENS_MODEL
 
      IF ( q(1,j,k) .GT. 0.0_wp ) THEN
 
-        CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars,j,k) )
+        CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars,j,k) , p_dyn )
         hmax(j,k) = qp(1,j,k)
 
         i_table = 0
@@ -313,7 +318,7 @@ PROGRAM SW_VAR_DENS_MODEL
 
      t = t+dt
 
-     !$OMP PARALLEL DO private(j,k)
+     !$OMP PARALLEL DO private(j,k,p_dyn,i_table,i_thk_lev,i_pdyn_lev)
 
      DO l = 1,solve_cells
 
@@ -322,7 +327,7 @@ PROGRAM SW_VAR_DENS_MODEL
 
         IF ( q(1,j,k) .GT. 0.0_wp ) THEN
 
-           CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) )
+           CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
 
            hmax(j,k) = MAX( hmax(j,k) , qp(1,j,k) )
 

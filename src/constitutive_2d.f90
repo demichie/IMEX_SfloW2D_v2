@@ -122,17 +122,6 @@ MODULE constitutive_2d
   !> Kinematic viscosity of carrier phase (units: m2 s-1)
   REAL(wp) :: kin_visc_c
 
-  COMPLEX(wp) :: rho_c     !< Density of carrier phase in the mixture 
-  COMPLEX(wp) :: inv_rho_c
-
-  REAL(wp) :: r_rho_c         !< real-value carrier phase density [kg/m3]
-  REAL(wp) :: r_inv_rho_c
-
-
-
-  !> Dynamic pressure
-  REAL(wp) :: p_dyn
-  
   !> Temperature of ambient air (units: K)
   REAL(wp) :: T_ambient
 
@@ -153,9 +142,6 @@ MODULE constitutive_2d
 
   !> Flag to determine if sedimentation is active
   LOGICAL :: settling_flag
-
-  !> Hindered settling velocity (units: m s-1 )
-  REAL(wp) :: settling_vel
 
   !> Minimum volume fraction of solids in the flow
   REAL(wp) :: alphastot_min
@@ -263,6 +249,8 @@ CONTAINS
     REAL(wp) :: r_alphac        !< real-value carrier phase volume fraction
     REAL(wp) :: r_red_grav      !< real-value reduced gravity
     REAL(wp) :: r_sp_heat_mix   !< Specific heat of mixture
+    REAL(wp) :: r_rho_c         !< real-value carrier phase density [kg/m3]
+    REAL(wp) :: r_inv_rho_c
 
     REAL(wp) :: inv_qj1
  
@@ -341,25 +329,25 @@ CONTAINS
        r_inv_rho_c = sp_gas_const_a * r_T * inv_pres
        sp_heat_c = sp_heat_a
 
+    ELSE
+
+       r_rho_c = rho_l
+       r_inv_rho_c = inv_rho_l
+       sp_heat_c = sp_heat_l
+
     END IF
+
+    r_inv_rhom = DOT_PRODUCT( r_xs(1:n_solid) , inv_rho_s(1:n_solid) )       &
+         + r_xc * r_inv_rho_c
 
     IF ( gas_flag .AND. liquid_flag ) THEN
 
-       r_inv_rhom = DOT_PRODUCT( r_xs(1:n_solid) , inv_rho_s(1:n_solid) )       &
-            + r_xl * inv_rho_l + r_xc * r_inv_rho_c
-
-       r_rho_m = 1.0_wp / r_inv_rhom
-
+       r_inv_rhom = r_inv_rhom + r_xl * inv_rho_l
        r_alphal = r_xl * r_rho_m * inv_rho_l
 
-    ELSE
-
-       r_inv_rhom = DOT_PRODUCT( r_xs(1:n_solid) , inv_rho_s(1:n_solid) )       &
-            + r_xc * r_inv_rho_c
-
-       r_rho_m = 1.0_wp / r_inv_rhom
-
     END IF
+
+    r_rho_m = 1.0_wp / r_inv_rhom
 
     ! convert from mass fraction to volume fraction
     r_alphas(1:n_solid) = r_xs(1:n_solid) * r_rho_m * inv_rho_s(1:n_solid)
@@ -441,6 +429,7 @@ CONTAINS
     COMPLEX(wp) :: xc                      !< carrier phase mass fraction
     COMPLEX(wp) :: sp_heat_mix             !< Specific heat of mixture
     COMPLEX(wp) :: inv_cqj1
+    COMPLEX(wp) :: inv_rho_c
 
     ! compute solid mass fractions
     IF ( REAL(c_qj(1)) .GT. eps_sing ) THEN
@@ -505,6 +494,10 @@ CONTAINS
        ! carrier phase is gas
        inv_rho_c = sp_gas_const_a * T * inv_pres
 
+    ELSE
+
+       inv_rho_c = CMPLX(inv_rho_l,0.0_wp,wp)
+    
     END IF
 
     inv_rhom = DOT_PRODUCT( xs(1:n_solid) , c_inv_rho_s(1:n_solid) )         &
@@ -669,12 +662,13 @@ CONTAINS
   !
   !******************************************************************************
 
-  SUBROUTINE qc_to_qp(qc,qp)
+  SUBROUTINE qc_to_qp(qc,qp,p_dyn)
 
     IMPLICIT none
 
     REAL(wp), INTENT(IN) :: qc(n_vars)
     REAL(wp), INTENT(OUT) :: qp(n_vars+2)
+    REAL(wp), INTENT(OUT) :: p_dyn
 
     REAL(wp) :: r_h               !< real-value flow thickness
     REAL(wp) :: r_u               !< real-value x-velocity
@@ -1529,7 +1523,7 @@ CONTAINS
     IF (rheology_flag) THEN
 
        CALL r_phys_var(qcj,r_h,r_u,r_v,r_alphas,r_rho_m,r_T,r_alphal)
-       
+    
        ! Voellmy Salm rheology
        IF ( rheology_model .EQ. 1 ) THEN
 
@@ -1901,7 +1895,10 @@ CONTAINS
     REAL(wp) :: kin_visc
     REAL(wp) :: rhoc
     REAL(wp) :: expA , expB
-    
+ 
+    !> Hindered settling velocity (units: m s-1 )
+    REAL(wp) :: settling_vel
+   
     ! parameters for Michaels and Bolger (1962) sedimentation correction
     alpha_max = 0.6_wp
     hind_exp = 4.65_wp
@@ -1909,7 +1906,7 @@ CONTAINS
     deposition_term(1:n_solid) = 0.0_wp
     erosion_term(1:n_solid) = 0.0_wp
 
-    IF ( qpj(1) .LE. 1.0e-5_wp ) RETURN
+    IF ( qpj(1) .LE. 0.0_wp ) RETURN
     
     r_h = qpj(1)
     r_u = qpj(n_vars+1)
@@ -2016,7 +2013,7 @@ CONTAINS
 
           END IF
 
-          ! limit the deposition (cannot be remove more than particles present
+          ! limit the deposition (cannot remove more than particles present
           ! in the flow)
           deposition_term(i_solid) = MIN( deposition_term(i_solid) ,            &
                r_h * r_alphas(i_solid) / dt )

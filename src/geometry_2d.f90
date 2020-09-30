@@ -32,11 +32,6 @@ MODULE geometry_2d
   !> Topography slope (y direction) at the centers of the control volumes 
   REAL(wp), ALLOCATABLE :: B_prime_y(:,:)
 
-  REAL(wp), ALLOCATABLE :: B_interfaceL(:,:)
-  REAL(wp), ALLOCATABLE :: B_interfaceR(:,:)
-  REAL(wp), ALLOCATABLE :: B_interfaceB(:,:)
-  REAL(wp), ALLOCATABLE :: B_interfaceT(:,:)
-  
   !> Solution in ascii grid format (ESRI)
   REAL(wp), ALLOCATABLE :: grid_output(:,:)
 
@@ -52,8 +47,14 @@ MODULE geometry_2d
   !> deposit for the different classes
   REAL(wp), ALLOCATABLE :: deposit(:,:,:)
 
+  !> total deposit 
+  REAL(wp), ALLOCATABLE :: deposit_tot(:,:)
+
   !> erosion for the different classes
   REAL(wp), ALLOCATABLE :: erosion(:,:,:)
+
+  !> total erosion 
+  REAL(wp), ALLOCATABLE :: erosion_tot(:,:)
 
   !> erosdible substrate for the different classes
   REAL(wp), ALLOCATABLE :: erodible(:,:,:)
@@ -160,11 +161,6 @@ CONTAINS
     ALLOCATE( B_prime_x(comp_cells_x,comp_cells_y) )
     ALLOCATE( B_prime_y(comp_cells_x,comp_cells_y) )
 
-    ALLOCATE( B_interfaceL(comp_interfaces_x,comp_cells_y) )
-    ALLOCATE( B_interfaceR(comp_interfaces_x,comp_cells_y) )
-    ALLOCATE( B_interfaceB(comp_cells_x,comp_interfaces_y) )
-    ALLOCATE( B_interfaceT(comp_cells_x,comp_interfaces_y) )
-    
     ALLOCATE( grid_output(comp_cells_x,comp_cells_y) )
     ALLOCATE( grid_output_int(comp_cells_x,comp_cells_y) )
 
@@ -752,11 +748,6 @@ CONTAINS
 
                 CALL limit( B_stencil , x_stencil , limiterB , B_prime_x(j,k) )
 
-                B_interfaceR(j,k) = B_cent(j,k) - 0.5_wp * dx * B_prime_x(j,k)
-                B_interfaceL(j,k) = B_interfaceR(j,k)
-
-                B_interfaceL(j+1,k) = B_cent(j,k) + 0.5_wp * dx * B_prime_x(j,k)
-                
              ELSEIF (j.EQ.comp_cells_x) THEN
 
                 !east boundary
@@ -771,11 +762,6 @@ CONTAINS
 
                 CALL limit( B_stencil , x_stencil , limiterB , B_prime_x(j,k) ) 
 
-                B_interfaceR(j,k) = B_cent(j,k) - 0.5_wp * dx * B_prime_x(j,k)
-
-                B_interfaceL(j+1,k) = B_cent(j,k) + 0.5_wp * dx * B_prime_x(j,k)
-                B_interfaceR(j+1,k) = B_interfaceL(j+1,k)
-                
              ELSE
 
                 ! Internal x interfaces
@@ -784,10 +770,6 @@ CONTAINS
 
                 CALL limit( B_stencil , x_stencil , limiterB , B_prime_x(j,k) )
 
-                B_interfaceR(j,k) = B_cent(j,k) - 0.5_wp * dx * B_prime_x(j,k) 
- 
-                B_interfaceL(j+1,k) = B_cent(j,k) + 0.5_wp * dx * B_prime_x(j,k)
-                
              ENDIF check_x_boundary
 
           ELSE
@@ -810,11 +792,6 @@ CONTAINS
                 
                 CALL limit( B_stencil , y_stencil , limiterB , B_prime_y(j,k) ) 
 
-                B_interfaceT(j,k) = B_cent(j,k) - 0.5_wp * dy * B_prime_y(j,k) 
-                B_interfaceB(j,k) = B_interfaceT(j,k)
-
-                B_interfaceB(j,k+1) = B_cent(j,k) + 0.5_wp * dy * B_prime_y(j,k) 
-                
              ELSEIF ( k .EQ. comp_cells_y ) THEN
 
                 ! North boundary
@@ -827,11 +804,6 @@ CONTAINS
                 B_stencil(1:2) = B_cent(j,comp_cells_y-1:comp_cells_y)
                 
                 CALL limit( B_stencil , y_stencil , limiterB , B_prime_y(j,k) ) 
-
-                B_interfaceT(j,k) = B_cent(j,k) - 0.5_wp * dy * B_prime_y(j,k) 
-
-                B_interfaceB(j,k+1) = B_cent(j,k) + 0.5_wp * dy * B_prime_y(j,k) 
-                B_interfaceT(j,k+1) = B_interfaceB(j,k+1)
                 
              ELSE
 
@@ -840,10 +812,6 @@ CONTAINS
                 B_stencil = B_cent(j,k-1:k+1)
 
                 CALL limit( B_stencil , y_stencil , limiterB , B_prime_y(j,k) )
-
-                B_interfaceT(j,k) = B_cent(j,k) - 0.5_wp * dy * B_prime_y(j,k) 
-
-                B_interfaceB(j,k+1) = B_cent(j,k) + 0.5_wp * dy * B_prime_y(j,k) 
 
              ENDIF check_y_boundary
 
@@ -856,6 +824,22 @@ CONTAINS
        END DO x_loop
        
     END DO y_loop
+
+!!$    DO k=1,comp_cells_y
+!!$       
+!!$       DO j=1,comp_cells_x
+!!$          
+!!$          CALL interp_2d_scalar( topography_profile(1,:,:) ,                    &
+!!$               topography_profile(2,:,:), topography_profile(3,:,:) ,           &
+!!$               x_comp(j), y_comp(k) , B_cent(j,k) )
+!!$          
+!!$          CALL interp_2d_slope( topography_profile(1,:,:) ,                     &
+!!$               topography_profile(2,:,:), topography_profile(3,:,:) ,           &
+!!$               x_comp(j), y_comp(k) , B_prime_x(j,k) , B_prime_y(j,k) )
+!!$          
+!!$       END DO
+!!$       
+!!$    ENDDO
 
     RETURN
 

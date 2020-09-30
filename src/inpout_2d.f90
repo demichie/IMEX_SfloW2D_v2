@@ -550,12 +550,12 @@ CONTAINS
     USE parameters_2d, ONLY : limiter
     USE parameters_2d, ONLY : bcW , bcE , bcS , bcN
 
-    USE geometry_2d, ONLY : deposit , erosion , erodible
+    USE geometry_2d, ONLY : deposit , deposit_tot , erosion , erodible ,        &
+         erosion_tot
 
     USE constitutive_2d, ONLY : rho_a_amb
     USE constitutive_2d, ONLY : rho_c_sub
-    USE constitutive_2d, ONLY : kin_visc_c , rho_c , inv_rho_c , sp_heat_c ,    &
-         r_rho_c , r_inv_rho_c
+    USE constitutive_2d, ONLY : kin_visc_c , sp_heat_c 
    
     USE constitutive_2d, ONLY : inv_pres , inv_rho_l , inv_rho_s , c_inv_rho_s
  
@@ -844,10 +844,6 @@ CONTAINS
           END IF
 
           kin_visc_c = kin_visc_l
-          r_rho_c = rho_l
-          r_inv_rho_c = inv_rho_l
-          rho_c = CMPLX(rho_l,0.0_wp,wp)
-          inv_rho_c = CMPLX(inv_rho_l,0.0_wp,wp)
           sp_heat_c = sp_heat_l
 
        END IF
@@ -1056,8 +1052,14 @@ CONTAINS
     ALLOCATE( deposit( comp_cells_x , comp_cells_y , n_solid ) )    
     deposit(1:comp_cells_x,1:comp_cells_y,1:n_solid ) = 0.0_wp
 
+    ALLOCATE( deposit_tot( comp_cells_x , comp_cells_y ) )    
+    deposit_tot(1:comp_cells_x,1:comp_cells_y) = 0.0_wp
+
     ALLOCATE( erosion( comp_cells_x , comp_cells_y , n_solid ) )
     erosion(1:comp_cells_x,1:comp_cells_y,1:n_solid ) = 0.0_wp
+
+    ALLOCATE( erosion_tot( comp_cells_x , comp_cells_y ) )
+    erosion_tot(1:comp_cells_x,1:comp_cells_y) = 0.0_wp
 
     IF ( ( alphastot_min .LT. 0.0_wp ) .OR. ( alphastot_min .GE. 1.0_wp ) ) THEN
 
@@ -3412,7 +3414,7 @@ CONTAINS
     REAL(wp) :: r_u , r_v , r_h , r_alphas(n_solid) , r_T , r_Ri , r_rho_m
     REAL(wp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
     REAL(wp) :: r_red_grav   !< real-value reduced gravity
-
+    REAL(wp) :: p_dyn
 
     INTEGER :: j,k
     INTEGER :: i
@@ -3472,7 +3474,7 @@ CONTAINS
           
           DO j = 1,comp_cells_x
           
-             CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2))
+             CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2) , p_dyn )
 
              CALL mixt_var(qp(1:n_vars+2),r_Ri,r_rho_m,r_rho_c,r_red_grav)
 
@@ -3673,6 +3675,7 @@ CONTAINS
   SUBROUTINE output_esri(output_idx)
 
     USE geometry_2d, ONLY : B_cent , grid_output , deposit , erosion
+    USE geometry_2d, ONLY : deposit_tot , erosion_tot
     ! USE geometry_2d, ONLY : comp_interfaces_x , comp_interfaces_y
     USE solver_2d, ONLY : qp
 
@@ -3817,9 +3820,15 @@ CONTAINS
     
     grid_output = -9999 
     
-    WHERE ( SUM(deposit(:,:,:),DIM=3) .GT. 0.0_wp )
+    DO j = 1,comp_cells_y
        
-       grid_output = SUM(deposit(:,:,:),DIM=3) / ( 1.0_wp - erodible_porosity )  
+       deposit_tot(:,j) = SUM(deposit(:,j,:),DIM=2) / ( 1.0_wp - erodible_porosity )  
+
+    END DO
+
+    WHERE ( deposit_tot(:,:) .GT. 0.0_wp )
+       
+       grid_output = deposit_tot
        
     END WHERE
     
@@ -3886,10 +3895,17 @@ CONTAINS
          form='formatted')
     
     grid_output = -9999 
-    
-    WHERE ( SUM(erosion(:,:,:),DIM=3) .GT. 0.0_wp )
+  
+    DO j = 1,comp_cells_y
        
-       grid_output = SUM(erosion(:,:,:),DIM=3) / ( 1.0_wp - erodible_porosity )  
+       erosion_tot(:,j) = SUM(erosion(:,j,:),DIM=2) / ( 1.0_wp - erodible_porosity )  
+
+    END DO
+
+  
+    WHERE ( erosion_tot(:,:) .GT. 0.0_wp )
+       
+       grid_output = erosion_tot
        
     END WHERE
     
