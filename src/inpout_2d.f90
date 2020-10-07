@@ -2109,7 +2109,7 @@ CONTAINS
              
           END IF
           
-          IF ( ANY(sed_vol_perc(1:n_solid) .EQ. -1.0_wp ) ) THEN
+          IF ( restart .AND. ( ANY(sed_vol_perc(1:n_solid) .EQ. -1.0_wp ) ) ) THEN
              
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'RHEOLOGY_MODEL =' , rheology_model
@@ -2752,6 +2752,8 @@ CONTAINS
     restart_org = restart
     t_start_org = t_start
 
+    CLOSE(input_unit)
+
 
   END SUBROUTINE update_param
 
@@ -3310,6 +3312,8 @@ CONTAINS
           
        ENDDO
 
+       CLOSE(erodible_unit)
+
        WRITE(*,*) 
        IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Total erodible volume =',        &
             cellsize**2*SUM(erodible_input)
@@ -3597,7 +3601,7 @@ CONTAINS
 
     DO j = comp_cells_y,1,-1
 
-       WRITE(output_max_unit,*) grid_output(1:comp_cells_x,j)
+       WRITE(output_max_unit,'(2000ES12.3E3)') grid_output(1:comp_cells_x,j)
 
     ENDDO
 
@@ -3640,7 +3644,7 @@ CONTAINS
 
              DO j = comp_cells_y,1,-1
 
-                WRITE(output_max_unit,*) grid_output_int(1:comp_cells_x,j)
+                WRITE(output_max_unit,'(2000I7)') grid_output_int(1:comp_cells_x,j)
 
              ENDDO
 
@@ -3735,7 +3739,7 @@ CONTAINS
         
     DO j = comp_cells_y,1,-1
 
-       WRITE(output_esri_unit,*) grid_output(1:comp_cells_x,j)
+       WRITE(output_esri_unit,'(2000ES12.3E3)') grid_output(1:comp_cells_x,j)
 
     ENDDO
     
@@ -3765,7 +3769,7 @@ CONTAINS
     
     DO j = comp_cells_y,1,-1
        
-       WRITE(output_esri_unit,*) grid_output(1:comp_cells_x,j)
+       WRITE(output_esri_unit,'(2000ES12.3E3)') grid_output(1:comp_cells_x,j)
        
     ENDDO
     
