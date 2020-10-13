@@ -606,13 +606,14 @@ CONTAINS
        r_alphal = qpj(n_vars)
 
        ! density of mixture of carrier (gas), liquid and solids
-       r_rho_m = ( 1.0_wp - alphas_tot - r_alphal ) * r_rho_c                &
+       r_rho_m = ( 1.0_wp - alphas_tot - r_alphal ) * r_rho_c                   &
             + DOT_PRODUCT( r_alphas , rho_s ) + r_alphal * rho_l
 
     ELSE
 
        ! density of mixture of carrier phase and solids
-       r_rho_m = ( 1.0_wp - alphas_tot ) * r_rho_c + DOT_PRODUCT( r_alphas , rho_s ) 
+       r_rho_m = ( 1.0_wp - alphas_tot ) * r_rho_c + DOT_PRODUCT( r_alphas ,    &
+            rho_s ) 
 
     END IF
 
@@ -1064,7 +1065,6 @@ CONTAINS
   !******************************************************************************
 
   SUBROUTINE eval_fluxes(qcj,qpj,dir,flux)
-!!$  SUBROUTINE eval_fluxes(qcj,qpj,dir,flux,src_term)
 
     USE parameters_2d, ONLY : eps_sing
 
@@ -1075,7 +1075,6 @@ CONTAINS
     INTEGER, INTENT(IN) :: dir
 
     REAL(wp), INTENT(OUT) :: flux(n_eqns)
-!!$    REAL(wp), INTENT(OUT) :: src_term(3)
 
     REAL(wp) :: r_h          !< real-value flow thickness [m]
     REAL(wp) :: r_u          !< real-value x-velocity [m s-1]
@@ -1093,10 +1092,6 @@ CONTAINS
 
        CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav)
 
-!!$       src_term(1) = r_rho_m * r_red_grav * r_h
-!!$       src_term(2) = r_rho_m * r_red_grav * r_h * r_u
-!!$       src_term(3) = r_rho_m * r_red_grav * r_h * r_v
-       
        IF ( dir .EQ. 1 ) THEN
 
           ! Mass flux in x-direction: u * ( rhom * h )
@@ -2319,7 +2314,7 @@ CONTAINS
     REAL(wp) :: inv_sqrt_C_D_old  !< previous iteration sqrt of drag coefficient
     REAL(wp) :: set_vel_old   !< previous iteration settling velocity
 
-    ! INTEGER :: dig          !< order of magnitude of settling velocity
+    INTEGER :: dig          !< order of magnitude of settling velocity
 
     inv_sqrt_C_D = 1.0_wp
 
@@ -2341,12 +2336,12 @@ CONTAINS
           settling_velocity = const_part * inv_sqrt_C_D
 
           IF ( ABS( set_vel_old - settling_velocity ) / set_vel_old             &
-               .LT. 1.0E-5_wp ) THEN
+               .LT. 1.0E-6_wp ) THEN
 
              ! round to first three significative digits
-             ! dig = FLOOR(LOG10(set_vel_old))
-             ! settling_velocity = 10.0_wp**(dig-3)                             &
-             !      * FLOOR( 10.0_wp**(-dig+3)*set_vel_old ) 
+             dig = FLOOR(LOG10(set_vel_old))
+             settling_velocity = 10.0_wp**(dig-3)                               &
+                  * FLOOR( 10.0_wp**(-dig+3)*set_vel_old ) 
 
              RETURN
 
