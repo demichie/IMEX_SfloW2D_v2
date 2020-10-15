@@ -825,22 +825,6 @@ CONTAINS
        
     END DO y_loop
 
-!!$    DO k=1,comp_cells_y
-!!$       
-!!$       DO j=1,comp_cells_x
-!!$          
-!!$          CALL interp_2d_scalar( topography_profile(1,:,:) ,                    &
-!!$               topography_profile(2,:,:), topography_profile(3,:,:) ,           &
-!!$               x_comp(j), y_comp(k) , B_cent(j,k) )
-!!$          
-!!$          CALL interp_2d_slope( topography_profile(1,:,:) ,                     &
-!!$               topography_profile(2,:,:), topography_profile(3,:,:) ,           &
-!!$               x_comp(j), y_comp(k) , B_prime_x(j,k) , B_prime_y(j,k) )
-!!$          
-!!$       END DO
-!!$       
-!!$    ENDDO
-
     RETURN
 
   END SUBROUTINE topography_reconstruction
