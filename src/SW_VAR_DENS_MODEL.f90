@@ -36,7 +36,6 @@ PROGRAM SW_VAR_DENS_MODEL
   USE geometry_2d, ONLY : dx,dy,B_cent
   ! USE geometry_2d, ONLY : comp_cells_x,comp_cells_y
 
-  USE init_2d, ONLY : riemann_problem
   USE init_2d, ONLY : collapsing_volume
 
   USE inpout_2d, ONLY : init_param
@@ -46,8 +45,13 @@ PROGRAM SW_VAR_DENS_MODEL
   USE inpout_2d, ONLY : output_runout
   USE inpout_2d, ONLY : read_solution
   USE inpout_2d, ONLY : close_units
+  USE inpout_2d, ONLY : n_probes
+  USE inpout_2d, ONLY : output_probes
 
   USE inpout_2d, ONLY : output_runout_flag
+  USE inpout_2d, ONLY : output_cons_flag
+  USE inpout_2d, ONLY : output_esri_flag
+  USE inpout_2d, ONLY : output_phys_flag
 
   USE solver_2d, ONLY : allocate_solver_variables
   USE solver_2d, ONLY : deallocate_solver_variables
@@ -64,9 +68,9 @@ PROGRAM SW_VAR_DENS_MODEL
   USE parameters_2d, ONLY : t_end
   USE parameters_2d, ONLY : t_output
   USE parameters_2d, ONLY : t_runout
+  USE parameters_2d, ONLY : t_probes
   USE parameters_2d, ONLY : t_steady
   USE parameters_2d, ONLY : dt0
-  USE parameters_2d, ONLY : riemann_flag
   USE parameters_2d, ONLY : topo_change_flag
   USE parameters_2d, ONLY : verbose_level
   USE parameters_2d, ONLY : n_solid
@@ -163,13 +167,6 @@ PROGRAM SW_VAR_DENS_MODEL
 
      END IF
 
-     IF( riemann_flag ) THEN
-
-        ! riemann problem defined in file.inp
-        CALL riemann_problem
-
-     ENDIF
-
   END IF
 
   IF ( radial_source_flag ) CALL init_source
@@ -255,7 +252,10 @@ PROGRAM SW_VAR_DENS_MODEL
 
   IF ( output_runout_flag ) CALL output_runout(t,stop_flag)
 
-  CALL output_solution(t)
+  IF ( output_cons_flag .OR. output_esri_flag .OR. output_phys_flag )           &
+       CALL output_solution(t)
+
+  IF ( n_probes .GT. 0 ) CALL output_probes(t)
 
   IF ( SUM(q(1,:,:)) .EQ. 0.0_wp ) t_steady = t_output
 
@@ -273,7 +273,7 @@ PROGRAM SW_VAR_DENS_MODEL
 
   CALL cpu_time(t2)
   CALL system_clock (st2)
-
+ 
   DO WHILE ( ( t .LT. t_end ) .AND. ( t .LT. t_steady ) )
 
      CALL update_param
@@ -302,6 +302,12 @@ PROGRAM SW_VAR_DENS_MODEL
      IF ( output_runout_flag ) THEN
 
         IF ( t+dt .GT. t_runout ) dt = t_runout - t
+
+     END IF
+
+     IF ( n_probes .GT. 0 ) THEN
+
+        IF ( t+dt .GT. t_probes ) dt = t_probes - t
 
      END IF
 
@@ -384,6 +390,7 @@ PROGRAM SW_VAR_DENS_MODEL
 
               t_steady = MIN(t_end,t_output)
               t_runout = t_steady
+              t_probes = t_steady
 
            END IF
 
@@ -392,6 +399,12 @@ PROGRAM SW_VAR_DENS_MODEL
      END IF
 
      t_steady = t_end
+
+     IF ( n_probes .GT. 0 ) THEN
+
+        IF ( t .GE. t_probes ) CALL output_probes(t)
+
+     END IF
 
      IF ( ( t .GE. t_output ) .OR. ( t .GE. t_end ) ) THEN
 
@@ -405,7 +418,8 @@ PROGRAM SW_VAR_DENS_MODEL
 
         END IF
 
-        CALL output_solution(t)
+        IF ( output_cons_flag .OR. output_esri_flag .OR. output_phys_flag )     &
+             CALL output_solution(t)
 
      END IF
 

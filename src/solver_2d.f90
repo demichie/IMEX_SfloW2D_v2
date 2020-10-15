@@ -34,6 +34,7 @@ MODULE solver_2d
 
   ! external procedures
   USE geometry_2d, ONLY : limit
+    USE geometry_2d, ONLY : dx,dy
 
   USE OMP_LIB
 
@@ -995,6 +996,7 @@ CONTAINS
                - MATMUL( NH(1:n_eqns,j,k,1:i_RK) + SI_NH(1:n_eqns,j,k,1:i_RK) , &
                a_dirk(1:i_RK) ) )
 
+          
           IF ( verbose_level .GE. 2 ) THEN
 
              WRITE(*,*) 'q_guess',q_guess
@@ -1223,7 +1225,7 @@ CONTAINS
           q(1:n_vars,j,k) = q0(1:n_vars,j,k) - dt*residual_term(1:n_vars,j,k)
 
        END IF
-
+       
        negative_thickness_check:IF ( q(1,j,k) .LT. 0.0_wp ) THEN
 
           IF ( q(1,j,k) .GT. -1.0E-7_wp ) THEN
@@ -1278,6 +1280,16 @@ CONTAINS
                 
              END IF
              WRITE(*,*) 'after imex_RK_solver: qc',q(1:n_vars,j,k)
+
+             WRITE(*,*) 'H_interface(1)'
+             WRITE(*,*) H_interface_x(1,j+1,k)/dx*dt, H_interface_x(1,j,k)/dx*dt
+             WRITE(*,*) H_interface_y(1,j,k+1)/dy*dt, H_interface_y(1,j,k)/dy*dt
+             
+             WRITE(*,*) 'H_interface(5)'
+             WRITE(*,*) H_interface_x(5,j+1,k)/dx*dt, H_interface_x(5,j,k)/dx*dt
+             WRITE(*,*) H_interface_y(5,j,k+1)/dy*dt, H_interface_y(5,j,k)/dy*dt
+             
+
              READ(*,*)
 
           ELSE
@@ -1292,13 +1304,15 @@ CONTAINS
 
        IF ( SUM(q(5:4+n_solid,j,k)) .GT. q(1,j,k) ) THEN
 
-          IF ( SUM(q(5:4+n_solid,j,k))-q(1,j,k) .LT. 1.0E-10_wp ) THEN
+          IF ( (SUM(q(5:4+n_solid,j,k))-q(1,j,k))/q(1,j,k) .LT. 1.0E-5_wp ) THEN
 
              q(5:4+n_solid,j,k) = q(5:4+n_solid,j,k)                            &
                   / SUM(q(5:4+n_solid,j,k)) * q(1,j,k)
 
           ELSE
 
+             WRITE(*,*) 'WARNING: SUM(qsolid)>q1',SUM(q(5:4+n_solid,j,k))-q(1,j,k)
+             
              WRITE(*,*) 'j,k,n_RK',j,k,n_RK
              WRITE(*,*) 'dt',dt
              WRITE(*,*) ' B_cent(j,k)', B_cent(j,k)
@@ -1333,7 +1347,7 @@ CONTAINS
     END DO assemble_sol
 
     !$OMP END PARALLEL DO
-
+     
     RETURN
 
   END SUBROUTINE imex_RK_solver
@@ -2813,7 +2827,7 @@ CONTAINS
 
              qrecW(i) = qrec_stencil(2) - dq
              qrecE(i) = qrec_stencil(2) + dq
-
+             
              IF ( j.EQ.1 ) THEN
                 
                 ! Dirichelet boundary condition at the west of the domain

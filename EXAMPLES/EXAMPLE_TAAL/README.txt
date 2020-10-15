@@ -27,10 +27,10 @@ Finally, launch the solver:
 A script to convert the output of the model in NetCDF4 format is provided in the UTILS folder.
 First create a simbolic link of the script in this folder:
 
->> ln -s ../../UTILS/p2d_to_netCDF3.py .
+>> ln -s ../../UTILS/p2d_to_netCDF4.py .
 
 Then, execute the python script
 
->> python p2d_to_netCDF3.py exampleTAAL.bak
+>> python p2d_to_netCDF4.py exampleTAAL.bak
 
 The new file can be plotted with Paraview.

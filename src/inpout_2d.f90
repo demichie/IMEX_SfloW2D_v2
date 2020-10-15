@@ -15,7 +15,7 @@ MODULE inpout_2d
   USE parameters_2d, ONLY : wp
 
   ! -- Variables for the namelist RUN_PARAMETERS
-  USE parameters_2d, ONLY : t_start , t_end , dt_output 
+  USE parameters_2d, ONLY : t_start , t_end , t_output , dt_output 
 
   USE solver_2d, ONLY : verbose_level
 
@@ -23,9 +23,8 @@ MODULE inpout_2d
   USE geometry_2d, ONLY : x0 , y0 , comp_cells_x , comp_cells_y , cell_size
   USE geometry_2d, ONLY : topography_profile , n_topography_profile_x ,         &
        n_topography_profile_y
-  USE init_2d, ONLY : riemann_interface
   USE parameters_2d, ONLY : n_solid
-  USE parameters_2d, ONLY : riemann_flag , rheology_flag , energy_flag ,        &
+  USE parameters_2d, ONLY : rheology_flag , energy_flag ,        &
        topo_change_flag , radial_source_flag , collapsing_volume_flag ,         &
        liquid_flag , gas_flag , subtract_init_flag , bottom_radial_source_flag
 
@@ -34,12 +33,6 @@ MODULE inpout_2d
   USE parameters_2d, ONLY : velocity_mod_release , velocity_ang_release
   USE parameters_2d, ONLY : alphas_init
   USE parameters_2d, ONLY : T_init
-
-  ! -- Variables for the namelist LEFT_STATE
-  USE init_2d, ONLY : hB_W , u_W , v_W , alphas_W , T_W
-
-  ! -- Variables for the namelist RIGHT_STATE
-  USE init_2d, ONLY : hB_E , u_E , v_E , alphas_E , T_E
 
   ! -- Variables for the namelists LEFT/RIGHT_BOUNDARY_CONDITIONS
   USE parameters_2d, ONLY : bc
@@ -152,23 +145,19 @@ MODULE inpout_2d
 
   ! -- Variables for the namelists WEST_BOUNDARY_CONDITIONS
   TYPE(bc) :: h_bcW , hu_bcW , hv_bcW , T_bcW
-  ! TYPE(bc) :: alphas_bcW(10)
-  TYPE(bc),ALLOCATABLE :: alphas_bcW(:)
+  TYPE(bc),ALLOCATABLE :: halphas_bcW(:)
 
   ! -- Variables for the namelists EAST_BOUNDARY_CONDITIONS
   TYPE(bc) :: h_bcE , hu_bcE , hv_bcE , T_bcE
-  !TYPE(bc):: alphas_bcE(10)
-  TYPE(bc),ALLOCATABLE :: alphas_bcE(:)
+  TYPE(bc),ALLOCATABLE :: halphas_bcE(:)
 
   ! -- Variables for the namelists SOUTH_BOUNDARY_CONDITIONS
   TYPE(bc) :: h_bcS , hu_bcS , hv_bcS , T_bcS
-  !TYPE(bc) :: alphas_bcS(10)
-  TYPE(bc),ALLOCATABLE :: alphas_bcS(:)
+  TYPE(bc),ALLOCATABLE :: halphas_bcS(:)
 
   ! -- Variables for the namelists NORTH_BOUNDARY_CONDITIONS
   TYPE(bc) :: h_bcN , hu_bcN , hv_bcN , T_bcN
-  !TYPE(bc) :: alphas_bcN(10)
-  TYPE(bc),ALLOCATABLE :: alphas_bcN(:)
+  TYPE(bc),ALLOCATABLE :: halphas_bcN(:)
 
 
   ! parameters to read a dem file
@@ -183,6 +172,8 @@ MODULE inpout_2d
   REAL(wp), ALLOCATABLE :: probes_coords(:,:)
 
   REAL(wp) :: dt_runout
+
+  REAL(wp) :: dt_probes
 
   REAL(wp), ALLOCATABLE :: h_old(:,:)
 
@@ -204,17 +195,13 @@ MODULE inpout_2d
   NAMELIST / restart_parameters / restart_file, T_init, T_ambient , sed_vol_perc
 
   NAMELIST / newrun_parameters / n_solid , topography_file , x0 , y0 ,          &
-       comp_cells_x , comp_cells_y , cell_size , rheology_flag , riemann_flag , &
+       comp_cells_x , comp_cells_y , cell_size , rheology_flag ,                &
        energy_flag , liquid_flag , radial_source_flag , collapsing_volume_flag ,&
        topo_change_flag , gas_flag , subtract_init_flag ,                       &
        bottom_radial_source_flag
 
   NAMELIST / initial_conditions /  released_volume , x_release , y_release ,    &
        velocity_mod_release , velocity_ang_release , T_init , T_ambient
-
-  NAMELIST / left_state / riemann_interface , hB_W , u_W , v_W , alphas0_W , T_W
-
-  NAMELIST / right_state / hB_E , u_E , v_E , alphas0_E , T_E
 
   NAMELIST / numeric_parameters / solver_scheme, dt0 , max_dt , cfl, limiter ,  &
        theta , reconstr_coeff , interfaces_relaxation , n_RK   
@@ -297,7 +284,6 @@ CONTAINS
     comp_cells_y = 1
     cell_size = 1.0E-3_wp
     rheology_flag = .FALSE.
-    riemann_flag =.TRUE.
     energy_flag = .FALSE.
     topo_change_flag = .FALSE.
     radial_source_flag = .FALSE.
@@ -306,21 +292,6 @@ CONTAINS
     liquid_flag = .FALSE.
     gas_flag = .TRUE.
     subtract_init_flag = .FALSE.
-
-    !-- Inizialization of the Variables for the namelist left_state
-    riemann_interface = 0.5_wp
-    hB_W = 2.0_wp
-    u_W = 0.0_wp
-    v_W = 0.0_wp
-    ! alphas_W = 0.5_wp
-    T_W = -1.0_wp
-
-    !-- Inizialization of the Variables for the namelist right_state
-    hB_E = 1.0_wp
-    u_E = 0.0_wp
-    u_E = 0.0_wp
-    ! alphas_E = 0.5_wp
-    T_E = -1.0_wp
 
     !-- Inizialization of the Variables for the namelist NUMERIC_PARAMETERS
     dt0 = 1.0E-4_wp
@@ -394,7 +365,7 @@ CONTAINS
 
        IF ( n_solid .LT. 1 ) THEN
 
-          WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
+          WRITE(*,*) 'ERROR: problem with namelist NEWRUN_PARAMETERS'
           WRITE(*,*) 'n_solid =' , n_solid
           WRITE(*,*) 'Please check the input file'
           STOP
@@ -402,10 +373,10 @@ CONTAINS
        END IF
 
 
-       ALLOCATE ( alphas_bcW(n_solid) )
-       ALLOCATE ( alphas_bcE(n_solid) )
-       ALLOCATE ( alphas_bcS(n_solid) )
-       ALLOCATE ( alphas_bcN(n_solid) )
+       ALLOCATE ( halphas_bcW(n_solid) )
+       ALLOCATE ( halphas_bcE(n_solid) )
+       ALLOCATE ( halphas_bcS(n_solid) )
+       ALLOCATE ( halphas_bcN(n_solid) )
 
        ALLOCATE( sed_vol_perc(n_solid) )
        sed_vol_perc(1:n_solid) = -1.0_wp
@@ -426,25 +397,25 @@ CONTAINS
     h_bcW%flag = -1 
     hu_bcW%flag = -1 
     hv_bcW%flag = -1 
-    alphas_bcW%flag = -1 
+    halphas_bcW%flag = -1 
     T_bcW%flag = -1 
 
     h_bcE%flag = -1 
     hu_bcE%flag = -1 
     hv_bcE%flag = -1 
-    alphas_bcE%flag = -1 
+    halphas_bcE%flag = -1 
     T_bcE%flag = -1 
 
     h_bcS%flag = -1 
     hu_bcS%flag = -1 
     hv_bcS%flag = -1 
-    alphas_bcS%flag = -1 
+    halphas_bcS%flag = -1 
     T_bcS%flag = -1 
 
     h_bcN%flag = -1 
     hu_bcN%flag = -1 
     hv_bcN%flag = -1 
-    alphas_bcN%flag = -1 
+    halphas_bcN%flag = -1 
     T_bcN%flag = -1 
 
     ! sed_vol_perc = -1.0_wp
@@ -564,16 +535,16 @@ CONTAINS
     IMPLICIT none
 
     NAMELIST / west_boundary_conditions / h_bcW , hu_bcW , hv_bcW ,             &
-         alphas_bcW , T_bcW
+         halphas_bcW , T_bcW
 
     NAMELIST / east_boundary_conditions / h_bcE , hu_bcE , hv_bcE ,             &
-         alphas_bcE , T_bcE
+         halphas_bcE , T_bcE
 
     NAMELIST / south_boundary_conditions / h_bcS , hu_bcS , hv_bcS ,            &
-         alphas_bcS , T_bcS
+         halphas_bcS , T_bcS
 
     NAMELIST / north_boundary_conditions / h_bcN , hu_bcN , hv_bcN ,            &
-         alphas_bcN , T_bcN
+         halphas_bcN , T_bcN
 
     NAMELIST / solid_transport_parameters / rho_s , diam_s , sp_heat_s ,        &
          erosion_coeff , erodible_porosity , settling_flag , T_erodible ,       &
@@ -617,6 +588,11 @@ CONTAINS
        REWIND(input_unit)
 
     END IF
+
+    IF ( (.NOT.output_cons_flag) .AND. (.NOT.output_esri_flag) .AND.            &
+         (.NOT.output_phys_flag) ) dt_output = 2.0 * ( t_end - t_start ) 
+
+    t_output = t_start + dt_output
 
     ! ---------- READ newrun_parameters NAMELIST --------------------------------
     READ(input_unit,newrun_parameters,IOSTAT=ios)
@@ -1015,10 +991,10 @@ CONTAINS
     n_vars = n_vars + n_solid
     n_eqns = n_vars
 
-    alphas_bcW(1:n_solid)%flag = -1
-    alphas_bcE(1:n_solid)%flag = -1
-    alphas_bcS(1:n_solid)%flag = -1
-    alphas_bcN(1:n_solid)%flag = -1
+    halphas_bcW(1:n_solid)%flag = -1
+    halphas_bcE(1:n_solid)%flag = -1
+    halphas_bcS(1:n_solid)%flag = -1
+    halphas_bcN(1:n_solid)%flag = -1
 
        
     ALLOCATE( bcW(n_vars) , bcE(n_vars) , bcS(n_vars) , bcN(n_vars) )
@@ -1039,8 +1015,6 @@ CONTAINS
 
     ALLOCATE( alphas_init(n_solid) )
 
-    ALLOCATE( alphas_E(n_solid) , alphas_W(n_solid) )
-    
     inv_rho_s(1:n_solid) = 1.0_wp / rho_s(1:n_solid)
     
     DO i_solid=1,n_solid
@@ -1140,66 +1114,6 @@ CONTAINS
 
        END IF
 
-    ELSE
-
-       IF ( riemann_flag ) THEN
-
-          READ(input_unit,left_state,IOSTAT=ios)
-          
-          alphas_E(1:n_solid) = alphas0_E(1:n_solid)
-
-          IF ( ios .NE. 0 ) THEN
-             
-             WRITE(*,*) 'IOSTAT=',ios
-             WRITE(*,*) 'ERROR: problem with namelist LEFT_PARAMETERS'
-             WRITE(*,*) 'Please check the input file'
-             STOP
-             
-          ELSE
-             
-             REWIND(input_unit)
-
-             IF ( T_W .EQ. -1.0_wp ) THEN
-
-                WRITE(*,*) 'ERROR: problem with namelist LEFT_PARAMETERS'
-                WRITE(*,*) 'Initial temperature T_W not defined'
-                STOP
-                
-             END IF
-             
-          END IF
-          
-          READ(input_unit,right_state,IOSTAT=ios)
-
-          alphas_E(1:n_solid) = alphas0_E(1:n_solid)
-          
-          IF ( ios .NE. 0 ) THEN
-             
-             WRITE(*,*) 'IOSTAT=',ios
-             WRITE(*,*) 'ERROR: problem with namelist RIGHT_PARAMETERS'
-             WRITE(*,*) 'Please check the input file'
-             STOP
-             
-          ELSE
-             
-             REWIND(input_unit)
-
-             IF ( T_E .EQ. -1.0_wp ) THEN
-
-                WRITE(*,*) 'ERROR: problem with namelist RIGHT_PARAMETERS'
-                WRITE(*,*) 'Initial temperature T_E not defined'
-                STOP
-                
-             END IF
-             
-             
-          END IF
-            
-       ELSE
-
-
-       END IF
-
     END IF
 
     ! ------- READ numeric_parameters NAMELIST ----------------------------------
@@ -1272,7 +1186,7 @@ CONTAINS
     IF ( verbose_level .GE. 0 ) THEN
        
        WRITE(*,*) 'Linear reconstruction and b. c. applied to variables:'
-       WRITE(*,*) 'h,hu,hv,T,alphas'
+       WRITE(*,*) 'h,hu,hv,T,halphas'
 
     END IF
        
@@ -1351,13 +1265,13 @@ CONTAINS
           
        END IF
        
-       IF ( ANY(alphas_bcW(1:n_solid)%flag .EQ. -1 ) ) THEN 
+       IF ( ANY(halphas_bcW(1:n_solid)%flag .EQ. -1 ) ) THEN 
           
           WRITE(*,*) 'ERROR: problem with namelist WEST_BOUNDARY_CONDITIONS'
           WRITE(*,*) 'B.C. for sediment conentration not set properly'
           WRITE(*,*) 'Please check the input file'
-          WRITE(*,*) 'alphas_bcW'
-          WRITE(*,*) alphas_bcW(1:n_solid)
+          WRITE(*,*) 'halphas_bcW'
+          WRITE(*,*) halphas_bcW(1:n_solid)
           STOP
           
        END IF
@@ -1441,13 +1355,13 @@ CONTAINS
           
        END IF
        
-       IF ( ANY(alphas_bcE(1:n_solid)%flag .EQ. -1 ) ) THEN 
+       IF ( ANY(halphas_bcE(1:n_solid)%flag .EQ. -1 ) ) THEN 
           
           WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
           WRITE(*,*) 'B.C. for sediment concentration not set properly'
           WRITE(*,*) 'Please check the input file'
-          WRITE(*,*) 'alphas_bcE'
-          WRITE(*,*) alphas_bcE(1:n_solid)
+          WRITE(*,*) 'halphas_bcE'
+          WRITE(*,*) halphas_bcE(1:n_solid)
           STOP
           
        END IF
@@ -1531,13 +1445,13 @@ CONTAINS
           
        END IF
        
-       IF ( ANY(alphas_bcS(1:n_solid)%flag .EQ. -1 ) ) THEN 
+       IF ( ANY(halphas_bcS(1:n_solid)%flag .EQ. -1 ) ) THEN 
           
           WRITE(*,*) 'ERROR: problem with namelist SOUTH_BOUNDARY_CONDITIONS'
           WRITE(*,*) 'B.C. for sediment concentrations not set properly'
           WRITE(*,*) 'Please check the input file'
-          WRITE(*,*) 'alphas_bcS'
-          WRITE(*,*) alphas_bcS(1:n_solid)
+          WRITE(*,*) 'halphas_bcS'
+          WRITE(*,*) halphas_bcS(1:n_solid)
           STOP
           
        END IF
@@ -1619,13 +1533,13 @@ CONTAINS
           
        END IF
        
-       IF ( ANY(alphas_bcN(1:n_solid)%flag .EQ. -1 ) ) THEN 
+       IF ( ANY(halphas_bcN(1:n_solid)%flag .EQ. -1 ) ) THEN 
           
           WRITE(*,*) 'ERROR: problem with namelist NORTH_BOUNDARY_CONDITIONS'
           WRITE(*,*) 'B.C. for sediment concentrations not set properly'
           WRITE(*,*) 'Please check the input file'
-          WRITE(*,*) 'alphas_bcN'
-          WRITE(*,*) alphas_bcN(1:n_solid)
+          WRITE(*,*) 'halphas_bcN'
+          WRITE(*,*) halphas_bcN(1:n_solid)
           STOP
           
        END IF
@@ -1650,10 +1564,10 @@ CONTAINS
     bcS(4) = T_bcS
     bcN(4) = T_bcN
 
-    bcW(5:4+n_solid) = alphas_bcW(1:n_solid)
-    bcE(5:4+n_solid) = alphas_bcE(1:n_solid)
-    bcS(5:4+n_solid) = alphas_bcS(1:n_solid)
-    bcN(5:4+n_solid) = alphas_bcN(1:n_solid)
+    bcW(5:4+n_solid) = halphas_bcW(1:n_solid)
+    bcE(5:4+n_solid) = halphas_bcE(1:n_solid)
+    bcS(5:4+n_solid) = halphas_bcS(1:n_solid)
+    bcN(5:4+n_solid) = halphas_bcN(1:n_solid)
        
     ! ------- READ expl_terms_parameters NAMELIST -------------------------------
 
@@ -2516,9 +2430,11 @@ CONTAINS
 
     !------ search for check points --------------------------------------------
 
+    REWIND(input_unit)
+
     tend1 = .FALSE.
     
-    IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Searching for topography_profile'
+    IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Searching for probes coords'
    
     n_probes = 0
  
@@ -2538,6 +2454,10 @@ CONTAINS
     READ(input_unit,*) n_probes
     
     WRITE(*,*) 'n_probes ',n_probes
+
+    READ(input_unit,*) dt_probes
+    
+    WRITE(*,*) 'dt_probes ',dt_probes
     
     ALLOCATE( probes_coords( 2 , n_probes ) )
     
@@ -2572,25 +2492,16 @@ CONTAINS
 
        WRITE(backup_unit,newrun_parameters)
 
-       IF ( riemann_flag) THEN
-
-          WRITE(backup_unit,left_state)
-          WRITE(backup_unit,right_state)
-
+       IF ( ( radial_source_flag ) .OR. ( bottom_radial_source_flag ) ) THEN
+          
+          alphal_source = -1.0_wp
+          
+          WRITE(backup_unit,radial_source_parameters)
+          
        ELSE
-
-          IF ( ( radial_source_flag ) .OR. ( bottom_radial_source_flag ) ) THEN
-             
-             alphal_source = -1.0_wp
-             
-             WRITE(backup_unit,radial_source_parameters)
-
-          ELSE
-             
-             WRITE(backup_unit,initial_conditions)
-
-          END IF
-             
+          
+          WRITE(backup_unit,initial_conditions)
+          
        END IF
 
     END IF
@@ -2636,6 +2547,7 @@ CONTAINS
        
        WRITE(backup_unit,*) '''PROBES_COORDS'''
        WRITE(backup_unit,*) n_probes
+       WRITE(backup_unit,*) dt_probes
        
        DO k = 1,n_probes
           
@@ -2718,12 +2630,21 @@ CONTAINS
 
     END IF
 
-    IF ( dt_output_org .NE. dt_output ) THEN
+    IF ( (.NOT.output_cons_flag) .AND. (.NOT.output_esri_flag) .AND.            &
+         (.NOT.output_phys_flag) ) THEN
 
-       WRITE(*,*) 'Modified input file: dt_output =',dt_output
+       dt_output = 2.0 * ( t_end - t_start ) 
 
-    END IF
+    ELSE
+
+       IF ( dt_output_org .NE. dt_output ) THEN
+
+          WRITE(*,*) 'Modified input file: dt_output =',dt_output
+
+       END IF
        
+    END IF
+
     IF ( output_cons_flag_org .NEQV. output_cons_flag ) THEN
 
        WRITE(*,*)  'Modified input file: output_cons_flag =',output_cons_flag
@@ -3486,7 +3407,15 @@ CONTAINS
              r_u = qp(n_vars+1)
              r_v = qp(n_vars+2)
              r_T = qp(4)
-             r_alphas(1:n_solid) = qp(5:4+n_solid)
+             IF ( r_h .GT. 0.0_wp ) THEN
+
+                r_alphas(1:n_solid) = qp(5:4+n_solid) / r_h
+
+             ELSE
+
+                r_alphas(1:n_solid) = 0.0_wp
+
+             END IF
 
              IF ( ABS( r_h ) .LT. 1.0E-20_wp ) r_h = 0.0_wp
              IF ( ABS( r_u ) .LT. 1.0E-20_wp ) r_u = 0.0_wp
@@ -3548,8 +3477,6 @@ CONTAINS
 
     END IF
     
-    IF ( n_probes .GT. 0 ) CALL output_probes(output_idx)
-
   END SUBROUTINE output_solution
 
   
@@ -3987,16 +3914,19 @@ CONTAINS
   !> \date 12/02/2018
   !******************************************************************************
 
-  SUBROUTINE output_probes(output_idx)
+  SUBROUTINE output_probes(time)
 
     USE geometry_2d, ONLY : x_comp , y_comp 
+    USE parameters_2d, ONLY : t_probes
     USE solver_2d, ONLY : q
+
 
     USE geometry_2d, ONLY : interp_2d_scalarB
 
+
     IMPLICIT NONE
 
-    INTEGER, INTENT(IN) :: output_idx
+    REAL(wp), INTENT(IN) :: time
 
     CHARACTER(LEN=4) :: idx_string
 
@@ -4004,23 +3934,33 @@ CONTAINS
 
     INTEGER :: k 
 
-    idx_string = lettera(output_idx-1)
-
-    !Save thickness
-    probes_file = TRIM(run_name)//'_'//idx_string//'.prb'
-
-    OPEN(probes_unit,FILE=probes_file,status='unknown',form='formatted')
-    
     DO k=1,n_probes
+
+       idx_string = lettera(k)
+
+       probes_file = TRIM(run_name)//'_'//idx_string//'.prb'
+
+       IF ( time .EQ. t_start ) THEN
+
+          OPEN(probes_unit,FILE=probes_file,status='unknown',form='formatted')
+          WRITE(probes_unit,'(2e20.12)') probes_coords(1,k) , probes_coords(2,k)
+
+       ELSE
+
+          OPEN(probes_unit,FILE=probes_file,status='old',position='append',form='formatted')
+
+       END IF
 
        CALL interp_2d_scalarB( x_comp , y_comp , q(1,:,:)  ,                    &
             probes_coords(1,k) , probes_coords(2,k) , f2 )
 
-       WRITE(probes_unit,'(3e20.12)') probes_coords(1,k) , probes_coords(2,k) ,f2
+       WRITE(probes_unit,'(2e20.12)') time , f2
+
+       CLOSE(probes_unit)
 
     END DO
 
-    CLOSE(probes_unit)
+    t_probes = time + dt_probes
 
   END SUBROUTINE output_probes
 

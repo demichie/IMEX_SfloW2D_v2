@@ -57,12 +57,6 @@ MODULE parameters_2d
   !> .
   LOGICAL :: energy_flag
 
-  !> Flag to choose the sort of problem to solve
-  !> - T      => riemann problem
-  !> - F      => generic initial conditions (uploaded through functions, to be defined in inpout_2d.f90)
-  !> .
-  LOGICAL :: riemann_flag
-
   !> Flag to choose if we add the rheology
   !> - T      => rheology activated
   !> - F      => no rheology
@@ -177,6 +171,7 @@ MODULE parameters_2d
   REAL(wp) :: dt_output         !< time interval for the output of the solution
   REAL(wp) :: t_runout          !< time of the next runout output
   REAL(wp) :: t_steady          !< end time when reached steady solution
+  REAL(wp) :: t_probes
 
   INTEGER :: verbose_level
 
