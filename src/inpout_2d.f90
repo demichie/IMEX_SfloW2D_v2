@@ -202,7 +202,7 @@ MODULE inpout_2d
   NAMELIST / restart_parameters / restart_file, T_init, T_ambient , sed_vol_perc
 
   NAMELIST / newrun_parameters / n_solid , topography_file , x0 , y0 ,          &
-       comp_cells_x , comp_cells_y , cell_size , rheology_flag ,                &
+       comp_cells_x , comp_cells_y , cell_size , rheology_flag , alpha_flag ,   &
        energy_flag , liquid_flag , radial_source_flag , collapsing_volume_flag ,&
        topo_change_flag , gas_flag , subtract_init_flag ,                       &
        bottom_radial_source_flag
