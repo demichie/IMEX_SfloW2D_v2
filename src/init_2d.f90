@@ -41,7 +41,7 @@ CONTAINS
 
     USE geometry_2d, ONLY : comp_cells_x , comp_cells_y
 
-    USE parameters_2d, ONLY : n_vars
+    USE parameters_2d, ONLY : n_vars , alpha_flag
 
     USE parameters_2d, ONLY : x_collapse , y_collapse , r_collapse , T_collapse , &
        h_collapse , alphas_collapse
@@ -62,7 +62,7 @@ CONTAINS
     qp0_init(1) = 0.0_wp                  ! h
     qp0_init(2) = 0.0_wp                  ! hu
     qp0_init(3) = 0.0_wp                  ! hv
-    qp0_init(4) = T_collapse            ! T
+    qp0_init(4) = T_collapse              ! T
     qp0_init(5:4+n_solid) = 0.0_wp        ! alphas
     qp0_init(n_vars+1:n_vars+2) = 0.0_wp  ! u,v
 
@@ -71,7 +71,17 @@ CONTAINS
     qp_init(2) = 0.0_wp
     qp_init(3) = 0.0_wp
     qp_init(4) = T_collapse
-    qp_init(5:4+n_solid) = h_collapse * alphas_collapse(1:n_solid)
+    
+    IF ( alpha_flag ) THEN
+
+       qp_init(5:4+n_solid) = alphas_collapse(1:n_solid)
+
+    ELSE
+
+       qp_init(5:4+n_solid) = h_collapse * alphas_collapse(1:n_solid)
+
+    END IF
+
     qp_init(n_vars+1:n_vars+2) = 0.0_wp
     
     DO j = 1,comp_cells_x

@@ -24,7 +24,7 @@ MODULE inpout_2d
   USE geometry_2d, ONLY : topography_profile , n_topography_profile_x ,         &
        n_topography_profile_y
   USE parameters_2d, ONLY : n_solid
-  USE parameters_2d, ONLY : rheology_flag , energy_flag ,        &
+  USE parameters_2d, ONLY : rheology_flag , energy_flag , alpha_flag ,          &
        topo_change_flag , radial_source_flag , collapsing_volume_flag ,         &
        liquid_flag , gas_flag , subtract_init_flag , bottom_radial_source_flag
 
@@ -95,6 +95,7 @@ MODULE inpout_2d
   CHARACTER(LEN=40) :: topography_file    !< Name of the esri DEM file
   CHARACTER(LEN=40) :: erodible_file      !< Name of the esri DEM file
   CHARACTER(LEN=40) :: output_VT_file
+  CHARACTER(LEN=40) :: mass_center_file
   
   INTEGER, PARAMETER :: input_unit = 7       !< Input data unit
   INTEGER, PARAMETER :: backup_unit = 8      !< Backup input data unit
@@ -109,6 +110,7 @@ MODULE inpout_2d
   INTEGER, PARAMETER :: dakota_unit = 17
   INTEGER, PARAMETER :: erodible_unit = 18
   INTEGER, PARAMETER :: output_VT_unit = 19
+  INTEGER, PARAMETER :: mass_center_unit = 20
   
   !> Counter for the output files
   INTEGER :: output_idx 
@@ -145,18 +147,22 @@ MODULE inpout_2d
 
   ! -- Variables for the namelists WEST_BOUNDARY_CONDITIONS
   TYPE(bc) :: h_bcW , hu_bcW , hv_bcW , T_bcW
+  TYPE(bc),ALLOCATABLE :: alphas_bcW(:)
   TYPE(bc),ALLOCATABLE :: halphas_bcW(:)
 
   ! -- Variables for the namelists EAST_BOUNDARY_CONDITIONS
   TYPE(bc) :: h_bcE , hu_bcE , hv_bcE , T_bcE
+  TYPE(bc),ALLOCATABLE :: alphas_bcE(:)
   TYPE(bc),ALLOCATABLE :: halphas_bcE(:)
 
   ! -- Variables for the namelists SOUTH_BOUNDARY_CONDITIONS
   TYPE(bc) :: h_bcS , hu_bcS , hv_bcS , T_bcS
+  TYPE(bc),ALLOCATABLE :: alphas_bcS(:)
   TYPE(bc),ALLOCATABLE :: halphas_bcS(:)
 
   ! -- Variables for the namelists NORTH_BOUNDARY_CONDITIONS
   TYPE(bc) :: h_bcN , hu_bcN , hv_bcN , T_bcN
+  TYPE(bc),ALLOCATABLE :: alphas_bcN(:)
   TYPE(bc),ALLOCATABLE :: halphas_bcN(:)
 
 
@@ -177,7 +183,8 @@ MODULE inpout_2d
 
   REAL(wp), ALLOCATABLE :: h_old(:,:)
 
-  REAL(wp) :: x0_runout, y0_runout , init_runout , eps_stop
+  REAL(wp) :: x0_runout, y0_runout , init_runout , init_runout_x ,              &
+       init_runout_y , eps_stop
 
   ! absolute precentages of solids in the initial volume
   REAL(wp), ALLOCATABLE :: sed_vol_perc(:)
@@ -292,6 +299,7 @@ CONTAINS
     liquid_flag = .FALSE.
     gas_flag = .TRUE.
     subtract_init_flag = .FALSE.
+    alpha_flag = .FALSE.
 
     !-- Inizialization of the Variables for the namelist NUMERIC_PARAMETERS
     dt0 = 1.0E-4_wp
@@ -372,6 +380,10 @@ CONTAINS
 
        END IF
 
+       ALLOCATE ( alphas_bcW(n_solid) )
+       ALLOCATE ( alphas_bcE(n_solid) )
+       ALLOCATE ( alphas_bcS(n_solid) )
+       ALLOCATE ( alphas_bcN(n_solid) )
 
        ALLOCATE ( halphas_bcW(n_solid) )
        ALLOCATE ( halphas_bcE(n_solid) )
@@ -397,24 +409,28 @@ CONTAINS
     h_bcW%flag = -1 
     hu_bcW%flag = -1 
     hv_bcW%flag = -1 
+    alphas_bcW%flag = -1 
     halphas_bcW%flag = -1 
     T_bcW%flag = -1 
 
     h_bcE%flag = -1 
     hu_bcE%flag = -1 
     hv_bcE%flag = -1 
+    alphas_bcE%flag = -1 
     halphas_bcE%flag = -1 
     T_bcE%flag = -1 
 
     h_bcS%flag = -1 
     hu_bcS%flag = -1 
     hv_bcS%flag = -1 
+    alphas_bcS%flag = -1 
     halphas_bcS%flag = -1 
     T_bcS%flag = -1 
 
     h_bcN%flag = -1 
     hu_bcN%flag = -1 
     hv_bcN%flag = -1 
+    alphas_bcN%flag = -1 
     halphas_bcN%flag = -1 
     T_bcN%flag = -1 
 
@@ -535,16 +551,16 @@ CONTAINS
     IMPLICIT none
 
     NAMELIST / west_boundary_conditions / h_bcW , hu_bcW , hv_bcW ,             &
-         halphas_bcW , T_bcW
+         alphas_bcW , halphas_bcW , T_bcW
 
     NAMELIST / east_boundary_conditions / h_bcE , hu_bcE , hv_bcE ,             &
-         halphas_bcE , T_bcE
+         alphas_bcE , halphas_bcE , T_bcE
 
     NAMELIST / south_boundary_conditions / h_bcS , hu_bcS , hv_bcS ,            &
-         halphas_bcS , T_bcS
+         alphas_bcS , halphas_bcS , T_bcS
 
     NAMELIST / north_boundary_conditions / h_bcN , hu_bcN , hv_bcN ,            &
-         halphas_bcN , T_bcN
+         alphas_bcN , halphas_bcN , T_bcN
 
     NAMELIST / solid_transport_parameters / rho_s , diam_s , sp_heat_s ,        &
          erosion_coeff , erodible_porosity , settling_flag , T_erodible ,       &
@@ -991,6 +1007,11 @@ CONTAINS
     n_vars = n_vars + n_solid
     n_eqns = n_vars
 
+    alphas_bcW(1:n_solid)%flag = -1
+    alphas_bcE(1:n_solid)%flag = -1
+    alphas_bcS(1:n_solid)%flag = -1
+    alphas_bcN(1:n_solid)%flag = -1
+
     halphas_bcW(1:n_solid)%flag = -1
     halphas_bcE(1:n_solid)%flag = -1
     halphas_bcS(1:n_solid)%flag = -1
@@ -1185,8 +1206,17 @@ CONTAINS
 
     IF ( verbose_level .GE. 0 ) THEN
        
-       WRITE(*,*) 'Linear reconstruction and b. c. applied to variables:'
-       WRITE(*,*) 'h,hu,hv,T,halphas'
+       IF ( alpha_flag ) THEN
+
+          WRITE(*,*) 'Linear reconstruction and b. c. applied to variables:'
+          WRITE(*,*) 'h,hu,hv,T,alphas'
+
+       ELSE
+
+          WRITE(*,*) 'Linear reconstruction and b. c. applied to variables:'
+          WRITE(*,*) 'h,hu,hv,T,halphas'
+
+       END IF
 
     END IF
        
@@ -1264,16 +1294,33 @@ CONTAINS
           END IF
           
        END IF
-       
-       IF ( ANY(halphas_bcW(1:n_solid)%flag .EQ. -1 ) ) THEN 
+    
+       IF ( alpha_flag ) THEN
+   
+          IF ( ANY(alphas_bcW(1:n_solid)%flag .EQ. -1 ) ) THEN 
+             
+             WRITE(*,*) 'ERROR: problem with namelist WEST_BOUNDARY_CONDITIONS'
+             WRITE(*,*) 'B.C. for sediment conentration not set properly'
+             WRITE(*,*) 'Please check the input file'
+             WRITE(*,*) 'alphas_bcW'
+             WRITE(*,*) alphas_bcW(1:n_solid)
+             STOP
+             
+          END IF
           
-          WRITE(*,*) 'ERROR: problem with namelist WEST_BOUNDARY_CONDITIONS'
-          WRITE(*,*) 'B.C. for sediment conentration not set properly'
-          WRITE(*,*) 'Please check the input file'
-          WRITE(*,*) 'halphas_bcW'
-          WRITE(*,*) halphas_bcW(1:n_solid)
-          STOP
-          
+       ELSE
+
+          IF ( ANY(halphas_bcW(1:n_solid)%flag .EQ. -1 ) ) THEN 
+             
+             WRITE(*,*) 'ERROR: problem with namelist WEST_BOUNDARY_CONDITIONS'
+             WRITE(*,*) 'B.C. for sediment conentration not set properly'
+             WRITE(*,*) 'Please check the input file'
+             WRITE(*,*) 'halphas_bcW'
+             WRITE(*,*) halphas_bcW(1:n_solid)
+             STOP
+             
+          END IF
+
        END IF
 
        IF ( T_bcW%flag .EQ. -1 ) THEN 
@@ -1355,17 +1402,34 @@ CONTAINS
           
        END IF
        
-       IF ( ANY(halphas_bcE(1:n_solid)%flag .EQ. -1 ) ) THEN 
-          
-          WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
-          WRITE(*,*) 'B.C. for sediment concentration not set properly'
-          WRITE(*,*) 'Please check the input file'
-          WRITE(*,*) 'halphas_bcE'
-          WRITE(*,*) halphas_bcE(1:n_solid)
-          STOP
-          
-       END IF
+       IF ( alpha_flag ) THEN
+
+          IF ( ANY(alphas_bcE(1:n_solid)%flag .EQ. -1 ) ) THEN 
+             
+             WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
+             WRITE(*,*) 'B.C. for sediment concentration not set properly'
+             WRITE(*,*) 'Please check the input file'
+             WRITE(*,*) 'alphas_bcE'
+             WRITE(*,*) alphas_bcE(1:n_solid)
+             STOP
+             
+          END IF
     
+       ELSE
+
+          IF ( ANY(halphas_bcE(1:n_solid)%flag .EQ. -1 ) ) THEN 
+             
+             WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
+             WRITE(*,*) 'B.C. for sediment concentration not set properly'
+             WRITE(*,*) 'Please check the input file'
+             WRITE(*,*) 'halphas_bcE'
+             WRITE(*,*) halphas_bcE(1:n_solid)
+             STOP
+             
+          END IF
+
+       END IF
+
        IF ( T_bcE%flag .EQ. -1 ) THEN 
           
           WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
@@ -1445,15 +1509,32 @@ CONTAINS
           
        END IF
        
-       IF ( ANY(halphas_bcS(1:n_solid)%flag .EQ. -1 ) ) THEN 
-          
-          WRITE(*,*) 'ERROR: problem with namelist SOUTH_BOUNDARY_CONDITIONS'
-          WRITE(*,*) 'B.C. for sediment concentrations not set properly'
-          WRITE(*,*) 'Please check the input file'
-          WRITE(*,*) 'halphas_bcS'
-          WRITE(*,*) halphas_bcS(1:n_solid)
-          STOP
-          
+       IF ( alpha_flag ) THEN
+
+          IF ( ANY(alphas_bcS(1:n_solid)%flag .EQ. -1 ) ) THEN 
+             
+             WRITE(*,*) 'ERROR: problem with namelist SOUTH_BOUNDARY_CONDITIONS'
+             WRITE(*,*) 'B.C. for sediment concentrations not set properly'
+             WRITE(*,*) 'Please check the input file'
+             WRITE(*,*) 'alphas_bcS'
+             WRITE(*,*) alphas_bcS(1:n_solid)
+             STOP
+             
+          END IF
+
+       ELSE
+
+          IF ( ANY(halphas_bcS(1:n_solid)%flag .EQ. -1 ) ) THEN 
+             
+             WRITE(*,*) 'ERROR: problem with namelist SOUTH_BOUNDARY_CONDITIONS'
+             WRITE(*,*) 'B.C. for sediment concentrations not set properly'
+             WRITE(*,*) 'Please check the input file'
+             WRITE(*,*) 'halphas_bcS'
+             WRITE(*,*) halphas_bcS(1:n_solid)
+             STOP
+             
+          END IF
+
        END IF
 
        IF ( T_bcS%flag .EQ. -1 ) THEN 
@@ -1533,15 +1614,32 @@ CONTAINS
           
        END IF
        
-       IF ( ANY(halphas_bcN(1:n_solid)%flag .EQ. -1 ) ) THEN 
-          
-          WRITE(*,*) 'ERROR: problem with namelist NORTH_BOUNDARY_CONDITIONS'
-          WRITE(*,*) 'B.C. for sediment concentrations not set properly'
-          WRITE(*,*) 'Please check the input file'
-          WRITE(*,*) 'halphas_bcN'
-          WRITE(*,*) halphas_bcN(1:n_solid)
-          STOP
-          
+       IF ( alpha_flag ) THEN
+
+          IF ( ANY(alphas_bcN(1:n_solid)%flag .EQ. -1 ) ) THEN 
+             
+             WRITE(*,*) 'ERROR: problem with namelist NORTH_BOUNDARY_CONDITIONS'
+             WRITE(*,*) 'B.C. for sediment concentrations not set properly'
+             WRITE(*,*) 'Please check the input file'
+             WRITE(*,*) 'alphas_bcN'
+             WRITE(*,*) alphas_bcN(1:n_solid)
+             STOP
+             
+          END IF
+
+       ELSE
+
+          IF ( ANY(halphas_bcN(1:n_solid)%flag .EQ. -1 ) ) THEN 
+             
+             WRITE(*,*) 'ERROR: problem with namelist NORTH_BOUNDARY_CONDITIONS'
+             WRITE(*,*) 'B.C. for sediment concentrations not set properly'
+             WRITE(*,*) 'Please check the input file'
+             WRITE(*,*) 'halphas_bcN'
+             WRITE(*,*) halphas_bcN(1:n_solid)
+             STOP
+             
+          END IF
+        
        END IF
 
        IF ( T_bcN%flag .EQ. -1 ) THEN 
@@ -1564,11 +1662,22 @@ CONTAINS
     bcS(4) = T_bcS
     bcN(4) = T_bcN
 
-    bcW(5:4+n_solid) = halphas_bcW(1:n_solid)
-    bcE(5:4+n_solid) = halphas_bcE(1:n_solid)
-    bcS(5:4+n_solid) = halphas_bcS(1:n_solid)
-    bcN(5:4+n_solid) = halphas_bcN(1:n_solid)
+    IF ( alpha_flag ) THEN
+
+       bcW(5:4+n_solid) = alphas_bcW(1:n_solid)
+       bcE(5:4+n_solid) = alphas_bcE(1:n_solid)
+       bcS(5:4+n_solid) = alphas_bcS(1:n_solid)
+       bcN(5:4+n_solid) = alphas_bcN(1:n_solid)
        
+    ELSE
+
+       bcW(5:4+n_solid) = halphas_bcW(1:n_solid)
+       bcE(5:4+n_solid) = halphas_bcE(1:n_solid)
+       bcS(5:4+n_solid) = halphas_bcS(1:n_solid)
+       bcN(5:4+n_solid) = halphas_bcN(1:n_solid)
+
+    END IF
+
     ! ------- READ expl_terms_parameters NAMELIST -------------------------------
 
     READ(input_unit, expl_terms_parameters,IOSTAT=ios)
@@ -2342,6 +2451,12 @@ CONTAINS
        runout_file = TRIM(run_name)//'_runout'//'.txt'
 
        OPEN(runout_unit,FILE=runout_file,STATUS='unknown',form='formatted')
+  
+       mass_center_file = TRIM(run_name)//'_mass_center'//'.txt'
+
+       OPEN(mass_center_unit,FILE=mass_center_file,STATUS='unknown',form='formatted')
+  
+
   
     END IF
 
@@ -3409,7 +3524,15 @@ CONTAINS
              r_T = qp(4)
              IF ( r_h .GT. 0.0_wp ) THEN
 
-                r_alphas(1:n_solid) = qp(5:4+n_solid) / r_h
+                IF ( alpha_flag ) THEN
+
+                   r_alphas(1:n_solid) = qp(5:4+n_solid)
+
+                ELSE
+
+                   r_alphas(1:n_solid) = qp(5:4+n_solid) / r_h
+
+                END IF
 
              ELSE
 
@@ -3863,7 +3986,12 @@ CONTAINS
 
     IMPLICIT NONE
 
-    IF ( output_runout_flag) CLOSE(runout_unit)
+    IF ( output_runout_flag) THEN
+
+       CLOSE(runout_unit)
+       CLOSE(mass_center_unit)
+
+    END IF
 
   END SUBROUTINE close_units
 
@@ -3989,9 +4117,10 @@ CONTAINS
     REAL(wp), INTENT(IN) :: time
     LOGICAL, INTENT(INOUT) :: stop_flag
 
-    REAL(wp), ALLOCATABLE :: X(:,:), Y(:,:) , dist(:,:)
+    REAL(wp), ALLOCATABLE :: X(:,:), Y(:,:) 
+    REAL(wp), ALLOCATABLE :: dist(:,:) , dist_x(:,:) , dist_y(:,:)
     INTEGER :: sX, sY
-    INTEGER :: imax(2) , imin(2)
+    INTEGER :: imax(2) , imax_x(2) , imax_y(2) , imin(2)
 
     INTEGER :: j,k
 
@@ -3999,10 +4128,12 @@ CONTAINS
     REAL(wp) :: area , area0 , dareaRel_dt
     REAL(wp) :: dhRel_dt
 
+    REAL(wp) :: x_mass_center , y_mass_center
+
     sX = size(x_comp) 
     sY = size(y_comp) 
 
-    ALLOCATE( X(sX,sY) , Y(sX,sY) , dist(sX,sY) )
+    ALLOCATE( X(sX,sY) , Y(sX,sY) , dist(sX,sY), dist_x(sX,sY), dist_y(sX,sY) )
 
     ! This work with large 
     !X(:,:) = SPREAD( x_comp, 2, sY )
@@ -4027,6 +4158,9 @@ CONTAINS
     !$OMP END PARALLEL
 
     dist(:,:) = 0.0_wp
+
+    x_mass_center = SUM( X*q(1,:,:) ) / SUM( q(1,:,:) )
+    y_mass_center = SUM( Y*q(1,:,:) ) / SUM( q(1,:,:) )
 
     IF ( time .EQ. t_start ) THEN
 
@@ -4054,6 +4188,22 @@ CONTAINS
           
           init_runout = dist(imax(1),imax(2))
 
+          dist_x(:,:) = 0.0_wp
+          
+          WHERE( q(1,:,:) >1.0E-5_wp ) dist_x = SQRT( (X-x0_runout)**2 )
+
+          imax_x = MAXLOC( dist_x )
+          
+          init_runout_x = dist(imax_x(1),imax_x(2))
+
+          dist_y(:,:) = 0.0_wp
+          
+          WHERE( q(1,:,:) >1.0E-5_wp ) dist_y = SQRT( (Y-y0_runout)**2 )
+
+          imax_y = MAXLOC( dist_y )
+          
+          init_runout_y = dist(imax_y(1),imax_y(2))
+
        END IF
 
        max_mom = 0.0_wp
@@ -4075,6 +4225,14 @@ CONTAINS
 
     imax = MAXLOC( dist )
 
+    WHERE( q(1,:,:)  > 1.0E-5_wp ) dist_x = SQRT( ( X - x0_runout )**2 )
+
+    imax_x = MAXLOC( dist_x )
+
+    WHERE( q(1,:,:)  > 1.0E-5_wp ) dist_y = SQRT( ( Y - y0_runout )**2 )
+
+    imax_y = MAXLOC( dist_y )
+
     OPEN(dakota_unit,FILE='dakota.txt',status='replace',form='formatted')
     
     WRITE(dakota_unit,*) 'final runout =', dist(imax(1),imax(2)) - init_runout
@@ -4089,6 +4247,14 @@ CONTAINS
          area
     
     CALL flush(runout_unit)
+
+    WRITE(mass_center_unit,'(F12.3,F12.3,F12.3,F12.3,F12.3)') time ,            &
+         x_mass_center , y_mass_center ,                                        &
+         dist_x(imax_x(1),imax_x(2)) - init_runout_x ,                          &
+         dist_y(imax_y(1),imax_y(2)) - init_runout_y  
+    
+    CALL flush(mass_center_unit)
+
 
     dist(:,:) = 0.0_wp
     
@@ -4113,7 +4279,7 @@ CONTAINS
 
     END IF
 
-    DEALLOCATE( X , Y , dist )
+    DEALLOCATE( X , Y , dist , dist_x , dist_y )
 
     t_runout = time + dt_runout
 

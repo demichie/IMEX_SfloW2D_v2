@@ -83,6 +83,12 @@ MODULE parameters_2d
   !> .
   LOGICAL :: subtract_init_flag
 
+  !> Flag to choose the variable for the linear reconstruction and the boundary condition
+  !> - T      => alpha 
+  !> - F      => h*alpha
+  !> .
+  LOGICAL :: alpha_flag
+
   INTEGER :: n_thickness_levels
   INTEGER :: n_dyn_pres_levels
   REAL(wp), ALLOCATABLE :: thickness_levels(:)

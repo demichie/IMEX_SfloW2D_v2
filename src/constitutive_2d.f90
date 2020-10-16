@@ -6,7 +6,7 @@ MODULE constitutive_2d
   USE parameters_2d, ONLY : wp, sp ,tolh
   USE parameters_2d, ONLY : n_eqns , n_vars , n_solid
   USE parameters_2d, ONLY : rheology_flag , rheology_model , energy_flag ,      &
-       liquid_flag , gas_flag
+       liquid_flag , gas_flag , alpha_flag
 
   IMPLICIT none
 
@@ -592,7 +592,17 @@ CONTAINS
     r_u = qpj(n_vars+1)
     r_v = qpj(n_vars+2)
     r_T = qpj(4)
-    r_alphas(1:n_solid) = qpj(5:4+n_solid) / qpj(1)
+
+    IF ( alpha_flag ) THEN
+
+       r_alphas(1:n_solid) = qpj(5:4+n_solid)
+
+    ELSE
+
+       r_alphas(1:n_solid) = qpj(5:4+n_solid) / qpj(1)
+
+    END IF
+
     alphas_tot = SUM(r_alphas)
 
     IF ( gas_flag ) THEN
@@ -609,7 +619,15 @@ CONTAINS
 
     IF ( gas_flag .AND. liquid_flag ) THEN
 
-       r_alphal = qpj(n_vars) / qpj(1)
+       IF ( alpha_flag ) THEN
+
+          r_alphal = qpj(n_vars)
+
+       ELSE
+
+          r_alphal = qpj(n_vars) / qpj(1)
+
+       END IF
 
        ! density of mixture of carrier (gas), liquid and solids
        r_rho_m = ( 1.0_wp - alphas_tot - r_alphal ) * r_rho_c                   &
@@ -694,9 +712,18 @@ CONTAINS
     qp(3) = r_h*r_v
     
     qp(4) = r_T
-    qp(5:4+n_solid) = r_alphas(1:n_solid) * r_h
+
+    IF ( alpha_flag ) THEN
+
+       qp(5:4+n_solid) = r_alphas(1:n_solid)
+       IF ( gas_flag .AND. liquid_flag ) qp(n_vars) = r_alphal
      
-    IF ( gas_flag .AND. liquid_flag ) qp(n_vars) = r_alphal * r_h
+    ELSE
+
+       qp(5:4+n_solid) = r_alphas(1:n_solid) * r_h
+       IF ( gas_flag .AND. liquid_flag ) qp(n_vars) = r_alphal * r_h
+
+    END IF
     
     qp(n_vars+1) = r_u
     qp(n_vars+2) = r_v
@@ -787,8 +814,16 @@ CONTAINS
 
     r_T  = qp(4)
 
-    r_alphas(1:n_solid) = qp(5:4+n_solid) / qp(1)
+    IF ( alpha_flag ) THEN
+
+       r_alphas(1:n_solid) = qp(5:4+n_solid)
    
+    ELSE
+
+       r_alphas(1:n_solid) = qp(5:4+n_solid) / qp(1)
+
+    END IF
+
     alphas_tot = SUM(r_alphas)
 
     r_alphas_rhos(1:n_solid) = r_alphas(1:n_solid) * rho_s(1:n_solid)
@@ -810,7 +845,15 @@ CONTAINS
     IF ( gas_flag .AND. liquid_flag ) THEN
 
        ! mixture of gas, liquid and solid
-       r_alphal = qp(n_vars) / qp(1)
+       IF ( alpha_flag ) THEN
+       
+          r_alphal = qp(n_vars)
+
+       ELSE
+
+          r_alphal = qp(n_vars) / qp(1)
+
+       END IF
 
        ! check and correction on dispersed phases volume fractions
        IF ( ( alphas_tot + r_alphal ) .GT. 1.0_wp ) THEN
@@ -1915,7 +1958,17 @@ CONTAINS
     r_h = qpj(1)
     r_u = qpj(n_vars+1)
     r_v = qpj(n_vars+2)
-    r_alphas(1:n_solid) = qpj(5:4+n_solid) / qpj(1)
+    
+    IF ( alpha_flag ) THEN
+
+       r_alphas(1:n_solid) = qpj(5:4+n_solid)
+
+    ELSE
+
+       r_alphas(1:n_solid) = qpj(5:4+n_solid) / qpj(1)
+
+    END IF
+
     alphas_tot = SUM(r_alphas)
 
     IF ( erosion_coeff .GT. 0.0_wp ) THEN
@@ -2275,11 +2328,26 @@ CONTAINS
     source_bdry(2) = t_coeff**1.5_wp * h_source * vel_source * vect_x
     source_bdry(3) = t_coeff**1.5_wp * h_source * vel_source * vect_y
     source_bdry(4) = T_source
-    source_bdry(5:4+n_solid) = t_coeff * h_source * alphas_source(1:n_solid)
 
-    IF ( gas_flag .AND. liquid_flag ) THEN
+    IF ( alpha_flag ) THEN
+    
+       source_bdry(5:4+n_solid) = alphas_source(1:n_solid)
 
-       source_bdry(n_vars) = alphal_source
+       IF ( gas_flag .AND. liquid_flag ) THEN
+          
+          source_bdry(n_vars) = alphal_source
+
+       END IF
+
+    ELSE
+
+       source_bdry(5:4+n_solid) = t_coeff * h_source * alphas_source(1:n_solid)
+
+       IF ( gas_flag .AND. liquid_flag ) THEN
+          
+          source_bdry(n_vars) = t_coeff * h_source * alphal_source
+
+       END IF
 
     END IF
 
