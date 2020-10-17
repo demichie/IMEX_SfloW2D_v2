@@ -2409,6 +2409,26 @@ CONTAINS
        IF ( ( x0_runout .EQ. -1.0_wp ) .AND. ( y0_runout .EQ. -1.0_wp ) ) THEN
           
           WRITE(*,*) 'Runout reference location not defined'
+
+          IF ( collapsing_volume_flag ) THEN
+
+             x0_runout = x_collapse
+             y0_runout = y_collapse
+             WRITE(*,*) 'New reference location defined from collapse (x,y)'
+             WRITE(*,*) 'x0_runout =',x0_runout
+             WRITE(*,*) 'y0_runout =',y0_runout
+
+          END IF
+
+          IF ( radial_source_flag .OR. bottom_radial_source_flag ) THEN
+
+             x0_runout = x_source
+             y0_runout = y_source
+             WRITE(*,*) 'New reference location defined from source'
+             WRITE(*,*) 'x0_runout =',x0_runout
+             WRITE(*,*) 'y0_runout =',y0_runout
+
+          END IF
           
        ELSE
 
@@ -4046,7 +4066,7 @@ CONTAINS
 
     USE geometry_2d, ONLY : x_comp , y_comp 
     USE parameters_2d, ONLY : t_probes
-    USE solver_2d, ONLY : q
+    USE solver_2d, ONLY : qp
 
 
     USE geometry_2d, ONLY : interp_2d_scalarB
@@ -4079,7 +4099,7 @@ CONTAINS
 
        END IF
 
-       CALL interp_2d_scalarB( x_comp , y_comp , q(1,:,:)  ,                    &
+       CALL interp_2d_scalarB( x_comp , y_comp , qp(1,:,:)  ,                    &
             probes_coords(1,k) , probes_coords(2,k) , f2 )
 
        WRITE(probes_unit,'(2e20.12)') time , f2
@@ -4109,7 +4129,7 @@ CONTAINS
 
     USE geometry_2d, ONLY : x_comp , y_comp , B_cent , dx , dy
     USE parameters_2d, ONLY : t_runout 
-    USE solver_2d, ONLY : q , q0 , dt
+    USE solver_2d, ONLY : qp , q , q0 , dt
 
 
     IMPLICIT NONE
@@ -4124,7 +4144,6 @@ CONTAINS
 
     INTEGER :: j,k
 
-    REAL(wp) :: max_mom
     REAL(wp) :: area , area0 , dareaRel_dt
     REAL(wp) :: dhRel_dt
 
@@ -4164,13 +4183,31 @@ CONTAINS
 
     IF ( time .EQ. t_start ) THEN
 
+       IF ( MAXVAL( qp(1,:,:) ) .EQ. 0.0_wp ) THEN
+
+          IF ( collapsing_volume_flag ) THEN
+
+             x_mass_center = x_collapse
+             y_mass_center = y_collapse
+
+          END IF
+
+          IF ( radial_source_flag .OR. bottom_radial_source_flag ) THEN
+
+             x_mass_center = x_source
+             y_mass_center = y_source
+
+          END IF
+
+       END IF
+       
        ALLOCATE( h_old(sX,sY) )
 
-       h_old(:,:) = q(1,:,:)
+       h_old(:,:) = qp(1,:,:)
       
        IF ( ( x0_runout .EQ. -1 ) .AND. ( y0_runout .EQ. -1 ) ) THEN
           
-          WHERE( q(1,:,:) > 1.0E-5_wp ) dist = B_cent
+          WHERE( qp(1,:,:) > 1.0E-5_wp ) dist = B_cent
           imin = MAXLOC( dist )
           
           x0_runout = X(imin(1),imin(2))
@@ -4181,7 +4218,7 @@ CONTAINS
 
           dist(:,:) = 0.0_wp
           
-          WHERE( q(1,:,:) >1.0E-5_wp ) dist = SQRT( (X-x0_runout)**2 &
+          WHERE( qp(1,:,:) >1.0E-5_wp ) dist = SQRT( (X-x0_runout)**2 &
                + ( Y - y0_runout )**2 )
 
           imax = MAXLOC( dist )
@@ -4190,7 +4227,7 @@ CONTAINS
 
           dist_x(:,:) = 0.0_wp
           
-          WHERE( q(1,:,:) >1.0E-5_wp ) dist_x = SQRT( (X-x0_runout)**2 )
+          WHERE( qp(1,:,:) >1.0E-5_wp ) dist_x = SQRT( (X-x0_runout)**2 )
 
           imax_x = MAXLOC( dist_x )
           
@@ -4198,38 +4235,42 @@ CONTAINS
 
           dist_y(:,:) = 0.0_wp
           
-          WHERE( q(1,:,:) >1.0E-5_wp ) dist_y = SQRT( (Y-y0_runout)**2 )
+          WHERE( qp(1,:,:) >1.0E-5_wp ) dist_y = SQRT( (Y-y0_runout)**2 )
 
           imax_y = MAXLOC( dist_y )
           
           init_runout_y = dist(imax_y(1),imax_y(2))
 
+       ELSE
+
+          init_runout = 0.0_wp
+          init_runout_x = 0.0_wp
+          init_runout_y = 0.0_wp
+          
        END IF
 
-       max_mom = 0.0_wp
-       
     ELSE
 
-       WHERE( h_old(:,:) > 1.0E-5_wp ) dist = SQRT( q(2,:,:)**2 + q(3,:,:)**2 )  
-
-       max_mom = MAXVAL( dist )
-
-       h_old(:,:) = q(1,:,:)
+       h_old(:,:) = qp(1,:,:)
 
     END IF
 
     dist(:,:) = 0.0_wp
 
-    WHERE( q(1,:,:)  > 1.0E-5_wp ) dist = SQRT( ( X - x0_runout )**2 &
+    WHERE( qp(1,:,:)  > 1.0E-5_wp ) dist = SQRT( ( X - x0_runout )**2 &
          + ( Y - y0_runout )**2 )
 
     imax = MAXLOC( dist )
 
-    WHERE( q(1,:,:)  > 1.0E-5_wp ) dist_x = SQRT( ( X - x0_runout )**2 )
+    dist_x(:,:) = 0.0_wp
+
+    WHERE( qp(1,:,:)  > 1.0E-5_wp ) dist_x = SQRT( ( X - x0_runout )**2 )
 
     imax_x = MAXLOC( dist_x )
 
-    WHERE( q(1,:,:)  > 1.0E-5_wp ) dist_y = SQRT( ( Y - y0_runout )**2 )
+    dist_y(:,:) = 0.0_wp
+
+    WHERE( qp(1,:,:)  > 1.0E-5_wp ) dist_y = SQRT( ( Y - y0_runout )**2 )
 
     imax_y = MAXLOC( dist_y )
 
@@ -4258,7 +4299,7 @@ CONTAINS
 
     dist(:,:) = 0.0_wp
     
-    WHERE( q(1,:,:)  > 1.0E-5_wp ) dist = ABS( q(1,:,:) - q0(1,:,:) ) /         &
+    WHERE( qp(1,:,:)  > 1.0E-5_wp ) dist = ABS( q(1,:,:) - q0(1,:,:) ) /         &
          MAX(q(1,:,:),q0(1,:,:))
 
     IF ( time .GT. t_start ) THEN
