@@ -2395,6 +2395,13 @@ CONTAINS
 
     inv_sqrt_C_D = 1.0_wp
 
+    IF ( rhos .LE. rhoc ) THEN
+
+       settling_velocity = 0.0_wp
+       RETURN
+
+    END IF
+
     const_part =  SQRT( 0.75_wp * ( rhos / rhoc - 1.0_wp ) * diam * grav )
 
     settling_velocity = const_part * inv_sqrt_C_D
