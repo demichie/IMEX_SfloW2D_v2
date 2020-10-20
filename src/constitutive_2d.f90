@@ -1600,7 +1600,7 @@ CONTAINS
           h_threshold = 1.0E-20_wp
 
           ! Yield strength (units: kg m-1 s-2)
-          tau_y = alpha2 * EXP( beta2 * SUM(r_alphas) )
+          tau_y = alpha2 * ( EXP( beta2 * SUM(r_alphas) ) - 1.0_wp )
 
           IF ( r_h .GT. h_threshold ) THEN
 
