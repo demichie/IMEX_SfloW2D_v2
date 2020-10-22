@@ -389,16 +389,12 @@ PROGRAM SW_VAR_DENS_MODEL
            IF ( ( stop_flag ) .AND. (.NOT.stop_flag_old) ) THEN
 
               t_steady = MIN(t_end,t_output)
-              t_runout = t_steady
-              t_probes = t_steady
 
            END IF
 
         END IF
 
      END IF
-
-     t_steady = t_end
 
      IF ( n_probes .GT. 0 ) THEN
 

@@ -181,7 +181,7 @@ MODULE inpout_2d
 
   REAL(wp) :: dt_probes
 
-  REAL(wp), ALLOCATABLE :: h_old(:,:)
+  REAL(wp) :: x_mass_center_old , y_mass_center_old
 
   REAL(wp) :: x0_runout, y0_runout , init_runout , init_runout_x ,              &
        init_runout_y , eps_stop
@@ -4144,10 +4144,11 @@ CONTAINS
 
     INTEGER :: j,k
 
-    REAL(wp) :: area , area0 , dareaRel_dt
-    REAL(wp) :: dhRel_dt
+    REAL(wp) :: area , area0
 
     REAL(wp) :: x_mass_center , y_mass_center
+
+    REAL(wp) :: vel_mass_center , vel_radial_growth
 
     sX = size(x_comp) 
     sY = size(y_comp) 
@@ -4199,11 +4200,15 @@ CONTAINS
 
           END IF
 
-       END IF
-       
-       ALLOCATE( h_old(sX,sY) )
+       ELSE
 
-       h_old(:,:) = qp(1,:,:)
+          x_mass_center = SUM( X*q(1,:,:) ) / SUM( q(1,:,:) )
+          y_mass_center = SUM( Y*q(1,:,:) ) / SUM( q(1,:,:) )
+ 
+       END IF
+
+       x_mass_center_old = x_mass_center
+       y_mass_center_old = y_mass_center
       
        IF ( ( x0_runout .EQ. -1 ) .AND. ( y0_runout .EQ. -1 ) ) THEN
           
@@ -4218,7 +4223,7 @@ CONTAINS
 
           dist(:,:) = 0.0_wp
           
-          WHERE( qp(1,:,:) >1.0E-5_wp ) dist = SQRT( (X-x0_runout)**2 &
+          WHERE( qp(1,:,:) >1.0E-5_wp ) dist = SQRT( (X-x0_runout)**2           &
                + ( Y - y0_runout )**2 )
 
           imax = MAXLOC( dist )
@@ -4242,7 +4247,7 @@ CONTAINS
           init_runout_y = dist(imax_y(1),imax_y(2))
 
        ELSE
-
+ 
           init_runout = 0.0_wp
           init_runout_x = 0.0_wp
           init_runout_y = 0.0_wp
@@ -4251,13 +4256,23 @@ CONTAINS
 
     ELSE
 
-       h_old(:,:) = qp(1,:,:)
+       IF ( MAXVAL( qp(1,:,:) ) .EQ. 0.0_wp ) THEN
+
+          x_mass_center = x_mass_center_old
+          y_mass_center = y_mass_center_old
+
+       ELSE
+
+          x_mass_center = SUM( X*q(1,:,:) ) / SUM( q(1,:,:) )
+          y_mass_center = SUM( Y*q(1,:,:) ) / SUM( q(1,:,:) )
+
+       END IF
 
     END IF
 
     dist(:,:) = 0.0_wp
 
-    WHERE( qp(1,:,:)  > 1.0E-5_wp ) dist = SQRT( ( X - x0_runout )**2 &
+    WHERE( qp(1,:,:)  > 1.0E-5_wp ) dist = SQRT( ( X - x0_runout )**2           &
          + ( Y - y0_runout )**2 )
 
     imax = MAXLOC( dist )
@@ -4296,24 +4311,22 @@ CONTAINS
     
     CALL flush(mass_center_unit)
 
-
-    dist(:,:) = 0.0_wp
-    
-    WHERE( qp(1,:,:)  > 1.0E-5_wp ) dist = ABS( q(1,:,:) - q0(1,:,:) ) /         &
-         MAX(q(1,:,:),q0(1,:,:))
-
     IF ( time .GT. t_start ) THEN
 
-       dareaRel_dt = ABS( area - area0 ) / ( area * dt )
-
-       dhRel_dt = SUM( dist / dt ) / COUNT( q(1,:,:) .GT. 1.0E-5_wp )
-
-       IF ( ( MAX(dareaRel_dt,dhRel_dt) .LT. eps_stop ) .AND.                   &
+       vel_mass_center = SQRT( ( x_mass_center_old - x_mass_center )**2 +       &
+            ( y_mass_center_old - y_mass_center )**2 ) / dt_runout
+       
+       vel_radial_growth = ABS( SQRT( area ) - SQRT( area0 ) ) / dt
+       
+       x_mass_center_old = x_mass_center
+       y_mass_center_old = y_mass_center
+       
+       IF ( ( MAX( vel_mass_center , vel_radial_growth ) .LT. eps_stop ) .AND.  &
             (.NOT.stop_flag) ) THEN
 
           WRITE(*,*) 'Steady solution reached'
-          WRITE(*,*) 'dareaRel_dt',dareaRel_dt
-          WRITE(*,*) 'dhRel_dt',dhRel_dt
+          WRITE(*,*) 'vel_mass_center',vel_mass_center
+          WRITE(*,*) 'vel_radial_growth',vel_radial_growth
           stop_flag = .TRUE.
 
        END IF
