@@ -1730,7 +1730,7 @@ CONTAINS
     
     ! ----------- ADDITIONAL EXPLICIT TERMS FOR BOTTOM RADIAL SOURCE ------------ 
 
-    IF ( ( time .GE.time_param(4) ) .OR. ( .NOT.bottom_radial_source_flag) ) THEN
+    IF ( .NOT.bottom_radial_source_flag) THEN
 
        RETURN
 
@@ -1762,7 +1762,8 @@ CONTAINS
           
        ELSEIF ( t_rem .LE. time_param(2) ) THEN
           
-          t_coeff = ( t_rem - time_param(2) + time_param(3) ) / time_param(3)
+          t_coeff = 1.0_wp - ( t_rem - time_param(2) + time_param(3) ) /        &
+               time_param(3)
           
        ELSE
           
@@ -1771,7 +1772,7 @@ CONTAINS
        END IF
 
     END IF
-    
+
     h_dot = -cell_fract_jk * vel_source
 
     r_alphas(1:n_solid) = alphas_source(1:n_solid) 

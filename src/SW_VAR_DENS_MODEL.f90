@@ -257,7 +257,7 @@ PROGRAM SW_VAR_DENS_MODEL
 
   IF ( n_probes .GT. 0 ) CALL output_probes(t)
 
-  IF ( SUM(q(1,:,:)) .EQ. 0.0_wp ) t_steady = t_output
+  IF ( SUM(q(1,:,:)) .EQ. 0.0_wp ) t_steady = t_end
 
   IF ( verbose_level .GE. 0 ) THEN
 
