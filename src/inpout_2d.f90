@@ -73,7 +73,7 @@ MODULE inpout_2d
        T_ambient , entrainment_flag
 
   ! --- Variables for the namelist LIQUID_TRANSPORT_PARAMETERS
-  USE constitutive_2d, ONLY : sp_heat_l , rho_l , kin_visc_l
+  USE constitutive_2d, ONLY : sp_heat_l , rho_l , kin_visc_l , loss_rate
 
   ! --- Variables for the namelist VULNERABILITY_TABLE_PARAMETERS
   USE parameters_2d, ONLY : n_thickness_levels , n_dyn_pres_levels ,            &
@@ -236,7 +236,8 @@ MODULE inpout_2d
   NAMELIST / gas_transport_parameters / sp_heat_a , sp_gas_const_a , kin_visc_a,&
        pres , T_ambient , entrainment_flag
 
-  NAMELIST / liquid_transport_parameters / sp_heat_l , rho_l , kin_visc_l
+  NAMELIST / liquid_transport_parameters / sp_heat_l , rho_l , kin_visc_l ,     &
+       loss_rate
 
   NAMELIST / vulnerability_table_parameters / thickness_levels0 , dyn_pres_levels0
   
@@ -496,6 +497,7 @@ CONTAINS
     sp_heat_l = -1.0_wp
     rho_l = -1.0_wp
     kin_visc_l = -1.0_wp
+    loss_rate = -1.0_wp
 
     !- Variables for the namelist RADIAL_SOURCE_PARAMETERS
     T_source = -1.0_wp
@@ -546,7 +548,8 @@ CONTAINS
    
     USE constitutive_2d, ONLY : inv_pres , inv_rho_l , inv_rho_s , c_inv_rho_s
  
-    USE constitutive_2d, ONLY : n_td2
+    USE constitutive_2d, ONLY : n_td2 
+    USE constitutive_2d, ONLY : coeff_porosity
 
     IMPLICIT none
 
@@ -779,7 +782,7 @@ CONTAINS
        IF ( sp_heat_l .EQ. -1.0_wp ) THEN
 
           WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
-          WRITE(*,*) 'SP_HEAT_l =' , sp_heat_l
+          WRITE(*,*) 'SP_HEAT_L =' , sp_heat_l
           WRITE(*,*) 'Please check the input file'
           STOP
 
@@ -795,6 +798,15 @@ CONTAINS
        ELSE
 
           inv_rho_l = 1.0_wp / rho_l
+
+       END IF
+
+       IF ( loss_rate .LT. 0.0_wp ) THEN
+
+          WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
+          WRITE(*,*) 'LOSS_RATE =' , loss_rate
+          WRITE(*,*) 'Please check the input file'
+          STOP
 
        END IF
 
@@ -914,6 +926,8 @@ CONTAINS
              STOP
           
           END IF
+
+          coeff_porosity = erodible_porosity / ( 1.0_wp - erodible_porosity )
 
           read_erodible_fract:IF ( n_solid .EQ. 1 ) THEN
 
@@ -4178,9 +4192,6 @@ CONTAINS
     !$OMP END PARALLEL
 
     dist(:,:) = 0.0_wp
-
-    x_mass_center = SUM( X*q(1,:,:) ) / SUM( q(1,:,:) )
-    y_mass_center = SUM( Y*q(1,:,:) ) / SUM( q(1,:,:) )
 
     IF ( time .EQ. t_start ) THEN
 

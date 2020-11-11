@@ -2065,6 +2065,7 @@ CONTAINS
 
     REAL(wp) :: erosion_term(n_solid)
     REAL(wp) :: deposition_term(n_solid)
+    REAL(wp) :: continuous_phase_loss_term
     REAL(wp) :: eqns_term(n_eqns)
     REAL(wp) :: topo_term
 
@@ -2081,7 +2082,7 @@ CONTAINS
     IF ( ( erosion_coeff .EQ. 0.0_wp ) .AND. ( .NOT.settling_flag ) ) RETURN
 
     !$OMP PARALLEL DO private(j,k,erosion_term,deposition_term,eqns_term,       &
-    !$OMP & topo_term,r_Ri,r_rho_m,r_rho_c,r_red_grav)
+    !$OMP & topo_term,r_Ri,r_rho_m,r_rho_c,r_red_grav,continuous_phase_loss_term)
 
     DO l = 1,solve_cells
 
@@ -2099,7 +2100,8 @@ CONTAINS
        END IF
 
        CALL eval_erosion_dep_term( qp(1:n_vars+2,j,k) ,  dt ,                   &
-            erosion_term(1:n_solid) , deposition_term(1:n_solid) )
+            erosion_term(1:n_solid) , deposition_term(1:n_solid) ,              &
+            continuous_phase_loss_term )
 
        ! Limit the deposition during a single time step
        deposition_term(1:n_solid) = MAX(0.0_wp,MIN( deposition_term(1:n_solid), &
@@ -2111,7 +2113,7 @@ CONTAINS
        
        ! Compute the source terms for the equations
        CALL eval_bulk_debulk_term( qp(1:n_vars+2,j,k) , deposition_term ,       &
-            erosion_term , eqns_term , topo_term )
+            erosion_term , continuous_phase_loss_term , eqns_term , topo_term )
 
        IF ( bottom_radial_source_flag ) THEN
 
@@ -2151,7 +2153,7 @@ CONTAINS
        END IF
 
        ! Check for negative thickness
-       IF ( q(1,j,k) .LT. 0.0_wp ) THEN
+       IF ( q(1,j,k) .LE. 0.0_wp ) THEN
 
           IF ( q(1,j,k) .GT. -1.0E-10_wp ) THEN
 
@@ -2166,6 +2168,7 @@ CONTAINS
              WRITE(*,*) 'q',q(1:n_eqns,j,k) - dt * eqns_term(1:n_eqns)
              WRITE(*,*) 'deposition_term',deposition_term
              WRITE(*,*) 'erosion_term',erosion_term
+             WRITE(*,*) 'continuous_phase_loss_term',continuous_phase_loss_term
              WRITE(*,*) 'after erosion'
              CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
              WRITE(*,*) 'qp',qp(1:n_eqns+2,j,k)
@@ -2175,6 +2178,35 @@ CONTAINS
           END IF
 
        END IF
+
+       IF ( SUM(q(5:4+n_solid,j,k)) .GT. q(1,j,k) ) THEN
+
+          IF ( q(1,j,k) .LT. 1.0e-10_wp ) THEN
+
+             q(5:4+n_solid,j,k) = q(5:4+n_solid,j,k)                            &
+                  / SUM(q(5:4+n_solid,j,k)) * q(1,j,k)
+             
+          ELSE
+
+             WRITE(*,*) 'SUM SOLID > TOT'
+             WRITE(*,*) 'j,k',j,k
+             WRITE(*,*) 'dt',dt
+             WRITE(*,*) 'before erosion'
+             WRITE(*,*) 'qp',qp(1:n_eqns+2,j,k)
+             WRITE(*,*) 'q',q(1:n_eqns,j,k) - dt * eqns_term(1:n_eqns)
+             WRITE(*,*) 'deposition_term',deposition_term
+             WRITE(*,*) 'erosion_term',erosion_term
+             WRITE(*,*) 'continuous_phase_loss_term',continuous_phase_loss_term
+             WRITE(*,*) 'after erosion'
+             CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
+             WRITE(*,*) 'qp',qp(1:n_eqns+2,j,k)
+             WRITE(*,*) 'q',q(1:n_eqns,j,k)          
+             READ(*,*)
+             
+          END IF
+
+       END IF
+
 
        IF ( q(1,j,k) .GT. 0.0_wp ) THEN
 

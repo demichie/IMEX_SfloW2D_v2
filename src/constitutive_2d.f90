@@ -149,12 +149,19 @@ MODULE constitutive_2d
   !> erosion model coefficient  (units: m-1 )
   REAL(wp), ALLOCATABLE :: erosion_coeff
 
+  !> water loss_rate (unit: m s-1)
+  REAL(wp), ALLOCATABLE :: loss_rate
+
   !> erodible substrate solid relative volume fractions
   REAL(wp), ALLOCATABLE :: erodible_fract(:)
 
   !> erodible substrate porosity (we assume filled by continous phase)
   REAL(wp) :: erodible_porosity
-  
+ 
+  !> coefficient to compute (eroded/deposited) volume of continuous phase
+  !> from volume of solid  
+  REAL(wp) :: coeff_porosity
+
   !> temperature of erodible substrate (units: K)
   REAL(wp) :: T_erodible
 
@@ -1908,7 +1915,8 @@ CONTAINS
   !
   !******************************************************************************
 
-  SUBROUTINE eval_erosion_dep_term( qpj , dt , erosion_term , deposition_term )
+  SUBROUTINE eval_erosion_dep_term( qpj , dt , erosion_term , deposition_term , &
+       continuous_phase_loss_term )
 
     IMPLICIT NONE
 
@@ -1917,6 +1925,7 @@ CONTAINS
 
     REAL(wp), INTENT(OUT) :: erosion_term(n_solid)     !< erosion term
     REAL(wp), INTENT(OUT) :: deposition_term(n_solid)  !< deposition term
+    REAL(wp), INTENT(OUT) :: continuous_phase_loss_term
 
     REAL(wp) :: mod_vel
 
@@ -1953,6 +1962,7 @@ CONTAINS
 
     deposition_term(1:n_solid) = 0.0_wp
     erosion_term(1:n_solid) = 0.0_wp
+    continuous_phase_loss_term = 0.0_wp
 
     IF ( qpj(1) .LE. 0.0_wp ) RETURN
     
@@ -2087,7 +2097,33 @@ CONTAINS
        END IF
 
     END DO
+   
+    IF ( liquid_flag ) THEN
+
+       ! set the rate of loss of continuous phase 
+       continuous_phase_loss_term = loss_rate
+
+    ELSE
+
+       continuous_phase_loss_term = 0.0_wp
+
+    END IF
+ 
+    ! add the loss associated with solid deposition
+    continuous_phase_loss_term =  continuous_phase_loss_term +                  &
+         coeff_porosity * SUM( deposition_term(1:n_solid) )
+
+
+    ! limit the loss accountaing for available continuous phase
+    continuous_phase_loss_term = MIN( continuous_phase_loss_term ,              &
+         r_h * MAX( 0.0_wp , ( 1.0_wp - SUM(r_alphas) ) ) / dt )
     
+    ! loss of continuous phase cannot 
+    continuous_phase_loss_term = MIN( continuous_phase_loss_term ,              &
+         ( r_h *  ( 1.0_wp - SUM(r_alphas) ) - coeff_porosity * ( r_h *         &
+         SUM(r_alphas) - dt * SUM( deposition_term(1:n_solid) ) ) ) / dt )
+
+
     RETURN
 
   END SUBROUTINE eval_erosion_dep_term
@@ -2110,13 +2146,14 @@ CONTAINS
   !******************************************************************************
 
   SUBROUTINE eval_bulk_debulk_term( qpj, deposition_avg_term, erosion_avg_term, &
-       eqns_term, topo_term )
+       continuous_phase_loss_term , eqns_term, topo_term )
 
     IMPLICIT NONE
 
     REAL(wp), INTENT(IN) :: qpj(n_vars+2)                !< physical variables 
     REAL(wp), INTENT(IN) :: deposition_avg_term(n_solid) !< deposition term
     REAL(wp), INTENT(IN) :: erosion_avg_term(n_solid)    !< erosion term
+    REAL(wp), INTENT(IN) :: continuous_phase_loss_term
 
     REAL(wp), INTENT(OUT):: eqns_term(n_eqns)
     REAL(wp), INTENT(OUT):: topo_term
@@ -2139,9 +2176,7 @@ CONTAINS
     REAL(wp) :: rho_dep_tot
     REAL(wp) :: rho_ers_tot
 
-    REAL(wp) :: coeff_porosity
     
-
     IF ( qpj(1) .LE. 0.0_wp ) THEN
 
        eqns_term(1:n_eqns) = 0.0_wp
@@ -2186,32 +2221,30 @@ CONTAINS
     ! solid total mass erosion rate [kg m-2 s-1]
     rho_ers_tot = DOT_PRODUCT( rho_s , erosion_avg_term )
 
-    ! coefficient to compute (eroded/deposited) volume of continuous phase
-    ! from volume of solid  
-    coeff_porosity = erodible_porosity / ( 1.0_wp - erodible_porosity )
-    
     ! total mass equation source term [kg m-2 s-1]:
     ! deposition, erosion and entrainment are considered
-    eqns_term(1) = rho_a_amb * air_entr + rho_ers_tot - rho_dep_tot +           &
-         coeff_porosity * ( rho_c_sub * ers_tot - r_rho_c * dep_tot )          
+    eqns_term(1) = rho_a_amb * air_entr + rho_ers_tot - rho_dep_tot             &
+         + coeff_porosity * rho_c_sub * ers_tot                                 &
+         - r_rho_c * continuous_phase_loss_term
          
     ! x-momenutm equation source term [kg m-1 s-2]:
     ! only deposition contribute to change in momentum, erosion does not carry
     ! any momentum inside the flow
-    eqns_term(2) = - r_u * ( rho_dep_tot + r_rho_c * coeff_porosity * dep_tot )
+    eqns_term(2) = - r_u * ( rho_dep_tot + r_rho_c * continuous_phase_loss_term )
 
     ! y-momentum equation source term [kg m-1 s-2]:
     ! only deposition contribute to change in momentum, erosion does not carry
     ! any momentum inside the flow
-    eqns_term(3) = - r_v * ( rho_dep_tot + r_rho_c * coeff_porosity * dep_tot )
+    eqns_term(3) = - r_v * ( rho_dep_tot + r_rho_c * continuous_phase_loss_term )
 
     ! Temperature/Energy equation source term [kg s-3]:
     ! deposition, erosion and entrainment are considered
     IF ( energy_flag ) THEN
        
        eqns_term(4) = - r_T * ( SUM( rho_s * sp_heat_s * deposition_avg_term )  &
-            + r_rho_c * sp_heat_c * coeff_porosity * dep_tot )                  &
-            - 0.5_wp*mag_vel2 * rho_dep_tot                                     &
+            + r_rho_c * sp_heat_c * continuous_phase_loss_term )                &
+            - 0.5_wp * mag_vel2 * ( rho_dep_tot + r_rho_c *                     &
+            continuous_phase_loss_term )                                        &
             + T_erodible * ( SUM( rho_s * sp_heat_s * erosion_avg_term )        &
             + rho_c_sub * sp_heat_c * ers_tot * coeff_porosity )                &
             + T_ambient * sp_heat_a * rho_a_amb * air_entr
@@ -2219,7 +2252,7 @@ CONTAINS
     ELSE
        
        eqns_term(4) = - r_T * ( SUM( rho_s * sp_heat_s * deposition_avg_term )  &
-            + r_rho_c * sp_heat_c * coeff_porosity * dep_tot )                  &
+            + r_rho_c * sp_heat_c * continuous_phase_loss_term )                &
             + T_erodible * ( SUM( rho_s * sp_heat_s * erosion_avg_term )        &
             + rho_c_sub * sp_heat_c * ers_tot * coeff_porosity )                &
             + T_ambient * sp_heat_a * rho_a_amb * air_entr
