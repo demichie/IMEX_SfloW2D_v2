@@ -2867,6 +2867,10 @@ CONTAINS
                    
                    qrecW(i) = bcW(i)%value 
                    
+                ELSE
+
+                   IF ( i .EQ. 2 ) qrecW(i) = MIN( qrecW(i) , 0.0_wp ) 
+
                 END IF
                    
              END IF
@@ -2878,6 +2882,10 @@ CONTAINS
                       
                    qrecE(i) = bcE(i)%value 
                       
+                ELSE
+
+                   IF ( i .EQ. 2 ) qrecE(i) = MAX( qrecE(i) , 0.0_wp ) 
+
                 END IF
                 
              END IF
@@ -2991,6 +2999,10 @@ CONTAINS
                    
                    qrecS(i) = bcS(i)%value 
                    
+                ELSE
+
+                   IF ( i .EQ. 3 ) qrecS(i) = MIN( qrecS(i) , 0.0_wp ) 
+
                 END IF
 
              END IF
@@ -3002,6 +3014,10 @@ CONTAINS
                    
                    qrecN(i) = bcN(i)%value 
                    
+                ELSE
+
+                   IF ( i .EQ. 3 ) qrecN(i) = MAX( qrecN(i) , 0.0_wp ) 
+
                 END IF
 
              END IF
