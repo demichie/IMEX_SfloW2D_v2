@@ -4143,7 +4143,7 @@ CONTAINS
 
     USE geometry_2d, ONLY : x_comp , y_comp , B_cent , dx , dy
     USE parameters_2d, ONLY : t_runout 
-    USE solver_2d, ONLY : qp , q , q0 , dt
+    USE solver_2d, ONLY : qp , q , dt , hpos , hpos_old
 
 
     IMPLICIT NONE
@@ -4158,7 +4158,7 @@ CONTAINS
 
     INTEGER :: j,k
 
-    REAL(wp) :: area , area0
+    REAL(wp) :: area , area_old , area_new_rel
 
     REAL(wp) :: x_mass_center , y_mass_center
 
@@ -4215,8 +4215,11 @@ CONTAINS
 
           x_mass_center = SUM( X*q(1,:,:) ) / SUM( q(1,:,:) )
           y_mass_center = SUM( Y*q(1,:,:) ) / SUM( q(1,:,:) )
+          hpos = ( qp(1,:,:) .GT. 1.0E-5_wp )
  
        END IF
+
+       hpos_old = ( qp(1,:,:) .GT. 1.0E-5_wp )
 
        x_mass_center_old = x_mass_center
        y_mass_center_old = y_mass_center
@@ -4234,8 +4237,7 @@ CONTAINS
 
           dist(:,:) = 0.0_wp
           
-          WHERE( qp(1,:,:) >1.0E-5_wp ) dist = SQRT( (X-x0_runout)**2           &
-               + ( Y - y0_runout )**2 )
+          WHERE( hpos ) dist = SQRT( (X-x0_runout)**2 + ( Y - y0_runout )**2 )
 
           imax = MAXLOC( dist )
           
@@ -4243,7 +4245,7 @@ CONTAINS
 
           dist_x(:,:) = 0.0_wp
           
-          WHERE( qp(1,:,:) >1.0E-5_wp ) dist_x = SQRT( (X-x0_runout)**2 )
+          WHERE( hpos ) dist_x = SQRT( (X-x0_runout)**2 )
 
           imax_x = MAXLOC( dist_x )
           
@@ -4251,7 +4253,7 @@ CONTAINS
 
           dist_y(:,:) = 0.0_wp
           
-          WHERE( qp(1,:,:) >1.0E-5_wp ) dist_y = SQRT( (Y-y0_runout)**2 )
+          WHERE( hpos ) dist_y = SQRT( (Y-y0_runout)**2 )
 
           imax_y = MAXLOC( dist_y )
           
@@ -4279,24 +4281,25 @@ CONTAINS
 
        END IF
 
+       hpos = ( qp(1,:,:) .GT. 1.0E-5_wp )
+
     END IF
 
     dist(:,:) = 0.0_wp
 
-    WHERE( qp(1,:,:)  > 1.0E-5_wp ) dist = SQRT( ( X - x0_runout )**2           &
-         + ( Y - y0_runout )**2 )
+    WHERE( hpos ) dist = SQRT( ( X - x0_runout )**2 + ( Y - y0_runout )**2 )
 
     imax = MAXLOC( dist )
 
     dist_x(:,:) = 0.0_wp
 
-    WHERE( qp(1,:,:)  > 1.0E-5_wp ) dist_x = SQRT( ( X - x0_runout )**2 )
+    WHERE( hpos ) dist_x = SQRT( ( X - x0_runout )**2 )
 
     imax_x = MAXLOC( dist_x )
 
     dist_y(:,:) = 0.0_wp
 
-    WHERE( qp(1,:,:)  > 1.0E-5_wp ) dist_y = SQRT( ( Y - y0_runout )**2 )
+    WHERE( hpos ) dist_y = SQRT( ( Y - y0_runout )**2 )
 
     imax_y = MAXLOC( dist_y )
 
@@ -4306,8 +4309,8 @@ CONTAINS
     
     CLOSE(dakota_unit)
 
-    area0 = dx*dy*COUNT( q0(1,:,:) .GT. 1.0E-7_wp )
-    area = dx*dy*COUNT( q(1,:,:) .GT. 1.0E-7_wp )
+    area_old = dx*dy*COUNT(hpos_old)
+    area = dx*dy*COUNT(hpos)
     
     WRITE(runout_unit,'(A,F12.3,A,F12.3,A,F14.3)') 'Time (s) = ',time ,         &
          ' Runout (m) = ',dist(imax(1),imax(2)) - init_runout,' Area (m^2) = ', &
@@ -4327,17 +4330,23 @@ CONTAINS
        vel_mass_center = SQRT( ( x_mass_center_old - x_mass_center )**2 +       &
             ( y_mass_center_old - y_mass_center )**2 ) / dt_runout
        
-       vel_radial_growth = ABS( SQRT( area ) - SQRT( area0 ) ) / dt
+       vel_radial_growth = ABS( SQRT( area ) - SQRT( area_old ) ) / dt_runout
        
+       area_new_rel = dx*dy*COUNT( hpos .AND. ( .NOT.hpos_old ) ) / COUNT( hpos )
+
        x_mass_center_old = x_mass_center
        y_mass_center_old = y_mass_center
-       
-       IF ( ( MAX( vel_mass_center , vel_radial_growth ) .LT. eps_stop ) .AND.  &
-            (.NOT.stop_flag) ) THEN
+       hpos_old = hpos
+  
+       WRITE(*,*) vel_mass_center,vel_radial_growth,area_new_rel/dt_runout
+     
+       IF ( ( MAX( vel_mass_center , area_new_rel /dt_runout ) .LT. eps_stop )  &
+            .AND. (.NOT.stop_flag) ) THEN
 
           WRITE(*,*) 'Steady solution reached'
           WRITE(*,*) 'vel_mass_center',vel_mass_center
           WRITE(*,*) 'vel_radial_growth',vel_radial_growth
+          WRITE(*,*) 'area , area_new_rel',area , area_new_rel
           stop_flag = .TRUE.
 
        END IF

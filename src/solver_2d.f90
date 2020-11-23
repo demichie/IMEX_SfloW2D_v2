@@ -45,10 +45,16 @@ MODULE solver_2d
 
   !> Conservative variables
   REAL(wp), ALLOCATABLE :: q(:,:,:)        
-  !> Conservative variables
+  !> Conservative variables at previous time step
   REAL(wp), ALLOCATABLE :: q0(:,:,:)        
   !> Solution of the finite-volume semidiscrete cheme
   REAL(wp), ALLOCATABLE :: q_fv(:,:,:)     
+
+  !> Map of positive thickness 
+  LOGICAL, ALLOCATABLE :: hpos(:,:)        
+  !> Map of positive thickness at previous output step
+  LOGICAL, ALLOCATABLE :: hpos_old(:,:)        
+
 
   !> Reconstructed value at the left of the x-interface
   REAL(wp), ALLOCATABLE :: q_interfaceL(:,:,:)        
@@ -226,6 +232,9 @@ CONTAINS
 
     ALLOCATE( q( n_vars , comp_cells_x , comp_cells_y ) , q0( n_vars ,          &
          comp_cells_x , comp_cells_y ) )
+
+    ALLOCATE( hpos( comp_cells_x , comp_cells_y ) , hpos_old ( comp_cells_x ,   &
+         comp_cells_y ) )
 
     ALLOCATE( qp( n_vars+2 , comp_cells_x , comp_cells_y ) )
 
@@ -467,7 +476,7 @@ CONTAINS
 
   SUBROUTINE deallocate_solver_variables
 
-    DEALLOCATE( q , q0 )
+    DEALLOCATE( q , q0 , hpos , hpos_old )
 
     DEALLOCATE( hmax )
 
