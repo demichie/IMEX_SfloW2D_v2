@@ -4338,15 +4338,13 @@ CONTAINS
        y_mass_center_old = y_mass_center
        hpos_old = hpos
   
-       WRITE(*,*) vel_mass_center,vel_radial_growth,area_new_rel/dt_runout
-     
        IF ( ( MAX( vel_mass_center , area_new_rel /dt_runout ) .LT. eps_stop )  &
             .AND. (.NOT.stop_flag) ) THEN
 
           WRITE(*,*) 'Steady solution reached'
           WRITE(*,*) 'vel_mass_center',vel_mass_center
           WRITE(*,*) 'vel_radial_growth',vel_radial_growth
-          WRITE(*,*) 'area , area_new_rel',area , area_new_rel
+          WRITE(*,*) 'area_new_rel/dt_runout',area , area_new_rel/dt_runout
           stop_flag = .TRUE.
 
        END IF
