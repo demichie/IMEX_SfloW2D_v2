@@ -26,6 +26,8 @@ MODULE geometry_2d
   !> Topography at the centers of the control volumes 
   REAL(wp), ALLOCATABLE :: B_cent(:,:)
 
+  LOGICAL, ALLOCATABLE :: B_nodata(:,:)
+
   !> Topography slope (x direction) at the centers of the control volumes 
   REAL(wp), ALLOCATABLE :: B_prime_x(:,:)
 
@@ -60,6 +62,8 @@ MODULE geometry_2d
   REAL(wp), ALLOCATABLE :: erodible(:,:,:)
   
   REAL(wp), ALLOCATABLE :: topography_profile(:,:,:)
+
+  REAL(wp) :: nodata_topo
 
   INTEGER, ALLOCATABLE :: source_cell(:,:)
   LOGICAL, ALLOCATABLE :: sourceE(:,:)
@@ -158,6 +162,7 @@ CONTAINS
     ALLOCATE( sourceN_vect_y(comp_cells_x,comp_cells_y) )
 
     ALLOCATE( B_cent(comp_cells_x,comp_cells_y) )
+    ALLOCATE( B_nodata(comp_cells_x,comp_cells_y) )
     ALLOCATE( B_prime_x(comp_cells_x,comp_cells_y) )
     ALLOCATE( B_prime_y(comp_cells_x,comp_cells_y) )
 
@@ -167,7 +172,7 @@ CONTAINS
     ALLOCATE( grav_surf(comp_cells_x,comp_cells_y) )
 
     ALLOCATE( cell_source_fractions(comp_cells_x,comp_cells_y) )
-    
+  
     IF ( comp_cells_x .GT. 1 ) THEN
 
        dx = cell_size
@@ -238,6 +243,20 @@ CONTAINS
     
        DO j=1,comp_cells_x
 
+          CALL interp_2d_nodata( topography_profile(1,:,:) ,                    &
+               topography_profile(2,:,:), topography_profile(3,:,:) ,           &
+               x_comp(j), y_comp(k) , B_nodata(j,k) )
+
+       END DO
+
+    ENDDO
+
+    topography_profile(3,:,:) = MAX(0.0_wp,topography_profile(3,:,:))
+
+    DO k=1,comp_cells_y
+    
+       DO j=1,comp_cells_x
+
           CALL interp_2d_scalar( topography_profile(1,:,:) ,                    &
                topography_profile(2,:,:), topography_profile(3,:,:) ,           &
                x_comp(j), y_comp(k) , B_cent(j,k) )
@@ -245,6 +264,7 @@ CONTAINS
        END DO
 
     ENDDO
+
 
     CALL topography_reconstruction
 
@@ -525,6 +545,77 @@ CONTAINS
     END IF
     
   END SUBROUTINE interp_2d_scalar
+
+  !-----------------------------------------------------------------------------
+  !> Scalar interpolation (2D)
+  !
+  !> This subroutine interpolate the values of the  array f1, defined on the 
+  !> grid points (x1,y1), at the point (x2,y2). The value are saved in f2
+  !> \date OCTOBER 2016
+  !> \param    x1           original grid                (\b input)
+  !> \param    y1           original grid                (\b input)
+  !> \param    f1           original values              (\b input)
+  !> \param    x2           new point                    (\b output)
+  !> \param    y2           new point                    (\b output)
+  !> \param    f2           interpolated value           (\b output)
+  !-----------------------------------------------------------------------------
+
+  SUBROUTINE interp_2d_nodata(x1, y1, f1, x2, y2, f2)
+    IMPLICIT NONE
+
+    REAL(wp), INTENT(IN), DIMENSION(:,:) :: x1, y1, f1
+    REAL(wp), INTENT(IN) :: x2, y2
+    LOGICAL, INTENT(OUT) :: f2
+
+    INTEGER :: ix , iy
+    REAL(wp) :: alfa_x , alfa_y
+
+    IF ( size(x1,1) .GT. 1 ) THEN
+
+       ix = FLOOR( ( x2 - x1(1,1) ) / ( x1(2,1) - x1(1,1) ) ) + 1
+       ix = MIN( ix , SIZE(x1,1)-1 )
+       alfa_x = ( x1(ix+1,1) - x2 ) / (  x1(ix+1,1) - x1(ix,1) )
+
+    ELSE
+
+       ix = 1
+       alfa_x = 0.0_wp
+       
+    END IF
+    
+    IF ( size(x1,2) .GT. 1 ) THEN
+
+       iy = FLOOR( ( y2 - y1(1,1) ) / ( y1(1,2) - y1(1,1) ) ) + 1
+       iy = MIN( iy , SIZE(x1,2)-1 )
+       alfa_y = ( y1(1,iy+1) - y2 ) / (  y1(1,iy+1) - y1(1,iy) )
+    
+    ELSE
+
+       iy = 1
+       alfa_y = 0.0_wp
+       
+    END IF
+     
+    f2 = .FALSE.
+  
+    IF ( size(x1,1) .EQ. 1 ) THEN
+       
+       f2 = ( f1(ix,iy) .EQ. nodata_topo ) .OR. ( f1(ix,iy+1) .EQ. nodata_topo )
+       
+    ELSEIF ( size(x1,2) .EQ. 1 ) THEN
+       
+       f2 = ( f1(ix,iy) .EQ. nodata_topo ) .OR. ( f1(ix+1,iy) .EQ. nodata_topo ) 
+       
+    ELSE
+       
+       f2 = ( f1(ix,iy) .EQ. nodata_topo ) .OR. ( f1(ix,iy+1) .EQ. nodata_topo )&
+            .OR. ( f1(ix+1,iy) .EQ. nodata_topo )                               &
+            .OR. ( f1(ix+1,iy+1) .EQ. nodata_topo )
+       
+    END IF
+    
+  END SUBROUTINE interp_2d_nodata
+
 
   !-----------------------------------------------------------------------------
   !> Scalar interpolation (2D)

@@ -22,7 +22,7 @@ MODULE inpout_2d
   ! -- Variables for the namelist NEWRUN_PARAMETERS
   USE geometry_2d, ONLY : x0 , y0 , comp_cells_x , comp_cells_y , cell_size
   USE geometry_2d, ONLY : topography_profile , n_topography_profile_x ,         &
-       n_topography_profile_y
+       n_topography_profile_y , nodata_topo
   USE parameters_2d, ONLY : n_solid
   USE parameters_2d, ONLY : rheology_flag , energy_flag , alpha_flag ,          &
        topo_change_flag , radial_source_flag , collapsing_volume_flag ,         &
@@ -286,6 +286,7 @@ CONTAINS
 
     !-- Inizialization of the Variables for the namelist newrun_parameters
     topography_file = 'topography_dem.asc'
+    nodata_topo = -9999.0_wp
     x0 = 0.0_wp
     y0 = 0.0_wp
     comp_cells_x = 1000
@@ -2307,7 +2308,7 @@ CONTAINS
     READ(2001,*) chara, xllcorner
     READ(2001,*) chara, yllcorner
     READ(2001,*) chara, cellsize
-    READ(2001,*) chara, nodata_value
+    READ(2001,*) chara, nodata_topo
 
     ! The values read from the DEM files are associated to the center of the
     ! pixels. x0 is the left margin of the computational domain and has to be
@@ -2393,7 +2394,6 @@ CONTAINS
 
     ENDDO
 
-    topography_profile(3,:,:) = MAX(0.0_wp,topography_profile(3,:,:))
 
     IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) ''
 

@@ -582,7 +582,6 @@ CONTAINS
     
     INTEGER :: i,j,k
 
-
     
     !$OMP PARALLEL
          
@@ -602,7 +601,7 @@ CONTAINS
     !$OMP BARRIER
     
     !$OMP WORKSHARE
-    WHERE ( q(1,2:comp_cells_x-1,2:comp_cells_y-1) .GT. 0.0_wp )  &
+    WHERE ( q(1,2:comp_cells_x-1,2:comp_cells_y-1) .GT. 0.0_wp )                &
          solve_mask(2:comp_cells_x-1,2:comp_cells_y-1) = .TRUE.
     !$OMP END WORKSHARE
     
@@ -916,6 +915,8 @@ CONTAINS
     USE constitutive_2d, ONLY : qc_to_qp
 
     USE constitutive_2d, ONLY : eval_expl_terms
+
+    USE geometry_2d, ONLY : B_nodata
 
 !!$    USE parameters_2d, ONLY : time_param , bottom_radial_source_flag
     
@@ -1352,6 +1353,8 @@ CONTAINS
           END IF
 
        END IF
+
+       IF ( B_nodata(j,k) ) q(:,j,k) = 0.0_wp
 
     END DO assemble_sol
 
