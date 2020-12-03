@@ -3467,7 +3467,7 @@ CONTAINS
     USE constitutive_2d, ONLY : qc_to_qp, mixt_var
 
     USE geometry_2d, ONLY : comp_cells_x , B_cent , comp_cells_y , x_comp,      &
-         y_comp , deposit , erosion
+         y_comp , deposit , erosion 
 
     USE parameters_2d, ONLY : n_vars
     USE parameters_2d, ONLY : t_output , dt_output 
@@ -3762,7 +3762,7 @@ CONTAINS
 
   SUBROUTINE output_esri(output_idx)
 
-    USE geometry_2d, ONLY : B_cent , grid_output , deposit , erosion
+    USE geometry_2d, ONLY : B_cent , grid_output , deposit , erosion , B_nodata
     USE geometry_2d, ONLY : deposit_tot , erosion_tot
     ! USE geometry_2d, ONLY : comp_interfaces_x , comp_interfaces_y
     USE solver_2d, ONLY : qp
@@ -3790,6 +3790,23 @@ CONTAINS
        DO j = comp_cells_y,1,-1
           
           WRITE(dem_esri_unit,*) B_cent(1:comp_cells_x,j)
+          
+       ENDDO
+       
+       CLOSE(dem_esri_unit)
+
+       OPEN(dem_esri_unit,FILE='dem_esri_nodata.asc',status='unknown',form='formatted')
+       
+       WRITE(dem_esri_unit,'(A,I5)') 'ncols ', comp_cells_x
+       WRITE(dem_esri_unit,'(A,I5)') 'nrows ', comp_cells_y
+       WRITE(dem_esri_unit,'(A,F15.3)') 'xllcorner ', x0
+       WRITE(dem_esri_unit,'(A,F15.3)') 'yllcorner ', y0
+       WRITE(dem_esri_unit,'(A,F15.3)') 'cellsize ', cell_size
+       WRITE(dem_esri_unit,'(A,I5)') 'NODATA_value ', -9999
+
+       DO j = comp_cells_y,1,-1
+          
+          WRITE(dem_esri_unit,*) MERGE(1,0,B_nodata(1:comp_cells_x,j))
           
        ENDDO
        
