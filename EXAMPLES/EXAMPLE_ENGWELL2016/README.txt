@@ -2,6 +2,7 @@ Simulation example of a radial flux source on a flat topography. This example is
 The inlet conditions are given as input of the script. Particles sedimentation and air entrainment are modeled (settling_flag=T, entrainment_flag=T).
 
 A simple firction model, as in [1], is used for this example.
+Please note that for this kind of inlet an initial supercritical regime (Ri<1) is required, becuase no characteristic speed should travel upstream.
 
 A Python script (create_example.py) is provided to create the input file for this example (required package: numpy). 
 Please provide six arguments:
@@ -9,8 +10,8 @@ Please provide six arguments:
     print('1) Number of cells\n')
     print('2) Source radius (>0)\n')
     print('3) Initial thickness (>0)\n')
-    print('4) Temperature (>0)\n')
-    print('5) Radial velocity (>0)\n')
+    print('4) Initial temperature (>0)\n')
+    print('5) Initial Richardson number (<1)\n')
     print('6) Solid volume fraction (0,1)\n')
 
 1) Number of cells in the x-direction 
@@ -21,7 +22,7 @@ Please provide six arguments:
 
 4) Initial temperature
 
-5) Initial Richardsson number
+5) Initial Richardson number
 
 6) Initial solid mass fraction
 
