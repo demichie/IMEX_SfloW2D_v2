@@ -13,6 +13,9 @@ MODULE constitutive_2d
   !> flag used for size of implicit non linear-system
   LOGICAL, ALLOCATABLE :: implicit_flag(:)
 
+  !> map from implicit variables to original variables 
+  INTEGER, ALLOCATABLE :: implicit_map(:)
+  
   !> flag to activate air entrainment
   LOGICAL :: entrainment_flag
   
@@ -193,6 +196,9 @@ CONTAINS
   SUBROUTINE init_problem_param
 
     USE parameters_2d, ONLY : n_nh
+    IMPLICIT NONE
+
+    integer :: i,j
 
     ALLOCATE( implicit_flag(n_eqns) )
 
@@ -208,6 +214,20 @@ CONTAINS
 
     n_nh = COUNT( implicit_flag )
 
+    ALLOCATE( implicit_map(n_nh) )
+
+    j=0
+    DO i=1,n_eqns
+
+       IF ( implicit_flag(i) ) THEN
+
+          j=j+1
+          implicit_map(j) = i
+
+       END IF
+
+    END DO
+    
     RETURN
     
   END SUBROUTINE init_problem_param
@@ -1032,6 +1052,7 @@ CONTAINS
     REAL(wp) :: r_rho_m      !< real-value mixture density [kg m-3]
     REAL(wp) :: r_rho_c      !< real-value carrier phase density [kg m-3]
     REAL(wp) :: r_red_grav   !< real-value reduced gravity [m s-2]
+    REAL(wp) :: r_celerity
 
     CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav)
 
@@ -1046,8 +1067,9 @@ CONTAINS
 
     ELSE
 
-       vel_min(1:n_eqns) = r_u - SQRT( r_red_grav * r_h )
-       vel_max(1:n_eqns) = r_u + SQRT( r_red_grav * r_h )
+       r_celerity = SQRT( r_red_grav * r_h )
+       vel_min(1:n_eqns) = r_u - r_celerity
+       vel_max(1:n_eqns) = r_u + r_celerity
 
     END IF
 
@@ -1082,7 +1104,8 @@ CONTAINS
     REAL(wp) :: r_rho_m      !< real-value mixture density [kg/m3]
     REAL(wp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
     REAL(wp) :: r_red_grav   !< real-value reduced gravity
-
+    REAL(wp) :: r_celerity
+    
     CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav)
 
     r_h = qpj(1)
@@ -1096,8 +1119,9 @@ CONTAINS
 
     ELSE
 
-       vel_min(1:n_eqns) = r_v - SQRT( r_red_grav * r_h )
-       vel_max(1:n_eqns) = r_v + SQRT( r_red_grav * r_h )
+       r_celerity = SQRT( r_red_grav * r_h )
+       vel_min(1:n_eqns) = r_v - r_celerity
+       vel_max(1:n_eqns) = r_v + r_celerity
 
     END IF
 
@@ -1568,6 +1592,7 @@ CONTAINS
     REAL(wp) :: r_T               !< real-value temperature [K]
     REAL(wp) :: r_alphal          !< real-value liquid volume fraction
 
+    REAL(wp) :: temp_term
 
     ! initialize and evaluate the forces terms
     forces_term(1:n_eqns) = 0.0_wp
@@ -1583,13 +1608,13 @@ CONTAINS
           
           IF ( mod_vel .GT. 0.0_wp ) THEN
 
+             temp_term = r_rho_m *  mu * r_h * ( - grav * grav3_surf ) / mod_vel
+             
              ! units of dqc(2)/dt=d(rho h v)/dt (kg m-1 s-2)
-             forces_term(2) = forces_term(2) - r_rho_m * ( r_u / mod_vel ) *    &
-                  mu * r_h * ( - grav * grav3_surf )
+             forces_term(2) = forces_term(2) - temp_term * r_u
 
              ! units of dqc(3)/dt=d(rho h v)/dt (kg m-1 s-2)
-             forces_term(3) = forces_term(3) - r_rho_m * ( r_v / mod_vel ) *    &
-                  mu * r_h * ( - grav * grav3_surf )
+             forces_term(3) = forces_term(3) - temp_term * r_v
 
           END IF
 
@@ -1625,13 +1650,13 @@ CONTAINS
           
           IF ( mod_vel .GT. 0.0_wp ) THEN
 
+             temp_term = grav * r_rho_m * r_h * s_y / mod_vel
+
              ! units of dqc(2)/dt [kg m-1 s-2]
-             forces_term(2) = forces_term(2) - grav * r_rho_m * r_h *           &
-                  ( r_u / mod_vel ) * s_y
+             forces_term(2) = forces_term(2) - temp_term * r_u
 
              ! units of dqc(3)/dt [kg m-1 s-2]
-             forces_term(3) = forces_term(3) - grav * r_rho_m * r_h *           &
-                  ( r_v / mod_vel ) * s_y
+             forces_term(3) = forces_term(3) - temp_term * r_v
 
           END IF
 
@@ -1950,6 +1975,7 @@ CONTAINS
     REAL(wp) :: alpha1
     REAL(wp) :: fluid_visc
     REAL(wp) :: kin_visc
+    REAL(wp) :: inv_kin_visc
     REAL(wp) :: rhoc
     REAL(wp) :: expA , expB
  
@@ -2052,13 +2078,13 @@ CONTAINS
        ! Fluid dynamic viscosity [kg m-1 s-1]
        fluid_visc = alpha1 * EXP( beta1 * alphas_tot )
        ! Kinematic viscosity [m2 s-1]
-       kin_visc = fluid_visc / r_rho_m
+       inv_kin_visc = r_rho_m / fluid_visc
        rhoc = r_rho_m
 
     ELSE
 
        ! Viscosity read from input file [m2 s-1]
-       kin_visc = kin_visc_c
+       inv_kin_visc = 1.0_wp / kin_visc_c
        rhoc = r_rho_c
        
     END IF
@@ -2068,7 +2094,7 @@ CONTAINS
        IF ( ( r_alphas(i_solid) .GT. 0.0_wp ) .AND. ( settling_flag ) ) THEN
 
           settling_vel = settling_velocity( diam_s(i_solid) , rho_s(i_solid) ,  &
-               rhoc , kin_visc )
+               rhoc , inv_kin_visc )
 
           deposition_term(i_solid) = r_alphas(i_solid) * settling_vel
 
@@ -2407,14 +2433,14 @@ CONTAINS
   !
   !------------------------------------------------------------------------------
 
-  REAL(wp) FUNCTION settling_velocity(diam,rhos,rhoc,kin_visc)
+  REAL(wp) FUNCTION settling_velocity(diam,rhos,rhoc,inv_kin_visc)
 
     IMPLICIT NONE
 
     REAL(wp), INTENT(IN) :: diam          !< particle diameter [m]
     REAL(wp), INTENT(IN) :: rhos          !< particle density [kg/m3]
     REAL(wp), INTENT(IN) :: rhoc          !< carrier phase density [kg/m3]
-    REAL(wp), INTENT(IN) :: kin_visc      !< carrier phase viscosity
+    REAL(wp), INTENT(IN) :: inv_kin_visc  !< carrier phase viscosity reciprocal
 
     REAL(wp) :: Rey           !< Reynolds number
     REAL(wp) :: inv_sqrt_C_D  !< Reciprocal of sqrt of Drag coefficient
@@ -2440,7 +2466,7 @@ CONTAINS
 
     settling_velocity = const_part * inv_sqrt_C_D
 
-    Rey = diam * settling_velocity / kin_visc
+    Rey = diam * settling_velocity * inv_kin_visc
 
     IF ( Rey .LE. 1000.0_wp ) THEN
 
@@ -2456,16 +2482,16 @@ CONTAINS
           IF ( ABS( set_vel_old - settling_velocity ) / set_vel_old             &
                .LT. 1.0E-6_wp ) THEN
 
-             ! round to first three significative digits
-             dig = FLOOR(LOG10(set_vel_old))
-             settling_velocity = 10.0_wp**(dig-3)                               &
-                  * FLOOR( 10.0_wp**(-dig+3)*set_vel_old ) 
+!!$             ! round to first three significative digits
+!!$             dig = FLOOR(LOG10(set_vel_old))
+!!$             settling_velocity = 10.0_wp**(dig-3)                               &
+!!$                  * FLOOR( 10.0_wp**(-dig+3)*set_vel_old ) 
 
              RETURN
 
           END IF
 
-          Rey = diam * settling_velocity / kin_visc
+          Rey = diam * settling_velocity * inv_kin_visc
 
        END DO C_D_loop
 

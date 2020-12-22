@@ -34,7 +34,7 @@ MODULE solver_2d
 
   ! external procedures
   USE geometry_2d, ONLY : limit
-    USE geometry_2d, ONLY : dx,dy
+  USE geometry_2d, ONLY : dx , dy , one_by_dx , one_by_dy 
 
   USE OMP_LIB
 
@@ -206,6 +206,9 @@ MODULE solver_2d
   INTEGER, ALLOCATABLE :: j_stag_y(:)
   INTEGER, ALLOCATABLE :: k_stag_y(:)
 
+  REAL(wp) :: h , one_by_h
+
+  
 CONTAINS
 
   !******************************************************************************
@@ -230,6 +233,9 @@ CONTAINS
 
     INTEGER :: i,j
 
+    h = n_vars * epsilon(1.0_wp)
+    one_by_h = 1.0_wp / h
+    
     ALLOCATE( q( n_vars , comp_cells_x , comp_cells_y ) , q0( n_vars ,          &
          comp_cells_x , comp_cells_y ) )
 
@@ -811,7 +817,7 @@ CONTAINS
        CALL eval_speeds
 
        !$OMP PARALLEL
-       !$OMP DO private(j,k)
+       !$OMP DO private(j,k,i)
        DO l = 1,solve_interfaces_x
 
           j = j_stag_x(l)
@@ -827,7 +833,7 @@ CONTAINS
        END DO
        !$OMP END DO NOWAIT
     
-       !$OMP DO private(j,k)
+       !$OMP DO private(j,k,i)
        DO l = 1,solve_interfaces_y
 
           j = j_stag_y(l)
@@ -1455,6 +1461,9 @@ CONTAINS
 
     REAL(wp) :: desc_dir_temp(n_vars)
 
+    REAL(wp) :: sol_small(2)
+    REAL(wp) :: inv_det
+    
     normalize_q = .TRUE.
     normalize_f = .FALSE.
     opt_search_NL = .TRUE.
@@ -1554,9 +1563,9 @@ CONTAINS
 
        ! ---- evaluate the descent direction ------------------------------------
 
+       CALL eval_jacobian( qj_rel , qj_org , coeff_f , left_matrix )
+       
        IF ( COUNT( implicit_flag ) .EQ. n_eqns ) THEN
-
-          CALL eval_jacobian( qj_rel , qj_org , coeff_f , left_matrix )
 
           desc_dir_temp = - right_term
 
@@ -1575,8 +1584,6 @@ CONTAINS
           desc_dir = desc_dir_temp
 
        ELSE
-
-          CALL eval_jacobian( qj_rel , qj_org , coeff_f , left_matrix )
 
           left_matrix_small11 = reshape(pack(left_matrix, mask11),              &
                [n_eqns-n_nh,n_eqns-n_nh]) 
@@ -1602,22 +1609,41 @@ CONTAINS
 
           desc_dir_small2 = desc_dir_small2 -                                   &
                MATMUL( desc_dir_small1 , left_matrix_small21 )
-
-          IF ( wp .EQ. sp ) THEN
-
-             CALL SGESV(n_nh,1, left_matrix_small22 , n_nh , pivot_small2 ,     &
-                  desc_dir_small2 , n_nh, ok)
+          
+          
+          IF ( COUNT( implicit_flag ) .EQ. 2 ) THEN
              
-          ELSE
+             inv_det = 1.0_wp /                                                 &
+                  ( left_matrix_small22(1,1) * left_matrix_small22(2,2) -       &
+                  left_matrix_small22(2,1) * left_matrix_small22(1,2) ) 
+             
+             sol_small(1) = ( desc_dir_small2(1) * left_matrix_small22(2,2) -   &
+                  desc_dir_small2(2) * left_matrix_small22(1,2) ) * inv_det
 
-             CALL DGESV(n_nh,1, left_matrix_small22 , n_nh , pivot_small2 ,     &
-                  desc_dir_small2 , n_nh, ok)
+             sol_small(2) = ( left_matrix_small22(1,1) * desc_dir_small2(2) -   &
+                  left_matrix_small22(2,1) * desc_dir_small2(1) ) * inv_det
+
+             desc_dir_small2 = sol_small
+
+          ELSE
+             
+             IF ( wp .EQ. sp ) THEN
+                
+                CALL SGESV(n_nh,1, left_matrix_small22 , n_nh , pivot_small2 ,  &
+                     desc_dir_small2 , n_nh, ok)
+                
+             ELSE
+                
+                CALL DGESV(n_nh,1, left_matrix_small22 , n_nh , pivot_small2 ,  &
+                     desc_dir_small2 , n_nh, ok)
+                
+             END IF
              
           END IF
 
           desc_dir = unpack( - desc_dir_small2 , implicit_flag , 0.0_wp )       &
                + unpack( - desc_dir_small1 , .NOT.implicit_flag , 0.0_wp )
-
+          
        END IF
 
        IF ( verbose_level .GE. 3 ) WRITE(*,*) 'desc_dir',desc_dir
@@ -1786,8 +1812,8 @@ CONTAINS
 
     check = .FALSE.
 
-    desc_dir_abs = SQRT( DOT_PRODUCT(desc_dir,desc_dir) )
-
+    desc_dir_abs = NORM2(desc_dir)
+    
     IF ( desc_dir_abs > stpmax ) desc_dir(:) = desc_dir(:) * stpmax/desc_dir_abs  
 
     slope = DOT_PRODUCT(grad_f,desc_dir)
@@ -1999,12 +2025,8 @@ CONTAINS
     COMPLEX(wp) :: qj_cmplx(n_vars) , qj_rel_cmplx(n_vars)
     COMPLEX(wp) :: qj_rel_cmplx_init(n_vars)
 
-    REAL(wp) :: h
-
     INTEGER :: i
-
-    h = n_vars * epsilon(1.0_wp)
-
+        
     ! initialize the matrix of the linearized system and the Jacobian
 
     left_matrix(1:n_eqns,1:n_vars) = 0.0_wp
@@ -2033,11 +2055,11 @@ CONTAINS
                c_nh_term_impl = nh_terms_cmplx_impl ) 
 
           Jacob_relax(1:n_eqns,i) = coeff_f(i) *                                &
-               AIMAG(nh_terms_cmplx_impl) / h
+               AIMAG(nh_terms_cmplx_impl) * one_by_h
 
           left_matrix(1:n_eqns,i) = left_matrix(1:n_eqns,i) - dt * a_diag       &
                * Jacob_relax(1:n_eqns,i)
-
+          
        END IF
 
     END DO
@@ -2267,10 +2289,7 @@ CONTAINS
 
     ! External variables
     USE geometry_2d, ONLY : dx,dy
-!!$    USE geometry_2d, ONLY : B_interfaceL , B_interfaceR
-!!$    USE geometry_2d, ONLY : B_interfaceB , B_interfaceT
     USE parameters_2d, ONLY : solver_scheme
-!!$    USE parameters_2d, ONLY : energy_flag
 
     IMPLICIT NONE
 
@@ -2321,14 +2340,14 @@ CONTAINS
           IF ( comp_cells_x .GT. 1 ) THEN
 
              divFlux_iRK(i,j,k) = divFlux_iRK(i,j,k) +                          &
-                  ( H_interface_x(i,j+1,k) - H_interface_x(i,j,k) ) / dx
+                  ( H_interface_x(i,j+1,k) - H_interface_x(i,j,k) ) * one_by_dx
 
           END IF
 
           IF ( comp_cells_y .GT. 1 ) THEN
 
              divFlux_iRK(i,j,k) = divFlux_iRK(i,j,k) +                          &
-                  ( H_interface_y(i,j,k+1) - H_interface_y(i,j,k) ) / dy
+                  ( H_interface_y(i,j,k+1) - H_interface_y(i,j,k) ) * one_by_dy
 
           END IF
 
@@ -2797,7 +2816,8 @@ CONTAINS
 
                 ELSEIF ( bcW(i)%flag .EQ. 2 ) THEN
 
-                   qrec_prime_x(i) = ( qp_expl(i,2,k) - qp_expl(i,1,k) ) / dx
+                   qrec_prime_x(i) = ( qp_expl(i,2,k) - qp_expl(i,1,k) )        &
+                        * one_by_dx
 
                 END IF
 
@@ -2824,7 +2844,7 @@ CONTAINS
                 ELSEIF ( bcE(i)%flag .EQ. 2 ) THEN
 
                    qrec_prime_x(i) = ( qp_expl(i,comp_cells_x,k) -              &
-                        qp_expl(i,comp_cells_x-1,k) ) / dx
+                        qp_expl(i,comp_cells_x-1,k) ) * one_by_dx
 
                 END IF
 
@@ -2929,7 +2949,8 @@ CONTAINS
 
                 ELSEIF ( bcS(i)%flag .EQ. 2 ) THEN
 
-                   qrec_prime_y(i) = ( qp_expl(i,j,2) - qp_expl(i,j,1) ) / dy 
+                   qrec_prime_y(i) = ( qp_expl(i,j,2) - qp_expl(i,j,1) )        &
+                        * one_by_dy
 
                 END IF
 
@@ -2956,7 +2977,7 @@ CONTAINS
                 ELSEIF ( bcN(i)%flag .EQ. 2 ) THEN
 
                    qrec_prime_y(i) = ( qp_expl(i,j,comp_cells_y) -              &
-                        qp_expl(i,j,comp_cells_y-1) ) / dy 
+                        qp_expl(i,j,comp_cells_y-1) ) * one_by_dy 
 
                 END IF
 

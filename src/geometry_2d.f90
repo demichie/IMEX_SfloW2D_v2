@@ -102,6 +102,10 @@ MODULE geometry_2d
   REAL(wp) :: yN                 !< Top of the physical domain
   REAL(wp) :: dx2                !< Half x Control volumes size
   REAL(wp) :: dy2                !< Half y Control volumes size
+
+  REAL(wp) :: one_by_dx
+  REAL(wp) :: one_by_dy
+
   INTEGER :: comp_cells_x      !< Number of control volumes x in the comp. domain
   INTEGER :: comp_interfaces_x !< Number of interfaces (comp_cells_x+1)
   INTEGER :: comp_cells_y      !< Number of control volumes y in the comp. domain
@@ -182,7 +186,6 @@ CONTAINS
        dx = 1.0_wp
 
     END IF
-
     
     IF ( comp_cells_y .GT. 1 ) THEN
 
@@ -199,6 +202,9 @@ CONTAINS
 
     dx2 = dx / 2.0_wp
     dy2 = dy / 2.0_wp
+
+    one_by_dx = 1.0_wp / dx
+    one_by_dy = 1.0_wp / dy
 
 
     IF ( wp .EQ. sp ) THEN
