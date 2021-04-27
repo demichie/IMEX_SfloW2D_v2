@@ -10,7 +10,7 @@ MAINTAINER Mattia de' Michieli Vitturi <demichie@gmail.com>
 
 ADD repositories /etc/apk/repositories
 RUN apk update \
-    && apk add --no-cache bash bash-doc bash-completion nano musl-dev m4 zlib-dev git gfortran gdb make curl py3-numpy@community hdf5-dev@community openmpi-dev@testing lapack-dev@community
+    && apk add --no-cache bash bash-doc bash-completion nano musl-dev m4 zlib-dev git gfortran gdb make curl py3-numpy@community hdf5-dev@community openmpi-dev@community lapack-dev@community
 
 
 # install netcdf libreries
