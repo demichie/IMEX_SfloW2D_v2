@@ -1,56 +1,42 @@
-# MdMV SW_VAR_DENS_MODEL
+# Use phusion/baseimage as base image. To make your builds reproducible, make
+# sure you lock down to a specific version, not to `latest`!
+# See https://github.com/phusion/baseimage-docker/blob/master/Changelog.md for
+# a list of version numbers.
+FROM phusion/baseimage:bionic-1.0.0
 
-# start by building the basic container
+# Use baseimage-docker's init system.
+CMD ["/sbin/my_init"]
 
-FROM alpine:edge
+# ...put your own build instructions here...
+RUN apt-get update
+RUN apt-get install -y autoconf automake gfortran nano gdb make curl python3-numpy liblapack-dev libopenmpi-dev libhdf5-dev libnetcdf-dev libnetcdff-dev unzip
 
-MAINTAINER Mattia de' Michieli Vitturi <demichie@gmail.com>
-
-# install packages from alpine edge repositories
-
-ADD repositories /etc/apk/repositories
-RUN apk update \
-    && apk add --no-cache bash bash-doc bash-completion nano musl-dev m4 zlib-dev git autoconf automake gfortran gdb make curl py3-numpy@community hdf5-dev@community lapack-dev@community openmpi-dev@community
-
-RUN curl -L http://dl-cdn.alpinelinux.org/alpine/edge/testing/x86_64/netcdf-fortran-dev-4.5.3-r0.apk > netcdf-fortran-dev-4.5.3-r0.apk \
-    && curl -L http://dl-cdn.alpinelinux.org/alpine/edge/testing/x86_64/netcdf-fortran-4.5.3-r0.apk > netcdf-fortran-4.5.3-r0.apk \
-    && curl -L http://dl-cdn.alpinelinux.org/alpine/edge/community/x86_64/netcdf-4.7.4-r1.apk > netcdf-4.7.4-r1.apk \
-    && curl -L http://dl-cdn.alpinelinux.org/alpine/edge/community/x86_64/netcdf-dev-4.7.4-r1.apk > netcdf-dev-4.7.4-r1.apk
-
-RUN apk add --allow-untrusted netcdf-4.7.4-r1.apk
-RUN apk add --allow-untrusted netcdf-dev-4.7.4-r1.apk
-RUN apk add --allow-untrusted netcdf-fortran-4.5.3-r0.apk
-RUN apk add --allow-untrusted netcdf-fortran-dev-4.5.3-r0.apk 
+# Clean up APT when done.
+RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # add user and create group
 
-RUN addgroup -S SWgroup && adduser -S userSW -G SWgroup
+RUN adduser --disabled-password user_sw
+#RUN addgroup -S SWgroup && adduser -S userSW -G SWgroup
 
 # install the code
 
-USER userSW
-WORKDIR /home/userSW
+USER user_sw
+WORKDIR /home/user_sw
 
 RUN curl -LOk https://github.com/demichie/SW_VAR_DENS_MODEL/archive/master.zip \
     && unzip *.zip \
-    && cp /home/userSW/SW_VAR_DENS_MODEL-master/TESTS/run_tests.sh . \
-    && echo 'cd /home/userSW/SW_VAR_DENS_MODEL-master/TESTS/' | cat - run_tests.sh > temp \
+    && cp /home/user_sw/SW_VAR_DENS_MODEL-master/TESTS/run_tests.sh . \
+    && echo 'cd /home/user_sw/SW_VAR_DENS_MODEL-master/TESTS/' | cat - run_tests.sh > temp \
     && mv temp run_tests.sh \
     && chmod +x run_tests.sh \
-    && cd /home/userSW/SW_VAR_DENS_MODEL-master \
+    && cd /home/user_sw/SW_VAR_DENS_MODEL-master \
     && touch README \
     && autoreconf \
-    && ./configure 
-RUN cd /home/userSW/SW_VAR_DENS_MODEL-master/src \
-#    && make 
-#    && make install -C /home/userSW/SW_VAR_DENS_MODEL-master 
-#    && make 
-#    && make install \
-    && cd /home/userSW/SW_VAR_DENS_MODEL-master/UTILS \
+    && ./configure \
+    && make \
+    && make install \
+    && cd /home/user_sw/SW_VAR_DENS_MODEL-master/UTILS \
     && gfortran -I/usr/include p2d_to_netCDF4.f90 -L/usr/lib -lnetcdf -lnetcdff -o p2d_to_netCDF4.x \
-    && cd /home/userSW/SW_VAR_DENS_MODEL-master/src \
-    && make 
-#    && cd /home/userSW/ \
-#    && rm *.zip
-
-
+    && cd /home/user_sw/ \
+    && rm *.zip
