@@ -47,7 +47,9 @@ RUN cd /home/userSW/SW_VAR_DENS_MODEL-master/src \
 #    && make 
 #    && make install \
     && cd /home/userSW/SW_VAR_DENS_MODEL-master/UTILS \
-    && gfortran -I/usr/include p2d_to_netCDF4.f90 -L/usr/lib -lnetcdf -lnetcdff -o p2d_to_netCDF4.x 
+    && gfortran -I/usr/include p2d_to_netCDF4.f90 -L/usr/lib -lnetcdf -lnetcdff -o p2d_to_netCDF4.x \
+    && cd /home/userSW/SW_VAR_DENS_MODEL-master/src \
+    && make 
 #    && cd /home/userSW/ \
 #    && rm *.zip
 
