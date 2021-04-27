@@ -40,8 +40,7 @@ RUN curl -LOk https://github.com/demichie/SW_VAR_DENS_MODEL/archive/master.zip \
     && cd /home/userSW/SW_VAR_DENS_MODEL-master \
     && touch README \
     && autoreconf \
-    && ./configure 
-RUN cd /home/userSW/SW_VAR_DENS_MODEL-master \
+    && ./configure \
     && make 
 #    && make install \
 #    && cd /home/userSW/SW_VAR_DENS_MODEL-master/UTILS \
