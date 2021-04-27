@@ -43,10 +43,10 @@ RUN curl -LOk https://github.com/demichie/SW_VAR_DENS_MODEL/archive/master.zip \
     && ./configure 
 RUN cd /home/userSW/SW_VAR_DENS_MODEL-master \
     && make \
-    && make install \
-    && cd /home/userSW/SW_VAR_DENS_MODEL-master/UTILS \
-    && gfortran -I/usr/include p2d_to_netCDF4.f90 -L/usr/lib -lnetcdf -lnetcdff -o p2d_to_netCDF4.x \
-    && cd /home/userSW/ \
-    && rm *.zip
+    && make install 
+#    && cd /home/userSW/SW_VAR_DENS_MODEL-master/UTILS \
+#    && gfortran -I/usr/include p2d_to_netCDF4.f90 -L/usr/lib -lnetcdf -lnetcdff -o p2d_to_netCDF4.x \
+#    && cd /home/userSW/ \
+#    && rm *.zip
 
 
