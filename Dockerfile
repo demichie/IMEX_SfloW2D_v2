@@ -10,24 +10,17 @@ MAINTAINER Mattia de' Michieli Vitturi <demichie@gmail.com>
 
 ADD repositories /etc/apk/repositories
 RUN apk update \
-    && apk add --no-cache bash bash-doc bash-completion nano musl-dev m4 zlib-dev git gfortran gdb make curl py3-numpy@community hdf5-dev@community openmpi-dev@community lapack-dev@community
+    && apk add --no-cache bash bash-doc bash-completion nano musl-dev m4 zlib-dev git autoconf automake gfortran gdb make curl py3-numpy@community hdf5-dev@community lapack-dev@community openmpi-dev@community
 
+RUN curl -L http://dl-cdn.alpinelinux.org/alpine/edge/testing/x86_64/netcdf-fortran-dev-4.5.3-r0.apk > netcdf-fortran-dev-4.5.3-r0.apk \
+    && curl -L http://dl-cdn.alpinelinux.org/alpine/edge/testing/x86_64/netcdf-fortran-4.5.3-r0.apk > netcdf-fortran-4.5.3-r0.apk \
+    && curl -L http://dl-cdn.alpinelinux.org/alpine/edge/community/x86_64/netcdf-4.7.4-r1.apk > netcdf-4.7.4-r1.apk \
+    && curl -L http://dl-cdn.alpinelinux.org/alpine/edge/community/x86_64/netcdf-dev-4.7.4-r1.apk > netcdf-dev-4.7.4-r1.apk
 
-# install netcdf libreries
-
-RUN curl -L https://github.com/Unidata/netcdf-c/archive/v4.7.3.tar.gz > v4.7.3.tar.gz \
-    && tar -xzvf v4.7.3.tar.gz \
-    && cd netcdf-c-4.7.3 \
-    && export FCFLAGS="-w -fallow-argument-mismatch -O2" \
-    && export FFLAGS="-w -fallow-argument-mismatch -O2" \
-    && ./configure --enable-remote-fortran-bootstrap --disable-dap --prefix=/usr/local \
-    && make install \
-    && make build-netcdf-fortran \
-    && make install-netcdf-fortran \
-    && cd .. \
-    && rm v4.7.3.tar.gz \
-    && rm -rf netcdf-c-4.7.3
-
+RUN apk add --allow-untrusted netcdf-4.7.4-r1.apk
+RUN apk add --allow-untrusted netcdf-dev-4.7.4-r1.apk
+RUN apk add --allow-untrusted netcdf-fortran-4.5.3-r0.apk
+RUN apk add --allow-untrusted netcdf-fortran-dev-4.5.3-r0.apk 
 
 # add user and create group
 
@@ -45,12 +38,15 @@ RUN curl -LOk https://github.com/demichie/SW_VAR_DENS_MODEL/archive/master.zip \
     && mv temp run_tests.sh \
     && chmod +x run_tests.sh \
     && cd /home/userSW/SW_VAR_DENS_MODEL-master \
+    && touch README \
+    && autoreconf \
     && ./configure 
 RUN cd /home/userSW/SW_VAR_DENS_MODEL-master \
     && make \
     && make install \
     && cd /home/userSW/SW_VAR_DENS_MODEL-master/UTILS \
-    && gfortran -I/usr/local/include p2d_to_netCDF4.f90 -L/usr/local/lib -lnetcdf -lnetcdff -o p2d_to_netCDF4.x \
+    && gfortran -I/usr/include p2d_to_netCDF4.f90 -L/usr/lib -lnetcdf -lnetcdff -o p2d_to_netCDF4.x \
     && cd /home/userSW/ \
     && rm *.zip
+
 
