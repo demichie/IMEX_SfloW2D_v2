@@ -19,7 +19,8 @@ MODULE solver_2d
   USE geometry_2d, ONLY : comp_interfaces_x,comp_interfaces_y
 
   USE geometry_2d, ONLY : B_cent , B_prime_x , B_prime_y
-  USE geometry_2d, ONLY : grav_surf
+  USE geometry_2d, ONLY : B_second_xx , B_second_xy , B_second_yy
+  USE geometry_2d, ONLY : grav_coeff
   USE geometry_2d, ONLY : source_cell
   USE geometry_2d, ONLY : cell_source_fractions
 
@@ -914,7 +915,7 @@ CONTAINS
 
   SUBROUTINE imex_RK_solver
 
-    USE constitutive_2d, ONLY : eval_nonhyperbolic_terms
+    USE constitutive_2d, ONLY : eval_implicit_terms
 
     USE constitutive_2d, ONLY : eval_nh_semi_impl_terms
 
@@ -1031,8 +1032,10 @@ CONTAINS
 
                 ! Eval the semi-implicit terms
                 ! (terms which non depend on velocity magnitude)
-                CALL eval_nh_semi_impl_terms( grav_surf(j,k) ,                  &
-                     q_fv( 1:n_vars , j , k ) , SI_NH(1:n_eqns,j,k,i_RK) )
+                CALL eval_nh_semi_impl_terms( B_prime_x(j,k) , B_prime_y(j,k) , &
+                     B_second_xx(j,k) , B_second_xy(j,k) , B_second_yy(j,k) ,   &
+                     grav_coeff(j,k) , q_fv( 1:n_vars , j , k ) ,               &
+                     SI_NH(1:n_eqns,j,k,i_RK) )
 
                 ! Assemble the initial guess for the implicit solver
                 q_si(1:n_vars) = q_fv(1:n_vars,j,k ) + dt * a_diag *            &
@@ -1080,7 +1083,8 @@ CONTAINS
                      a_tilde , a_dirk , a_diag , Rj_not_impl ,                  &
                      divFlux( 1:n_eqns , j , k , 1:n_RK ) ,                     &
                       expl_terms( 1:n_eqns,j,k,1:n_RK ) ,                       &
-                      NH( 1:n_eqns , j , k , 1:n_RK ) )
+                      NH( 1:n_eqns , j , k , 1:n_RK ) , B_prime_x(j,k) ,        &
+                      B_prime_y(j,k) )
 
                 IF ( comp_cells_y .EQ. 1 ) THEN
 
@@ -1095,8 +1099,8 @@ CONTAINS
                 END IF
 
                 ! Eval and store the implicit term at the i_RK step
-                CALL eval_nonhyperbolic_terms( r_qj = q_guess ,                 &
-                     r_nh_term_impl = NH(1:n_eqns,j,k,i_RK) )
+                CALL eval_implicit_terms( B_prime_x(j,k) , B_prime_y(j,k) ,     &
+                     r_qj = q_guess , r_nh_term_impl = NH(1:n_eqns,j,k,i_RK) )
 
                 IF ( q_si(2)**2 + q_si(3)**2 .EQ. 0.0_wp ) THEN
 
@@ -1172,9 +1176,10 @@ CONTAINS
 !!$                  .AND. ( cell_source_fractions(j,k) .GT. 0.0_wp ) ) THEN
 
              ! Eval gravity term and radial source terms
-             CALL eval_expl_terms( B_prime_x(j,k), B_prime_y(j,k),              &
-                  source_xy(j,k) , qp_rk(1:n_vars+2,j,k,i_RK) ,                 &
-                  expl_terms(1:n_eqns,j,k,i_RK) , t, cell_source_fractions(j,k) )
+             CALL eval_expl_terms( B_prime_x(j,k) , B_prime_y(j,k) ,            &
+                  B_second_xx(j,k) , B_second_xy(j,k) , B_second_yy(j,k) ,      &
+                  grav_coeff(j,k), source_xy(j,k), qp_rk(1:n_vars+2,j,k,i_RK),  &
+                  expl_terms(1:n_eqns,j,k,i_RK), t, cell_source_fractions(j,k) )
 
 !!$             ELSE
 !!$
@@ -1397,7 +1402,7 @@ CONTAINS
   !******************************************************************************
 
   SUBROUTINE solve_rk_step( qj, qj_old, a_tilde, a_dirk, a_diag, Rj_not_impl,   &
-       divFluxj, Expl_terms_j , NHj )
+       divFluxj, Expl_terms_j , NHj , Bprimej_x , Bprimej_y )
 
     USE parameters_2d, ONLY : max_nl_iter , tol_rel , tol_abs
 
@@ -1414,6 +1419,8 @@ CONTAINS
     REAL(wp), INTENT(IN) :: divFluxj(n_eqns,n_RK)
     REAL(wp), INTENT(IN) :: expl_terms_j(n_eqns,n_RK)
     REAL(wp), INTENT(IN) :: NHj(n_eqns,n_RK)
+    REAL(wp), INTENT(IN) :: Bprimej_x
+    REAL(wp), INTENT(IN) :: Bprimej_y
 
     REAL(wp) :: qj_init(n_vars)
 
@@ -1480,8 +1487,8 @@ CONTAINS
        qj = qj_old - dt * ( MATMUL(divFluxj+ Expl_terms_j,a_tilde)              &
             - MATMUL(NHj,a_dirk) )
 
-       CALL eval_f( qj , qj_old , a_diag , coeff_f , Rj_not_impl , right_term , &
-            scal_f )
+       CALL eval_f( qj , qj_old , a_diag , coeff_f , Rj_not_impl , Bprimej_x ,  &
+            Bprimej_y , right_term , scal_f )
 
        IF ( verbose_level .GE. 3 ) THEN
 
@@ -1530,8 +1537,8 @@ CONTAINS
 
        IF ( verbose_level .GE. 2 ) WRITE(*,*) 'solve_rk_step: nl_iter',nl_iter
 
-       CALL eval_f( qj , qj_old , a_diag , coeff_f , Rj_not_impl , right_term , &
-            scal_f )
+       CALL eval_f( qj , qj_old , a_diag , coeff_f , Rj_not_impl , Bprimej_x ,  &
+            Bprimej_y , right_term , scal_f )
        
        IF ( verbose_level .GE. 2 ) THEN
 
@@ -1563,7 +1570,8 @@ CONTAINS
 
        ! ---- evaluate the descent direction ------------------------------------
 
-       CALL eval_jacobian( qj_rel , qj_org , coeff_f , left_matrix )
+       CALL eval_jacobian( qj_rel , qj_org , coeff_f , Bprimej_x , Bprimej_y ,  &
+            left_matrix )
        
        IF ( COUNT( implicit_flag ) .EQ. n_eqns ) THEN
 
@@ -1663,7 +1671,7 @@ CONTAINS
 
           CALL lnsrch( qj_rel_NR_old , qj_org , qj_old , scal_f_old , grad_f ,  &
                desc_dir , coeff_f , qj_rel , scal_f , right_term , stpmax ,     &
-               check , Rj_not_impl )
+               check , Rj_not_impl , Bprimej_x , Bprimej_y )
 
        ELSE
 
@@ -1672,7 +1680,7 @@ CONTAINS
           qj = qj_rel * qj_org
 
           CALL eval_f( qj , qj_old , a_diag , coeff_f , Rj_not_impl ,           &
-               right_term , scal_f )
+               Bprimej_x , Bprimej_y , right_term , scal_f )
 
        END IF
 
@@ -1743,7 +1751,7 @@ CONTAINS
 
   SUBROUTINE lnsrch( qj_rel_NR_old , qj_org , qj_old , scal_f_old , grad_f ,    &
        desc_dir , coeff_f , qj_rel , scal_f , right_term , stpmax , check ,     &
-       Rj_not_impl )
+       Rj_not_impl , Bprimej_x , Bprimej_y )
 
     IMPLICIT NONE
 
@@ -1783,6 +1791,9 @@ CONTAINS
     LOGICAL, INTENT(OUT) :: check
 
     REAL(wp), INTENT(IN) :: Rj_not_impl(n_eqns)
+
+    REAL(wp), INTENT(IN) :: Bprimej_x
+    REAL(wp), INTENT(IN) :: Bprimej_y
 
     REAL(wp), PARAMETER :: TOLX=epsilon(qj_rel)
 
@@ -1844,8 +1855,8 @@ CONTAINS
 
        qj = qj_rel * qj_org
 
-       CALL eval_f( qj , qj_old , a_diag , coeff_f , Rj_not_impl , right_term , &
-            scal_f )
+       CALL eval_f( qj , qj_old , a_diag , coeff_f , Rj_not_impl , Bprimej_x ,  &
+            Bprimej_y, right_term , scal_f )
 
        IF ( verbose_level .GE. 4 ) THEN
 
@@ -1959,10 +1970,10 @@ CONTAINS
   !> Mattia de' Michieli Vitturi
   !******************************************************************************
 
-  SUBROUTINE eval_f( qj , qj_old , a_diag , coeff_f , Rj_not_impl , f_nl , &
-       scal_f )
+  SUBROUTINE eval_f( qj , qj_old , a_diag , coeff_f , Rj_not_impl , Bprimej_x , &
+       Bprimej_y , f_nl , scal_f )
 
-    USE constitutive_2d, ONLY : eval_nonhyperbolic_terms
+    USE constitutive_2d, ONLY : eval_implicit_terms
 
     IMPLICIT NONE
 
@@ -1972,13 +1983,18 @@ CONTAINS
     REAL(wp), INTENT(IN) :: coeff_f(n_eqns)
     REAL(wp), INTENT(IN) :: Rj_not_impl(n_eqns)
 
+    REAL(wp), INTENT(IN) :: Bprimej_x
+    REAL(wp), INTENT(IN) :: Bprimej_y
+    
+
     REAL(wp), INTENT(OUT) :: f_nl(n_eqns)
     REAL(wp), INTENT(OUT) :: scal_f
 
     REAL(wp) :: nh_term_impl(n_eqns)
     REAL(wp) :: Rj(n_eqns)
 
-    CALL eval_nonhyperbolic_terms( r_qj = qj , r_nh_term_impl=nh_term_impl ) 
+    CALL eval_implicit_terms( Bprimej_x , Bprimej_y , r_qj = qj ,               &
+         r_nh_term_impl=nh_term_impl ) 
 
     Rj = Rj_not_impl - a_diag * nh_term_impl
 
@@ -2008,15 +2024,19 @@ CONTAINS
   !> Mattia de' Michieli Vitturi
   !******************************************************************************
 
-  SUBROUTINE eval_jacobian( qj_rel , qj_org , coeff_f, left_matrix)
+  SUBROUTINE eval_jacobian( qj_rel , qj_org , coeff_f, Bprimej_x , Bprimej_y ,  &
+       left_matrix)
 
-    USE constitutive_2d, ONLY : eval_nonhyperbolic_terms
+    USE constitutive_2d, ONLY : eval_implicit_terms
 
     IMPLICIT NONE
 
     REAL(wp), INTENT(IN) :: qj_rel(n_vars)
     REAL(wp), INTENT(IN) :: qj_org(n_vars)
     REAL(wp), INTENT(IN) :: coeff_f(n_eqns)
+
+    REAL(wp), INTENT(IN) :: Bprimej_x
+    REAL(wp), INTENT(IN) :: Bprimej_y
 
     REAL(wp), INTENT(OUT) :: left_matrix(n_eqns,n_vars)
 
@@ -2051,7 +2071,7 @@ CONTAINS
 
           qj_cmplx = qj_rel_cmplx * qj_org
 
-          CALL eval_nonhyperbolic_terms( c_qj = qj_cmplx ,                      &
+          CALL eval_implicit_terms( Bprimej_x , Bprimej_y , c_qj = qj_cmplx ,   &
                c_nh_term_impl = nh_terms_cmplx_impl ) 
 
           Jacob_relax(1:n_eqns,i) = coeff_f(i) *                                &
@@ -2375,6 +2395,7 @@ CONTAINS
 
     ! External procedures
     USE constitutive_2d, ONLY : eval_fluxes
+    USE geometry_2d, ONLY : grav_coeff_stag_x , grav_coeff_stag_y
 
     IMPLICIT NONE
 
@@ -2398,17 +2419,19 @@ CONTAINS
           k = k_stag_x(l)
 
           CALL eval_fluxes( q_interfaceL(1:n_vars,j,k) ,                        &
-               qp_interfaceL(1:n_vars+2,j,k) , 1 , fluxL)
+               qp_interfaceL(1:n_vars+2,j,k) , grav_coeff_stag_x(j,k) , 1 ,     &
+               fluxL)
 
           CALL eval_fluxes( q_interfaceR(1:n_vars,j,k) ,                        &
-               qp_interfaceR(1:n_vars+2,j,k) , 1 , fluxR)
+               qp_interfaceR(1:n_vars+2,j,k) , grav_coeff_stag_x(j,k) , 1 ,     &
+               fluxR)
 
-          IF ( ( qp_interfaceL(n_vars+1,j,k) .GT. 0.0_wp ) .AND.                        &
+          IF ( ( qp_interfaceL(n_vars+1,j,k) .GT. 0.0_wp ) .AND.                &
                ( qp_interfaceR(n_vars+1,j,k) .GE. 0.0_wp ) ) THEN
 
              H_interface_x(:,j,k) = fluxL
 
-          ELSEIF ( ( qp_interfaceL(n_vars+1,j,k) .LE. 0.0_wp ) .AND.                    &
+          ELSEIF ( ( qp_interfaceL(n_vars+1,j,k) .LE. 0.0_wp ) .AND.            &
                ( qp_interfaceR(n_vars+1,j,k) .LT. 0.0_wp ) ) THEN
 
              H_interface_x(:,j,k) = fluxR
@@ -2419,7 +2442,7 @@ CONTAINS
 
           END IF
 
-          IF ( (  q_interfaceL(n_vars+1,j,k) .EQ. 0.0_wp ) .AND.                       &
+          IF ( (  q_interfaceL(n_vars+1,j,k) .EQ. 0.0_wp ) .AND.                &
                (  q_interfaceR(n_vars+1,j,k) .EQ. 0.0_wp ) ) THEN
 
              H_interface_x(1,j,k) = 0.0_wp
@@ -2444,10 +2467,12 @@ CONTAINS
           k = k_stag_y(l)
 
           CALL eval_fluxes( q_interfaceB(1:n_vars,j,k) ,                        &
-               qp_interfaceB(1:n_vars+2,j,k) , 2 , fluxB)
+               qp_interfaceB(1:n_vars+2,j,k) , grav_coeff_stag_y(j,k) , 2 ,     &
+               fluxB)
 
           CALL eval_fluxes( q_interfaceT(1:n_vars,j,k) ,                        &
-               qp_interfaceT(1:n_vars+2,j,k) ,2 , fluxT)
+               qp_interfaceT(1:n_vars+2,j,k) , grav_coeff_stag_y(j,k) ,2 ,      &
+               fluxT)
 
           IF ( ( q_interfaceB(3,j,k) .GT. 0.0_wp ) .AND.                        &
                ( q_interfaceT(3,j,k) .GE. 0.0_wp ) ) THEN
@@ -2500,6 +2525,7 @@ CONTAINS
 
     ! External procedures
     USE constitutive_2d, ONLY : eval_fluxes
+    USE geometry_2d, ONLY : grav_coeff_stag_x , grav_coeff_stag_y
 
     IMPLICIT NONE
 
@@ -2531,10 +2557,12 @@ CONTAINS
           k = k_stag_x(l)
 
           CALL eval_fluxes( q_interfaceL(1:n_vars,j,k) ,                        &
-               qp_interfaceL(1:n_vars+2,j,k) , 1 , fluxL)
+               qp_interfaceL(1:n_vars+2,j,k) , grav_coeff_stag_x(j,k) , 1 ,     &
+               fluxL)
           
           CALL eval_fluxes( q_interfaceR(1:n_vars,j,k) ,                        &
-               qp_interfaceR(1:n_vars+2,j,k) , 1 , fluxR)
+               qp_interfaceR(1:n_vars+2,j,k) , grav_coeff_stag_x(j,k) , 1 ,     &
+               fluxR)
 
           CALL average_KT( a_interface_xNeg(:,j,k), a_interface_xPos(:,j,k) ,   &
                fluxL , fluxR , flux_avg_x )
@@ -2583,10 +2611,12 @@ CONTAINS
           k = k_stag_y(l)
 
           CALL eval_fluxes( q_interfaceB(1:n_vars,j,k) ,                        &
-               qp_interfaceB(1:n_vars+2,j,k) , 2 , fluxB)    
+               qp_interfaceB(1:n_vars+2,j,k) , grav_coeff_stag_y(j,k) , 2 ,     &
+               fluxB)    
 
           CALL eval_fluxes( q_interfaceT(1:n_vars,j,k) ,                        &
-               qp_interfaceT(1:n_vars+2,j,k) , 2 , fluxT)
+               qp_interfaceT(1:n_vars+2,j,k) , grav_coeff_stag_y(j,k) , 2 ,     &
+               fluxT)
 
           CALL average_KT( a_interface_yNeg(:,j,k) ,                            &
                a_interface_yPos(:,j,k) , fluxB , fluxT , flux_avg_y )

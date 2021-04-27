@@ -237,14 +237,15 @@ CONTAINS
   !
   !> This subroutine evaluates from the conservative local variables qj
   !> the local physical variables  (\f$h,u,v,\alpha_s,\rho_m,T,\alpha_l \f$).
-  !> \param[in]    r_qj     real conservative variables 
-  !> \param[out]   r_h      real-value flow thickness 
-  !> \param[out]   r_u      real-value flow x-velocity 
-  !> \param[out]   r_v      real-value flow y-velocity
-  !> \param[out]   r_alphas real-value solid volume fractions
-  !> \param[out]   r_rho_m  real-value flow density
-  !> \param[out]   r_T      real-value flow temperature 
-  !> \param[out]   r_alphal real-value liquid volume fraction
+  !> \param[in]    r_qj        real conservative variables 
+  !> \param[out]   r_h         real-value flow thickness 
+  !> \param[out]   r_u         real-value flow x-velocity 
+  !> \param[out]   r_v         real-value flow y-velocity
+  !> \param[out]   r_alphas    real-value solid volume fractions
+  !> \param[out]   r_rho_m     real-value flow density
+  !> \param[out]   r_T         real-value flow temperature 
+  !> \param[out]   r_alphal    real-value liquid volume fraction
+  !> \param[out]   r_red_grav  real-value reduced gravity
   !
   !> @author 
   !> Mattia de' Michieli Vitturi
@@ -252,7 +253,8 @@ CONTAINS
   !> \date 2019/12/13
   !******************************************************************************
 
-  SUBROUTINE r_phys_var(r_qj,r_h,r_u,r_v,r_alphas,r_rho_m,r_T,r_alphal)
+  SUBROUTINE r_phys_var(r_qj , r_h , r_u , r_v , r_alphas , r_rho_m , r_T ,     &
+       r_alphal , r_red_grav )
 
     USE parameters_2d, ONLY : eps_sing , eps_sing4
     IMPLICIT none
@@ -265,6 +267,7 @@ CONTAINS
     REAL(wp), INTENT(OUT) :: r_rho_m           !< real-value mixture density
     REAL(wp), INTENT(OUT) :: r_T               !< real-value temperature
     REAL(wp), INTENT(OUT) :: r_alphal          !< real-value liquid volume fract
+    REAL(wp), INTENT(OUT) :: r_red_grav        !< real-value reduced gravity
 
     REAL(wp) :: r_inv_rhom
     REAL(wp) :: r_xs(n_solid)     !< real-value solid mass fraction
@@ -274,7 +277,6 @@ CONTAINS
     REAL(wp) :: r_xl            !< real-value liquid mass fraction
     REAL(wp) :: r_xc            !< real-value carrier phase mass fraction
     REAL(wp) :: r_alphac        !< real-value carrier phase volume fraction
-    REAL(wp) :: r_red_grav      !< real-value reduced gravity
     REAL(wp) :: r_sp_heat_mix   !< Specific heat of mixture
     REAL(wp) :: r_rho_c         !< real-value carrier phase density [kg/m3]
     REAL(wp) :: r_inv_rho_c
@@ -380,6 +382,7 @@ CONTAINS
 
     END IF
 
+    ! mixture density
     r_rho_m = 1.0_wp / r_inv_rhom
 
     ! convert from mass fraction to volume fraction
@@ -432,8 +435,8 @@ CONTAINS
   !> \param[out]   v         complex-value flow y-velocity
   !> \param[out]   T         complex-value flow temperature 
   !> \param[out]   rho_m     complex-value flow density
-  !> \param[out]   red_grav  complex-value flow density
   !> \param[out]   alphas    complex-value solid volume fractions
+  !> \param[out]   inv_rhom  complex-value mixture density reciprocal
   !
   !> @author 
   !> Mattia de' Michieli Vitturi
@@ -461,8 +464,8 @@ CONTAINS
     COMPLEX(wp) :: xl                      !< liquid mass fraction
     COMPLEX(wp) :: xc                      !< carrier phase mass fraction
     COMPLEX(wp) :: sp_heat_mix             !< Specific heat of mixture
-    COMPLEX(wp) :: inv_cqj1
-    COMPLEX(wp) :: inv_rho_c
+    COMPLEX(wp) :: inv_cqj1                !< reciprocal of 1st cons. variable
+    COMPLEX(wp) :: inv_rho_c               !< carrier phase reciprocal
 
     ! compute solid mass fractions
     IF ( REAL(c_qj(1)) .GT. eps_sing ) THEN
@@ -597,7 +600,7 @@ CONTAINS
     REAL(wp) :: r_T                       !< real-value temperature [K]
     REAL(wp) :: r_alphal                  !< real-value liquid volume fraction
 
-    REAL(wp) :: alphas_tot
+    REAL(wp) :: alphas_tot                !< total solid fraction
 
     r_h = qpj(1)
 
@@ -706,6 +709,7 @@ CONTAINS
   !> cell interfaces. Limiters are applied to the reconstructed slopes.
   !> \param[in]     qc     local conservative variables 
   !> \param[out]    qp     local physical variables  
+  !> \param[out]    p_dyn  local dynamic pressure
   !
   !> \date 2019/11/11
   !
@@ -729,9 +733,9 @@ CONTAINS
     REAL(wp) :: r_rho_m           !< real-value mixture density [kg/m3]
     REAL(wp) :: r_T               !< real-value temperature [K]
     REAL(wp) :: r_alphal          !< real-value liquid volume fraction
-
+    REAL(wp) :: r_red_grav
     
-    CALL r_phys_var(qc,r_h,r_u,r_v,r_alphas,r_rho_m,r_T,r_alphal)
+    CALL r_phys_var(qc,r_h,r_u,r_v,r_alphas,r_rho_m,r_T,r_alphal,r_red_grav)
 
     qp(1) = r_h
     
@@ -1145,7 +1149,7 @@ CONTAINS
   !
   !******************************************************************************
 
-  SUBROUTINE eval_fluxes(qcj,qpj,dir,flux)
+  SUBROUTINE eval_fluxes(qcj,qpj,grav_coeff,dir,flux)
 
     USE parameters_2d, ONLY : eps_sing
 
@@ -1153,6 +1157,7 @@ CONTAINS
 
     REAL(wp), INTENT(IN) :: qcj(n_vars)
     REAL(wp), INTENT(IN) :: qpj(n_vars+2)
+    REAL(wp), INTENT(IN) :: grav_coeff
     INTEGER, INTENT(IN) :: dir
 
     REAL(wp), INTENT(OUT) :: flux(n_eqns)
@@ -1179,7 +1184,8 @@ CONTAINS
           flux(1) = r_u * qcj(1)
           
           ! x-momentum flux in x-direction + hydrostatic pressure term
-          flux(2) = r_u * qcj(2) + 0.5_wp * r_rho_m * r_red_grav * r_h**2
+          flux(2) = r_u * qcj(2) + 0.5_wp * r_rho_m * grav_coeff * r_red_grav   &
+               * r_h**2
 
           ! y-momentum flux in x-direction: u * ( rho * h * v )
           flux(3) = r_u * qcj(3)
@@ -1187,7 +1193,8 @@ CONTAINS
           IF ( energy_flag ) THEN
 
              ! ENERGY flux in x-direction
-             flux(4) = r_u * ( qcj(4) + 0.5_wp * r_rho_m * r_red_grav * r_h**2 )
+             flux(4) = r_u * ( qcj(4) + 0.5_wp * r_rho_m * grav_coeff           &
+                  * r_red_grav * r_h**2 )
 
           ELSE
 
@@ -1218,12 +1225,14 @@ CONTAINS
 
           flux(2) = r_v * qcj(2)
 
-          flux(3) = r_v * qcj(3) + 0.5_wp * r_rho_m * r_red_grav * r_h**2
+          flux(3) = r_v * qcj(3) + 0.5_wp * r_rho_m * grav_coeff * r_red_grav   &
+               * r_h**2
 
           IF ( energy_flag ) THEN
 
              ! ENERGY flux in x-direction
-             flux(4) = r_v * ( qcj(4) + 0.5_wp * r_rho_m * r_red_grav * r_h**2 )
+             flux(4) = r_v * ( qcj(4) + 0.5_wp * r_rho_m * grav_coeff           &
+                  * r_red_grav * r_h**2 )
 
           ELSE
 
@@ -1260,13 +1269,14 @@ CONTAINS
   END SUBROUTINE eval_fluxes
 
   !******************************************************************************
-  !> \brief Non-Hyperbolic terms
+  !> \brief Implicit source terms
   !
-  !> This subroutine evaluates the non-hyperbolic terms (relaxation terms
-  !> and forces) of the system of equations, both for real or complex 
-  !> inputs. These terms are treated implicitely in the DIRK numerical
-  !> scheme.
+  !> This subroutine evaluates the source terms  of the system of equations,
+  !> both for real or complex inputs, that are treated implicitely in the DIRK
+  !> numerical scheme.
   !> \date 01/06/2012
+  !> \param[in]     Bprimej_x       topography slope in x-direction
+  !> \param[in]     Bprimej_y       topography slope in y-direction
   !> \param[in]     c_qj            complex conservative variables 
   !> \param[in]     r_qj            real conservative variables 
   !> \param[out]    c_nh_term_impl  complex non-hyperbolic terms     
@@ -1277,8 +1287,8 @@ CONTAINS
   !
   !******************************************************************************
 
-  SUBROUTINE eval_nonhyperbolic_terms( c_qj , c_nh_term_impl , r_qj ,           &
-       r_nh_term_impl )
+  SUBROUTINE eval_implicit_terms( Bprimej_x, Bprimej_y, c_qj, c_nh_term_impl,   &
+       r_qj , r_nh_term_impl )
 
     USE COMPLEXIFY 
 
@@ -1286,6 +1296,8 @@ CONTAINS
 
     IMPLICIT NONE
 
+    REAL(wp), INTENT(IN) :: Bprimej_x
+    REAL(wp), INTENT(IN) :: Bprimej_y
     COMPLEX(wp), INTENT(IN), OPTIONAL :: c_qj(n_vars)
     COMPLEX(wp), INTENT(OUT), OPTIONAL :: c_nh_term_impl(n_eqns)
     REAL(wp), INTENT(IN), OPTIONAL :: r_qj(n_vars)
@@ -1295,6 +1307,7 @@ CONTAINS
     COMPLEX(wp) :: inv_h                   !< 1/height [m-1]
     COMPLEX(wp) :: u                       !< velocity (x direction) [m/s]
     COMPLEX(wp) :: v                       !< velocity (y direction) [m/s]
+    COMPLEX(wp) :: w                       !< velocity (z direction) [m/s]
     COMPLEX(wp) :: T                       !< temperature [K]
     COMPLEX(wp) :: rho_m                   !< mixture density [kg/m3]
     COMPLEX(wp) :: alphas(n_solid)         !< sediment volume fractions
@@ -1302,7 +1315,7 @@ CONTAINS
  
     COMPLEX(wp) :: qj(n_vars)
     COMPLEX(wp) :: nh_term(n_eqns)
-    COMPLEX(wp) :: forces_term(n_eqns)
+    COMPLEX(wp) :: source_term(n_eqns)
 
     COMPLEX(wp) :: mod_vel
     COMPLEX(wp) :: mod_vel2
@@ -1354,14 +1367,15 @@ CONTAINS
 
     END IF
 
-    ! initialize and evaluate the forces terms
-    forces_term(1:n_eqns) = CMPLX(0.0_wp,0.0_wp,wp)
+    ! initialize the source terms
+    source_term(1:n_eqns) = CMPLX(0.0_wp,0.0_wp,wp)
 
     IF (rheology_flag) THEN
 
        CALL c_phys_var(qj,h,u,v,T,rho_m,alphas,inv_rho_m)
 
-       mod_vel2 = u**2 + v**2 
+       w = u * Bprimej_x + v * Bprimej_y
+       mod_vel2 = u**2 + v**2 + w**2
        mod_vel = SQRT( mod_vel2 )
 
        IF ( rheology_model .EQ. 1 ) THEN
@@ -1370,10 +1384,10 @@ CONTAINS
           IF ( REAL(mod_vel) .NE. 0.0_wp ) THEN 
 
              ! IMPORTANT: grav3_surf is always negative 
-             forces_term(2) = forces_term(2) - rho_m * ( u / mod_vel ) *        &
+             source_term(2) = source_term(2) - rho_m * ( u / mod_vel ) *        &
                   ( grav / xi ) * mod_vel2
 
-             forces_term(3) = forces_term(3) - rho_m * ( v / mod_vel ) *        &
+             source_term(3) = source_term(3) - rho_m * ( v / mod_vel ) *        &
                   ( grav / xi ) * mod_vel2
 
           ENDIF
@@ -1383,9 +1397,9 @@ CONTAINS
           ! Plastic rheology
           IF ( REAL(mod_vel) .NE. 0.0_wp ) THEN 
 
-             forces_term(2) = forces_term(2) - rho_m * tau * (u/mod_vel)
+             source_term(2) = source_term(2) - rho_m * tau * (u/mod_vel)
 
-             forces_term(3) = forces_term(3) - rho_m * tau * (v/mod_vel)
+             source_term(3) = source_term(3) - rho_m * tau * (v/mod_vel)
 
           ENDIF
 
@@ -1410,10 +1424,10 @@ CONTAINS
           IF ( REAL(mod_vel) .NE. 0.0_wp ) THEN 
 
              ! Last R.H.S. term in equation 2 from Costa & Macedonio, 2005
-             forces_term(2) = forces_term(2) - rho_m * gamma * u
+             source_term(2) = source_term(2) - rho_m * gamma * u
 
              ! Last R.H.S. term in equation 3 from Costa & Macedonio, 2005
-             forces_term(3) = forces_term(3) - rho_m * gamma * v
+             source_term(3) = source_term(3) - rho_m * gamma * v
 
           ENDIF
 
@@ -1494,10 +1508,10 @@ CONTAINS
              temp_term = grav * rho_m * h * s_f / mod_vel
 
              ! same units of dqc(2)/dt: kg m-1 s-2
-             forces_term(2) = forces_term(2) - u * temp_term
+             source_term(2) = source_term(2) - u * temp_term
 
              ! same units of dqc(3)/dt: kg m-1 s-2
-             forces_term(3) = forces_term(3) - v * temp_term
+             source_term(3) = source_term(3) - v * temp_term
 
           END IF
 
@@ -1507,8 +1521,8 @@ CONTAINS
 
           IF ( REAL(mod_vel) .NE. 0.0_wp ) THEN
 
-             forces_term(2) = forces_term(2) - rho_m * tau * ( u / mod_vel )
-             forces_term(3) = forces_term(3) - rho_m * tau * ( v / mod_vel )
+             source_term(2) = source_term(2) - rho_m * tau * ( u / mod_vel )
+             source_term(3) = source_term(3) - rho_m * tau * ( v / mod_vel )
 
           END IF
 
@@ -1517,10 +1531,10 @@ CONTAINS
 
           IF ( REAL(mod_vel) .NE. 0.0_wp ) THEN 
 
-             forces_term(2) = forces_term(2) - rho_m * u * friction_factor *    &
+             source_term(2) = source_term(2) - rho_m * u * friction_factor *    &
                   mod_vel
 
-             forces_term(3) = forces_term(3) - rho_m * v * friction_factor *    &
+             source_term(3) = source_term(3) - rho_m * v * friction_factor *    &
                   mod_vel
 
           ENDIF
@@ -1529,7 +1543,7 @@ CONTAINS
 
     ENDIF
 
-    nh_term = forces_term
+    nh_term = source_term
 
     IF ( present(c_qj) .AND. present(c_nh_term_impl) ) THEN
 
@@ -1543,7 +1557,7 @@ CONTAINS
 
     RETURN
 
-  END SUBROUTINE eval_nonhyperbolic_terms
+  END SUBROUTINE eval_implicit_terms
 
   !******************************************************************************
   !> \brief Non-Hyperbolic semi-implicit terms
@@ -1561,16 +1575,22 @@ CONTAINS
   !
   !******************************************************************************
 
-  SUBROUTINE eval_nh_semi_impl_terms( grav3_surf , qcj , nh_semi_impl_term )
+  SUBROUTINE eval_nh_semi_impl_terms( Bprimej_x , Bprimej_y , Bsecondj_xx ,     &
+       Bsecondj_xy , Bsecondj_yy , grav_coeff , qcj , nh_semi_impl_term )
 
     IMPLICIT NONE
 
-    REAL(wp), INTENT(IN) :: grav3_surf
+    REAL(wp), INTENT(IN) :: Bprimej_x
+    REAL(wp), INTENT(IN) :: Bprimej_y
+    REAL(wp), INTENT(IN) :: Bsecondj_xx
+    REAL(wp), INTENT(IN) :: Bsecondj_xy
+    REAL(wp), INTENT(IN) :: Bsecondj_yy
+    REAL(wp), INTENT(IN) :: grav_coeff
 
     REAL(wp), INTENT(IN) :: qcj(n_vars)
     REAL(wp), INTENT(OUT) :: nh_semi_impl_term(n_eqns)
 
-    REAL(wp) :: forces_term(n_eqns)
+    REAL(wp) :: source_term(n_eqns)
 
     REAL(wp) :: mod_vel
 
@@ -1587,34 +1607,43 @@ CONTAINS
     REAL(wp) :: r_h               !< real-value flow thickness
     REAL(wp) :: r_u               !< real-value x-velocity
     REAL(wp) :: r_v               !< real-value y-velocity
+    REAL(wp) :: r_w               !< real_value z-velocity
     REAL(wp) :: r_alphas(n_solid) !< real-value solid volume fractions
     REAL(wp) :: r_rho_m           !< real-value mixture density [kg/m3]
     REAL(wp) :: r_T               !< real-value temperature [K]
     REAL(wp) :: r_alphal          !< real-value liquid volume fraction
-
+    REAL(wp) :: r_red_grav
+    
     REAL(wp) :: temp_term
+    REAL(wp) :: centr_force_term
 
     ! initialize and evaluate the forces terms
-    forces_term(1:n_eqns) = 0.0_wp
+    source_term(1:n_eqns) = 0.0_wp
 
     IF (rheology_flag) THEN
 
-       CALL r_phys_var(qcj,r_h,r_u,r_v,r_alphas,r_rho_m,r_T,r_alphal)
+       CALL r_phys_var(qcj,r_h,r_u,r_v,r_alphas,r_rho_m,r_T,r_alphal,r_red_grav)
     
        ! Voellmy Salm rheology
        IF ( rheology_model .EQ. 1 ) THEN
-
-          mod_vel = SQRT( r_u**2 + r_v**2 )
+          
+          r_w = r_u * Bprimej_x + r_v * Bprimej_y
+          mod_vel = SQRT( r_u**2 + r_v**2 + r_w**2 )
           
           IF ( mod_vel .GT. 0.0_wp ) THEN
 
-             temp_term = r_rho_m *  mu * r_h * ( - grav * grav3_surf ) / mod_vel
+             ! centrifugal force term (u,v)^T*Hessian*(u,v)
+             centr_force_term = Bsecondj_xx * r_u**2 + Bsecondj_xy * r_u * r_v  &
+                  + Bsecondj_yy * r_v**2
+
+             temp_term = r_rho_m *  mu * r_h * grav_coeff * ( r_red_grav +      &
+                  centr_force_term ) / mod_vel
              
              ! units of dqc(2)/dt=d(rho h v)/dt (kg m-1 s-2)
-             forces_term(2) = forces_term(2) - temp_term * r_u
+             source_term(2) = source_term(2) - temp_term * r_u
 
              ! units of dqc(3)/dt=d(rho h v)/dt (kg m-1 s-2)
-             forces_term(3) = forces_term(3) - temp_term * r_v
+             source_term(3) = source_term(3) - temp_term * r_v
 
           END IF
 
@@ -1653,10 +1682,10 @@ CONTAINS
              temp_term = grav * r_rho_m * r_h * s_y / mod_vel
 
              ! units of dqc(2)/dt [kg m-1 s-2]
-             forces_term(2) = forces_term(2) - temp_term * r_u
+             source_term(2) = source_term(2) - temp_term * r_u
 
              ! units of dqc(3)/dt [kg m-1 s-2]
-             forces_term(3) = forces_term(3) - temp_term * r_v
+             source_term(3) = source_term(3) - temp_term * r_v
 
           END IF
 
@@ -1666,14 +1695,14 @@ CONTAINS
 
     ENDIF
 
-    nh_semi_impl_term = forces_term
+    nh_semi_impl_term = source_term
 
     RETURN
 
   END SUBROUTINE eval_nh_semi_impl_terms
 
   !******************************************************************************
-  !> \brief Explicit Forces term
+  !> \brief Explicit source term
   !
   !> This subroutine evaluates the non-hyperbolic terms to be treated explicitely
   !> in the DIRK numerical scheme (e.g. gravity,source of mass). The sign of the
@@ -1681,9 +1710,14 @@ CONTAINS
   !> \date 2019/12/13
   !> \param[in]     B_primej_x         local x-slope
   !> \param[in]     B_primej_y         local y_slope
-  !> \param[in]     source_xy          local source
-  !> \param[in]     qpj                physical variables 
-  !> \param[in]     qcj                conservative variables 
+  !> \param[in]     B_secondj_xx       local 2nd derivative in x-direction
+  !> \param[in]     B_secondj_xy       local 2nd derivative in xy-direction
+  !> \param[in]     B_secondj_yy       local 2nd derivative in y-direction
+  !> \param[in]     grav_coeff         correction factor for topography slope
+  !> \param[in]     source_xy          local source of mass
+  !> \param[in]     qpj                physical variables
+  !> \param[in]     time               simlation time (needed for source)
+  !> \param[in]     cell_fract_jk      fraction of cell contributing to source
   !> \param[out]    expl_term          explicit term
   !
   !> @author 
@@ -1691,8 +1725,8 @@ CONTAINS
   !
   !******************************************************************************
 
-  SUBROUTINE eval_expl_terms( Bprimej_x, Bprimej_y, source_xy, qpj, expl_term , &
-       time, cell_fract_jk )
+  SUBROUTINE eval_expl_terms( Bprimej_x, Bprimej_y, Bsecondj_xx , Bsecondj_xy , &
+       Bsecondj_yy, grav_coeff, source_xy, qpj, expl_term, time, cell_fract_jk )
 
     USE parameters_2d, ONLY : vel_source , T_source , alphas_source ,           &
          alphal_source , time_param , bottom_radial_source_flag
@@ -1702,6 +1736,11 @@ CONTAINS
 
     REAL(wp), INTENT(IN) :: Bprimej_x
     REAL(wp), INTENT(IN) :: Bprimej_y
+    REAL(wp), INTENT(IN) :: Bsecondj_xx
+    REAL(wp), INTENT(IN) :: Bsecondj_xy
+    REAL(wp), INTENT(IN) :: Bsecondj_yy
+    REAL(wp), INTENT(IN) :: grav_coeff
+    
     REAL(wp), INTENT(IN) :: source_xy
 
     REAL(wp), INTENT(IN) :: qpj(n_vars+2)      !< local physical variables 
@@ -1732,6 +1771,7 @@ CONTAINS
     REAL(wp) :: t_coeff
     REAL(wp) :: h_dot
 
+    REAL(wp) :: centr_force_term
     
     expl_term(1:n_eqns) = 0.0_wp
 
@@ -1743,16 +1783,28 @@ CONTAINS
 
     CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav)
 
+    centr_force_term = Bsecondj_xx * r_u**2 + Bsecondj_xy * r_u * r_v +         &
+         Bsecondj_yy * r_v**2
+    
     ! units of dqc(2)/dt [kg m-1 s-2]
-    expl_term(2) = r_red_grav * r_rho_m * r_h * Bprimej_x
+    expl_term(2) = grav_coeff * r_red_grav * r_rho_m * r_h * ( Bprimej_x +      &
+         grav_coeff * ( Bprimej_x * Bsecondj_xx + Bprimej_y * Bsecondj_xy ) ) + &
+         grav_coeff * centr_force_term * r_rho_m * r_h * Bprimej_x
 
+    
     ! units of dqc(3)/dt [kg m-1 s-2]
-    expl_term(3) = r_red_grav * r_rho_m * r_h * Bprimej_y
+    expl_term(3) = grav_coeff * r_red_grav * r_rho_m * r_h * ( Bprimej_y +      &
+         grav_coeff * ( Bprimej_x * Bsecondj_xy + Bprimej_y * Bsecondj_yy ) ) + &
+         grav_coeff * centr_force_term * r_rho_m * r_h * Bprimej_y
 
     IF ( energy_flag ) THEN
 
-       expl_term(4) = r_red_grav * r_rho_m * r_h * ( r_u * Bprimej_x            &
-            + r_v * Bprimej_y )  
+       expl_term(4) = grav_coeff * r_red_grav * r_rho_m * r_h * ( r_u *         &
+            ( Bprimej_x + grav_coeff * ( Bprimej_x * Bsecondj_xx +              &
+            Bprimej_y * Bsecondj_xy ) ) + r_v * ( Bprimej_y + grav_coeff *      &
+            ( Bprimej_x * Bsecondj_xy + Bprimej_y * Bsecondj_yy ) ) ) + r_u *   &
+            grav_coeff * r_rho_m * centr_force_term * r_h * Bprimej_x + r_v *   &
+            grav_coeff * r_rho_m * centr_force_term * r_h * Bprimej_y
 
     ELSE
 
@@ -1928,12 +1980,15 @@ CONTAINS
   !******************************************************************************
   !> \brief Erosion/Deposition term
   !
-  !> This subroutine evaluates the deposition term.
+  !> This subroutine evaluates the erosion and deposition terms. Addition and
+  !> loss of continuous phase are associated with these terms. We can have an
+  !> additional loss of continuous phase defined in the input file.
   !> \date 03/010/2018
-  !> \param[in]     qpj                local physical variables 
-  !> \param[in]     dt                 time step
-  !> \param[out]    erosion_term       erosion term for each solid phase
-  !> \param[out]    dep_term           deposition term for each solid phase
+  !> \param[in]     qpj                         local physical variables 
+  !> \param[in]     dt                          time step
+  !> \param[out]    erosion_term                ers. term for each solid phase
+  !> \param[out]    deposition_term             dep. term for each solid phase
+  !> \param[out]    continuous_phase_loss_term  additional loss of cont. phase
   !
   !> @author 
   !> Mattia de' Michieli Vitturi
@@ -2158,13 +2213,15 @@ CONTAINS
   !******************************************************************************
   !> \brief Topography modification related term
   !
-  !> This subroutine evaluates the deposition term.
+  !> This subroutine evaluates the terms that goes in the govering equations,
+  !> associated with erosion, deposition, entrainment and loss of carrier phase.
   !> \date 2019/11/08
   !> \param[in]     qpj                   physical variables 
   !> \param[in]     deposition_avg_term   averaged deposition terms 
-  !> \param[in]     erosion_avg_term      averaged deposition terms 
+  !> \param[in]     erosion_avg_term      averaged deposition terms
+  !> \param[in]     continuous_phase_loss_term  loss of carrier phase
   !> \param[out]    eqns_term             source terms for cons equations
-  !> \param[out]    deposit_term          deposition rates for solids
+  !> \param[out]    topo_term             rate of change for topography 
   !
   !> @author 
   !> Mattia de' Michieli Vitturi
@@ -2422,11 +2479,12 @@ CONTAINS
   !> Settling velocity function
   !
   !> This subroutine compute the settling velocity of the particles, as a
-  !> function of diameter, density.
+  !> function of diameter, density of particles and carrier phase and viscosity.
   !> \date 2019/11/11
-  !> \param[in]    diam        particle diameter      
-  !> \param[in]    rhos        particle density
-  !> \param[in]    rhoa        atmospheric density
+  !> \param[in]    diam          particle diameter      
+  !> \param[in]    rhos          particle density
+  !> \param[in]    rhoc          carrier phase density
+  !> \param[in]    inv_kin_visc  reciprocal of kinetic viscosity
   !
   !> @author 
   !> Mattia de' Michieli Vitturi

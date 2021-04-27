@@ -26,13 +26,25 @@ MODULE geometry_2d
   !> Topography at the centers of the control volumes 
   REAL(wp), ALLOCATABLE :: B_cent(:,:)
 
+  !> Topography at the centers of the control volumes 
+  REAL(wp), ALLOCATABLE :: B_cent_extended(:,:)
+  
   LOGICAL, ALLOCATABLE :: B_nodata(:,:)
 
   !> Topography slope (x direction) at the centers of the control volumes 
   REAL(wp), ALLOCATABLE :: B_prime_x(:,:)
 
+  !> Topography 2nd x-derivative at the centers of the control volumes 
+  REAL(wp), ALLOCATABLE :: B_second_xx(:,:)
+
   !> Topography slope (y direction) at the centers of the control volumes 
   REAL(wp), ALLOCATABLE :: B_prime_y(:,:)
+
+  !> Topography 2nd y-derivative at the centers of the control volumes 
+  REAL(wp), ALLOCATABLE :: B_second_yy(:,:)
+
+  !> Topography 2nd xy-derivative at the centers of the control volumes 
+  REAL(wp), ALLOCATABLE :: B_second_xy(:,:)
 
   !> Solution in ascii grid format (ESRI)
   REAL(wp), ALLOCATABLE :: grid_output(:,:)
@@ -40,9 +52,15 @@ MODULE geometry_2d
   !> Integer solution in ascii grid format (ESRI)
   INTEGER, ALLOCATABLE :: grid_output_int(:,:)
   
-  !> gravity vector wrt surface coordinates for each cell
-  REAL(wp), ALLOCATABLE :: grav_surf(:,:)
+  !> modified gravity at cell centers
+  REAL(wp), ALLOCATABLE :: grav_coeff(:,:)
 
+  !> modified gravity at cell x-faces
+  REAL(wp), ALLOCATABLE :: grav_coeff_stag_x(:,:)
+
+  !> modified gravity at cell y-faces
+  REAL(wp), ALLOCATABLE :: grav_coeff_stag_y(:,:)
+  
   !> curvature wrt mixed directions for each cell
   REAL(wp), ALLOCATABLE :: curv_xy(:,:)
 
@@ -166,14 +184,22 @@ CONTAINS
     ALLOCATE( sourceN_vect_y(comp_cells_x,comp_cells_y) )
 
     ALLOCATE( B_cent(comp_cells_x,comp_cells_y) )
+    ALLOCATE( B_cent_extended(comp_cells_x+2,comp_cells_y+2) )
+
     ALLOCATE( B_nodata(comp_cells_x,comp_cells_y) )
     ALLOCATE( B_prime_x(comp_cells_x,comp_cells_y) )
     ALLOCATE( B_prime_y(comp_cells_x,comp_cells_y) )
 
+    ALLOCATE( B_second_xx(comp_cells_x,comp_cells_y) )
+    ALLOCATE( B_second_yy(comp_cells_x,comp_cells_y) )
+    ALLOCATE( B_second_xy(comp_cells_x,comp_cells_y) )
+    
     ALLOCATE( grid_output(comp_cells_x,comp_cells_y) )
     ALLOCATE( grid_output_int(comp_cells_x,comp_cells_y) )
 
-    ALLOCATE( grav_surf(comp_cells_x,comp_cells_y) )
+    ALLOCATE( grav_coeff(comp_cells_x,comp_cells_y) )
+    ALLOCATE( grav_coeff_stag_x(comp_interfaces_x,comp_cells_y) )
+    ALLOCATE( grav_coeff_stag_y(comp_cells_x,comp_interfaces_y) )
 
     ALLOCATE( cell_source_fractions(comp_cells_x,comp_cells_y) )
   
@@ -271,22 +297,11 @@ CONTAINS
 
     ENDDO
 
-
+    ! This subroutine compute the partial derivatives of the topography at the
+    ! cell centers and 
     CALL topography_reconstruction
 
-    ! this coefficient is used when the the scalar dot between the normal to the 
-    ! topography and gravity is computed
-    DO j = 1,comp_cells_x
-
-       DO k=1,comp_cells_y
-
-          grav_surf(j,k) = - ( 1.0_wp/ SQRT( 1.0_wp + B_prime_x(j,k)**2         & 
-               + B_prime_y(j,k)**2) )
-
-       ENDDO
-
-    ENDDO
-
+    
     pi_g = 4.0_wp * ATAN(1.0_wp)
 
     IF ( bottom_radial_source_flag ) THEN
@@ -798,10 +813,10 @@ CONTAINS
 
 
   !******************************************************************************
-  !> \brief Linear reconstruction
+  !> \brief Topography slope recontruction
   !
   !> In this subroutine a linear reconstruction with slope limiters is
-  !> applied to a set of variables describing the state of the system.
+  !> applied to a compute dB_dx and dB_dy at the cell centers.
   !> @author 
   !> Mattia de' Michieli Vitturi
   !> \date 2019/11/08
@@ -826,6 +841,21 @@ CONTAINS
     limiterB = MAX(limiter(1),1)
     limiterB = 5
 
+    B_cent_extended(2:comp_cells_x+1,2:comp_cells_y+1) = B_cent
+
+    B_cent_extended(1,1) = 3.0_wp * B_cent(1,1) - B_cent(2,1) - B_cent(1,2)
+
+    B_cent_extended(1,comp_cells_y+2) = 3.0_wp * B_cent(1,comp_cells_y)         &
+         - B_cent(2,comp_cells_y) - B_cent(1,comp_cells_y-1)
+
+    B_cent_extended(comp_cells_x+2,1) = 3.0_wp * B_cent(comp_cells_x,1)         &
+         - B_cent(comp_cells_x,2) - B_cent(comp_cells_x-1,1)
+
+    B_cent_extended(comp_cells_x+2,comp_cells_y+2) =                            &
+         3.0_wp * B_cent_extended(comp_cells_x,comp_cells_y)                    &
+         - B_cent_extended(comp_cells_x-1,comp_cells_y)                         &
+         - B_cent_extended(comp_cells_x,comp_cells_y-1)
+
     y_loop:DO k = 1,comp_cells_y
 
        x_loop:DO j = 1,comp_cells_x
@@ -843,7 +873,7 @@ CONTAINS
                 B_stencil(1) = 2.0_wp * B_cent(1,k) - B_cent(2,k) 
                 B_stencil(2:3) = B_cent(1:2,k)
 
-                CALL limit( B_stencil , x_stencil , limiterB , B_prime_x(j,k) )
+                B_cent_extended(1,k+1) = B_stencil(1)
 
              ELSEIF (j.EQ.comp_cells_x) THEN
 
@@ -857,21 +887,27 @@ CONTAINS
                      - B_cent(comp_cells_x-1,k)
                 B_stencil(1:2) = B_cent(comp_cells_x-1:comp_cells_x,k)
 
-                CALL limit( B_stencil , x_stencil , limiterB , B_prime_x(j,k) ) 
-
+                B_cent_extended(comp_cells_x+2,k+1) = B_stencil(3)
+                
              ELSE
 
                 ! Internal x interfaces
                 x_stencil(1:3) = x_comp(j-1:j+1)
                 B_stencil = B_cent(j-1:j+1,k)
 
-                CALL limit( B_stencil , x_stencil , limiterB , B_prime_x(j,k) )
-
              ENDIF check_x_boundary
 
+             B_second_xx(j,k) = ( B_stencil(3) - 2.0_wp * B_stencil(2)          &
+                  + B_stencil(1) ) / dx**2  
+             CALL limit( B_stencil , x_stencil , limiterB , B_prime_x(j,k) )
+             
           ELSE
 
              B_prime_x(j,k) = 0.0_wp
+             B_second_xx(j,k) = 0.0_wp
+             B_cent_extended(1,2:comp_cells_y+1) = B_cent(1,1:comp_cells_y)
+             B_cent_extended(comp_cells_x+2,2:comp_cells_y+1) =                 &
+                  B_cent(1,1:comp_cells_y)
              
           END IF check_comp_cells_x
 
@@ -886,8 +922,8 @@ CONTAINS
                 
                 B_stencil(1) = 2.0_wp * B_cent(j,1) - B_cent(j,2)
                 B_stencil(2:3) = B_cent(j,1:2)
-                
-                CALL limit( B_stencil , y_stencil , limiterB , B_prime_y(j,k) ) 
+
+                B_cent_extended(j+1,1) = B_stencil(1)
 
              ELSEIF ( k .EQ. comp_cells_y ) THEN
 
@@ -900,28 +936,52 @@ CONTAINS
                      - B_cent(j,comp_cells_y-1)
                 B_stencil(1:2) = B_cent(j,comp_cells_y-1:comp_cells_y)
                 
-                CALL limit( B_stencil , y_stencil , limiterB , B_prime_y(j,k) ) 
-                
+                B_cent_extended(j+1,comp_cells_y+2) = B_stencil(3)
+
              ELSE
 
                 ! Internal y interfaces
                 y_stencil(1:3) = y_comp(k-1:k+1)
                 B_stencil = B_cent(j,k-1:k+1)
 
-                CALL limit( B_stencil , y_stencil , limiterB , B_prime_y(j,k) )
-
              ENDIF check_y_boundary
 
+             B_second_yy(j,k) = ( B_stencil(3) - 2.0_wp * B_stencil(2)          &
+                  + B_stencil(1) ) / dy**2  
+             CALL limit( B_stencil , y_stencil , limiterB , B_prime_y(j,k) ) 
+             
           ELSE
 
              B_prime_y(j,k) = 0.0_wp
+             B_second_yy(j,k) = 0.0_wp
+             B_cent_extended(2:comp_cells_x+1,1) = B_cent(1:comp_cells_x,1)
+             B_cent_extended(2:comp_cells_x+1,comp_cells_y+2) =                 &
+                  B_cent(1:comp_cells_x,1)
              
           ENDIF check_comp_cells_y
 
+          grav_coeff(j,k) = 1.0_wp / ( 1.0_wp + B_prime_x(j,k)**2           & 
+               + B_prime_y(j,k)**2 )
+          
        END DO x_loop
        
     END DO y_loop
 
+    B_second_xy = ( B_cent_extended(3:comp_cells_x+2,3:comp_cells_y+2)          &
+         - B_cent_extended(3:comp_cells_x+2,1:comp_cells_y)                     &
+         - B_cent_extended(1:comp_cells_x,3:comp_cells_y+2)                     &
+         + B_cent_extended(1:comp_cells_x,1:comp_cells_y) ) / ( 4.0_wp*dx*dy )
+
+    grav_coeff_stag_x(1,:) = grav_coeff(1,:)
+    grav_coeff_stag_x(2:comp_interfaces_x-1,:) = 0.5_wp *                       &
+         ( grav_coeff(1:comp_cells_x-1,:) + grav_coeff(2:comp_cells_x,:) )
+    grav_coeff_stag_x(comp_interfaces_x,:) = grav_coeff(comp_cells_x,:)
+
+    grav_coeff_stag_y(:,1) = grav_coeff(1,:)
+    grav_coeff_stag_y(:,2:comp_interfaces_y-1) = 0.5_wp *                       &
+         ( grav_coeff(:,1:comp_cells_y-1) + grav_coeff(:,2:comp_cells_y) )
+    grav_coeff_stag_y(:,comp_interfaces_y) = grav_coeff(:,comp_cells_y)
+        
     RETURN
 
   END SUBROUTINE topography_reconstruction
