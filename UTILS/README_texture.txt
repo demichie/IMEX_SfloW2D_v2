@@ -3,7 +3,7 @@ This is based on QGIS, and it requires the plugin QuickMapServices (Plugins > Ma
 
 STEPS:
 1. Open QGIS
-2. Load raster ('dem_esri.asc')
+2. Add Raster Layer from panel or Layer > Add Layer > Add Raster Loyer  or Ctrl+Shift+R ('dem_esri.asc')
 3. Click on the bottom-right and select the correct Reference Coordinate System (CRS) for the projection
 4. Add the Google Satellite layer: Web > Quick Map Service > Google > Google.cn Satellite
 5. Select the Satellite layer
@@ -11,6 +11,6 @@ STEPS:
 7. Click the 3 dots for Minimum extent to render and select "Use layer extent", select the raster layer
 8. Change the resolution. For example, set "Map units per pixel" to 10.0.
 9. Click on "Run"
-10. Crop to raster extent: Raster > Etraction > Clip Raster by Mask Layer
-11. Select the raster as "Mask layer" 
-12. Project > Import/Export > Export Map to Image
+10. Select Output layer
+11. Crop to raster extent: Raster > Extraction > Clip Raster by Extent > Use Layer Extent
+12. Project > Import/Export > Export Map to Image > (eventually change the dpi ) > Calculate from Layer > Save
