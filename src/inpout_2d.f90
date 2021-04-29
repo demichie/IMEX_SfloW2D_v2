@@ -28,6 +28,8 @@ MODULE inpout_2d
        topo_change_flag , radial_source_flag , collapsing_volume_flag ,         &
        liquid_flag , gas_flag , subtract_init_flag , bottom_radial_source_flag
 
+  USE parameters_2d, ONLY : slope_correction_flag , curvature_term_flag 
+
   ! -- Variables for the namelist INITIAL_CONDITIONS
   USE parameters_2d, ONLY : released_volume , x_release , y_release
   USE parameters_2d, ONLY : velocity_mod_release , velocity_ang_release
@@ -205,7 +207,7 @@ MODULE inpout_2d
        comp_cells_x , comp_cells_y , cell_size , rheology_flag , alpha_flag ,   &
        energy_flag , liquid_flag , radial_source_flag , collapsing_volume_flag ,&
        topo_change_flag , gas_flag , subtract_init_flag ,                       &
-       bottom_radial_source_flag
+       bottom_radial_source_flag , slope_correction_flag , curvature_term_flag 
 
   NAMELIST / initial_conditions /  released_volume , x_release , y_release ,    &
        velocity_mod_release , velocity_ang_release , T_init , T_ambient
@@ -302,6 +304,8 @@ CONTAINS
     gas_flag = .TRUE.
     subtract_init_flag = .FALSE.
     alpha_flag = .FALSE.
+    slope_correction_flag = .FALSE.
+    curvature_term_flag  = .FALSE. 
 
     !-- Inizialization of the Variables for the namelist NUMERIC_PARAMETERS
     dt0 = 1.0E-4_wp

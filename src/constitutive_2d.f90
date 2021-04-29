@@ -6,7 +6,8 @@ MODULE constitutive_2d
   USE parameters_2d, ONLY : wp, sp ,tolh
   USE parameters_2d, ONLY : n_eqns , n_vars , n_solid
   USE parameters_2d, ONLY : rheology_flag , rheology_model , energy_flag ,      &
-       liquid_flag , gas_flag , alpha_flag
+       liquid_flag , gas_flag , alpha_flag , slope_correction_flag ,            &
+       curvature_term_flag
 
   IMPLICIT none
 
@@ -487,7 +488,7 @@ CONTAINS
     xc = CMPLX(1.0_wp,0.0_wp,wp) - xs_tot
 
     ! specific heaf of the mixutre: mass average of sp. heat pf phases
-    sp_heat_mix = DOT_PRODUCT( xs(1:n_solid) , sp_heat_s(1:n_solid) )        &
+    sp_heat_mix = DOT_PRODUCT( xs(1:n_solid) , sp_heat_s(1:n_solid) )           &
          + xc * sp_heat_c
 
     IF ( gas_flag .AND. liquid_flag ) THEN
@@ -536,7 +537,7 @@ CONTAINS
     
     END IF
 
-    inv_rhom = DOT_PRODUCT( xs(1:n_solid) , c_inv_rho_s(1:n_solid) )         &
+    inv_rhom = DOT_PRODUCT( xs(1:n_solid) , c_inv_rho_s(1:n_solid) )            &
          + xc * inv_rho_c
 
     IF ( gas_flag .AND. liquid_flag ) inv_rhom = inv_rhom + xl * inv_rho_l
@@ -1374,7 +1375,16 @@ CONTAINS
 
        CALL c_phys_var(qj,h,u,v,T,rho_m,alphas,inv_rho_m)
 
-       w = u * Bprimej_x + v * Bprimej_y
+       IF ( slope_correction_flag ) THEN
+
+          w = u * Bprimej_x + v * Bprimej_y
+
+       ELSE
+
+          w = CMPLX( 0.0_wp , 0.0_wp , wp )
+
+       END IF
+
        mod_vel2 = u**2 + v**2 + w**2
        mod_vel = SQRT( mod_vel2 )
 
@@ -1482,7 +1492,6 @@ CONTAINS
              inv_h = 1.0_wp / h
 
              ! Viscous slope component (dimensionless)
-             ! s_v = Kappa * fluid_visc * mod_vel / ( 8.0_wp * rho_m * grav *h**2 )
              s_v = Kappa * fluid_visc * mod_vel * 0.125_wp * inv_rho_m *        &
                   inv_grav * inv_h**2
 
@@ -1627,14 +1636,31 @@ CONTAINS
        ! Voellmy Salm rheology
        IF ( rheology_model .EQ. 1 ) THEN
           
-          r_w = r_u * Bprimej_x + r_v * Bprimej_y
+          IF ( slope_correction_flag ) THEN
+
+             r_w = r_u * Bprimej_x + r_v * Bprimej_y
+
+          ELSE
+
+             r_w = 0.0_wp
+
+          END IF
+
           mod_vel = SQRT( r_u**2 + r_v**2 + r_w**2 )
           
           IF ( mod_vel .GT. 0.0_wp ) THEN
 
-             ! centrifugal force term (u,v)^T*Hessian*(u,v)
-             centr_force_term = Bsecondj_xx * r_u**2 + Bsecondj_xy * r_u * r_v  &
-                  + Bsecondj_yy * r_v**2
+             IF ( curvature_term_flag ) THEN
+
+                ! centrifugal force term: (u,v)^T*Hessian*(u,v)
+                centr_force_term = Bsecondj_xx * r_u**2 + Bsecondj_xy * r_u *   &
+                     r_v + Bsecondj_yy * r_v**2
+
+             ELSE
+
+                centr_force_term = 0.0_wp 
+
+             END IF
 
              temp_term = r_rho_m *  mu * r_h * grav_coeff * ( r_red_grav +      &
                   centr_force_term ) / mod_vel
@@ -1714,6 +1740,8 @@ CONTAINS
   !> \param[in]     B_secondj_xy       local 2nd derivative in xy-direction
   !> \param[in]     B_secondj_yy       local 2nd derivative in y-direction
   !> \param[in]     grav_coeff         correction factor for topography slope
+  !> \param[in]     d_grav_coeff_dx    x-derivative of grav_coeff
+  !> \param[in]     d_grav_coeff_dy    y-derivative of grav_coeff
   !> \param[in]     source_xy          local source of mass
   !> \param[in]     qpj                physical variables
   !> \param[in]     time               simlation time (needed for source)
@@ -1726,7 +1754,8 @@ CONTAINS
   !******************************************************************************
 
   SUBROUTINE eval_expl_terms( Bprimej_x, Bprimej_y, Bsecondj_xx , Bsecondj_xy , &
-       Bsecondj_yy, grav_coeff, source_xy, qpj, expl_term, time, cell_fract_jk )
+       Bsecondj_yy, grav_coeff, d_grav_coeff_dx , d_grav_coeff_dy , source_xy , &
+       qpj, expl_term, time, cell_fract_jk )
 
     USE parameters_2d, ONLY : vel_source , T_source , alphas_source ,           &
          alphal_source , time_param , bottom_radial_source_flag
@@ -1740,6 +1769,8 @@ CONTAINS
     REAL(wp), INTENT(IN) :: Bsecondj_xy
     REAL(wp), INTENT(IN) :: Bsecondj_yy
     REAL(wp), INTENT(IN) :: grav_coeff
+    REAL(wp), INTENT(IN) :: d_grav_coeff_dx
+    REAL(wp), INTENT(IN) :: d_grav_coeff_dy
     
     REAL(wp), INTENT(IN) :: source_xy
 
@@ -1783,28 +1814,30 @@ CONTAINS
 
     CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav)
 
-    centr_force_term = Bsecondj_xx * r_u**2 + Bsecondj_xy * r_u * r_v +         &
-         Bsecondj_yy * r_v**2
+    IF ( curvature_term_flag ) THEN
+
+       centr_force_term = Bsecondj_xx * r_u**2 + Bsecondj_xy * r_u * r_v +      &
+            Bsecondj_yy * r_v**2
+
+    ELSE
+
+       centr_force_term = 0.0_wp
+
+    END IF
     
     ! units of dqc(2)/dt [kg m-1 s-2]
-    expl_term(2) = grav_coeff * r_red_grav * r_rho_m * r_h * ( Bprimej_x +      &
-         grav_coeff * ( Bprimej_x * Bsecondj_xx + Bprimej_y * Bsecondj_xy ) ) + &
-         grav_coeff * centr_force_term * r_rho_m * r_h * Bprimej_x
-
+    expl_term(2) = grav_coeff * ( r_red_grav + centr_force_term ) * r_rho_m *   &
+         r_h * Bprimej_x - 0.5_wp * grav_coeff * r_red_grav * r_rho_m * r_h**2  &
+         * d_grav_coeff_dx 
     
     ! units of dqc(3)/dt [kg m-1 s-2]
-    expl_term(3) = grav_coeff * r_red_grav * r_rho_m * r_h * ( Bprimej_y +      &
-         grav_coeff * ( Bprimej_x * Bsecondj_xy + Bprimej_y * Bsecondj_yy ) ) + &
-         grav_coeff * centr_force_term * r_rho_m * r_h * Bprimej_y
+    expl_term(3) = grav_coeff * ( r_red_grav + centr_force_term ) * r_rho_m *   &
+         r_h * Bprimej_y - 0.5_wp * grav_coeff * r_red_grav * r_rho_m * r_h**2  &
+         * d_grav_coeff_dx
 
     IF ( energy_flag ) THEN
 
-       expl_term(4) = grav_coeff * r_red_grav * r_rho_m * r_h * ( r_u *         &
-            ( Bprimej_x + grav_coeff * ( Bprimej_x * Bsecondj_xx +              &
-            Bprimej_y * Bsecondj_xy ) ) + r_v * ( Bprimej_y + grav_coeff *      &
-            ( Bprimej_x * Bsecondj_xy + Bprimej_y * Bsecondj_yy ) ) ) + r_u *   &
-            grav_coeff * r_rho_m * centr_force_term * r_h * Bprimej_x + r_v *   &
-            grav_coeff * r_rho_m * centr_force_term * r_h * Bprimej_y
+       expl_term(4) = expl_term(2) * r_u + expl_term(3) * r_v
 
     ELSE
 
@@ -2116,14 +2149,14 @@ CONTAINS
        ! reference temperature. This value is used to scale the equation
        IF ( REAL(Tc) .LT. 20.0_wp ) THEN
           
-          expA = 1301.0_wp / ( 998.333_wp + 8.1855_wp * ( Tc - 20.0_wp )     &
+          expA = 1301.0_wp / ( 998.333_wp + 8.1855_wp * ( Tc - 20.0_wp )        &
                + 0.00585_wp * ( Tc - 20.0_wp )**2 ) - 1.30223_wp
           
           alpha1 = alpha1_coeff * 1.0E-3_wp * 10.0_wp**expA
           
        ELSE
           
-          expB = ( 1.3272_wp * ( 20.0_wp - Tc ) - 0.001053_wp *              &
+          expB = ( 1.3272_wp * ( 20.0_wp - Tc ) - 0.001053_wp *                 &
                ( Tc - 20.0_wp )**2 ) / ( Tc + 105.0_wp )
           
           alpha1 = alpha1_coeff * 1.002E-3_wp * 10.0_wp**expB 
@@ -2542,7 +2575,7 @@ CONTAINS
 
 !!$             ! round to first three significative digits
 !!$             dig = FLOOR(LOG10(set_vel_old))
-!!$             settling_velocity = 10.0_wp**(dig-3)                               &
+!!$             settling_velocity = 10.0_wp**(dig-3)                            &
 !!$                  * FLOOR( 10.0_wp**(-dig+3)*set_vel_old ) 
 
              RETURN

@@ -21,6 +21,7 @@ MODULE solver_2d
   USE geometry_2d, ONLY : B_cent , B_prime_x , B_prime_y
   USE geometry_2d, ONLY : B_second_xx , B_second_xy , B_second_yy
   USE geometry_2d, ONLY : grav_coeff
+  USE geometry_2d, ONLY : d_grav_coeff_dx , d_grav_coeff_dy
   USE geometry_2d, ONLY : source_cell
   USE geometry_2d, ONLY : cell_source_fractions
 
@@ -1178,7 +1179,8 @@ CONTAINS
              ! Eval gravity term and radial source terms
              CALL eval_expl_terms( B_prime_x(j,k) , B_prime_y(j,k) ,            &
                   B_second_xx(j,k) , B_second_xy(j,k) , B_second_yy(j,k) ,      &
-                  grav_coeff(j,k), source_xy(j,k), qp_rk(1:n_vars+2,j,k,i_RK),  &
+                  grav_coeff(j,k), d_grav_coeff_dx(j,k) , d_grav_coeff_dx(j,k) ,&
+                  source_xy(j,k), qp_rk(1:n_vars+2,j,k,i_RK),                   &
                   expl_terms(1:n_eqns,j,k,i_RK), t, cell_source_fractions(j,k) )
 
 !!$             ELSE

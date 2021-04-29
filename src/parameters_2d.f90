@@ -88,6 +88,18 @@ MODULE parameters_2d
   !> - F      => h*alpha
   !> .
   LOGICAL :: alpha_flag
+  
+  !> Flag to correct for the topography slope when computing pressure forces
+  !> - T      => correction active
+  !> - F      => correction not active
+  !> .
+  LOGICAL :: slope_correction_flag
+
+  !> Flag to account for the centrifugal force associated with topography curvature
+  !> - T      => compute the term
+  !> - F      => neglect the term
+  !> .
+  LOGICAL :: curvature_term_flag
 
   INTEGER :: n_thickness_levels
   INTEGER :: n_dyn_pres_levels

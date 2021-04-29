@@ -52,8 +52,14 @@ MODULE geometry_2d
   !> Integer solution in ascii grid format (ESRI)
   INTEGER, ALLOCATABLE :: grid_output_int(:,:)
   
-  !> modified gravity at cell centers
+  !> gravity coefficient (accounting for slope) at cell centers
   REAL(wp), ALLOCATABLE :: grav_coeff(:,:)
+
+  !> 1st x-derivative of gravity coefficient
+  REAL(wp), ALLOCATABLE :: d_grav_coeff_dx(:,:)
+
+  !> 1st y-derivative of gravity coefficient
+  REAL(wp), ALLOCATABLE :: d_grav_coeff_dy(:,:)
 
   !> modified gravity at cell x-faces
   REAL(wp), ALLOCATABLE :: grav_coeff_stag_x(:,:)
@@ -198,6 +204,9 @@ CONTAINS
     ALLOCATE( grid_output_int(comp_cells_x,comp_cells_y) )
 
     ALLOCATE( grav_coeff(comp_cells_x,comp_cells_y) )
+    ALLOCATE( d_grav_coeff_dx(comp_cells_x,comp_cells_y) )
+    ALLOCATE( d_grav_coeff_dy(comp_cells_x,comp_cells_y) )
+
     ALLOCATE( grav_coeff_stag_x(comp_interfaces_x,comp_cells_y) )
     ALLOCATE( grav_coeff_stag_y(comp_cells_x,comp_interfaces_y) )
 
@@ -735,6 +744,7 @@ CONTAINS
   !-----------------------------------------------------------------------------
 
   SUBROUTINE interp_2d_slope(x1, y1, f1, x2, y2, f_x, f_y)
+
     IMPLICIT NONE
 
     REAL(wp), INTENT(IN), DIMENSION(:,:) :: x1, y1, f1
@@ -825,6 +835,7 @@ CONTAINS
   SUBROUTINE topography_reconstruction
 
     USE parameters_2d, ONLY : limiter
+    USE parameters_2d, ONLY : slope_correction_flag
 
     IMPLICIT NONE
     
@@ -959,9 +970,6 @@ CONTAINS
                   B_cent(1:comp_cells_x,1)
              
           ENDIF check_comp_cells_y
-
-          grav_coeff(j,k) = 1.0_wp / ( 1.0_wp + B_prime_x(j,k)**2           & 
-               + B_prime_y(j,k)**2 )
           
        END DO x_loop
        
@@ -972,16 +980,38 @@ CONTAINS
          - B_cent_extended(1:comp_cells_x,3:comp_cells_y+2)                     &
          + B_cent_extended(1:comp_cells_x,1:comp_cells_y) ) / ( 4.0_wp*dx*dy )
 
-    grav_coeff_stag_x(1,:) = grav_coeff(1,:)
-    grav_coeff_stag_x(2:comp_interfaces_x-1,:) = 0.5_wp *                       &
-         ( grav_coeff(1:comp_cells_x-1,:) + grav_coeff(2:comp_cells_x,:) )
-    grav_coeff_stag_x(comp_interfaces_x,:) = grav_coeff(comp_cells_x,:)
+    IF ( slope_correction_flag ) THEN
 
-    grav_coeff_stag_y(:,1) = grav_coeff(1,:)
-    grav_coeff_stag_y(:,2:comp_interfaces_y-1) = 0.5_wp *                       &
-         ( grav_coeff(:,1:comp_cells_y-1) + grav_coeff(:,2:comp_cells_y) )
-    grav_coeff_stag_y(:,comp_interfaces_y) = grav_coeff(:,comp_cells_y)
-        
+       grav_coeff = 1.0_wp / ( 1.0_wp + B_prime_x**2 + B_prime_y**2 )
+
+       d_grav_coeff_dx = - 2.0_wp * grav_coeff**2 * ( B_prime_x * B_second_xx   &
+            + B_prime_y * B_second_xy ) 
+       
+       d_grav_coeff_dy = - 2.0_wp * grav_coeff**2 * ( B_prime_x * B_second_xy   &
+            + B_prime_y * B_second_yy ) 
+       
+       grav_coeff_stag_x(1,:) = grav_coeff(1,:)
+       grav_coeff_stag_x(2:comp_interfaces_x-1,:) = 0.5_wp *                    &
+            ( grav_coeff(1:comp_cells_x-1,:) + grav_coeff(2:comp_cells_x,:) )
+       grav_coeff_stag_x(comp_interfaces_x,:) = grav_coeff(comp_cells_x,:)
+       
+       grav_coeff_stag_y(:,1) = grav_coeff(1,:)
+       grav_coeff_stag_y(:,2:comp_interfaces_y-1) = 0.5_wp *                    &
+            ( grav_coeff(:,1:comp_cells_y-1) + grav_coeff(:,2:comp_cells_y) )
+       grav_coeff_stag_y(:,comp_interfaces_y) = grav_coeff(:,comp_cells_y)
+       
+    ELSE
+
+       grav_coeff = 1.0_wp
+
+       d_grav_coeff_dx = 0.0_wp
+       d_grav_coeff_dx = 0.0_wp
+       
+       grav_coeff_stag_x = 1.0_wp
+       grav_coeff_stag_y = 1.0_wp
+
+    END IF
+
     RETURN
 
   END SUBROUTINE topography_reconstruction
