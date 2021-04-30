@@ -324,509 +324,13 @@ CONTAINS
   END SUBROUTINE init_grid
 
 
-  SUBROUTINE init_source
-
-    USE parameters_2d, ONLY : x_source , y_source , r_source
-
-    IMPLICIT NONE
-    
-    INTEGER :: j,k
-
-    REAL(wp) :: total_source
-
-    IF ( verbose_level .GE. 0 ) THEN
-       
-       WRITE(*,*) 'r_source',r_source
-       WRITE(*,*) 'dx,dy',dx,dy
-
-    END IF
-    
-    ! cell where are equations are solved
-    source_cell(1:comp_cells_x,1:comp_cells_y) = 0
-
-    sourceE(1:comp_cells_x,1:comp_cells_y) = .FALSE.
-    sourceW(1:comp_cells_x,1:comp_cells_y) = .FALSE.
-    sourceN(1:comp_cells_x,1:comp_cells_y) = .FALSE.
-    sourceS(1:comp_cells_x,1:comp_cells_y) = .FALSE.
-
-    dist_sourceE(1:comp_cells_x,1:comp_cells_y) = 0.0_wp
-    dist_sourceW(1:comp_cells_x,1:comp_cells_y) = 0.0_wp
-    dist_sourceN(1:comp_cells_x,1:comp_cells_y) = 0.0_wp
-    dist_sourceS(1:comp_cells_x,1:comp_cells_y) = 0.0_wp
-
-    total_source = 0.0_wp
-
-    DO k = 2,comp_cells_y-1
-
-       DO j = 2,comp_cells_x-1
-
-          IF ( ( x_comp(j) - x_source )**2 + ( y_comp(k) - y_source )**2 .LE.   &
-               r_source**2 ) THEN
-
-             ! cells where equations are not solved
-             source_cell(j,k) = 1 
-
-             ! check on west cell
-             IF ( ( x_comp(j-1) - x_source )**2 + ( y_comp(k) - y_source )**2   &
-                  .GE. r_source**2 ) THEN
-
-                ! cells where radial source boundary condition are applied
-                source_cell(j-1,k) = 2
-                sourceE(j-1,k) = .TRUE.
-                dist_sourceE(j-1,k) = SQRT( ( x_stag(j) - x_source )**2         &
-                     + ( y_comp(k) - y_source )**2 )
-
-                sourceE_vect_x(j-1,k) = ( x_stag(j) - x_source ) * r_source     &
-                     / dist_sourceE(j-1,k)**2
-
-                sourceE_vect_y(j-1,k) = ( y_comp(k) - y_source ) * r_source     &
-                     / dist_sourceE(j-1,k)**2
-
-                total_source = total_source + dx * ABS( sourceE_vect_x(j-1,k) )
-         
-             ELSEIF ( ( x_comp(j+1) - x_source )**2 + ( y_comp(k)-y_source )**2 &
-                  .GE. r_source**2 ) THEN
-                ! check on east cell
-       
-                ! cells where radial source boundary condition are applied
-                source_cell(j+1,k) = 2
-                sourceW(j+1,k) = .TRUE.
-                dist_sourceW(j+1,k) = SQRT( ( x_stag(j+1) - x_source )**2       &
-                     + ( y_comp(k) - y_source )**2 )
-
-                sourceW_vect_x(j+1,k) = ( x_stag(j+1) - x_source ) * r_source   &
-                     / dist_sourceW(j+1,k)**2
-
-                sourceW_vect_y(j+1,k) = ( y_comp(k) - y_source ) * r_source     &
-                     / dist_sourceW(j+1,k)**2
-
-                total_source = total_source + dx * ABS( sourceW_vect_x(j+1,k) )
-
-             END IF
-    
-             ! check on south cell
-             IF ( ( x_comp(j) - x_source )**2 + ( y_comp(k-1) - y_source )**2   &
-                  .GE. r_source**2 ) THEN
-
-                ! cells where radial source boundary condition are applied
-                source_cell(j,k-1) = 2
-                sourceN(j,k-1) = .TRUE.
-                dist_sourceN(j,k-1) = SQRT( ( x_comp(j) - x_source )**2         &
-                     + ( y_stag(k) - y_source )**2 )
-
-                sourceN_vect_x(j,k-1) = ( x_comp(j) - x_source ) * r_source     &
-                     / dist_sourceN(j,k-1)**2
-
-                sourceN_vect_y(j,k-1) = ( y_stag(k) - y_source ) * r_source     &
-                     / dist_sourceN(j,k-1)**2
-
-                total_source = total_source + dy * ABS( sourceN_vect_y(j,k-1) )
-
-             ELSEIF ( ( x_comp(j)-x_source )**2 + ( y_comp(k+1) - y_source )**2 &
-                  .GE. r_source**2 ) THEN
-
-                ! cells where radial source boundary condition are applied
-                source_cell(j,k+1) = 2
-                sourceS(j,k+1) = .TRUE.
-                dist_sourceS(j,k+1) = SQRT( ( x_comp(j) - x_source )**2         &
-                     + ( y_stag(k+1) - y_source )**2 )
-                
-                sourceS_vect_x(j,k+1) = ( x_comp(j) - x_source ) * r_source     &
-                     / dist_sourceS(j,k+1)**2
-
-                sourceS_vect_y(j,k+1) = ( y_stag(k+1) - y_source ) * r_source   &
-                     / dist_sourceS(j,k+1)**2
-
-                total_source = total_source + dy * ABS( sourceS_vect_y(j,k+1) )
-
-             END IF
-
-          END IF
-
-       END DO
-
-    END DO
-    
-    RETURN
-
-  END SUBROUTINE init_source
-
-  !-----------------------------------------------------------------------------
-  !> Scalar interpolation
-  !
-  !> This subroutine interpolate the values of the  array f1, defined on the 
-  !> grid points x1, at the point x2. The value are saved in f2
-  !> \date 13/02/2009
-  !> \param    x1           original grid                (\b input)
-  !> \param    f1           original values              (\b input)
-  !> \param    x2           new point                    (\b output)
-  !> \param    f2           interpolated value           (\b output)
-  !-----------------------------------------------------------------------------
-
-  SUBROUTINE interp_1d_scalar(x1, f1, x2, f2)
-    IMPLICIT NONE
-
-    REAL(wp), INTENT(IN), DIMENSION(:) :: x1, f1
-    REAL(wp), INTENT(IN) :: x2
-    REAL(wp), INTENT(OUT) :: f2
-    INTEGER :: n, n1x, t
-    REAL(wp) :: grad , rel_pos
-
-    n1x = SIZE(x1)
-
-    !
-    ! ... locate the grid points near the topographic points
-    ! ... and interpolate linearly the profile
-    !
-    t = 1
-
-    search:DO n = 1, n1x-1
-
-       rel_pos = ( x2 - x1(n) ) / ( x1(n+1) - x1(n) )
-
-       IF ( ( rel_pos .GE. 0.0_wp ) .AND. ( rel_pos .LE. 1.0_wp ) ) THEN
-
-          grad = ( f1(n+1)-f1(n) ) / ( x1(n+1)-x1(n) )
-          f2 = f1(n) + ( x2-x1(n) ) * grad
-
-          EXIT search
-
-       ELSEIF  ( rel_pos .LT. 0.0_wp ) THEN
-
-          f2 = f1(n)
-
-       ELSE
-
-          f2 = f1(n+1)
-
-       END IF
-
-    END DO search
-
-    RETURN
-
-  END SUBROUTINE interp_1d_scalar
-
-
-  !-----------------------------------------------------------------------------
-  !> Scalar interpolation (2D)
-  !
-  !> This subroutine interpolate the values of the  array f1, defined on the 
-  !> grid points (x1,y1), at the point (x2,y2). The value are saved in f2
-  !> \date OCTOBER 2016
-  !> \param    x1           original grid                (\b input)
-  !> \param    y1           original grid                (\b input)
-  !> \param    f1           original values              (\b input)
-  !> \param    x2           new point                    (\b output)
-  !> \param    y2           new point                    (\b output)
-  !> \param    f2           interpolated value           (\b output)
-  !-----------------------------------------------------------------------------
-
-  SUBROUTINE interp_2d_scalar(x1, y1, f1, x2, y2, f2)
-    IMPLICIT NONE
-
-    REAL(wp), INTENT(IN), DIMENSION(:,:) :: x1, y1, f1
-    REAL(wp), INTENT(IN) :: x2, y2
-    REAL(wp), INTENT(OUT) :: f2
-
-    INTEGER :: ix , iy
-    REAL(wp) :: alfa_x , alfa_y
-
-    IF ( size(x1,1) .GT. 1 ) THEN
-
-       ix = FLOOR( ( x2 - x1(1,1) ) / ( x1(2,1) - x1(1,1) ) ) + 1
-       ix = MIN( ix , SIZE(x1,1)-1 )
-       alfa_x = ( x1(ix+1,1) - x2 ) / (  x1(ix+1,1) - x1(ix,1) )
-
-    ELSE
-
-       ix = 1
-       alfa_x = 0.0_wp
-       
-    END IF
-    
-    IF ( size(x1,2) .GT. 1 ) THEN
-
-       iy = FLOOR( ( y2 - y1(1,1) ) / ( y1(1,2) - y1(1,1) ) ) + 1
-       iy = MIN( iy , SIZE(x1,2)-1 )
-       alfa_y = ( y1(1,iy+1) - y2 ) / (  y1(1,iy+1) - y1(1,iy) )
-    
-    ELSE
-
-       iy = 1
-       alfa_y = 0.0_wp
-       
-    END IF
-       
-    IF ( size(x1,1) .EQ. 1 ) THEN
-       
-       f2 = alfa_y * f1(ix,iy) + ( 1.0_wp - alfa_y ) * f1(ix,iy+1)
-       
-    ELSEIF ( size(x1,2) .EQ. 1 ) THEN
-       
-       f2 = alfa_x * f1(ix,iy)  + ( 1.0_wp - alfa_x ) * f1(ix+1,iy)
-       
-    ELSE
-       
-       f2 = alfa_x * ( alfa_y * f1(ix,iy) + ( 1.0_wp - alfa_y ) * f1(ix,iy+1) ) &
-            + ( 1.0_wp - alfa_x ) * ( alfa_y * f1(ix+1,iy) + ( 1.0_wp - alfa_y )&
-            * f1(ix+1,iy+1) )
-       
-    END IF
-    
-  END SUBROUTINE interp_2d_scalar
-
-  !-----------------------------------------------------------------------------
-  !> Scalar interpolation (2D)
-  !
-  !> This subroutine interpolate the values of the  array f1, defined on the 
-  !> grid points (x1,y1), at the point (x2,y2). The value are saved in f2
-  !> \date OCTOBER 2016
-  !> \param    x1           original grid                (\b input)
-  !> \param    y1           original grid                (\b input)
-  !> \param    f1           original values              (\b input)
-  !> \param    x2           new point                    (\b output)
-  !> \param    y2           new point                    (\b output)
-  !> \param    f2           interpolated value           (\b output)
-  !-----------------------------------------------------------------------------
-
-  SUBROUTINE interp_2d_nodata(x1, y1, f1, x2, y2, f2)
-    IMPLICIT NONE
-
-    REAL(wp), INTENT(IN), DIMENSION(:,:) :: x1, y1, f1
-    REAL(wp), INTENT(IN) :: x2, y2
-    LOGICAL, INTENT(OUT) :: f2
-
-    INTEGER :: ix , iy
-    REAL(wp) :: alfa_x , alfa_y
-
-    IF ( size(x1,1) .GT. 1 ) THEN
-
-       ix = FLOOR( ( x2 - x1(1,1) ) / ( x1(2,1) - x1(1,1) ) ) + 1
-       ix = MIN( ix , SIZE(x1,1)-1 )
-       alfa_x = ( x1(ix+1,1) - x2 ) / (  x1(ix+1,1) - x1(ix,1) )
-
-    ELSE
-
-       ix = 1
-       alfa_x = 0.0_wp
-       
-    END IF
-    
-    IF ( size(x1,2) .GT. 1 ) THEN
-
-       iy = FLOOR( ( y2 - y1(1,1) ) / ( y1(1,2) - y1(1,1) ) ) + 1
-       iy = MIN( iy , SIZE(x1,2)-1 )
-       alfa_y = ( y1(1,iy+1) - y2 ) / (  y1(1,iy+1) - y1(1,iy) )
-    
-    ELSE
-
-       iy = 1
-       alfa_y = 0.0_wp
-       
-    END IF
-     
-    f2 = .FALSE.
-  
-    IF ( size(x1,1) .EQ. 1 ) THEN
-       
-       f2 = ( f1(ix,iy) .EQ. nodata_topo ) .OR. ( f1(ix,iy+1) .EQ. nodata_topo )
-       
-    ELSEIF ( size(x1,2) .EQ. 1 ) THEN
-       
-       f2 = ( f1(ix,iy) .EQ. nodata_topo ) .OR. ( f1(ix+1,iy) .EQ. nodata_topo ) 
-       
-    ELSE
-       
-       f2 = ( f1(ix,iy) .EQ. nodata_topo ) .OR. ( f1(ix,iy+1) .EQ. nodata_topo )&
-            .OR. ( f1(ix+1,iy) .EQ. nodata_topo )                               &
-            .OR. ( f1(ix+1,iy+1) .EQ. nodata_topo )
-       
-    END IF
-    
-  END SUBROUTINE interp_2d_nodata
-
-
-  !-----------------------------------------------------------------------------
-  !> Scalar interpolation (2D)
-  !
-  !> This subroutine interpolate the values of the  array f1, defined on the 
-  !> grid points (x1,y1), at the point (x2,y2). The value are saved in f2.
-  !> In this case x1 and y1 are 1d arrays.
-  !> \date OCTOBER 2016
-  !> \param    x1           original grid                (\b input)
-  !> \param    y1           original grid                (\b input)
-  !> \param    f1           original values              (\b input)
-  !> \param    x2           new point                    (\b output)
-  !> \param    y2           new point                    (\b output)
-  !> \param    f2           interpolated value           (\b output)
-  !-----------------------------------------------------------------------------
-
-  SUBROUTINE interp_2d_scalarB(x1, y1, f1, x2, y2, f2)
-    IMPLICIT NONE
-
-    REAL(wp), INTENT(IN), DIMENSION(:) :: x1, y1
-    REAL(wp), INTENT(IN), DIMENSION(:,:) :: f1
-    REAL(wp), INTENT(IN) :: x2, y2
-    REAL(wp), INTENT(OUT) :: f2
-
-    INTEGER :: ix , iy
-    REAL(wp) :: alfa_x , alfa_y
-
-    IF ( size(x1) .GT. 1 ) THEN
-
-       ix = FLOOR( ( x2 - x1(1) ) / ( x1(2) - x1(1) ) ) + 1
-       ix = MAX(0,MIN( ix , SIZE(x1)-1 ))
-       alfa_x = ( x1(ix+1) - x2 ) / (  x1(ix+1) - x1(ix) )
-
-    ELSE
-
-       ix = 1
-       alfa_x = 0.0_wp
-       
-    END IF
-    
-    IF ( size(y1) .GT. 1 ) THEN
-
-       iy = FLOOR( ( y2 - y1(1) ) / ( y1(2) - y1(1) ) ) + 1
-       iy = MAX(1,MIN( iy , SIZE(y1)-1 ))
-       alfa_y = ( y1(iy+1) - y2 ) / (  y1(iy+1) - y1(iy) )
-    
-    ELSE
-
-       iy = 1
-       alfa_y = 0.0_wp
-       
-    END IF
-
-    IF ( ( alfa_x .LT. 0.0_wp ) .OR. ( alfa_x .GT. 1.0_wp )                     &
-         .OR. ( alfa_y .LT. 0.0_wp ) .OR. ( alfa_y .GT. 1.0_wp ) ) THEN
-
-       f2 = 0.0_wp
-       RETURN
-
-    END IF
-       
-    
-    IF ( size(x1) .EQ. 1 ) THEN
-       
-       f2 = alfa_y * f1(ix,iy) + ( 1.0_wp - alfa_y ) * f1(ix,iy+1)
-       
-    ELSEIF ( size(y1) .EQ. 1 ) THEN
-       
-       f2 = alfa_x * f1(ix,iy)  + ( 1.0_wp - alfa_x ) * f1(ix+1,iy)
-       
-    ELSE
-       
-       f2 = alfa_x * ( alfa_y * f1(ix,iy) + ( 1.0_wp - alfa_y ) * f1(ix,iy+1) ) &
-            + ( 1.0_wp - alfa_x ) * ( alfa_y * f1(ix+1,iy) + ( 1.0_wp - alfa_y )&
-            * f1(ix+1,iy+1) )
-       
-    END IF
-
-    RETURN
-    
-  END SUBROUTINE interp_2d_scalarB
-
-
-  !-----------------------------------------------------------------------------
-  !> Scalar interpolation (2D)
-  !
-  !> This subroutine interpolate the values of the  array f1, defined on the 
-  !> grid points (x1,y1), at the point (x2,y2). The value are saved in f2
-  !> \date OCTOBER 2016
-  !> \param    x1           original grid                (\b input)
-  !> \param    y1           original grid                (\b input)
-  !> \param    f1           original values              (\b input)
-  !> \param    x2           new point                    (\b output)
-  !> \param    y2           new point                    (\b output)
-  !> \param    f2           interpolated value           (\b output)
-  !-----------------------------------------------------------------------------
-
-  SUBROUTINE interp_2d_slope(x1, y1, f1, x2, y2, f_x, f_y)
-
-    IMPLICIT NONE
-
-    REAL(wp), INTENT(IN), DIMENSION(:,:) :: x1, y1, f1
-    REAL(wp), INTENT(IN) :: x2, y2
-    REAL(wp), INTENT(OUT) :: f_x , f_y
-
-    INTEGER :: ix , iy
-    REAL(wp) :: alfa_x , alfa_y
-    REAL(wp) :: f_x1 , f_x2 , f_y1 , f_y2
-
-
-    IF ( size(x1,1) .GT. 1 ) THEN
-
-       ix = FLOOR( ( x2 - x1(1,1) ) / ( x1(2,1) - x1(1,1) ) ) + 1
-       ix = MIN( ix , SIZE(x1,1)-1 )
-       alfa_x = ( x1(ix+1,1) - x2 ) / (  x1(ix+1,1) - x1(ix,1) )
-
-    ELSE
-
-       ix = 1
-       alfa_x = 1.0_wp
-       
-    END IF
-    
-    IF ( size(x1,2) .GT. 1 ) THEN
-
-       iy = FLOOR( ( y2 - y1(1,1) ) / ( y1(1,2) - y1(1,1) ) ) + 1
-       iy = MIN( iy , SIZE(x1,2)-1 )
-       alfa_y = ( y1(1,iy+1) - y2 ) / (  y1(1,iy+1) - y1(1,iy) )
-    
-    ELSE
-
-       iy = 1
-       alfa_y = 1.0_wp
-  
-    END IF
-
-    f_x1 = 0.0_wp
-    f_x2 = 0.0_wp
-
-    IF ( size(x1,1) .GT. 1 ) THEN
-
-       f_x1 = ( f1(ix+1,iy) -  f1(ix,iy) ) / (  x1(2,1) - x1(1,1) )
-
-       IF ( size(x1,2) .GT. 1 ) THEN
-
-          f_x2 = ( f1(ix+1,iy+1) -  f1(ix,iy+1) ) / (  x1(2,1) - x1(1,1) )
-
-       END IF
-
-    END IF
-
-    f_x = alfa_y * f_x1 + ( 1.0_wp - alfa_y ) * f_x2
-
-    f_y1 = 0.0_wp
-    f_y2 = 0.0_wp
-
-    IF ( size(x1,2) .GT. 1 ) THEN
-
-       f_y1 = ( f1(ix,iy+1) - f1(ix,iy) ) / (  y1(1,2) - y1(1,1) )
-
-       IF ( size(x1,1) .GT. 1 ) THEN
-
-          f_y2 = ( f1(ix+1,iy+1) - f1(ix+1,iy) ) / (  y1(1,2) - y1(1,1) )
-
-       END IF
-
-    END IF
-
-    f_y = alfa_x * f_y1 + ( 1.0_wp - alfa_x ) * f_y2
-
-
-    RETURN
-    
-  END SUBROUTINE interp_2d_slope
-
-
   !******************************************************************************
   !> \brief Topography slope recontruction
   !
   !> In this subroutine a linear reconstruction with slope limiters is
-  !> applied to a compute dB_dx and dB_dy at the cell centers.
+  !> applied to compute dB_dx and dB_dy at the cell centers. The second
+  !> derivative of slope and the correction factor to the gravity to account
+  !> for the slope gradient are also computer here
   !> @author 
   !> Mattia de' Michieli Vitturi
   !> \date 2019/11/08
@@ -1016,6 +520,513 @@ CONTAINS
 
   END SUBROUTINE topography_reconstruction
 
+  !******************************************************************************
+  !> \brief Radial source initialization
+  !
+  !> In this subroutine the source of mass is initialized. The cells belonging
+  !> to the source are are identified ( source_cell(j,k) = 2 ).
+  !> @author 
+  !> Mattia de' Michieli Vitturi
+  !> \date 2021/04/30
+  !******************************************************************************
+  
+  SUBROUTINE init_source
+
+    USE parameters_2d, ONLY : x_source , y_source , r_source
+
+    IMPLICIT NONE
+    
+    INTEGER :: j,k
+
+    REAL(wp) :: total_source
+
+    IF ( verbose_level .GE. 0 ) THEN
+       
+       WRITE(*,*) 'r_source',r_source
+       WRITE(*,*) 'dx,dy',dx,dy
+
+    END IF
+    
+    ! cell where are equations are solved
+    source_cell(1:comp_cells_x,1:comp_cells_y) = 0
+
+    sourceE(1:comp_cells_x,1:comp_cells_y) = .FALSE.
+    sourceW(1:comp_cells_x,1:comp_cells_y) = .FALSE.
+    sourceN(1:comp_cells_x,1:comp_cells_y) = .FALSE.
+    sourceS(1:comp_cells_x,1:comp_cells_y) = .FALSE.
+
+    dist_sourceE(1:comp_cells_x,1:comp_cells_y) = 0.0_wp
+    dist_sourceW(1:comp_cells_x,1:comp_cells_y) = 0.0_wp
+    dist_sourceN(1:comp_cells_x,1:comp_cells_y) = 0.0_wp
+    dist_sourceS(1:comp_cells_x,1:comp_cells_y) = 0.0_wp
+
+    total_source = 0.0_wp
+
+    DO k = 2,comp_cells_y-1
+
+       DO j = 2,comp_cells_x-1
+
+          IF ( ( x_comp(j) - x_source )**2 + ( y_comp(k) - y_source )**2 .LE.   &
+               r_source**2 ) THEN
+
+             ! cells where equations are not solved
+             source_cell(j,k) = 1 
+
+             ! check on west cell
+             IF ( ( x_comp(j-1) - x_source )**2 + ( y_comp(k) - y_source )**2   &
+                  .GE. r_source**2 ) THEN
+
+                ! cells where radial source boundary condition are applied
+                source_cell(j-1,k) = 2
+                sourceE(j-1,k) = .TRUE.
+                dist_sourceE(j-1,k) = SQRT( ( x_stag(j) - x_source )**2         &
+                     + ( y_comp(k) - y_source )**2 )
+
+                sourceE_vect_x(j-1,k) = ( x_stag(j) - x_source ) * r_source     &
+                     / dist_sourceE(j-1,k)**2
+
+                sourceE_vect_y(j-1,k) = ( y_comp(k) - y_source ) * r_source     &
+                     / dist_sourceE(j-1,k)**2
+
+                total_source = total_source + dx * ABS( sourceE_vect_x(j-1,k) )
+         
+             ELSEIF ( ( x_comp(j+1) - x_source )**2 + ( y_comp(k)-y_source )**2 &
+                  .GE. r_source**2 ) THEN
+                ! check on east cell
+       
+                ! cells where radial source boundary condition are applied
+                source_cell(j+1,k) = 2
+                sourceW(j+1,k) = .TRUE.
+                dist_sourceW(j+1,k) = SQRT( ( x_stag(j+1) - x_source )**2       &
+                     + ( y_comp(k) - y_source )**2 )
+
+                sourceW_vect_x(j+1,k) = ( x_stag(j+1) - x_source ) * r_source   &
+                     / dist_sourceW(j+1,k)**2
+
+                sourceW_vect_y(j+1,k) = ( y_comp(k) - y_source ) * r_source     &
+                     / dist_sourceW(j+1,k)**2
+
+                total_source = total_source + dx * ABS( sourceW_vect_x(j+1,k) )
+
+             END IF
+    
+             ! check on south cell
+             IF ( ( x_comp(j) - x_source )**2 + ( y_comp(k-1) - y_source )**2   &
+                  .GE. r_source**2 ) THEN
+
+                ! cells where radial source boundary condition are applied
+                source_cell(j,k-1) = 2
+                sourceN(j,k-1) = .TRUE.
+                dist_sourceN(j,k-1) = SQRT( ( x_comp(j) - x_source )**2         &
+                     + ( y_stag(k) - y_source )**2 )
+
+                sourceN_vect_x(j,k-1) = ( x_comp(j) - x_source ) * r_source     &
+                     / dist_sourceN(j,k-1)**2
+
+                sourceN_vect_y(j,k-1) = ( y_stag(k) - y_source ) * r_source     &
+                     / dist_sourceN(j,k-1)**2
+
+                total_source = total_source + dy * ABS( sourceN_vect_y(j,k-1) )
+
+             ELSEIF ( ( x_comp(j)-x_source )**2 + ( y_comp(k+1) - y_source )**2 &
+                  .GE. r_source**2 ) THEN
+
+                ! cells where radial source boundary condition are applied
+                source_cell(j,k+1) = 2
+                sourceS(j,k+1) = .TRUE.
+                dist_sourceS(j,k+1) = SQRT( ( x_comp(j) - x_source )**2         &
+                     + ( y_stag(k+1) - y_source )**2 )
+                
+                sourceS_vect_x(j,k+1) = ( x_comp(j) - x_source ) * r_source     &
+                     / dist_sourceS(j,k+1)**2
+
+                sourceS_vect_y(j,k+1) = ( y_stag(k+1) - y_source ) * r_source   &
+                     / dist_sourceS(j,k+1)**2
+
+                total_source = total_source + dy * ABS( sourceS_vect_y(j,k+1) )
+
+             END IF
+
+          END IF
+
+       END DO
+
+    END DO
+    
+    RETURN
+
+  END SUBROUTINE init_source
+
+  !-----------------------------------------------------------------------------
+  !> Scalar interpolation
+  !
+  !> This subroutine interpolate the values of the  array f1, defined on the 
+  !> grid points x1, at the point x2. The value are saved in f2
+  !> \date 13/02/2009
+  !> \param[in]    x1           original grid                (\b input)
+  !> \param[in]    f1           original values              (\b input)
+  !> \param[in]    x2           new point                    (\b output)
+  !> \param[out]   f2           interpolated value           (\b output)
+  !-----------------------------------------------------------------------------
+
+  SUBROUTINE interp_1d_scalar(x1, f1, x2, f2)
+    IMPLICIT NONE
+
+    REAL(wp), INTENT(IN), DIMENSION(:) :: x1, f1
+    REAL(wp), INTENT(IN) :: x2
+    REAL(wp), INTENT(OUT) :: f2
+    INTEGER :: n, n1x, t
+    REAL(wp) :: grad , rel_pos
+
+    n1x = SIZE(x1)
+
+    !
+    ! ... locate the grid points near the topographic points
+    ! ... and interpolate linearly the profile
+    !
+    t = 1
+
+    search:DO n = 1, n1x-1
+
+       rel_pos = ( x2 - x1(n) ) / ( x1(n+1) - x1(n) )
+
+       IF ( ( rel_pos .GE. 0.0_wp ) .AND. ( rel_pos .LE. 1.0_wp ) ) THEN
+
+          grad = ( f1(n+1)-f1(n) ) / ( x1(n+1)-x1(n) )
+          f2 = f1(n) + ( x2-x1(n) ) * grad
+
+          EXIT search
+
+       ELSEIF  ( rel_pos .LT. 0.0_wp ) THEN
+
+          f2 = f1(n)
+
+       ELSE
+
+          f2 = f1(n+1)
+
+       END IF
+
+    END DO search
+
+    RETURN
+
+  END SUBROUTINE interp_1d_scalar
+
+  !-----------------------------------------------------------------------------
+  !> Scalar interpolation (2D)
+  !
+  !> This subroutine interpolate the values of the  array f1, defined on the 
+  !> grid points (x1,y1), at the point (x2,y2). The value are saved in f2
+  !> \date OCTOBER 2016
+  !> \param[in]    x1           original grid       
+  !> \param[in]    y1           original grid
+  !> \param[in]    f1           original values
+  !> \param[in]    x2           new point
+  !> \param[in]    y2           new point
+  !> \param[out]   f2           interpolated value
+  !-----------------------------------------------------------------------------
+
+  SUBROUTINE interp_2d_scalar(x1, y1, f1, x2, y2, f2)
+    IMPLICIT NONE
+
+    REAL(wp), INTENT(IN), DIMENSION(:,:) :: x1, y1, f1
+    REAL(wp), INTENT(IN) :: x2, y2
+    REAL(wp), INTENT(OUT) :: f2
+
+    INTEGER :: ix , iy
+    REAL(wp) :: alfa_x , alfa_y
+
+    IF ( size(x1,1) .GT. 1 ) THEN
+
+       ix = FLOOR( ( x2 - x1(1,1) ) / ( x1(2,1) - x1(1,1) ) ) + 1
+       ix = MIN( ix , SIZE(x1,1)-1 )
+       alfa_x = ( x1(ix+1,1) - x2 ) / (  x1(ix+1,1) - x1(ix,1) )
+
+    ELSE
+
+       ix = 1
+       alfa_x = 0.0_wp
+       
+    END IF
+    
+    IF ( size(x1,2) .GT. 1 ) THEN
+
+       iy = FLOOR( ( y2 - y1(1,1) ) / ( y1(1,2) - y1(1,1) ) ) + 1
+       iy = MIN( iy , SIZE(x1,2)-1 )
+       alfa_y = ( y1(1,iy+1) - y2 ) / (  y1(1,iy+1) - y1(1,iy) )
+    
+    ELSE
+
+       iy = 1
+       alfa_y = 0.0_wp
+       
+    END IF
+       
+    IF ( size(x1,1) .EQ. 1 ) THEN
+       
+       f2 = alfa_y * f1(ix,iy) + ( 1.0_wp - alfa_y ) * f1(ix,iy+1)
+       
+    ELSEIF ( size(x1,2) .EQ. 1 ) THEN
+       
+       f2 = alfa_x * f1(ix,iy)  + ( 1.0_wp - alfa_x ) * f1(ix+1,iy)
+       
+    ELSE
+       
+       f2 = alfa_x * ( alfa_y * f1(ix,iy) + ( 1.0_wp - alfa_y ) * f1(ix,iy+1) ) &
+            + ( 1.0_wp - alfa_x ) * ( alfa_y * f1(ix+1,iy) + ( 1.0_wp - alfa_y )&
+            * f1(ix+1,iy+1) )
+       
+    END IF
+    
+  END SUBROUTINE interp_2d_scalar
+
+  !-----------------------------------------------------------------------------
+  !> Scalar interpolation (2D)
+  !
+  !> This subroutine interpolate the values of the  array f1, defined on the 
+  !> grid points (x1,y1), at the point (x2,y2). The value are saved in f2
+  !> \date OCTOBER 2016
+  !> \param[in]    x1           original grid          
+  !> \param[in]    y1           original grid          
+  !> \param[in]    f1           original values      
+  !> \param[in]    x2           new point            
+  !> \param[in]    y2           new point            
+  !> \param[out]   f2           interpolated value     
+  !-----------------------------------------------------------------------------
+
+  SUBROUTINE interp_2d_nodata(x1, y1, f1, x2, y2, f2)
+    IMPLICIT NONE
+
+    REAL(wp), INTENT(IN), DIMENSION(:,:) :: x1, y1, f1
+    REAL(wp), INTENT(IN) :: x2, y2
+    LOGICAL, INTENT(OUT) :: f2
+
+    INTEGER :: ix , iy
+    REAL(wp) :: alfa_x , alfa_y
+
+    IF ( size(x1,1) .GT. 1 ) THEN
+
+       ix = FLOOR( ( x2 - x1(1,1) ) / ( x1(2,1) - x1(1,1) ) ) + 1
+       ix = MIN( ix , SIZE(x1,1)-1 )
+       alfa_x = ( x1(ix+1,1) - x2 ) / (  x1(ix+1,1) - x1(ix,1) )
+
+    ELSE
+
+       ix = 1
+       alfa_x = 0.0_wp
+       
+    END IF
+    
+    IF ( size(x1,2) .GT. 1 ) THEN
+
+       iy = FLOOR( ( y2 - y1(1,1) ) / ( y1(1,2) - y1(1,1) ) ) + 1
+       iy = MIN( iy , SIZE(x1,2)-1 )
+       alfa_y = ( y1(1,iy+1) - y2 ) / (  y1(1,iy+1) - y1(1,iy) )
+    
+    ELSE
+
+       iy = 1
+       alfa_y = 0.0_wp
+       
+    END IF
+     
+    f2 = .FALSE.
+  
+    IF ( size(x1,1) .EQ. 1 ) THEN
+       
+       f2 = ( f1(ix,iy) .EQ. nodata_topo ) .OR. ( f1(ix,iy+1) .EQ. nodata_topo )
+       
+    ELSEIF ( size(x1,2) .EQ. 1 ) THEN
+       
+       f2 = ( f1(ix,iy) .EQ. nodata_topo ) .OR. ( f1(ix+1,iy) .EQ. nodata_topo ) 
+       
+    ELSE
+       
+       f2 = ( f1(ix,iy) .EQ. nodata_topo ) .OR. ( f1(ix,iy+1) .EQ. nodata_topo )&
+            .OR. ( f1(ix+1,iy) .EQ. nodata_topo )                               &
+            .OR. ( f1(ix+1,iy+1) .EQ. nodata_topo )
+       
+    END IF
+    
+  END SUBROUTINE interp_2d_nodata
+
+
+  !-----------------------------------------------------------------------------
+  !> Scalar interpolation (2D)
+  !
+  !> This subroutine interpolate the values of the  array f1, defined on the 
+  !> grid points (x1,y1), at the point (x2,y2). The value are saved in f2.
+  !> In this case x1 and y1 are 1d arrays.
+  !> \date OCTOBER 2016
+  !> \param[in]    x1           original grid              
+  !> \param[in]    y1           original grid            
+  !> \param[in]    f1           original values           
+  !> \param[in]    x2           new point                
+  !> \param[in]    y2           new point               
+  !> \param[out]   f2           interpolated value       
+  !-----------------------------------------------------------------------------
+
+  SUBROUTINE interp_2d_scalarB(x1, y1, f1, x2, y2, f2)
+    IMPLICIT NONE
+
+    REAL(wp), INTENT(IN), DIMENSION(:) :: x1, y1
+    REAL(wp), INTENT(IN), DIMENSION(:,:) :: f1
+    REAL(wp), INTENT(IN) :: x2, y2
+    REAL(wp), INTENT(OUT) :: f2
+
+    INTEGER :: ix , iy
+    REAL(wp) :: alfa_x , alfa_y
+
+    IF ( size(x1) .GT. 1 ) THEN
+
+       ix = FLOOR( ( x2 - x1(1) ) / ( x1(2) - x1(1) ) ) + 1
+       ix = MAX(0,MIN( ix , SIZE(x1)-1 ))
+       alfa_x = ( x1(ix+1) - x2 ) / (  x1(ix+1) - x1(ix) )
+
+    ELSE
+
+       ix = 1
+       alfa_x = 0.0_wp
+       
+    END IF
+    
+    IF ( size(y1) .GT. 1 ) THEN
+
+       iy = FLOOR( ( y2 - y1(1) ) / ( y1(2) - y1(1) ) ) + 1
+       iy = MAX(1,MIN( iy , SIZE(y1)-1 ))
+       alfa_y = ( y1(iy+1) - y2 ) / (  y1(iy+1) - y1(iy) )
+    
+    ELSE
+
+       iy = 1
+       alfa_y = 0.0_wp
+       
+    END IF
+
+    IF ( ( alfa_x .LT. 0.0_wp ) .OR. ( alfa_x .GT. 1.0_wp )                     &
+         .OR. ( alfa_y .LT. 0.0_wp ) .OR. ( alfa_y .GT. 1.0_wp ) ) THEN
+
+       f2 = 0.0_wp
+       RETURN
+
+    END IF
+       
+    
+    IF ( size(x1) .EQ. 1 ) THEN
+       
+       f2 = alfa_y * f1(ix,iy) + ( 1.0_wp - alfa_y ) * f1(ix,iy+1)
+       
+    ELSEIF ( size(y1) .EQ. 1 ) THEN
+       
+       f2 = alfa_x * f1(ix,iy)  + ( 1.0_wp - alfa_x ) * f1(ix+1,iy)
+       
+    ELSE
+       
+       f2 = alfa_x * ( alfa_y * f1(ix,iy) + ( 1.0_wp - alfa_y ) * f1(ix,iy+1) ) &
+            + ( 1.0_wp - alfa_x ) * ( alfa_y * f1(ix+1,iy) + ( 1.0_wp - alfa_y )&
+            * f1(ix+1,iy+1) )
+       
+    END IF
+
+    RETURN
+    
+  END SUBROUTINE interp_2d_scalarB
+
+
+  !-----------------------------------------------------------------------------
+  !> Scalar interpolation (2D)
+  !
+  !> This subroutine interpolate the values of the  array f1, defined on the 
+  !> grid points (x1,y1), at the point (x2,y2). The value are saved in f2
+  !> \date OCTOBER 2016
+  !> \param[in]    x1           original grid               
+  !> \param[in]    y1           original grid                
+  !> \param[in]    f1           original values             
+  !> \param[in]    x2           new point                   
+  !> \param[in]    y2           new point                  
+  !> \param[out]   f2           interpolated value         
+  !-----------------------------------------------------------------------------
+
+  SUBROUTINE interp_2d_slope(x1, y1, f1, x2, y2, f_x, f_y)
+
+    IMPLICIT NONE
+
+    REAL(wp), INTENT(IN), DIMENSION(:,:) :: x1, y1, f1
+    REAL(wp), INTENT(IN) :: x2, y2
+    REAL(wp), INTENT(OUT) :: f_x , f_y
+
+    INTEGER :: ix , iy
+    REAL(wp) :: alfa_x , alfa_y
+    REAL(wp) :: f_x1 , f_x2 , f_y1 , f_y2
+
+
+    IF ( size(x1,1) .GT. 1 ) THEN
+
+       ix = FLOOR( ( x2 - x1(1,1) ) / ( x1(2,1) - x1(1,1) ) ) + 1
+       ix = MIN( ix , SIZE(x1,1)-1 )
+       alfa_x = ( x1(ix+1,1) - x2 ) / (  x1(ix+1,1) - x1(ix,1) )
+
+    ELSE
+
+       ix = 1
+       alfa_x = 1.0_wp
+       
+    END IF
+    
+    IF ( size(x1,2) .GT. 1 ) THEN
+
+       iy = FLOOR( ( y2 - y1(1,1) ) / ( y1(1,2) - y1(1,1) ) ) + 1
+       iy = MIN( iy , SIZE(x1,2)-1 )
+       alfa_y = ( y1(1,iy+1) - y2 ) / (  y1(1,iy+1) - y1(1,iy) )
+    
+    ELSE
+
+       iy = 1
+       alfa_y = 1.0_wp
+  
+    END IF
+
+    f_x1 = 0.0_wp
+    f_x2 = 0.0_wp
+
+    IF ( size(x1,1) .GT. 1 ) THEN
+
+       f_x1 = ( f1(ix+1,iy) -  f1(ix,iy) ) / (  x1(2,1) - x1(1,1) )
+
+       IF ( size(x1,2) .GT. 1 ) THEN
+
+          f_x2 = ( f1(ix+1,iy+1) -  f1(ix,iy+1) ) / (  x1(2,1) - x1(1,1) )
+
+       END IF
+
+    END IF
+
+    f_x = alfa_y * f_x1 + ( 1.0_wp - alfa_y ) * f_x2
+
+    f_y1 = 0.0_wp
+    f_y2 = 0.0_wp
+
+    IF ( size(x1,2) .GT. 1 ) THEN
+
+       f_y1 = ( f1(ix,iy+1) - f1(ix,iy) ) / (  y1(1,2) - y1(1,1) )
+
+       IF ( size(x1,1) .GT. 1 ) THEN
+
+          f_y2 = ( f1(ix+1,iy+1) - f1(ix+1,iy) ) / (  y1(1,2) - y1(1,1) )
+
+       END IF
+
+    END IF
+
+    f_y = alfa_x * f_y1 + ( 1.0_wp - alfa_x ) * f_y2
+
+
+    RETURN
+    
+  END SUBROUTINE interp_2d_slope
+
+
   !-----------------------------------------------------------------------------
   !> Scalar regrid (2D)
   !
@@ -1023,14 +1034,14 @@ CONTAINS
   !> grid points (x1,y1), at the point (x2,y2). The value are saved in f2.
   !> In this case x1 and y1 are 1d arrays.
   !> \date OCTOBER 2016
-  !> \param    x1           original grid                (\b input)
-  !> \param    y1           original grid                (\b input)
-  !> \param    f1           original values              (\b input)
-  !> \param    xl           new point                    (\b input)
-  !> \param    xr           new point                    (\b input)
-  !> \param    yl           new point                    (\b input)
-  !> \param    yr           new point                    (\b input)
-  !> \param    f2           interpolated value           (\b output)
+  !> \param[in]    x1           original grid
+  !> \param[in]    y1           original grid
+  !> \param[in]    f1           original values
+  !> \param[in]    xl           new point
+  !> \param[in]    xr           new point
+  !> \param[in]    yl           new point
+  !> \param[in]    yr           new point
+  !> \param[out]   f2           interpolated value
   !-----------------------------------------------------------------------------
 
   SUBROUTINE regrid_scalar(xin, yin, fin, xl, xr , yl, yr, fout)
@@ -1164,12 +1175,25 @@ CONTAINS
 
   END SUBROUTINE limit
 
-
+  !******************************************************************************
+  !> \brief Minmod limiter
+  !
+  !> This function compute the minmod between two real numbers
+  !> \param[in]     a: 1st value
+  !> \param[in]     b: 2nd value
+  !> \result        the minmod between a and b
+  !> \date 2021/04/30
+  !> @author 
+  !> Mattia de' Michieli Vitturi
+  !******************************************************************************
+  
   REAL(wp) FUNCTION minmod(a,b)
 
     IMPLICIT none
 
-    REAL(wp) :: a , b , sa , sb 
+    REAL(wp), INTENT(IN) :: a
+    REAL(wp), INTENT(IN) :: b
+    REAL(wp) :: sa , sb 
 
     IF ( MIN(ABS(a),ABS(b)) .LT. 1.0e-30_wp ) THEN
 

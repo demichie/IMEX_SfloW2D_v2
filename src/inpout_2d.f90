@@ -4007,7 +4007,7 @@ CONTAINS
   
     DO j = 1,comp_cells_y
        
-       erosion_tot(:,j) = SUM(erosion(:,j,:),DIM=2) / ( 1.0_wp - erodible_porosity )  
+       erosion_tot(:,j) = SUM(erosion(:,j,:),DIM=2) / (1.0_wp-erodible_porosity)  
 
     END DO
 
@@ -4130,11 +4130,12 @@ CONTAINS
 
        ELSE
 
-          OPEN(probes_unit,FILE=probes_file,status='old',position='append',form='formatted')
+          OPEN(probes_unit,FILE=probes_file,status='old',position='append',     &
+               form='formatted')
 
        END IF
 
-       CALL interp_2d_scalarB( x_comp , y_comp , qp(1,:,:)  ,                    &
+       CALL interp_2d_scalarB( x_comp , y_comp , qp(1,:,:)  ,                   &
             probes_coords(1,k) , probes_coords(2,k) , f2 )
 
        WRITE(probes_unit,'(2e20.12)') time , f2

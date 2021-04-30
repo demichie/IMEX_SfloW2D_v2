@@ -1270,6 +1270,289 @@ CONTAINS
   END SUBROUTINE eval_fluxes
 
   !******************************************************************************
+  !> \brief Explicit source term
+  !
+  !> This subroutine evaluates the non-hyperbolic terms to be treated explicitely
+  !> in the DIRK numerical scheme (e.g. gravity,source of mass). The sign of the
+  !> terms is taken with the terms on the left-hand side of the equations.
+  !> \date 2019/12/13
+  !> \param[in]     B_primej_x         local x-slope
+  !> \param[in]     B_primej_y         local y_slope
+  !> \param[in]     B_secondj_xx       local 2nd derivative in x-direction
+  !> \param[in]     B_secondj_xy       local 2nd derivative in xy-direction
+  !> \param[in]     B_secondj_yy       local 2nd derivative in y-direction
+  !> \param[in]     grav_coeff         correction factor for topography slope
+  !> \param[in]     d_grav_coeff_dx    x-derivative of grav_coeff
+  !> \param[in]     d_grav_coeff_dy    y-derivative of grav_coeff
+  !> \param[in]     source_xy          local source of mass
+  !> \param[in]     qpj                physical variables
+  !> \param[in]     time               simlation time (needed for source)
+  !> \param[in]     cell_fract_jk      fraction of cell contributing to source
+  !> \param[out]    expl_term          explicit term
+  !
+  !> @author 
+  !> Mattia de' Michieli Vitturi
+  !
+  !******************************************************************************
+
+  SUBROUTINE eval_expl_terms( Bprimej_x, Bprimej_y, Bsecondj_xx , Bsecondj_xy , &
+       Bsecondj_yy, grav_coeff, d_grav_coeff_dx , d_grav_coeff_dy , source_xy , &
+       qpj, expl_term, time, cell_fract_jk )
+
+    USE parameters_2d, ONLY : vel_source , T_source , alphas_source ,           &
+         alphal_source , time_param , bottom_radial_source_flag
+
+    
+    IMPLICIT NONE
+
+    REAL(wp), INTENT(IN) :: Bprimej_x
+    REAL(wp), INTENT(IN) :: Bprimej_y
+    REAL(wp), INTENT(IN) :: Bsecondj_xx
+    REAL(wp), INTENT(IN) :: Bsecondj_xy
+    REAL(wp), INTENT(IN) :: Bsecondj_yy
+    REAL(wp), INTENT(IN) :: grav_coeff
+    REAL(wp), INTENT(IN) :: d_grav_coeff_dx
+    REAL(wp), INTENT(IN) :: d_grav_coeff_dy
+    
+    REAL(wp), INTENT(IN) :: source_xy
+
+    REAL(wp), INTENT(IN) :: qpj(n_vars+2)      !< local physical variables 
+    REAL(wp), INTENT(OUT) :: expl_term(n_eqns) !< local explicit forces 
+
+    REAL(wp), INTENT(IN) :: time
+    REAL(wp), INTENT(IN) :: cell_fract_jk
+    
+    REAL(wp) :: r_h          !< real-value flow thickness
+    REAL(wp) :: r_u          !< real-value x-velocity
+    REAL(wp) :: r_v          !< real-value y-velocity
+    REAL(wp) :: r_Ri         !< real-value Richardson number
+    REAL(wp) :: r_rho_m      !< real-value mixture density [kg/m3]
+    REAL(wp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
+    REAL(wp) :: r_red_grav   !< real-value reduced gravity
+    REAL(wp) :: r_alphas(n_solid)  !< real-value solid volume fractions
+    REAL(wp) :: r_xs(n_solid)      !< real-value solid mass fractions 
+    REAL(wp) :: r_alphal     !< real-value liquid volume fraction      
+    REAL(wp) :: r_xl         !< real-value liquid mass fraction
+    REAL(wp) :: r_alphac     !< real-value carrier phase volume fraction
+    REAL(wp) :: r_xc         !< real-values carrier phase mass fraction
+    
+    REAL(wp) :: alphas_tot   !< total volume fraction of solid
+    REAL(wp) :: sum_sl       !< sum of liquid and solid volume fractions
+    REAL(wp) :: r_sp_heat_mix !< real_value mixture specific heat
+    
+    REAL(wp) :: t_rem
+    REAL(wp) :: t_coeff
+    REAL(wp) :: h_dot
+
+    REAL(wp) :: centr_force_term
+    
+    expl_term(1:n_eqns) = 0.0_wp
+
+    IF ( ( qpj(1) .LE. 0.0_wp ) .AND. ( cell_fract_jk .EQ. 0.0_wp ) ) RETURN
+
+    r_h = qpj(1)
+    r_u = qpj(n_vars+1)
+    r_v = qpj(n_vars+2)
+
+    CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav)
+
+    IF ( curvature_term_flag ) THEN
+
+       centr_force_term = Bsecondj_xx * r_u**2 + Bsecondj_xy * r_u * r_v +      &
+            Bsecondj_yy * r_v**2
+
+    ELSE
+
+       centr_force_term = 0.0_wp
+
+    END IF
+    
+    ! units of dqc(2)/dt [kg m-1 s-2]
+    expl_term(2) = grav_coeff * ( r_red_grav + centr_force_term ) * r_rho_m *   &
+         r_h * Bprimej_x - 0.5_wp * grav_coeff * r_red_grav * r_rho_m * r_h**2  &
+         * d_grav_coeff_dx 
+    
+    ! units of dqc(3)/dt [kg m-1 s-2]
+    expl_term(3) = grav_coeff * ( r_red_grav + centr_force_term ) * r_rho_m *   &
+         r_h * Bprimej_y - 0.5_wp * grav_coeff * r_red_grav * r_rho_m * r_h**2  &
+         * d_grav_coeff_dx
+
+    IF ( energy_flag ) THEN
+
+       expl_term(4) = expl_term(2) * r_u + expl_term(3) * r_v
+
+    ELSE
+
+       expl_term(4) = 0.0_wp
+
+    END IF
+    
+    ! ----------- ADDITIONAL EXPLICIT TERMS FOR BOTTOM RADIAL SOURCE ------------ 
+
+    IF ( .NOT.bottom_radial_source_flag) THEN
+
+       RETURN
+
+    END IF
+
+    t_rem = MOD( time + time_param(4) , time_param(1) )
+
+    IF ( time_param(3) .EQ. 0.0_wp ) THEN
+
+       IF ( t_rem .LE. time_param(2) ) THEN
+
+          t_coeff = 1.0_wp
+
+       ELSE
+
+          t_coeff = 0.0_wp
+
+       END IF
+          
+    ELSE
+
+       IF ( t_rem .LE. time_param(3) ) THEN
+
+          t_coeff = ( t_rem / time_param(3) ) 
+
+       ELSEIF ( t_rem .LE. time_param(2) - time_param(3) ) THEN
+
+          t_coeff = 1.0_wp
+          
+       ELSEIF ( t_rem .LE. time_param(2) ) THEN
+          
+          t_coeff = 1.0_wp - ( t_rem - time_param(2) + time_param(3) ) /        &
+               time_param(3)
+          
+       ELSE
+          
+          t_coeff = 0.0_wp
+          
+       END IF
+
+    END IF
+
+    h_dot = -cell_fract_jk * vel_source
+
+    r_alphas(1:n_solid) = alphas_source(1:n_solid) 
+    alphas_tot = SUM(r_alphas)
+        
+    IF ( gas_flag ) THEN
+
+       ! carrier phase is gas
+       r_rho_c = pres / ( sp_gas_const_a * t_source )
+       sp_heat_c = sp_heat_a
+
+    ELSE
+
+       ! carrier phase is liquid
+       r_rho_c = rho_l
+       sp_heat_c = sp_heat_l
+
+    END IF
+
+    IF ( gas_flag .AND. liquid_flag ) THEN
+
+       ! mixture of gas, liquid and solid
+       r_alphal = alphal_source 
+
+       ! check and correction on dispersed phases volume fractions
+       IF ( ( alphas_tot + r_alphal ) .GT. 1.0_wp ) THEN
+
+          sum_sl = alphas_tot + r_alphal
+          r_alphas(1:n_solid) = r_alphas(1:n_solid) / sum_sl
+          r_alphal = r_alphal / sum_sl
+
+       ELSEIF ( ( alphas_tot + r_alphal ) .LT. 0.0_wp ) THEN
+
+          r_alphas(1:n_solid) = 0.0_wp
+          r_alphal = 0.0_wp
+
+       END IF
+
+       ! carrier phase volume fraction
+       r_alphac = 1.0_wp - alphas_tot - r_alphal
+
+       ! volume averaged mixture density: carrier (gas) + solids + liquid
+       r_rho_m = r_alphac * r_rho_c + DOT_PRODUCT( r_alphas , rho_s )           &
+            + r_alphal * rho_l
+
+       ! liquid mass fraction
+       r_xl = r_alphal * rho_l / r_rho_m
+
+       ! solid mass fractions
+       r_xs(1:n_solid) = r_alphas(1:n_solid) * rho_s(1:n_solid) / r_rho_m
+
+       ! carrier (gas) mass fraction
+       r_xc = r_alphac * r_rho_c / r_rho_m
+
+       ! mass averaged mixture specific heat
+       r_sp_heat_mix =  DOT_PRODUCT( r_xs , sp_heat_s ) + r_xl * sp_heat_l      &
+            + r_xc * sp_heat_c
+
+    ELSE
+
+       ! mixture of carrier phase ( gas or liquid ) and solid
+
+       ! check and corrections on dispersed phases
+       IF ( alphas_tot .GT. 1.0_wp ) THEN
+
+          r_alphas(1:n_solid) = r_alphas(1:n_solid) / alphas_tot
+
+       ELSEIF ( alphas_tot .LT. 0.0_wp ) THEN
+
+          r_alphas(1:n_solid) = 0.0_wp
+
+       END IF
+
+       ! carrier (gas or liquid) volume fraction
+       r_alphac = 1.0_wp - alphas_tot 
+
+       ! volume averaged mixture density: carrier (gas or liquid) + solids
+       r_rho_m = r_alphac * r_rho_c + DOT_PRODUCT( r_alphas , rho_s ) 
+
+       ! solid mass fractions
+       r_xs(1:n_solid) = r_alphas(1:n_solid) * rho_s(1:n_solid) / r_rho_m
+
+       ! carrier (gas or liquid) mass fraction
+       r_xc = r_alphac * r_rho_c / r_rho_m
+
+       ! mass averaged mixture specific heat
+       r_sp_heat_mix =  DOT_PRODUCT( r_xs , sp_heat_s ) + r_xc * sp_heat_c
+
+    END IF
+    
+    expl_term(1) = expl_term(1) + t_coeff * h_dot * r_rho_m
+    expl_term(2) = expl_term(2) + 0.0_wp
+    expl_term(3) = expl_term(3) + 0.0_wp
+
+    IF ( energy_flag ) THEN
+
+       expl_term(4) = expl_term(4) + t_coeff * h_dot * r_rho_m * r_sp_heat_mix  &
+            * t_source
+
+    ELSE
+
+       expl_term(4) = expl_term(4) + t_coeff * h_dot * r_rho_m * r_sp_heat_mix  &
+            * t_source
+
+    END IF
+       
+    expl_term(5:4+n_solid) = expl_term(5:4+n_solid) + t_coeff                   &
+         * h_dot * alphas_source(1:n_solid) * rho_s(1:n_solid)
+
+    IF ( gas_flag .AND. liquid_flag ) THEN
+
+       expl_term(n_vars) = expl_term(n_vars) + t_coeff * h_dot * alphal_source  &
+            * rho_l
+
+    END IF
+  
+    RETURN
+
+  END SUBROUTINE eval_expl_terms
+  
+  !******************************************************************************
   !> \brief Implicit source terms
   !
   !> This subroutine evaluates the source terms  of the system of equations,
@@ -1727,288 +2010,6 @@ CONTAINS
 
   END SUBROUTINE eval_nh_semi_impl_terms
 
-  !******************************************************************************
-  !> \brief Explicit source term
-  !
-  !> This subroutine evaluates the non-hyperbolic terms to be treated explicitely
-  !> in the DIRK numerical scheme (e.g. gravity,source of mass). The sign of the
-  !> terms is taken with the terms on the left-hand side of the equations.
-  !> \date 2019/12/13
-  !> \param[in]     B_primej_x         local x-slope
-  !> \param[in]     B_primej_y         local y_slope
-  !> \param[in]     B_secondj_xx       local 2nd derivative in x-direction
-  !> \param[in]     B_secondj_xy       local 2nd derivative in xy-direction
-  !> \param[in]     B_secondj_yy       local 2nd derivative in y-direction
-  !> \param[in]     grav_coeff         correction factor for topography slope
-  !> \param[in]     d_grav_coeff_dx    x-derivative of grav_coeff
-  !> \param[in]     d_grav_coeff_dy    y-derivative of grav_coeff
-  !> \param[in]     source_xy          local source of mass
-  !> \param[in]     qpj                physical variables
-  !> \param[in]     time               simlation time (needed for source)
-  !> \param[in]     cell_fract_jk      fraction of cell contributing to source
-  !> \param[out]    expl_term          explicit term
-  !
-  !> @author 
-  !> Mattia de' Michieli Vitturi
-  !
-  !******************************************************************************
-
-  SUBROUTINE eval_expl_terms( Bprimej_x, Bprimej_y, Bsecondj_xx , Bsecondj_xy , &
-       Bsecondj_yy, grav_coeff, d_grav_coeff_dx , d_grav_coeff_dy , source_xy , &
-       qpj, expl_term, time, cell_fract_jk )
-
-    USE parameters_2d, ONLY : vel_source , T_source , alphas_source ,           &
-         alphal_source , time_param , bottom_radial_source_flag
-
-    
-    IMPLICIT NONE
-
-    REAL(wp), INTENT(IN) :: Bprimej_x
-    REAL(wp), INTENT(IN) :: Bprimej_y
-    REAL(wp), INTENT(IN) :: Bsecondj_xx
-    REAL(wp), INTENT(IN) :: Bsecondj_xy
-    REAL(wp), INTENT(IN) :: Bsecondj_yy
-    REAL(wp), INTENT(IN) :: grav_coeff
-    REAL(wp), INTENT(IN) :: d_grav_coeff_dx
-    REAL(wp), INTENT(IN) :: d_grav_coeff_dy
-    
-    REAL(wp), INTENT(IN) :: source_xy
-
-    REAL(wp), INTENT(IN) :: qpj(n_vars+2)      !< local physical variables 
-    REAL(wp), INTENT(OUT) :: expl_term(n_eqns) !< local explicit forces 
-
-    REAL(wp), INTENT(IN) :: time
-    REAL(wp), INTENT(IN) :: cell_fract_jk
-    
-    REAL(wp) :: r_h          !< real-value flow thickness
-    REAL(wp) :: r_u          !< real-value x-velocity
-    REAL(wp) :: r_v          !< real-value y-velocity
-    REAL(wp) :: r_Ri         !< real-value Richardson number
-    REAL(wp) :: r_rho_m      !< real-value mixture density [kg/m3]
-    REAL(wp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
-    REAL(wp) :: r_red_grav   !< real-value reduced gravity
-    REAL(wp) :: r_alphas(n_solid)
-    REAL(wp) :: r_xs(n_solid)
-    REAL(wp) :: r_alphal
-    REAL(wp) :: r_xl    
-    REAL(wp) :: r_alphac
-    REAL(wp) :: r_xc
-    
-    REAL(wp) :: alphas_tot
-    REAL(wp) :: sum_sl
-    REAL(wp) :: r_sp_heat_mix
-    
-    REAL(wp) :: t_rem
-    REAL(wp) :: t_coeff
-    REAL(wp) :: h_dot
-
-    REAL(wp) :: centr_force_term
-    
-    expl_term(1:n_eqns) = 0.0_wp
-
-    IF ( ( qpj(1) .LE. 0.0_wp ) .AND. ( cell_fract_jk .EQ. 0.0_wp ) ) RETURN
-
-    r_h = qpj(1)
-    r_u = qpj(n_vars+1)
-    r_v = qpj(n_vars+2)
-
-    CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav)
-
-    IF ( curvature_term_flag ) THEN
-
-       centr_force_term = Bsecondj_xx * r_u**2 + Bsecondj_xy * r_u * r_v +      &
-            Bsecondj_yy * r_v**2
-
-    ELSE
-
-       centr_force_term = 0.0_wp
-
-    END IF
-    
-    ! units of dqc(2)/dt [kg m-1 s-2]
-    expl_term(2) = grav_coeff * ( r_red_grav + centr_force_term ) * r_rho_m *   &
-         r_h * Bprimej_x - 0.5_wp * grav_coeff * r_red_grav * r_rho_m * r_h**2  &
-         * d_grav_coeff_dx 
-    
-    ! units of dqc(3)/dt [kg m-1 s-2]
-    expl_term(3) = grav_coeff * ( r_red_grav + centr_force_term ) * r_rho_m *   &
-         r_h * Bprimej_y - 0.5_wp * grav_coeff * r_red_grav * r_rho_m * r_h**2  &
-         * d_grav_coeff_dx
-
-    IF ( energy_flag ) THEN
-
-       expl_term(4) = expl_term(2) * r_u + expl_term(3) * r_v
-
-    ELSE
-
-       expl_term(4) = 0.0_wp
-
-    END IF
-    
-    ! ----------- ADDITIONAL EXPLICIT TERMS FOR BOTTOM RADIAL SOURCE ------------ 
-
-    IF ( .NOT.bottom_radial_source_flag) THEN
-
-       RETURN
-
-    END IF
-
-    t_rem = MOD( time + time_param(4) , time_param(1) )
-
-    IF ( time_param(3) .EQ. 0.0_wp ) THEN
-
-       IF ( t_rem .LE. time_param(2) ) THEN
-
-          t_coeff = 1.0_wp
-
-       ELSE
-
-          t_coeff = 0.0_wp
-
-       END IF
-          
-    ELSE
-
-       IF ( t_rem .LE. time_param(3) ) THEN
-
-          t_coeff = ( t_rem / time_param(3) ) 
-
-       ELSEIF ( t_rem .LE. time_param(2) - time_param(3) ) THEN
-
-          t_coeff = 1.0_wp
-          
-       ELSEIF ( t_rem .LE. time_param(2) ) THEN
-          
-          t_coeff = 1.0_wp - ( t_rem - time_param(2) + time_param(3) ) /        &
-               time_param(3)
-          
-       ELSE
-          
-          t_coeff = 0.0_wp
-          
-       END IF
-
-    END IF
-
-    h_dot = -cell_fract_jk * vel_source
-
-    r_alphas(1:n_solid) = alphas_source(1:n_solid) 
-    alphas_tot = SUM(r_alphas)
-        
-    IF ( gas_flag ) THEN
-
-       ! carrier phase is gas
-       r_rho_c = pres / ( sp_gas_const_a * t_source )
-       sp_heat_c = sp_heat_a
-
-    ELSE
-
-       ! carrier phase is liquid
-       r_rho_c = rho_l
-       sp_heat_c = sp_heat_l
-
-    END IF
-
-    IF ( gas_flag .AND. liquid_flag ) THEN
-
-       ! mixture of gas, liquid and solid
-       r_alphal = alphal_source 
-
-       ! check and correction on dispersed phases volume fractions
-       IF ( ( alphas_tot + r_alphal ) .GT. 1.0_wp ) THEN
-
-          sum_sl = alphas_tot + r_alphal
-          r_alphas(1:n_solid) = r_alphas(1:n_solid) / sum_sl
-          r_alphal = r_alphal / sum_sl
-
-       ELSEIF ( ( alphas_tot + r_alphal ) .LT. 0.0_wp ) THEN
-
-          r_alphas(1:n_solid) = 0.0_wp
-          r_alphal = 0.0_wp
-
-       END IF
-
-       ! carrier phase volume fraction
-       r_alphac = 1.0_wp - alphas_tot - r_alphal
-
-       ! volume averaged mixture density: carrier (gas) + solids + liquid
-       r_rho_m = r_alphac * r_rho_c + DOT_PRODUCT( r_alphas , rho_s )           &
-            + r_alphal * rho_l
-
-       ! liquid mass fraction
-       r_xl = r_alphal * rho_l / r_rho_m
-
-       ! solid mass fractions
-       r_xs(1:n_solid) = r_alphas(1:n_solid) * rho_s(1:n_solid) / r_rho_m
-
-       ! carrier (gas) mass fraction
-       r_xc = r_alphac * r_rho_c / r_rho_m
-
-       ! mass averaged mixture specific heat
-       r_sp_heat_mix =  DOT_PRODUCT( r_xs , sp_heat_s ) + r_xl * sp_heat_l      &
-            + r_xc * sp_heat_c
-
-    ELSE
-
-       ! mixture of carrier phase ( gas or liquid ) and solid
-
-       ! check and corrections on dispersed phases
-       IF ( alphas_tot .GT. 1.0_wp ) THEN
-
-          r_alphas(1:n_solid) = r_alphas(1:n_solid) / alphas_tot
-
-       ELSEIF ( alphas_tot .LT. 0.0_wp ) THEN
-
-          r_alphas(1:n_solid) = 0.0_wp
-
-       END IF
-
-       ! carrier (gas or liquid) volume fraction
-       r_alphac = 1.0_wp - alphas_tot 
-
-       ! volume averaged mixture density: carrier (gas or liquid) + solids
-       r_rho_m = r_alphac * r_rho_c + DOT_PRODUCT( r_alphas , rho_s ) 
-
-       ! solid mass fractions
-       r_xs(1:n_solid) = r_alphas(1:n_solid) * rho_s(1:n_solid) / r_rho_m
-
-       ! carrier (gas or liquid) mass fraction
-       r_xc = r_alphac * r_rho_c / r_rho_m
-
-       ! mass averaged mixture specific heat
-       r_sp_heat_mix =  DOT_PRODUCT( r_xs , sp_heat_s ) + r_xc * sp_heat_c
-
-    END IF
-    
-    expl_term(1) = expl_term(1) + t_coeff * h_dot * r_rho_m
-    expl_term(2) = expl_term(2) + 0.0_wp
-    expl_term(3) = expl_term(3) + 0.0_wp
-
-    IF ( energy_flag ) THEN
-
-       expl_term(4) = expl_term(4) + t_coeff * h_dot * r_rho_m * r_sp_heat_mix  &
-            * t_source
-
-    ELSE
-
-       expl_term(4) = expl_term(4) + t_coeff * h_dot * r_rho_m * r_sp_heat_mix  &
-            * t_source
-
-    END IF
-       
-    expl_term(5:4+n_solid) = expl_term(5:4+n_solid) + t_coeff                   &
-         * h_dot * alphas_source(1:n_solid) * rho_s(1:n_solid)
-
-    IF ( gas_flag .AND. liquid_flag ) THEN
-
-       expl_term(n_vars) = expl_term(n_vars) + t_coeff * h_dot * alphal_source  &
-            * rho_l
-
-    END IF
-  
-    RETURN
-
-  END SUBROUTINE eval_expl_terms
 
   !******************************************************************************
   !> \brief Erosion/Deposition term
@@ -2052,16 +2053,16 @@ CONTAINS
     REAL(wp) :: r_v          !< real-value y-velocity
     REAL(wp) :: r_alphas(n_solid) !< real-value solid volume fractions
     REAL(wp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
-    REAL(wp) :: r_T
-    REAL(wp) :: r_rho_m
-    REAL(wp) :: tot_solid_erosion
+    REAL(wp) :: r_T          !< real-value mixture temperature [K]
+    REAL(wp) :: r_rho_m      !< real-value mixture density [kg/m3]
+    REAL(wp) :: tot_solid_erosion !< total solid erosion rate [m/s]
 
-    REAL(wp) :: alphas_tot
+    REAL(wp) :: alphas_tot   !< total solid volume fraction
     
-    REAL(wp) :: Tc
+    REAL(wp) :: Tc           !< temperature of carrier pphase [K]
     
-    REAL(wp) :: alpha1
-    REAL(wp) :: fluid_visc
+    REAL(wp) :: alpha1       !< viscosity of continuous phase [kg m-1 s-1]
+    REAL(wp) :: fluid_visc   
     REAL(wp) :: kin_visc
     REAL(wp) :: inv_kin_visc
     REAL(wp) :: rhoc

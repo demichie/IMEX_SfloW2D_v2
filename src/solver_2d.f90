@@ -1173,21 +1173,12 @@ CONTAINS
 
              END IF
 
-!!$             IF ( ( t .LE. time_param(4) ) .AND. ( bottom_radial_source_flag)   &
-!!$                  .AND. ( cell_source_fractions(j,k) .GT. 0.0_wp ) ) THEN
-
              ! Eval gravity term and radial source terms
              CALL eval_expl_terms( B_prime_x(j,k) , B_prime_y(j,k) ,            &
                   B_second_xx(j,k) , B_second_xy(j,k) , B_second_yy(j,k) ,      &
                   grav_coeff(j,k), d_grav_coeff_dx(j,k) , d_grav_coeff_dx(j,k) ,&
                   source_xy(j,k), qp_rk(1:n_vars+2,j,k,i_RK),                   &
                   expl_terms(1:n_eqns,j,k,i_RK), t, cell_source_fractions(j,k) )
-
-!!$             ELSE
-!!$
-!!$                expl_terms(1:n_eqns,j,k,i_RK) = 0.0_wp
-!!$
-!!$             END IF
   
           END IF
 
@@ -1334,7 +1325,7 @@ CONTAINS
 
           ELSE
 
-             WRITE(*,*) 'WARNING: SUM(qsolid)>q1',SUM(q(5:4+n_solid,j,k))-q(1,j,k)
+             WRITE(*,*) 'WARNING:SUM(qsolid)>q1',SUM(q(5:4+n_solid,j,k))-q(1,j,k)
              
              WRITE(*,*) 'j,k,n_RK',j,k,n_RK
              WRITE(*,*) 'dt',dt
@@ -1599,7 +1590,7 @@ CONTAINS
                [n_eqns-n_nh,n_eqns-n_nh]) 
 
           ! not needed for computation
-          !left_matrix_small12 = reshape(pack(left_matrix, mask12),              &
+          !left_matrix_small12 = reshape(pack(left_matrix, mask12),             &
           !     [n_nh,n_eqns-n_nh]) 
 
           left_matrix_small22 = reshape(pack(left_matrix, mask22),              &
@@ -3142,7 +3133,7 @@ CONTAINS
 
              END IF
 
-             CALL limit( qrec_stencil , x_stencil , limiter(i) ,             &
+             CALL limit( qrec_stencil , x_stencil , limiter(i) ,                &
                   qrec_prime_x(i) )
              
              dq = reconstr_coeff*dx2*qrec_prime_x(i)
