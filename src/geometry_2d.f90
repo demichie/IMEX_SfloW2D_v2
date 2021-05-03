@@ -1195,7 +1195,7 @@ CONTAINS
     REAL(wp), INTENT(IN) :: b
     REAL(wp) :: sa , sb 
 
-    IF ( MIN(ABS(a),ABS(b)) .LT. 1.0e-30_wp ) THEN
+    IF ( MIN(ABS(a),ABS(b)) .LT. -1.0e-40_wp ) THEN
 
        minmod = 0.0_wp
 

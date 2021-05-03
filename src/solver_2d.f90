@@ -19,8 +19,11 @@ MODULE solver_2d
   USE geometry_2d, ONLY : comp_interfaces_x,comp_interfaces_y
 
   USE geometry_2d, ONLY : B_cent , B_prime_x , B_prime_y
+  
   USE geometry_2d, ONLY : B_second_xx , B_second_xy , B_second_yy
   USE geometry_2d, ONLY : grav_coeff
+  USE geometry_2d, ONLY : grav_coeff_stag_x , grav_coeff_stag_y
+  
   USE geometry_2d, ONLY : d_grav_coeff_dx , d_grav_coeff_dy
   USE geometry_2d, ONLY : source_cell
   USE geometry_2d, ONLY : cell_source_fractions
@@ -1314,11 +1317,40 @@ CONTAINS
           END IF
              
        END IF negative_alpha_check
-          
+
+       CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
+
+!!$       IF ( ( q(1,j,k) .GT. 0.0_wp ) .AND. ( ABS(qp(5,j,k)/qp(1,j,k)-0.1) .GT. -1.e-8 ) ) THEN
+!!$
+!!$          WRITE(*,*) j,k,qp(1:n_vars+2,j,k)
+!!$          WRITE(*,*) q(5,j,k)/q(1,j,k)
+!!$
+!!$          CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
+!!$          WRITE(*,*) j,k,qp(1:n_vars+2,j,k)
+!!$          WRITE(*,*) q0(5,j,k)/q0(1,j,k)
+!!$
+!!$          WRITE(*,*) 'H_interface(1)'
+!!$          WRITE(*,*) H_interface_x(1,j+1,k)/dx*dt, H_interface_x(1,j,k)/dx*dt
+!!$          WRITE(*,*) H_interface_y(1,j,k+1)/dy*dt, H_interface_y(1,j,k)/dy*dt
+!!$          
+!!$          WRITE(*,*) 'H_interface(5)'
+!!$          WRITE(*,*) H_interface_x(5,j+1,k)/dx*dt, H_interface_x(5,j,k)/dx*dt
+!!$          WRITE(*,*) H_interface_y(5,j,k+1)/dy*dt, H_interface_y(5,j,k)/dy*dt
+!!$
+!!$          WRITE(*,*) H_interface_x(5,j+1,k)/H_interface_x(1,j+1,k)
+!!$          WRITE(*,*) H_interface_y(5,j,k+1)/H_interface_y(1,j,k+1)
+!!$          WRITE(*,*) H_interface_x(5,j,k)/H_interface_x(1,j,k)
+!!$          WRITE(*,*) H_interface_y(5,j,k)/H_interface_y(1,j,k)
+!!$          
+!!$          
+!!$          READ(*,*)
+!!$
+!!$       END IF
+       
 
        IF ( SUM(q(5:4+n_solid,j,k)) .GT. q(1,j,k) ) THEN
 
-          IF ( (SUM(q(5:4+n_solid,j,k))-q(1,j,k))/q(1,j,k) .LT. 1.0E-5_wp ) THEN
+          IF ( (SUM(q(5:4+n_solid,j,k))-q(1,j,k))/q(1,j,k) .LT. 1.0E-10_wp ) THEN
 
              q(5:4+n_solid,j,k) = q(5:4+n_solid,j,k)                            &
                   / SUM(q(5:4+n_solid,j,k)) * q(1,j,k)
@@ -2587,12 +2619,23 @@ CONTAINS
 
           END IF
 
+!!$          IF ( ( j.EQ.224 ) .AND. ( k.EQ.117 ) ) THEN
+!!$
+!!$             WRITE(*,*) 'fluxes'
+!!$             WRITE(*,*) q_interfaceL(1,j,k),q_interfaceL(5,j,k)/q_interfaceL(1,j,k)
+!!$             WRITE(*,*) qp_interfaceL(1,j,k),qp_interfaceL(5,j,k)/qp_interfaceL(1,j,k)
+!!$             WRITE(*,*) q_interfaceR(1,j,k),q_interfaceR(5,j,k)/q_interfaceR(1,j,k)
+!!$             WRITE(*,*) qp_interfaceL(1,j,k),qp_interfaceL(5,j,k)/qp_interfaceL(1,j,k)
+!!$
+!!$          END IF
+          
        END DO interfaces_x_loop
 
        !$OMP END DO NOWAIT
 
     END IF
 
+    
 
     IF ( comp_cells_y .GT. 1 ) THEN
 
@@ -2908,12 +2951,25 @@ CONTAINS
                 CALL limit( qrec_stencil , x_stencil , limiter(i) ,             &
                      qrec_prime_x(i) )
 
+!!$                IF ( (j.EQ.223).AND.(k.EQ.117).AND.((i.EQ.5).OR.(i.EQ.1)) ) THEN
+!!$
+!!$                   WRITE(*,*) 'qrec_stencil',i,qrec_stencil,qrec_prime_x(i)
+!!$
+!!$                END IF
+
              ENDIF check_x_boundary
 
              dq = reconstr_coeff* dx2 * qrec_prime_x(i) 
 
              qrecW(i) = qrec_stencil(2) - dq
              qrecE(i) = qrec_stencil(2) + dq
+
+!!$             IF ( (j.EQ.223).AND.(k.EQ.117).AND.((i.EQ.5).OR.(i.EQ.1)) ) THEN
+!!$
+!!$                WRITE(*,*) 'qrecW',i,qrecW(i)
+!!$
+!!$             END IF
+
              
              IF ( j.EQ.1 ) THEN
                 
@@ -3505,11 +3561,11 @@ CONTAINS
           j = j_stag_x(l)
           k = k_stag_x(l)
 
-          CALL eval_local_speeds_x( qp_interfaceL(:,j,k) , abslambdaL_min ,     &
-               abslambdaL_max )
+          CALL eval_local_speeds_x( qp_interfaceL(:,j,k) ,                      &
+               grav_coeff_stag_x(j,k) , abslambdaL_min , abslambdaL_max )
 
-          CALL eval_local_speeds_x( qp_interfaceR(:,j,k) , abslambdaR_min ,     &
-               abslambdaR_max )
+          CALL eval_local_speeds_x( qp_interfaceR(:,j,k) ,                      &
+               grav_coeff_stag_x(j,k) , abslambdaR_min , abslambdaR_max )
 
           min_r = MIN(abslambdaL_min , abslambdaR_min , 0.0_wp)
           max_r = MAX(abslambdaL_max , abslambdaR_max , 0.0_wp)
@@ -3533,11 +3589,11 @@ CONTAINS
           j = j_stag_y(l)
           k = k_stag_y(l)
 
-          CALL eval_local_speeds_y( qp_interfaceB(:,j,k) , abslambdaB_min ,     &
-               abslambdaB_max )
-
-          CALL eval_local_speeds_y( qp_interfaceT(:,j,k) , abslambdaT_min ,     &
-               abslambdaT_max )
+          CALL eval_local_speeds_y( qp_interfaceB(:,j,k) ,                      &
+               grav_coeff_stag_y(j,k) , abslambdaB_min , abslambdaB_max )
+          
+          CALL eval_local_speeds_y( qp_interfaceT(:,j,k) ,                      &
+               grav_coeff_stag_y(j,k) , abslambdaT_min , abslambdaT_max )
 
           min_r = MIN(abslambdaB_min , abslambdaT_min , 0.0_wp)
           max_r = MAX(abslambdaB_max , abslambdaT_max , 0.0_wp)

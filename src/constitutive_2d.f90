@@ -285,7 +285,8 @@ CONTAINS
     REAL(wp) :: inv_qj1
  
     ! compute solid mass fractions
-    IF ( r_qj(1) .GT. eps_sing ) THEN
+    ! IF ( r_qj(1) .GT. eps_sing ) THEN
+    IF ( r_qj(1) .GT. 0.0_wp ) THEN
 
        inv_qj1 = 1.0_wp / r_qj(1)
 
@@ -389,6 +390,13 @@ CONTAINS
     ! convert from mass fraction to volume fraction
     r_alphas(1:n_solid) = r_xs(1:n_solid) * r_rho_m * inv_rho_s(1:n_solid)
 
+!!$    IF ( ( r_qj(1) .GT. 0.0_wp ) .AND. ( ABS( r_alphas(1) - 0.1_wp ) .GT. 1.0E-5_wp ) ) THEN
+!!$
+!!$       WRITE(*,*) 'qui',r_alphas(1) - 0.1_wp,r_qj(1),r_qj(5)
+!!$       READ(*,*)
+!!$
+!!$    END IF
+    
     ! convert from mass fraction to volume fraction
     r_alphac = r_xc * r_rho_m * r_inv_rho_c
 
@@ -469,7 +477,8 @@ CONTAINS
     COMPLEX(wp) :: inv_rho_c               !< carrier phase reciprocal
 
     ! compute solid mass fractions
-    IF ( REAL(c_qj(1)) .GT. eps_sing ) THEN
+    ! IF ( REAL(c_qj(1)) .GT. eps_sing ) THEN
+    IF ( REAL(c_qj(1)) .GT. 0.0_wp ) THEN
 
        inv_cqj1 = 1.0_wp / c_qj(1)
 
@@ -983,6 +992,7 @@ CONTAINS
     END IF
 
     qc(5:4+n_solid) = r_h * r_alphas(1:n_solid) * rho_s(1:n_solid)
+    qc(5:4+n_solid) = r_xs * qc(1)
 
     IF ( gas_flag .AND. liquid_flag ) qc(n_vars) = r_h * r_alphal * rho_l
 
@@ -1042,11 +1052,12 @@ CONTAINS
   !> \date 05/12/2017
   !******************************************************************************
 
-  SUBROUTINE eval_local_speeds_x(qpj,vel_min,vel_max)
+  SUBROUTINE eval_local_speeds_x(qpj,grav_coeff,vel_min,vel_max)
 
     IMPLICIT none
 
     REAL(wp), INTENT(IN) :: qpj(n_vars+2)
+    REAL(wp), INTENT(IN) :: grav_coeff
 
     REAL(wp), INTENT(OUT) :: vel_min(n_vars) , vel_max(n_vars)
 
@@ -1072,7 +1083,7 @@ CONTAINS
 
     ELSE
 
-       r_celerity = SQRT( r_red_grav * r_h )
+       r_celerity = SQRT( r_red_grav * r_h * grav_coeff )
        vel_min(1:n_eqns) = r_u - r_celerity
        vel_max(1:n_eqns) = r_u + r_celerity
 
@@ -1095,11 +1106,12 @@ CONTAINS
   !> \date 05/12/2017
   !******************************************************************************
 
-  SUBROUTINE eval_local_speeds_y(qpj,vel_min,vel_max)
+  SUBROUTINE eval_local_speeds_y(qpj,grav_coeff,vel_min,vel_max)
 
     IMPLICIT none
 
     REAL(wp), INTENT(IN)  :: qpj(n_vars+2)
+    REAL(wp), INTENT(IN) :: grav_coeff
     REAL(wp), INTENT(OUT) :: vel_min(n_vars) , vel_max(n_vars)
 
     REAL(wp) :: r_h          !< real-value flow thickness
@@ -1124,7 +1136,7 @@ CONTAINS
 
     ELSE
 
-       r_celerity = SQRT( r_red_grav * r_h )
+       r_celerity = SQRT( grav_coeff * r_red_grav * r_h )
        vel_min(1:n_eqns) = r_v - r_celerity
        vel_max(1:n_eqns) = r_v + r_celerity
 
