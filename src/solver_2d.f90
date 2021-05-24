@@ -1013,7 +1013,7 @@ CONTAINS
           ! semi-implicit term
           q_fv( 1:n_vars , j , k ) = q0( 1:n_vars , j , k )                     &
                - dt * (MATMUL( divFlux(1:n_eqns,j,k,1:i_RK)                     &
-               + expl_terms(1:n_eqns,j,k,1:i_RK) , a_tilde(1:i_RK) )            &
+               - expl_terms(1:n_eqns,j,k,1:i_RK) , a_tilde(1:i_RK) )            &
                - MATMUL( NH(1:n_eqns,j,k,1:i_RK) + SI_NH(1:n_eqns,j,k,1:i_RK) , &
                a_dirk(1:i_RK) ) )
 
@@ -1075,7 +1075,7 @@ CONTAINS
                 q_guess(1:n_vars) = q_si(1:n_vars)
 
 
-                Rj_not_impl =  ( MATMUL( divFlux(1:n_eqns,j,k,1:i_RK-1) +       &
+                Rj_not_impl =  ( MATMUL( divFlux(1:n_eqns,j,k,1:i_RK-1) -       &
                      expl_terms(1:n_eqns,j,k,1:i_RK-1), a_tilde(1:i_RK-1) )     &
                      - MATMUL( NH(1:n_eqns,j,k,1:i_RK-1)                        &
                      + SI_NH(1:n_eqns,j,k,1:i_RK-1) , a_dirk(1:i_RK-1) ) )      &
@@ -1211,7 +1211,7 @@ CONTAINS
        k = k_cent(l)
 
        residual_term(1:n_vars,j,k) = MATMUL( divFlux(1:n_eqns,j,k,1:n_RK)       &
-            + expl_terms(1:n_eqns,j,k,1:n_RK) , omega_tilde ) -                 &
+            - expl_terms(1:n_eqns,j,k,1:n_RK) , omega_tilde ) -                 &
             MATMUL( NH(1:n_eqns,j,k,1:n_RK) + SI_NH(1:n_eqns,j,k,1:n_RK) ,      &
             omega )
 
@@ -1509,7 +1509,7 @@ CONTAINS
     ! normalize the functions of the nonlinear system
     IF ( normalize_f ) THEN
 
-       qj = qj_old - dt * ( MATMUL(divFluxj+ Expl_terms_j,a_tilde)              &
+       qj = qj_old - dt * ( MATMUL( divFluxj - expl_terms_j,a_tilde)            &
             - MATMUL(NHj,a_dirk) )
 
        CALL eval_f( qj , qj_old , a_diag , coeff_f , Rj_not_impl , Bprimej_x ,  &

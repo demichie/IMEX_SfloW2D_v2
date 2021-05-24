@@ -1286,7 +1286,7 @@ CONTAINS
   !
   !> This subroutine evaluates the non-hyperbolic terms to be treated explicitely
   !> in the DIRK numerical scheme (e.g. gravity,source of mass). The sign of the
-  !> terms is taken with the terms on the left-hand side of the equations.
+  !> terms is taken with the terms on the right-hand side of the equations.
   !> \date 2019/12/13
   !> \param[in]     B_primej_x         local x-slope
   !> \param[in]     B_primej_y         local y_slope
@@ -1356,6 +1356,7 @@ CONTAINS
     REAL(wp) :: t_coeff
     REAL(wp) :: h_dot
 
+    REAL(wp) :: r_tilde_grav
     REAL(wp) :: centr_force_term
     
     expl_term(1:n_eqns) = 0.0_wp
@@ -1379,15 +1380,15 @@ CONTAINS
 
     END IF
     
+    r_tilde_grav = r_red_grav + centr_force_term
+
     ! units of dqc(2)/dt [kg m-1 s-2]
-    expl_term(2) = grav_coeff * ( r_red_grav + centr_force_term ) * r_rho_m *   &
-         r_h * Bprimej_x - 0.5_wp * grav_coeff * r_red_grav * r_rho_m * r_h**2  &
-         * d_grav_coeff_dx 
+    expl_term(2) = - grav_coeff * r_rho_m * r_tilde_grav * r_h * Bprimej_x      &
+         + grav_coeff * r_red_grav * r_rho_m * 0.5_wp * r_h**2 * d_grav_coeff_dx 
     
     ! units of dqc(3)/dt [kg m-1 s-2]
-    expl_term(3) = grav_coeff * ( r_red_grav + centr_force_term ) * r_rho_m *   &
-         r_h * Bprimej_y - 0.5_wp * grav_coeff * r_red_grav * r_rho_m * r_h**2  &
-         * d_grav_coeff_dx
+    expl_term(3) = - grav_coeff * r_rho_m * r_tilde_grav * r_h * Bprimej_y      &
+         + grav_coeff * r_red_grav * r_rho_m * 0.5_wp * r_h**2 * d_grav_coeff_dx
 
     IF ( energy_flag ) THEN
 
@@ -1401,7 +1402,7 @@ CONTAINS
     
     ! ----------- ADDITIONAL EXPLICIT TERMS FOR BOTTOM RADIAL SOURCE ------------ 
 
-    IF ( .NOT.bottom_radial_source_flag) THEN
+    IF ( .NOT.bottom_radial_source_flag ) THEN
 
        RETURN
 
@@ -1444,7 +1445,7 @@ CONTAINS
 
     END IF
 
-    h_dot = -cell_fract_jk * vel_source
+    h_dot = cell_fract_jk * vel_source
 
     r_alphas(1:n_solid) = alphas_source(1:n_solid) 
     alphas_tot = SUM(r_alphas)
