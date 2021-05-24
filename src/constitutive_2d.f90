@@ -208,7 +208,7 @@ CONTAINS
     implicit_flag(3) = .TRUE.
 
     ! Temperature
-    implicit_flag(4) = .FALSE.
+    implicit_flag(4) = .TRUE.
 
     ! Solid volume fraction
     implicit_flag(5:4+n_solid) = .FALSE.
@@ -1712,6 +1712,8 @@ CONTAINS
 
           h_threshold = 1.0E-10_wp
 
+          T_env = 300.0_wp
+
           ! Temperature dependent rheology
           IF ( REAL(h) .GT. h_threshold ) THEN
 
@@ -1736,6 +1738,12 @@ CONTAINS
 
           ENDIF
 
+          IF ( ( REAL(T) .GT. T_env ) .AND. ( REAL(h) .GT. h_threshold ) ) THEN
+          
+             source_term(4) = source_term(4) - 5.04E-8_wp * ( T**4 - T_env**4 )  
+
+          END IF
+             
        ELSEIF ( rheology_model .EQ. 4 ) THEN
 
           ! Lahars rheology (O'Brien 1993, FLO2D)
@@ -1975,6 +1983,37 @@ CONTAINS
           ! Temperature dependent rheology
        ELSEIF ( rheology_model .EQ. 3 ) THEN
 
+          h_threshold = 1.0E-20_wp
+
+          ! Yield strength (units: kg m-1 s-2)
+          tau_y = 0.0_wp
+
+          IF ( r_h .GT. h_threshold ) THEN
+
+             ! Yield slope component (dimensionless)
+             s_y = tau_y / ( grav * r_rho_m * r_h )
+
+          ELSE
+
+             ! Yield slope component (dimensionless)
+             s_y = tau_y / ( grav * r_rho_m * h_threshold )
+
+          END IF
+
+          mod_vel = SQRT( r_u**2 + r_v**2 )
+          
+          IF ( mod_vel .GT. 0.0_wp ) THEN
+
+             temp_term = grav * r_rho_m * r_h * s_y / mod_vel
+
+             ! units of dqc(2)/dt [kg m-1 s-2]
+             source_term(2) = source_term(2) - temp_term * r_u
+
+             ! units of dqc(3)/dt [kg m-1 s-2]
+             source_term(3) = source_term(3) - temp_term * r_v
+
+          END IF
+          
 
           ! Lahars rheology (O'Brien 1993, FLO2D)
        ELSEIF ( rheology_model .EQ. 4 ) THEN

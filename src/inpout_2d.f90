@@ -820,7 +820,7 @@ CONTAINS
        
        IF ( kin_visc_l .EQ. -1.0_wp ) THEN
 
-          IF ( RHEOLOGY_MODEL .NE. 4 ) THEN
+          IF ( ( RHEOLOGY_MODEL .NE. 4 ) .AND. ( RHEOLOGY_MODEL .NE. 3 ) ) THEN
 
              WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
              WRITE(*,*) 'KIN_VISC_L =' , kin_visc_l
@@ -836,6 +836,16 @@ CONTAINS
              WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
              WRITE(*,*) 'KIN_VISC_L =' , kin_visc_l
              WRITE(*,*) 'Viscosity already is computed by REHOLOGY MODEL=4' 
+             WRITE(*,*) 'Please check the input file'
+             STOP
+
+          END IF
+
+          IF ( RHEOLOGY_MODEL .EQ. 3 ) THEN
+
+             WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
+             WRITE(*,*) 'KIN_VISC_L =' , kin_visc_l
+             WRITE(*,*) 'Viscosity already is computed by REHOLOGY MODEL=3' 
              WRITE(*,*) 'Please check the input file'
              STOP
 
