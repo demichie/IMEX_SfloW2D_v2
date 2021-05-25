@@ -52,6 +52,9 @@ MODULE constitutive_2d
   !> viscosity parameter [K-1] (b in Table 1 Costa & Macedonio, 2005)
   REAL(wp) :: visc_par
 
+  !> yield strength for lava rheology [kg m-1 s-2] (Eq.4 Kelfoun & Varga, 2015)
+  REAL(wp) :: tau0
+  
   !> velocity boundary layer fraction of total thickness
   REAL(wp) :: emme
 
@@ -208,8 +211,12 @@ CONTAINS
     implicit_flag(3) = .TRUE.
 
     ! Temperature
-    implicit_flag(4) = .TRUE.
+    IF ( rheology_model .EQ. 3 ) THEN
 
+       implicit_flag(4) = .TRUE.
+
+    END IF
+       
     ! Solid volume fraction
     implicit_flag(5:4+n_solid) = .FALSE.
 
@@ -1703,9 +1710,9 @@ CONTAINS
           ! Plastic rheology
           IF ( REAL(mod_vel) .NE. 0.0_wp ) THEN 
 
-             source_term(2) = source_term(2) - rho_m * tau * (u/mod_vel)
+             source_term(2) = source_term(2) - rho_m * tau * ( u / mod_vel )
 
-             source_term(3) = source_term(3) - rho_m * tau * (v/mod_vel)
+             source_term(3) = source_term(3) - rho_m * tau * ( v / mod_vel )
 
           ENDIF
 
@@ -1984,38 +1991,18 @@ CONTAINS
           ! Temperature dependent rheology
        ELSEIF ( rheology_model .EQ. 3 ) THEN
 
-          h_threshold = 1.0E-20_wp
-
-          ! Yield strength (units: kg m-1 s-2)
-          tau_y = 0.0_wp
-
-          IF ( r_h .GT. h_threshold ) THEN
-
-             ! Yield slope component (dimensionless)
-             s_y = tau_y / ( grav * r_rho_m * r_h )
-
-          ELSE
-
-             ! Yield slope component (dimensionless)
-             s_y = tau_y / ( grav * r_rho_m * h_threshold )
-
-          END IF
-
           mod_vel = SQRT( r_u**2 + r_v**2 )
           
           IF ( mod_vel .GT. 0.0_wp ) THEN
 
-             temp_term = grav * r_rho_m * r_h * s_y / mod_vel
-
              ! units of dqc(2)/dt [kg m-1 s-2]
-             source_term(2) = source_term(2) - temp_term * r_u
+             source_term(2) = source_term(2) - tau0 * r_u / mod_vel
 
              ! units of dqc(3)/dt [kg m-1 s-2]
-             source_term(3) = source_term(3) - temp_term * r_v
+             source_term(3) = source_term(3) - tau0 * r_v / mod_vel
 
           END IF
           
-
           ! Lahars rheology (O'Brien 1993, FLO2D)
        ELSEIF ( rheology_model .EQ. 4 ) THEN
 

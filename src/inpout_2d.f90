@@ -63,6 +63,7 @@ MODULE inpout_2d
   USE constitutive_2d, ONLY : mu , xi , tau , nu_ref , visc_par , T_ref
   USE constitutive_2d, ONLY : alpha2 , beta2 , alpha1_coeff , beta1 , Kappa ,n_td
   USE constitutive_2d, ONLY : friction_factor
+  USE constitutive_2d, ONLY : tau0
   
   ! --- Variables for the namelist SOLID_TRANSPORT_PARAMETERS
   USE constitutive_2d, ONLY : rho_s , diam_s , sp_heat_s
@@ -230,7 +231,7 @@ MODULE inpout_2d
 
   NAMELIST / rheology_parameters / rheology_model , mu , xi , tau , nu_ref ,    &
        visc_par , T_ref , alpha2 , beta2 , alpha1_ref , beta1 , Kappa , n_td ,  &
-       friction_factor
+       friction_factor , tau0
 
   NAMELIST / runout_parameters / x0_runout , y0_runout , dt_runout ,            &
        eps_stop
@@ -340,6 +341,7 @@ CONTAINS
     tau = 0.0_wp
     T_ref = 0.0_wp
     visc_par = 0.0_wp
+    tau0 = 0.0_wp
 
     !-- Inizialization of the Variables for the namelist RUNOUT_PARAMETERS
     x0_runout = -1
@@ -449,6 +451,7 @@ CONTAINS
     nu_ref = -1
     visc_par = -1
     T_ref = -1
+    tau0 = -1
     friction_factor = -1
 
     alpha2 = -1 
@@ -2059,13 +2062,15 @@ CONTAINS
           END IF
 
           IF ( ( T_ref .NE. -1.0_wp ) .OR. ( nu_ref .NE. -1.0_wp ) .OR.         &
-               ( visc_par .NE. -1.0_wp ) .OR. ( tau .NE. -1.0_wp ) ) THEN
+               ( visc_par .NE. -1.0_wp ) .OR. ( tau .NE. -1.0_wp ) .OR.         &
+               ( tau0 .NE. -1.0_wp ) ) THEN
 
              WRITE(*,*) 'WARNING: parameters not used in RHEOLOGY_PARAMETERS'
              IF ( T_ref .NE. -1.0_wp ) WRITE(*,*) 'T_ref =',T_ref 
              IF ( nu_ref .NE. -1.0_wp ) WRITE(*,*) 'nu_ref =',nu_ref 
              IF ( visc_par .NE. -1.0_wp ) WRITE(*,*) 'visc_par =',visc_par
              IF ( tau .NE. -1.0_wp ) WRITE(*,*) 'tau =',tau 
+             IF ( tau0 .NE. -1.0_wp ) WRITE(*,*) 'tau0 =',tau0 
              WRITE(*,*) 'Press ENTER to continue'
              READ(*,*)
 
@@ -2105,6 +2110,15 @@ CONTAINS
              
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'NU_REF =' , nu_ref 
+             WRITE(*,*) 'Please check the input file'
+             STOP
+             
+          END IF
+
+          IF ( tau0 .EQ. -1.0_wp ) THEN
+             
+             WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
+             WRITE(*,*) 'TAU0 =' , tau0 
              WRITE(*,*) 'Please check the input file'
              STOP
              
