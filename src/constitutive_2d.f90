@@ -61,11 +61,17 @@ MODULE constitutive_2d
   !> specific heat [J kg-1 K-1]
   REAL(wp) :: c_p
 
+  !> coefficient for the convective term in the temperature equation for lava
+  REAL(wp) :: convective_term_coeff
+  
   !> atmospheric heat trasnfer coefficient [W m-2 K-1] (lambda in C&M, 2005)
   REAL(wp) :: atm_heat_transf_coeff
 
   !> fractional area of the exposed inner core (f in C&M, 2005)
   REAL(wp) :: exp_area_fract
+
+  !> coefficient for the radiative term in the temperature equation for lava
+  REAL(wp) :: radiative_term_coeff
 
   !> Stephan-Boltzmann constant [W m-2 K-4]
   REAL(wp), PARAMETER :: SBconst = 5.67E-8_wp
@@ -235,6 +241,8 @@ CONTAINS
        END IF
 
     END DO
+
+    WRITE(*,*) 'Implicit equations =',n_nh
     
     RETURN
     
@@ -1218,7 +1226,7 @@ CONTAINS
 
           ELSE
 
-             ! Temperature flux in x-direction: u * ( h * T )
+             ! Temperature flux in x-direction: u * ( rhom * Cp * h * T )
              flux(4) = r_u * qcj(4)
 
           END IF
@@ -1745,13 +1753,11 @@ CONTAINS
              source_term(3) = source_term(3) - rho_m * gamma * v
 
           ENDIF
-
-          IF ( ( REAL(T) .GT. T_env ) .AND. ( REAL(h) .GT. h_threshold ) ) THEN
           
-             source_term(4) = source_term(4) - 5.04E-8_wp * ( T**4 - T_env**4 )  
+          source_term(4) = source_term(4) - radiative_term_coeff * ( T**4 -     &
+               T_env**4 ) - convective_term_coeff * ( T - T_env )
 
-          END IF
-             
+          
        ELSEIF ( rheology_model .EQ. 4 ) THEN
 
           ! Lahars rheology (O'Brien 1993, FLO2D)

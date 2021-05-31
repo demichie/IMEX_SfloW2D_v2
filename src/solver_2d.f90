@@ -777,7 +777,7 @@ CONTAINS
     USE geometry_2d, ONLY : dx,dy
     USE parameters_2d, ONLY : max_dt , cfl
 
-    USE constitutive_2d, ONLY : qc_to_qp
+    USE constitutive_2d, ONLY : qc_to_qp , T_ambient
 
     IMPLICIT none
 
@@ -808,12 +808,16 @@ CONTAINS
           ELSE
 
              qp(1:n_vars+2,j,k) = 0.0_wp
+             qp(4,j,k) = T_ambient
 
           END IF
 
        END DO
 
        !$OMP END PARALLEL DO
+
+       !WRITE(*,*) 'qp(1:n_vars+2,1,1)',qp(1:n_vars+2,1,1)
+       !READ(*,*)
 
        ! Compute the physical and conservative variables at the interfaces
        CALL reconstruction( q , qp )
@@ -927,6 +931,9 @@ CONTAINS
 
     USE constitutive_2d, ONLY : eval_expl_terms
 
+    USE constitutive_2d, ONLY : T_ambient
+
+
     USE geometry_2d, ONLY : B_nodata
 
 !!$    USE parameters_2d, ONLY : time_param , bottom_radial_source_flag
@@ -966,6 +973,7 @@ CONTAINS
 
     !$OMP END PARALLEL
 
+    qp_rk( 4 , : , : , 1:n_RK ) = T_ambient
 
     runge_kutta:DO i_RK = 1,n_RK
 
@@ -1017,6 +1025,31 @@ CONTAINS
                - MATMUL( NH(1:n_eqns,j,k,1:i_RK) + SI_NH(1:n_eqns,j,k,1:i_RK) , &
                a_dirk(1:i_RK) ) )
 
+          CALL qc_to_qp(q_fv(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
+
+          IF ( qp(4,j,k) .LT. 290.0_wp ) THEN
+
+             WRITE(*,*) 'i_RK',i_RK
+             WRITE(*,*) j,k,qp(1:n_vars+2,j,k)
+             
+             CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
+             WRITE(*,*) j,k,qp(1:n_vars+2,j,k)
+             
+             WRITE(*,*) 'H_interface(1)'
+             WRITE(*,*) H_interface_x(1,j+1,k)/dx*dt, H_interface_x(1,j,k)/dx*dt
+             WRITE(*,*) H_interface_y(1,j,k+1)/dy*dt, H_interface_y(1,j,k)/dy*dt
+
+             WRITE(*,*) 'H_interface(4)'
+             WRITE(*,*) H_interface_x(4,j+1,k)/dx*dt, H_interface_x(4,j,k)/dx*dt
+             WRITE(*,*) H_interface_y(4,j,k+1)/dy*dt, H_interface_y(4,j,k)/dy*dt
+
+             WRITE(*,*) 'qp_interfaceB',qp_interfaceB(1:n_vars,j,k+1)
+             WRITE(*,*) 'qp_interfaceT',qp_interfaceT(1:n_vars,j,k+1)
+             
+             READ(*,*)
+             
+          END IF
+          
           
           IF ( verbose_level .GE. 2 ) THEN
 
@@ -1173,6 +1206,7 @@ CONTAINS
              ELSE
 
                 qp_rk(1:n_vars+2,j,k,i_RK) = 0.0_wp
+                qp_rk(4,j,k,i_RK) = T_ambient
 
              END IF
 
@@ -1320,32 +1354,20 @@ CONTAINS
 
        CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
 
-!!$       IF ( ( q(1,j,k) .GT. 0.0_wp ) .AND. ( ABS(qp(5,j,k)/qp(1,j,k)-0.1) .GT. -1.e-8 ) ) THEN
-!!$
-!!$          WRITE(*,*) j,k,qp(1:n_vars+2,j,k)
-!!$          WRITE(*,*) q(5,j,k)/q(1,j,k)
-!!$
-!!$          CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
-!!$          WRITE(*,*) j,k,qp(1:n_vars+2,j,k)
-!!$          WRITE(*,*) q0(5,j,k)/q0(1,j,k)
-!!$
-!!$          WRITE(*,*) 'H_interface(1)'
-!!$          WRITE(*,*) H_interface_x(1,j+1,k)/dx*dt, H_interface_x(1,j,k)/dx*dt
-!!$          WRITE(*,*) H_interface_y(1,j,k+1)/dy*dt, H_interface_y(1,j,k)/dy*dt
-!!$          
-!!$          WRITE(*,*) 'H_interface(5)'
-!!$          WRITE(*,*) H_interface_x(5,j+1,k)/dx*dt, H_interface_x(5,j,k)/dx*dt
-!!$          WRITE(*,*) H_interface_y(5,j,k+1)/dy*dt, H_interface_y(5,j,k)/dy*dt
-!!$
-!!$          WRITE(*,*) H_interface_x(5,j+1,k)/H_interface_x(1,j+1,k)
-!!$          WRITE(*,*) H_interface_y(5,j,k+1)/H_interface_y(1,j,k+1)
-!!$          WRITE(*,*) H_interface_x(5,j,k)/H_interface_x(1,j,k)
-!!$          WRITE(*,*) H_interface_y(5,j,k)/H_interface_y(1,j,k)
-!!$          
-!!$          
-!!$          READ(*,*)
-!!$
-!!$       END IF
+       IF ( qp(4,j,k) .LT. 290.0_wp ) THEN
+
+          WRITE(*,*) j,k,qp(1:n_vars+2,j,k)
+
+          CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
+          WRITE(*,*) j,k,qp(1:n_vars+2,j,k)
+
+          WRITE(*,*) 'H_interface(4)'
+          WRITE(*,*) H_interface_x(4,j+1,k)/dx*dt, H_interface_x(4,j,k)/dx*dt
+          WRITE(*,*) H_interface_y(4,j,k+1)/dy*dt, H_interface_y(4,j,k)/dy*dt
+                    
+          READ(*,*)
+
+       END IF
        
 
        IF ( SUM(q(5:4+n_solid,j,k)) .GT. q(1,j,k) ) THEN
@@ -1487,7 +1509,7 @@ CONTAINS
     REAL(wp), PARAMETER :: TOLF=1.0E-10_wp , TOLMIN=1.0E-6_wp
     REAL(wp) :: TOLX
 
-    ! REAL(wp) :: qpj(n_vars+2)
+    ! REAL(wp) :: qpj(n_vars+2) , p_dyn
 
     REAL(wp) :: desc_dir2(n_vars)
 
@@ -1559,7 +1581,7 @@ CONTAINS
     newton_raphson_loop:DO nl_iter=1,max_nl_iter
 
        TOLX = epsilon(qj_rel)
-
+       
        IF ( verbose_level .GE. 2 ) WRITE(*,*) 'solve_rk_step: nl_iter',nl_iter
 
        CALL eval_f( qj , qj_old , a_diag , coeff_f , Rj_not_impl , Bprimej_x ,  &
@@ -1582,14 +1604,14 @@ CONTAINS
        IF ( MAXVAL( ABS( right_term(:) ) ) < TOLF ) THEN
 
           IF ( verbose_level .GE. 3 ) WRITE(*,*) '1: check',check
-          RETURN
+          EXIT newton_raphson_loop
 
        END IF
 
        IF ( ( normalize_f ) .AND. ( scal_f < 1.0E-6_wp ) ) THEN
 
           IF ( verbose_level .GE. 3 ) WRITE(*,*) 'check scal_f',check
-          RETURN
+          EXIT newton_raphson_loop
 
        END IF
 
@@ -1723,7 +1745,7 @@ CONTAINS
 
           IF ( verbose_level .GE. 3 ) WRITE(*,*) '1: check',check
           check= .FALSE.
-          RETURN
+          EXIT newton_raphson_loop
 
        END IF
 
@@ -1741,12 +1763,12 @@ CONTAINS
             1.0_wp ) ) < TOLX ) THEN
 
           IF ( verbose_level .GE. 3 ) WRITE(*,*) 'check',check
-          RETURN
+          EXIT newton_raphson_loop
 
        END IF
 
     END DO newton_raphson_loop
-
+    
     RETURN
     
   END SUBROUTINE solve_rk_step
@@ -2344,6 +2366,10 @@ CONTAINS
 
     INTEGER :: l , i, j, k      !< loop counters
 
+    !WRITE(*,*) 'SUBROUTINE eval_hyperbolic_terms'
+    !WRITE(*,*) 'qp_expl(4,1,1)',qp_expl(4,1,1)
+    !WRITE(*,*)
+    
     ! Linear reconstruction of the physical variables at the interfaces
     CALL reconstruction(q_expl,qp_expl)
 
@@ -2835,6 +2861,9 @@ CONTAINS
     REAL(wp) :: dq
 
     LOGICAL :: diverging_flag
+
+    !WRITE(*,*) 'recontruction 0'
+    !WRITE(*,*) 'qp_expl(:,1,1)',qp_expl(:,1,1)
     
     !$OMP PARALLEL DO private(j,k,i,qrecW,qrecE,qrecS,qrecN,x_stencil,y_stencil,&
     !$OMP & qrec_stencil,qrec_prime_x,qrec_prime_y,qp2recW,qp2recE,qp2recS,     &
@@ -2849,7 +2878,7 @@ CONTAINS
        qrecE(1:n_vars+2) = qp_expl(1:n_vars+2,j,k)
        qrecS(1:n_vars+2) = qp_expl(1:n_vars+2,j,k)
        qrecN(1:n_vars+2) = qp_expl(1:n_vars+2,j,k)
-
+       
        x_stencil(2) = x_comp(j)
        y_stencil(2) = y_comp(k)
 
@@ -3514,7 +3543,7 @@ CONTAINS
           qp_interfaceT(:,j,k+1) = qp_expl(:,j,k)
 
        END IF
-
+       
     END DO
 
     !$OMP END PARALLEL DO

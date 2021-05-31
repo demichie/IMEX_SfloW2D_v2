@@ -379,7 +379,7 @@ CONTAINS
 
        END IF
 
-       IF ( n_solid .LT. 1 ) THEN
+       IF ( n_solid .LT. 0 ) THEN
 
           WRITE(*,*) 'ERROR: problem with namelist NEWRUN_PARAMETERS'
           WRITE(*,*) 'n_solid =' , n_solid
@@ -558,6 +558,8 @@ CONTAINS
  
     USE constitutive_2d, ONLY : n_td2 
     USE constitutive_2d, ONLY : coeff_porosity
+    USE constitutive_2d, ONLY : radiative_term_coeff , SBconst
+    USE constitutive_2d, ONLY : convective_term_coeff
 
     IMPLICIT none
 
@@ -637,7 +639,7 @@ CONTAINS
 
     END IF
 
-    IF ( n_solid .LT. 1 ) THEN
+    IF ( n_solid .LT. 0 ) THEN
        
        WRITE(*,*) 'ERROR: problem with namelist NEWRUN_PARAMETERS'
        WRITE(*,*) 'n_solid =' , n_solid
@@ -2004,24 +2006,6 @@ CONTAINS
            
     END IF
 
-
-    ! ------- READ temperature_parameters NAMELIST ------------------------------
-
-!!$    READ(input_unit, temperature_parameters,IOSTAT=ios)
-!!$       
-!!$    IF ( ios .NE. 0 ) THEN
-!!$       
-!!$       WRITE(*,*) 'IOSTAT=',ios
-!!$       WRITE(*,*) 'ERROR: problem with namelist TEMPERATURE_PARAMETERS'
-!!$       WRITE(*,*) 'Please check the input file'
-!!$       STOP
-!!$       
-!!$    ELSE
-!!$       
-!!$       REWIND(input_unit)
-!!$       
-!!$    END IF
-
     ! ------- READ rheology_parameters NAMELIST ---------------------------------
 
     IF ( rheology_flag ) THEN
@@ -2312,6 +2296,32 @@ CONTAINS
 
     END IF
 
+    ! ------- READ temperature_parameters NAMELIST ------------------------------
+
+    READ(input_unit, temperature_parameters,IOSTAT=ios)
+       
+    IF ( ios .NE. 0 ) THEN
+       
+       WRITE(*,*) 'IOSTAT=',ios
+       WRITE(*,*) 'ERROR: problem with namelist TEMPERATURE_PARAMETERS'
+       WRITE(*,*) 'Please check the input file'
+       STOP
+       
+    ELSE
+       
+       REWIND(input_unit)
+
+       IF ( rheology_model .EQ. 3 ) THEN
+
+          radiative_term_coeff = SBconst * emissivity * exp_area_fract
+          WRITE(*,*) 'radiative_term_coeff',radiative_term_coeff
+
+          convective_term_coeff = atm_heat_transf_coeff * exp_area_fract
+
+       END IF
+       
+    END IF
+    
     ! ---------------------------------------------------------------------------
 
     IF ( verbose_level .GE. 1 ) WRITE(*,*) 
