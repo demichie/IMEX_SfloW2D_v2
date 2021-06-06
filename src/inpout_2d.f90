@@ -553,9 +553,9 @@ CONTAINS
     USE constitutive_2d, ONLY : rho_a_amb
     USE constitutive_2d, ONLY : rho_c_sub
     USE constitutive_2d, ONLY : kin_visc_c , sp_heat_c 
-   
+
     USE constitutive_2d, ONLY : inv_pres , inv_rho_l , inv_rho_s , c_inv_rho_s
- 
+
     USE constitutive_2d, ONLY : n_td2 
     USE constitutive_2d, ONLY : coeff_porosity
     USE constitutive_2d, ONLY : radiative_term_coeff , SBconst
@@ -579,7 +579,7 @@ CONTAINS
          erosion_coeff , erodible_porosity , settling_flag , T_erodible ,       &
          erodible_file , erodible_fract , alphastot_min
 
-    
+
     REAL(wp) :: max_cfl
 
     LOGICAL :: tend1 
@@ -588,7 +588,7 @@ CONTAINS
     INTEGER :: i_solid , j , k
 
     INTEGER :: dot_idx
-    
+
     CHARACTER(LEN=3) :: check_file
 
     LOGICAL :: lexist
@@ -596,14 +596,14 @@ CONTAINS
     CHARACTER(LEN=15) :: chara
 
     INTEGER :: ios
-    
+
     REAL(wp) :: expA , expB , Tc
 
     OPEN(input_unit,FILE=input_file,STATUS='old')
 
     ! ---------- READ run_parameters NAMELIST -----------------------------------
     READ(input_unit, run_parameters,IOSTAT=ios )
-    
+
     IF ( ios .NE. 0 ) THEN
 
        WRITE(*,*) 'IOSTAT=',ios
@@ -640,20 +640,20 @@ CONTAINS
     END IF
 
     IF ( n_solid .LT. 0 ) THEN
-       
+
        WRITE(*,*) 'ERROR: problem with namelist NEWRUN_PARAMETERS'
        WRITE(*,*) 'n_solid =' , n_solid
        WRITE(*,*) 'Please check the input file'
        STOP
-       
+
     END IF
-    
+
     IF ( ( comp_cells_x .EQ. 1 ) .OR. ( comp_cells_y .EQ. 1 ) ) THEN
 
        IF ( verbose_level .GE. 0 ) WRITE(*,*) '----- 1D SIMULATION -----' 
 
     ELSE
-       
+
        IF ( verbose_level .GE. 0 ) WRITE(*,*) '----- 2D SIMULATION -----' 
 
     END IF
@@ -667,46 +667,46 @@ CONTAINS
        WRITE(*,*) 'GAS_FLAG',liquid_flag
        WRITE(*,*) 'Please check the input file'
        STOP
-       
+
     END IF
-    
+
     ! ------- READ gas_transport_parameters NAMELIST --------------------------
-    
+
     READ(input_unit, gas_transport_parameters,IOSTAT=ios)
-    
+
     IF ( ios .NE. 0 ) THEN
-       
+
        WRITE(*,*) 'IOSTAT=',ios
        WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
        WRITE(*,*) 'Please check the input file'
        STOP
-       
+
     ELSE
-       
+
        REWIND(input_unit)
-       
+
     END IF
-    
+
     IF ( sp_heat_a .EQ. -1.0_wp ) THEN
-       
+
        WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
        WRITE(*,*) 'SP_HEAT_a =' , sp_heat_a
        WRITE(*,*) 'Please check the input file'
        STOP
-       
+
     END IF
 
     IF ( sp_gas_const_a .EQ. -1.0_wp ) THEN
-       
+
        WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
        WRITE(*,*) 'SP_GAS_CONST_a =' , sp_gas_const_a
        WRITE(*,*) 'Please check the input file'
        STOP
-       
+
     END IF
 
     IF ( kin_visc_a .EQ. -1.0_wp ) THEN
-       
+
        WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
        WRITE(*,*) 'KIN_VISC_CONST_a =' , kin_visc_a
        WRITE(*,*) 'Please check the input file'
@@ -717,7 +717,7 @@ CONTAINS
        IF ( gas_flag ) THEN
 
           IF ( VERBOSE_LEVEL .GE. 0 ) THEN
-          
+
              WRITE(*,*) 'CARRIER PHASE: gas'
              WRITE(*,*) 'Carrier phase kinematic viscosity:',kin_visc_a
 
@@ -725,16 +725,16 @@ CONTAINS
           kin_visc_c = kin_visc_a
 
        END IF
-       
+
     END IF
 
     IF ( pres .EQ. -1.0_wp ) THEN
-       
+
        WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
        WRITE(*,*) 'pres =' , pres
        WRITE(*,*) 'Please check the input file'
        STOP
-       
+
     ELSE
 
        inv_pres = 1.0_wp / pres
@@ -742,22 +742,22 @@ CONTAINS
     END IF
 
     IF ( T_ambient .EQ. -1.0_wp ) THEN
-       
+
        WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
        WRITE(*,*) 'T_ambient =' , T_ambient
        WRITE(*,*) 'Please check the input file'
        STOP
-       
+
     END IF
 
     IF ( ( .NOT. gas_flag ) .AND. ( liquid_flag .AND. entrainment_flag ) ) THEN
-       
+
        WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
        WRITE(*,*) 'LIQUID_FLAG',liquid_flag
        WRITE(*,*) 'ENTRAINMENT_FLAG =' , entrainment_flag
        WRITE(*,*) 'Please check the input file'
        STOP
-       
+
     END IF
 
     rho_a_amb = pres / ( sp_gas_const_a * T_ambient )
@@ -767,9 +767,9 @@ CONTAINS
 
     END IF
     ! ------- READ liquid_transport_parameters NAMELIST -------------------------
-    
+
     n_vars = 4
-    
+
     IF ( liquid_flag ) THEN
 
        IF ( gas_flag ) n_vars = n_vars + 1
@@ -822,7 +822,7 @@ CONTAINS
 
        READ(input_unit, rheology_parameters,IOSTAT=ios)
        REWIND(input_unit)
-       
+
        IF ( kin_visc_l .EQ. -1.0_wp ) THEN
 
           IF ( ( RHEOLOGY_MODEL .NE. 4 ) .AND. ( RHEOLOGY_MODEL .NE. 3 ) ) THEN
@@ -857,7 +857,7 @@ CONTAINS
           END IF
 
        END IF
-       
+
        IF ( .NOT. gas_flag ) THEN
 
           IF ( verbose_level .GE. 0 ) THEN
@@ -875,169 +875,173 @@ CONTAINS
     END IF
 
     ! ------- READ solid_transport_parameters NAMELIST --------------------------
-    
-    READ(input_unit, solid_transport_parameters,IOSTAT=ios)
-    
-    IF ( ios .NE. 0 ) THEN
-       
-       WRITE(*,*) 'IOSTAT=',ios
-       WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
-       WRITE(*,*) 'Please check the input file'
-       WRITE(*,solid_transport_parameters) 
-       STOP
-       
-    ELSE
-       
-       REWIND(input_unit)
-       
-    END IF
-        
-    IF ( ANY(rho_s(1:n_solid) .EQ. -1.0_wp ) ) THEN
-       
-       WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
-       WRITE(*,*) 'RHO_s =' , rho_s(1:n_solid)
-       WRITE(*,*) 'Please check the input file'
-       STOP
-       
-    END IF
 
-    IF ( ANY(diam_s(1:n_solid) .EQ. -1.0_wp ) ) THEN
-       
-       WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
-       WRITE(*,*) 'DIAM_s =' , diam_s(1:n_solid)
-       WRITE(*,*) 'Please check the input file'
-       STOP
-       
-    END IF
-    
-    IF ( ANY(sp_heat_s(1:n_solid) .EQ. -1.0_wp ) ) THEN
-       
-       WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
-       WRITE(*,*) 'SP_HEAT_S =' , sp_heat_s(1:n_solid)
-       WRITE(*,*) 'Please check the input file'
-       STOP
-       
-    END IF
-    
-    IF ( erosion_coeff .LT. 0.0_wp ) THEN
-       
-       WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
-       WRITE(*,*) 'EROSION_COEFF =' , erosion_coeff
-       WRITE(*,*) 'Please check the input file'
-       STOP
+    IF ( n_solid .GE. 1 ) THEN
 
-    ELSE
+       READ(input_unit, solid_transport_parameters,IOSTAT=ios)
 
-       IF ( erosion_coeff .EQ. 0.0_wp ) THEN
+       IF ( ios .NE. 0 ) THEN
 
-          erodible_porosity = 0.0_wp
-          erodible_fract(1:n_solid) = 1.0_wp / n_solid
-          T_erodible = 300.0_wp
-          subtract_init_flag = .FALSE.
-          
+          WRITE(*,*) 'IOSTAT=',ios
+          WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
+          WRITE(*,*) 'Please check the input file'
+          WRITE(*,solid_transport_parameters) 
+          STOP
+
        ELSE
-       
-          IF ( ( erodible_porosity .LT. 0.0_wp ) .OR.                           &
-               ( erodible_porosity .GT. 1.0_wp ) ) THEN
-             
-             WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
-             WRITE(*,*) 'erodible_porosity =' , erodible_porosity
-             WRITE(*,*) 'Please check the input file'
-             STOP
-          
-          END IF
 
-          coeff_porosity = erodible_porosity / ( 1.0_wp - erodible_porosity )
+          REWIND(input_unit)
 
-          read_erodible_fract:IF ( n_solid .EQ. 1 ) THEN
+       END IF
 
-             erodible_fract(1) = 1.0_wp
-             
+       IF ( ANY(rho_s(1:n_solid) .EQ. -1.0_wp ) ) THEN
+
+          WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
+          WRITE(*,*) 'RHO_s =' , rho_s(1:n_solid)
+          WRITE(*,*) 'Please check the input file'
+          STOP
+
+       END IF
+
+       IF ( ANY(diam_s(1:n_solid) .EQ. -1.0_wp ) ) THEN
+
+          WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
+          WRITE(*,*) 'DIAM_s =' , diam_s(1:n_solid)
+          WRITE(*,*) 'Please check the input file'
+          STOP
+
+       END IF
+
+       IF ( ANY(sp_heat_s(1:n_solid) .EQ. -1.0_wp ) ) THEN
+
+          WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
+          WRITE(*,*) 'SP_HEAT_S =' , sp_heat_s(1:n_solid)
+          WRITE(*,*) 'Please check the input file'
+          STOP
+
+       END IF
+
+       IF ( erosion_coeff .LT. 0.0_wp ) THEN
+
+          WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
+          WRITE(*,*) 'EROSION_COEFF =' , erosion_coeff
+          WRITE(*,*) 'Please check the input file'
+          STOP
+
+       ELSE
+
+          IF ( erosion_coeff .EQ. 0.0_wp ) THEN
+
+             erodible_porosity = 0.0_wp
+             erodible_fract(1:n_solid) = 1.0_wp / n_solid
+             T_erodible = 300.0_wp
+             subtract_init_flag = .FALSE.
+
           ELSE
-             
-             IF ( ANY(erodible_fract(1:n_solid) .LT. 0.0_wp ) ) THEN
-                
-                WRITE(*,*) 'ERROR: problem with namelist ',                     &
-                     'SOLID_TRANSPORT_PARAMETERS'
-                WRITE(*,*) 'ERODIBLE_FRACT =' , erodible_fract(1:n_solid)
+
+             IF ( ( erodible_porosity .LT. 0.0_wp ) .OR.                           &
+                  ( erodible_porosity .GT. 1.0_wp ) ) THEN
+
+                WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
+                WRITE(*,*) 'erodible_porosity =' , erodible_porosity
                 WRITE(*,*) 'Please check the input file'
                 STOP
-                
-             ELSE
-                
-                IF ( SUM(erodible_fract(1:n_solid)) .NE. 1.0_wp ) THEN
-                   
-                   WRITE(*,*) 'WARNING: sum of ERODIBLE_FRACT not 1:',          &
-                        SUM(erodible_fract(1:n_solid))
-                   
-                   erodible_fract(1:n_solid) = erodible_fract(1:n_solid) /      &
-                        SUM(erodible_fract(1:n_solid) )
-                   
-                END IF
-                
-             END IF
-             
-          END IF read_erodible_fract
 
-          IF ( T_erodible .LT. 0.0_wp ) THEN
-       
-             WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
-             WRITE(*,*) 'T_erodible =' , T_erodible
-             WRITE(*,*) 'Please check the input file'
-             STOP
-             
+             END IF
+
+             coeff_porosity = erodible_porosity / ( 1.0_wp - erodible_porosity )
+
+             read_erodible_fract:IF ( n_solid .EQ. 1 ) THEN
+
+                erodible_fract(1) = 1.0_wp
+
+             ELSE
+
+                IF ( ANY(erodible_fract(1:n_solid) .LT. 0.0_wp ) ) THEN
+
+                   WRITE(*,*) 'ERROR: problem with namelist ',                     &
+                        'SOLID_TRANSPORT_PARAMETERS'
+                   WRITE(*,*) 'ERODIBLE_FRACT =' , erodible_fract(1:n_solid)
+                   WRITE(*,*) 'Please check the input file'
+                   STOP
+
+                ELSE
+
+                   IF ( SUM(erodible_fract(1:n_solid)) .NE. 1.0_wp ) THEN
+
+                      WRITE(*,*) 'WARNING: sum of ERODIBLE_FRACT not 1:',          &
+                           SUM(erodible_fract(1:n_solid))
+
+                      erodible_fract(1:n_solid) = erodible_fract(1:n_solid) /      &
+                           SUM(erodible_fract(1:n_solid) )
+
+                   END IF
+
+                END IF
+
+             END IF read_erodible_fract
+
+             IF ( T_erodible .LT. 0.0_wp ) THEN
+
+                WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
+                WRITE(*,*) 'T_erodible =' , T_erodible
+                WRITE(*,*) 'Please check the input file'
+                STOP
+
+             END IF
+
           END IF
 
        END IF
-       
-    END IF
-    
-    IF ( gas_flag ) THEN
-    
-       rho_c_sub = pres / ( sp_gas_const_a * T_erodible )
 
-    ELSE
+       IF ( gas_flag ) THEN
 
-       rho_c_sub = rho_l
+          rho_c_sub = pres / ( sp_gas_const_a * T_erodible )
 
-    END IF
-          
-    ALLOCATE( erodible( comp_cells_x , comp_cells_y , n_solid ) )
-    erodible(1:comp_cells_x,1:comp_cells_y,1:n_solid ) = 0.0_wp
+       ELSE
 
-    IF ( TRIM(erodible_file) .EQ. '' ) THEN
-
-       erodible(:,:,1:n_solid) = 1.0E+5_wp
-
-       IF ( verbose_level .GE. 0.0_wp ) THEN
-     
-          WRITE(*,*)
-          WRITE(*,*) 'WARNING: no file defined for erobile layer'
-          WRITE(*,*) 'Unlimited erosion'
-          WRITE(*,*)
+          rho_c_sub = rho_l
 
        END IF
-          
-    ELSEIF ( erosion_coeff .EQ. 0.0_wp ) THEN
 
-       WRITE(*,*) 'WARNING: erodible_file not used'
-       WRITE(*,*) 'erosion_coeff = ', erosion_coeff
+       ALLOCATE( erodible( comp_cells_x , comp_cells_y , n_solid ) )
+       erodible(1:comp_cells_x,1:comp_cells_y,1:n_solid ) = 0.0_wp
 
-       erodible(:,:,1:n_solid) = 1.0E+5_wp
-       
-    ELSE
-       
-       IF ( verbose_level .GE. 0.0_wp ) THEN
+       IF ( TRIM(erodible_file) .EQ. '' ) THEN
 
-          WRITE(*,*) 'Maximum thick. for erosion read from : ',                 &
-               TRIM(erodible_file)
+          erodible(:,:,1:n_solid) = 1.0E+5_wp
+
+          IF ( verbose_level .GE. 0.0_wp ) THEN
+
+             WRITE(*,*)
+             WRITE(*,*) 'WARNING: no file defined for erobile layer'
+             WRITE(*,*) 'Unlimited erosion'
+             WRITE(*,*)
+
+          END IF
+
+       ELSEIF ( erosion_coeff .EQ. 0.0_wp ) THEN
+
+          WRITE(*,*) 'WARNING: erodible_file not used'
+          WRITE(*,*) 'erosion_coeff = ', erosion_coeff
+
+          erodible(:,:,1:n_solid) = 1.0E+5_wp
+
+       ELSE
+
+          IF ( verbose_level .GE. 0.0_wp ) THEN
+
+             WRITE(*,*) 'Maximum thick. for erosion read from : ',                 &
+                  TRIM(erodible_file)
+
+          END IF
+
+          CALL read_erodible
 
        END IF
-                     
-       CALL read_erodible
-       
+
     END IF
-    
+
     n_vars = n_vars + n_solid
     n_eqns = n_vars
 
@@ -1051,7 +1055,7 @@ CONTAINS
     halphas_bcS(1:n_solid)%flag = -1
     halphas_bcN(1:n_solid)%flag = -1
 
-       
+
     ALLOCATE( bcW(n_vars) , bcE(n_vars) , bcS(n_vars) , bcN(n_vars) )
 
     bcW(1:n_vars)%flag = -1
@@ -1071,9 +1075,9 @@ CONTAINS
     ALLOCATE( alphas_init(n_solid) )
 
     inv_rho_s(1:n_solid) = 1.0_wp / rho_s(1:n_solid)
-    
+
     DO i_solid=1,n_solid
-       
+
        c_inv_rho_s(i_solid) = CMPLX(inv_rho_s(i_solid),0.0_wp,wp)
 
     END DO
@@ -1100,24 +1104,24 @@ CONTAINS
     ELSEIF ( alphastot_min .EQ. 0.0_wp) THEN
 
        WRITE(*,*) 'WARNING: minimum total solid fraction = 0'
-       
+
     END IF
 
-    
+
     IF ( restart ) THEN
 
        ! ---------- READ restart_parameters NAMELIST ----------------------------
        READ(input_unit,restart_parameters,IOSTAT=ios)
 
        IF ( ios .NE. 0 ) THEN
-          
+
           WRITE(*,*) 'IOSTAT=',ios
           WRITE(*,*) 'ERROR: problem with namelist RESTART_PARAMETERS'
           WRITE(*,*) 'Please check the input file'
           STOP
-          
+
        ELSE
-  
+
           dot_idx = SCAN(restart_file, ".", .TRUE.)
 
           check_file = restart_file(dot_idx+1:dot_idx+3)
@@ -1127,26 +1131,26 @@ CONTAINS
              IF ( ( ANY(sed_vol_perc(1:n_solid) .LT. 0.0_wp ) ) .OR.            &
                   ( ANY(sed_vol_perc(1:n_solid) .GT. 100.0_wp ) ) .OR.          &
                   ( SUM(sed_vol_perc(1:n_solid)) .GT. 100.0_wp) ) THEN
-                
+
                 WRITE(*,*) 'ERROR: problem with namelist RESTART_PARAMETERS'
                 WRITE(*,*) 'SED_VOL_PERC =' , sed_vol_perc(1:n_solid)
                 STOP
-                
+
              END IF
-             
+
              alphas_init(1:n_solid) = 1.0E-2_wp * sed_vol_perc(1:n_solid)
-             
+
              IF ( alphastot_min .GE. SUM(alphas_init(1:n_solid)) ) THEN
-                
+
                 WRITE(*,*) 'IOSTAT=',ios
                 WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
                 WRITE(*,*) 'alphastot_min should be < SUM(0.01*sed_vol_perc)'
                 WRITE(*,*) 'alphastot_min =',alphastot_min
                 WRITE(*,*) '0.01*SUM(sed_vol_perc) =',0.01_wp*sed_vol_perc(1:n_solid)
                 STOP
-                
+
              END IF
-             
+
              IF ( verbose_level .GE. 0 ) THEN
 
                 WRITE(*,*) 'INITIAL VOLUME FRACTION OF SOLIDS:', alphas_init
@@ -1154,17 +1158,17 @@ CONTAINS
              END IF
 
              REWIND(input_unit)
-              
+
              IF ( T_init*T_ambient .EQ. 0.0_wp ) THEN
-          
+
                 WRITE(*,*) 'ERROR: problem with namelist RESTART_PARAMETERS'
                 WRITE(*,*) 'T_init=',T_init
                 WRITE(*,*) 'T_ambient=',T_ambient
                 WRITE(*,*) 'Add the variables to the namelist RESTART_PARAMETERS'
                 STOP
-                
+
              END IF
-      
+
           END IF
 
        END IF
@@ -1176,16 +1180,16 @@ CONTAINS
     READ(input_unit,numeric_parameters)
 
     IF ( ios .NE. 0 ) THEN
-       
+
        WRITE(*,*) 'IOSTAT=',ios
        WRITE(*,*) 'ERROR: problem with namelist NUMERIC_PARAMETERS'
        WRITE(*,*) 'Please check the input file'
        STOP
-       
+
     ELSE
-       
+
        REWIND(input_unit)
-       
+
     END IF
 
     IF ( ( solver_scheme .NE. 'LxF' ) .AND. ( solver_scheme .NE. 'KT' ) .AND.   &
@@ -1239,7 +1243,7 @@ CONTAINS
     END IF
 
     IF ( verbose_level .GE. 0 ) THEN
-       
+
        IF ( alpha_flag ) THEN
 
           WRITE(*,*) 'Linear reconstruction and b. c. applied to variables:'
@@ -1253,117 +1257,117 @@ CONTAINS
        END IF
 
     END IF
-       
+
     IF ( ( reconstr_coeff .GT. 1.0_wp ).OR.( reconstr_coeff .LT. 0.0_wp ) ) THEN
-       
+
        WRITE(*,*) 'WARNING: wrong value of reconstr_coeff ',reconstr_coeff
        WRITE(*,*) 'Change the value between 0.0 and 1.0 in the input file'
        READ(*,*)
 
     END IF
-    
+
     ! ------- READ boundary_conditions NAMELISTS --------------------------------
 
     IF ( COMP_CELLS_X .GT. 1 ) THEN
-    
+
        ! --------- West boundary conditions -------------------------------------
 
        READ(input_unit,west_boundary_conditions,IOSTAT=ios)
-       
+
        IF ( ios .NE. 0 ) THEN
-          
+
           WRITE(*,*) 'IOSTAT=',ios
           WRITE(*,*) 'ERROR: problem with namelist WEST_BOUNDARY_CONDITIONS'
           WRITE(*,*) 'Please check the input file'
           WRITE(*,west_boundary_conditions)
           STOP
-          
+
        ELSE
-          
+
           REWIND(input_unit)
-          
+
        END IF
 
        IF ( ( h_bcW%flag .EQ. -1 ) ) THEN 
-          
+
           WRITE(*,*) 'ERROR: problem with namelist WEST_BOUNDARY_CONDITIONS'
           WRITE(*,*) 'B.C. for h not set properly'
           WRITE(*,*) 'Please check the input file'
           STOP
-          
+
        END IF
-          
+
        IF ( comp_cells_x .GT. 1 ) THEN
-          
+
           IF ( hu_bcW%flag .EQ. -1 ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist WEST_BOUNDARY_CONDITIONS'
              WRITE(*,*) 'B.C. for hu not set properly'             
              WRITE(*,*) 'Please check the input file'
              STOP
-             
+
           ELSE
-             
+
              ! hu_bcW%flag = 1
              ! hu_bcW%value = 0.0_wp
-             
+
           END IF
-          
+
        END IF
-       
+
        IF ( comp_cells_y .GT. 1 ) THEN
-          
+
           IF ( hv_bcW%flag .EQ. -1 ) THEN 
-             
+
              WRITE(*,*) 'ERROR: problem with namelist WEST_BOUNDARY_CONDITIONS'
              WRITE(*,*) 'B.C. for hv not set properly'             
              WRITE(*,*) 'Please check the input file'
              STOP
-             
+
           ELSE
-             
+
              hv_bcW%flag = 1
              hv_bcW%value = 0.0_wp
-             
+
           END IF
-          
+
        END IF
-    
+
        IF ( alpha_flag ) THEN
-   
+
           IF ( ANY(alphas_bcW(1:n_solid)%flag .EQ. -1 ) ) THEN 
-             
+
              WRITE(*,*) 'ERROR: problem with namelist WEST_BOUNDARY_CONDITIONS'
              WRITE(*,*) 'B.C. for sediment conentration not set properly'
              WRITE(*,*) 'Please check the input file'
              WRITE(*,*) 'alphas_bcW'
              WRITE(*,*) alphas_bcW(1:n_solid)
              STOP
-             
+
           END IF
-          
+
        ELSE
 
           IF ( ANY(halphas_bcW(1:n_solid)%flag .EQ. -1 ) ) THEN 
-             
+
              WRITE(*,*) 'ERROR: problem with namelist WEST_BOUNDARY_CONDITIONS'
              WRITE(*,*) 'B.C. for sediment conentration not set properly'
              WRITE(*,*) 'Please check the input file'
              WRITE(*,*) 'halphas_bcW'
              WRITE(*,*) halphas_bcW(1:n_solid)
              STOP
-             
+
           END IF
 
        END IF
 
        IF ( T_bcW%flag .EQ. -1 ) THEN 
-          
+
           WRITE(*,*) 'ERROR: problem with namelist WEST_BOUNDARY_CONDITIONS'
           WRITE(*,*) 'B.C. for temperature not set properly'
           WRITE(*,*) 'Please check the input file'
           STOP
-          
+
        END IF
 
        ! set the approriate boundary conditions
@@ -1371,213 +1375,213 @@ CONTAINS
        bcW(1) = h_bcW
        bcW(2) = hu_bcW 
        bcW(3) = hv_bcW 
-       
-          
+
+
        ! ------------- East boundary conditions --------------------------------
 
        READ(input_unit,east_boundary_conditions,IOSTAT=ios)
-       
+
        IF ( ios .NE. 0 ) THEN
-          
+
           WRITE(*,*) 'IOSTAT=',ios
           WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
           WRITE(*,*) 'Please check the input file'
           STOP
-          
+
        ELSE
-          
+
           REWIND(input_unit)
-          
+
        END IF
-          
+
        IF ( ( h_bcE%flag .EQ. -1 ) ) THEN 
-          
+
           WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
           WRITE(*,*) 'B.C. for h not set properly'
           WRITE(*,*) 'Please check the input file'
           STOP
-          
+
        END IF
-       
+
        IF ( comp_cells_x .GT. 1 ) THEN
-          
+
           IF ( hu_bcE%flag .EQ. -1 ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
              WRITE(*,*) 'B.C. for hu not set properly'             
              WRITE(*,*) 'Please check the input file'
              STOP
-             
+
           END IF
-          
+
        ELSE
-          
+
           hu_bcE%flag = 1
           hu_bcE%value = 0.0_wp
-          
+
        END IF
-       
+
        IF ( comp_cells_y .GT. 1 ) THEN
-          
+
           IF ( hv_bcE%flag .EQ. -1 ) THEN 
-             
+
              WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
              WRITE(*,*) 'B.C. for hv not set properly'             
              WRITE(*,*) 'Please check the input file'
              STOP
-             
+
           END IF
-          
+
        ELSE
-          
+
           hv_bcE%flag = 1
           hv_bcE%value = 0.0_wp
-          
-          
+
+
        END IF
-       
+
        IF ( alpha_flag ) THEN
 
           IF ( ANY(alphas_bcE(1:n_solid)%flag .EQ. -1 ) ) THEN 
-             
+
              WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
              WRITE(*,*) 'B.C. for sediment concentration not set properly'
              WRITE(*,*) 'Please check the input file'
              WRITE(*,*) 'alphas_bcE'
              WRITE(*,*) alphas_bcE(1:n_solid)
              STOP
-             
+
           END IF
-    
+
        ELSE
 
           IF ( ANY(halphas_bcE(1:n_solid)%flag .EQ. -1 ) ) THEN 
-             
+
              WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
              WRITE(*,*) 'B.C. for sediment concentration not set properly'
              WRITE(*,*) 'Please check the input file'
              WRITE(*,*) 'halphas_bcE'
              WRITE(*,*) halphas_bcE(1:n_solid)
              STOP
-             
+
           END IF
 
        END IF
 
        IF ( T_bcE%flag .EQ. -1 ) THEN 
-          
+
           WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
           WRITE(*,*) 'B.C. for temperature not set properly'
           WRITE(*,*) 'Please check the input file'
           STOP
-          
+
        END IF
-    
+
        bcE(1) = h_bcE 
        bcE(2) = hu_bcE 
        bcE(3) = hv_bcE 
-       
+
     END IF
 
     IF ( comp_cells_y .GT. 1 ) THEN
-    
+
        ! --------------- South boundary conditions ------------------------------
 
        READ(input_unit,south_boundary_conditions,IOSTAT=ios)
-       
+
        IF ( ios .NE. 0 ) THEN
-          
+
           WRITE(*,*) 'IOSTAT=',ios
           WRITE(*,*) 'ERROR: problem with namelist SOUTH_BOUNDARY_CONDITIONS'
           WRITE(*,*) 'Please check the input file'
           STOP
-          
+
        ELSE
-          
+
           REWIND(input_unit)
-          
+
        END IF
-      
+
        IF ( ( h_bcS%flag .EQ. -1 ) ) THEN 
-          
+
           WRITE(*,*) 'ERROR: problem with namelist SOUTH_BOUNDARY_CONDITIONS'
           WRITE(*,*) 'B.C. for h not set properly'
           WRITE(*,*) 'Please check the input file'
           STOP
-          
+
        END IF
-       
+
        IF ( comp_cells_x .GT. 1 ) THEN
-          
+
           IF ( hu_bcS%flag .EQ. -1 ) THEN 
-             
+
              WRITE(*,*) 'ERROR: problem with namelist SOUTH_BOUNDARY_CONDITIONS'
              WRITE(*,*) 'B.C. for hu not set properly'             
              WRITE(*,*) 'Please check the input file'
              STOP
-             
+
           END IF
-          
+
        ELSE
-          
+
           hu_bcS%flag = 1
           hu_bcS%value = 0.0_wp
-          
+
        END IF
-       
+
        IF ( comp_cells_y .GT. 1 ) THEN
-          
+
           IF ( hv_bcS%flag .EQ. -1 ) THEN 
-             
+
              WRITE(*,*) 'ERROR: problem with namelist SOUTH_BOUNDARY_CONDITIONS'
              WRITE(*,*) 'B.C. for hv not set properly'             
              WRITE(*,*) 'Please check the input file'
              STOP
-             
+
           END IF
-          
+
        ELSE
-          
+
           hv_bcS%flag = 1
           hv_bcS%value = 0.0_wp
-          
+
        END IF
-       
+
        IF ( alpha_flag ) THEN
 
           IF ( ANY(alphas_bcS(1:n_solid)%flag .EQ. -1 ) ) THEN 
-             
+
              WRITE(*,*) 'ERROR: problem with namelist SOUTH_BOUNDARY_CONDITIONS'
              WRITE(*,*) 'B.C. for sediment concentrations not set properly'
              WRITE(*,*) 'Please check the input file'
              WRITE(*,*) 'alphas_bcS'
              WRITE(*,*) alphas_bcS(1:n_solid)
              STOP
-             
+
           END IF
 
        ELSE
 
           IF ( ANY(halphas_bcS(1:n_solid)%flag .EQ. -1 ) ) THEN 
-             
+
              WRITE(*,*) 'ERROR: problem with namelist SOUTH_BOUNDARY_CONDITIONS'
              WRITE(*,*) 'B.C. for sediment concentrations not set properly'
              WRITE(*,*) 'Please check the input file'
              WRITE(*,*) 'halphas_bcS'
              WRITE(*,*) halphas_bcS(1:n_solid)
              STOP
-             
+
           END IF
 
        END IF
 
        IF ( T_bcS%flag .EQ. -1 ) THEN 
-          
+
           WRITE(*,*) 'ERROR: problem with namelist SOUTH_BOUNDARY_CONDITIONS'
           WRITE(*,*) 'B.C. for temperature not set properly'
           WRITE(*,*) 'Please check the input file'
           STOP
-          
+
        END IF
 
        bcS(1) = h_bcS 
@@ -1587,110 +1591,110 @@ CONTAINS
        ! ---------------- North boundary conditions ----------------------------
 
        READ(input_unit,north_boundary_conditions,IOSTAT=ios)
-       
+
        IF ( ios .NE. 0 ) THEN
-          
+
           WRITE(*,*) 'IOSTAT=',ios
           WRITE(*,*) 'ERROR: problem with namelist NORTH_BOUNDARY_CONDITIONS'
           WRITE(*,*) 'Please check the input file'
           STOP
-          
+
        ELSE
-          
+
           REWIND(input_unit)
-          
+
        END IF
 
-       
+
        IF ( ( h_bcN%flag .EQ. -1 ) ) THEN 
-          
+
           WRITE(*,*) 'ERROR: problem with namelist NORTH_BOUNDARY_CONDITIONS'
           WRITE(*,*) 'B.C. for h not set properly'
           WRITE(*,*) 'Please check the input file'
           STOP
-          
+
        END IF
-       
-       
+
+
        IF ( comp_cells_x .GT. 1 ) THEN
-          
+
           IF ( hu_bcN%flag .EQ. -1 ) THEN 
-             
+
              WRITE(*,*) 'ERROR: problem with namelist NORTH_BOUNDARY_CONDITIONS'
              WRITE(*,*) 'B.C. for hu not set properly'             
              WRITE(*,*) 'Please check the input file'
              STOP
-             
+
           END IF
-          
+
        ELSE
-          
+
           hu_bcN%flag = 1
           hu_bcN%value = 0.0_wp
-          
+
        END IF
-       
+
        IF ( comp_cells_y .GT. 1 ) THEN
-          
+
           IF ( hv_bcN%flag .EQ. -1 ) THEN 
-             
+
              WRITE(*,*) 'ERROR: problem with namelist NORTH_BOUNDARY_CONDITIONS'
              WRITE(*,*) 'B.C. for hv not set properly'             
              WRITE(*,*) 'Please check the input file'
              STOP
-             
+
           END IF
-          
+
        ELSE
-          
+
           hv_bcN%flag = 1
           hv_bcN%value = 0.0_wp
-          
+
        END IF
-       
+
        IF ( alpha_flag ) THEN
 
           IF ( ANY(alphas_bcN(1:n_solid)%flag .EQ. -1 ) ) THEN 
-             
+
              WRITE(*,*) 'ERROR: problem with namelist NORTH_BOUNDARY_CONDITIONS'
              WRITE(*,*) 'B.C. for sediment concentrations not set properly'
              WRITE(*,*) 'Please check the input file'
              WRITE(*,*) 'alphas_bcN'
              WRITE(*,*) alphas_bcN(1:n_solid)
              STOP
-             
+
           END IF
 
        ELSE
 
           IF ( ANY(halphas_bcN(1:n_solid)%flag .EQ. -1 ) ) THEN 
-             
+
              WRITE(*,*) 'ERROR: problem with namelist NORTH_BOUNDARY_CONDITIONS'
              WRITE(*,*) 'B.C. for sediment concentrations not set properly'
              WRITE(*,*) 'Please check the input file'
              WRITE(*,*) 'halphas_bcN'
              WRITE(*,*) halphas_bcN(1:n_solid)
              STOP
-             
+
           END IF
-        
+
        END IF
 
        IF ( T_bcN%flag .EQ. -1 ) THEN 
-          
+
           WRITE(*,*) 'ERROR: problem with namelist NORTH_BOUNDARY_CONDITIONS'
           WRITE(*,*) 'B.C. for temperature not set properly'
           WRITE(*,*) 'Please check the input file'
           STOP
-          
+
        END IF
 
        bcN(1) = h_bcN 
        bcN(2) = hu_bcN 
        bcN(3) = hv_bcN 
-       
+
     END IF
-    
+
     bcW(4) = T_bcW
     bcE(4) = T_bcE
     bcS(4) = T_bcS
@@ -1702,7 +1706,7 @@ CONTAINS
        bcE(5:4+n_solid) = alphas_bcE(1:n_solid)
        bcS(5:4+n_solid) = alphas_bcS(1:n_solid)
        bcN(5:4+n_solid) = alphas_bcN(1:n_solid)
-       
+
     ELSE
 
        bcW(5:4+n_solid) = halphas_bcW(1:n_solid)
@@ -1717,25 +1721,25 @@ CONTAINS
     READ(input_unit, expl_terms_parameters,IOSTAT=ios)
 
     IF ( ios .NE. 0 ) THEN
-       
+
        WRITE(*,*) 'IOSTAT=',ios
        WRITE(*,*) 'ERROR: problem with namelist EXPL_TERMS_PARAMETERS'
        WRITE(*,*) 'Please check the input file'
        STOP
-       
+
     ELSE
-       
+
        REWIND(input_unit)
-       
+
     END IF
 
     IF ( grav .EQ. -1.0_wp ) THEN
-       
+
        WRITE(*,*) 'ERROR: problem with namelist EXPL_TERMS_PARAMETERS'
        WRITE(*,*) 'GRAV not set properly'
        WRITE(*,*) 'Please check the input file'
        STOP
-       
+
     ELSE
 
        inv_grav = 1.0_wp / grav
@@ -1751,27 +1755,27 @@ CONTAINS
        READ(input_unit,radial_source_parameters,IOSTAT=ios)
 
        IF ( ios .NE. 0 ) THEN
-             
+
           WRITE(*,*) 'IOSTAT=',ios
           WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
           WRITE(*,radial_source_parameters)
           WRITE(*,*) 'Please check the input file'
           STOP
-          
+
        ELSE
-          
+
           REWIND(input_unit)
-          
+
           IF ( t_source .EQ. -1.0_wp ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
              WRITE(*,*) 'PLEASE CHECK VALUE OF T_SOURCE',t_source
              STOP
-             
+
           END IF
 
           IF ( ( h_source .EQ. -1.0_wp ) .AND. (.NOT. bottom_radial_source_flag) ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
              WRITE(*,*) 'PLEASE CHECK VALUE OF H_SOURCE',h_source
              STOP
@@ -1779,34 +1783,34 @@ CONTAINS
           ELSE
 
              IF ( ( h_source .GE. 0.0_wp ) .AND. ( bottom_radial_source_flag ) ) THEN
-                
+
                 WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
                 WRITE(*,*) 'When BOTTOM_RADIAL_SOURCE_FLAG = TRUE'
                 WRITE(*,*) 'h_source should not be given',h_source
                 STOP
-                
+
              END IF
-             
+
           END IF
 
           IF ( r_source .EQ. -1.0_wp ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
              WRITE(*,*) 'PLEASE CHECK VALUE OF R_SOURCE',r_source
              STOP
-             
+
           END IF
 
           IF ( vel_source .EQ. -1.0_wp ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
              WRITE(*,*) 'PLEASE CHECK VALUE OF VEL_SOURCE',vel_source
              STOP
-             
+
           END IF
-          
+
           IF ( ( x_source - r_source ) .LE. X0 + cell_size ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
              WRITE(*,*) 'SOURCE TOO LARGE'
              WRITE(*,*) ' x_source - radius ',x_source-r_source
@@ -1815,7 +1819,7 @@ CONTAINS
           END IF
 
           IF ( ( x_source + r_source ) .GE. X0+(comp_cells_x-1)*cell_size ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
              WRITE(*,*) 'SOURCE TOO LARGE'
              WRITE(*,*) ' x_source + radius ',x_source+r_source
@@ -1824,7 +1828,7 @@ CONTAINS
           END IF
 
           IF ( ( y_source - r_source ) .LE. Y0 + cell_size ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
              WRITE(*,*) 'SOURCE TOO LARGE'
              WRITE(*,*) ' y_source - radius ',y_source-r_source
@@ -1833,7 +1837,7 @@ CONTAINS
           END IF
 
           IF ( ( y_source + r_source ) .GE. Y0+(comp_cells_y-1)*cell_size ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
              WRITE(*,*) 'SOURCE TOO LARGE'
              WRITE(*,*) ' y_source + radius ',y_source+r_source
@@ -1844,26 +1848,26 @@ CONTAINS
           IF ( gas_flag .AND. liquid_flag ) THEN
 
              IF ( alphal_source .LT. 0.0_wp ) THEN
-             
+
                 WRITE(*,*) 'ERROR: problem with namelist ',                     &
                      'RADIAL_SOURCE_PARAMETERS'
                 WRITE(*,*) 'PLEASE CHECK VALUE OF ALPHAL_SOURCE',alphal_source
                 STOP
-                
+
              END IF
 
           END IF
 
           IF ( ANY(alphas_source(1:n_solid) .EQ. -1.0_wp ) ) THEN
-       
+
              WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
              WRITE(*,*) 'alphas_source =' , alphas_source(1:n_solid)
              WRITE(*,*) 'Please check the input file'
              STOP
-             
+
           END IF
 
-                 
+
           IF ( ANY(time_param .LT. 0.0_wp ) ) THEN
 
              WRITE(*,*)
@@ -1878,14 +1882,14 @@ CONTAINS
              WRITE(*,*)
 
           ELSE
-             
+
              IF ( time_param(2) .GT. time_param(1) ) THEN
-                 
+
                 WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCEPARAMETERS'
                 WRITE(*,*) 'time_param(1),time_param(2) =' , time_param(1:2)
                 WRITE(*,*) 'time_param(1) must be larger than time_param(2)'
                 STOP         
-                
+
              END IF
 
              IF ( time_param(3) .GT. ( 0.5_wp*time_param(2) ) ) THEN
@@ -1899,14 +1903,14 @@ CONTAINS
 
 
           END IF
-   
+
        END IF
-           
+
     END IF
 
 
 
-    
+
     ! ------- READ collapsing_volume_parameters NAMELIST ------------------------
 
     IF ( collapsing_volume_flag ) THEN
@@ -1914,45 +1918,45 @@ CONTAINS
        READ(input_unit,collapsing_volume_parameters,IOSTAT=ios)
 
        IF ( ios .NE. 0 ) THEN
-             
+
           WRITE(*,*) 'IOSTAT=',ios
           WRITE(*,*) 'ERROR: problem with namelist COLLAPSING_VOLUME_PARAMETERS'
           WRITE(*,*) 'Please check the input file'
           STOP
-          
+
        ELSE
-          
+
           REWIND(input_unit)
-          
+
           IF ( t_collapse .EQ. -1.0_wp ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist                           &
                   &COLLAPSING_VOLUME_PARAMETERS'
              WRITE(*,*) 'PLEASE CHECK VALUE OF T_COLLAPSE',t_collapse
              STOP
-             
+
           END IF
 
           IF ( h_collapse .EQ. -1.0_wp ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist                           &
                   &COLLAPSING_VOLUME_PARAMETERS'
              WRITE(*,*) 'PLEASE CHECK VALUE OF H_COLLAPSE',h_collapse
              STOP
-             
+
           END IF
 
           IF ( r_collapse .EQ. -1.0_wp ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist                           &
                   &COLLAPSING_VOLUME_PARAMETERS'
              WRITE(*,*) 'PLEASE CHECK VALUE OF R_COLLAPSE',r_collapse
              STOP
-             
+
           END IF
 
           IF ( ( x_collapse - r_collapse ) .LE. X0 + cell_size ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist                           &
                   &COLLAPSING_VOLUME_PARAMETERS'
              WRITE(*,*) 'COLLAPSING VOLUME TOO LARGE'
@@ -1962,7 +1966,7 @@ CONTAINS
           END IF
 
           IF ( (x_collapse+r_collapse) .GE. X0+(comp_cells_x-1)*cell_size ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist                           &
                   &COLLAPSING_VOLUME_PARAMETERS'
              WRITE(*,*) 'COLLAPSING VOLUME TOO LARGE'
@@ -1972,7 +1976,7 @@ CONTAINS
           END IF
 
           IF ( ( y_collapse - r_collapse ) .LE. Y0 + cell_size ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist                           &
                   &COLLAPSING_VOLUME_PARAMETERS'
              WRITE(*,*) 'COLLAPSING VOLUME TOO LARGE'
@@ -1982,7 +1986,7 @@ CONTAINS
           END IF
 
           IF ( (y_collapse+r_collapse) .GE. Y0+(comp_cells_y-1)*cell_size ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist                           &
                   &COLLAPSING_VOLUME_PARAMETERS'
              WRITE(*,*) 'COLLAPSING VOLUME TOO LARGE'
@@ -1992,18 +1996,18 @@ CONTAINS
           END IF
 
           IF ( ANY(alphas_collapse(1:n_solid) .EQ. -1.0_wp ) ) THEN
-       
+
              WRITE(*,*) 'ERROR: problem with namelist                           &
                   &COLLAPSING_VOLUME_PARAMETERS'
              WRITE(*,*) 'alphas_collpase =' , alphas_collapse(1:n_solid)
              WRITE(*,*) 'Please check the input file'
              STOP
-             
+
           END IF
 
-          
+
        END IF
-           
+
     END IF
 
     ! ------- READ rheology_parameters NAMELIST ---------------------------------
@@ -2011,20 +2015,20 @@ CONTAINS
     IF ( rheology_flag ) THEN
 
        READ(input_unit, rheology_parameters,IOSTAT=ios)
-       
+
        IF ( ios .NE. 0 ) THEN
-          
+
           WRITE(*,*) 'IOSTAT=',ios
           WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
           WRITE(*,*) 'Please check the input file'
           STOP
-          
+
        ELSE
-          
+
           REWIND(input_unit)
-          
+
        END IF
- 
+
        IF ( rheology_model .EQ. 0 ) THEN
 
           WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
@@ -2032,9 +2036,9 @@ CONTAINS
                rheology_model
           WRITE(*,*) 'Please check the input file'
           STOP
-          
+
        ELSEIF ( rheology_model .EQ. 1 ) THEN
-          
+
           IF ( ( mu .EQ. -1.0_wp ) .AND. ( xi .EQ. -1.0_wp ) ) THEN
 
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
@@ -2042,7 +2046,7 @@ CONTAINS
              WRITE(*,*) 'MU =' , mu ,' XI =' , xi
              WRITE(*,*) 'Please check the input file'
              STOP
-             
+
           END IF
 
           IF ( ( T_ref .NE. -1.0_wp ) .OR. ( nu_ref .NE. -1.0_wp ) .OR.         &
@@ -2069,9 +2073,9 @@ CONTAINS
              WRITE(*,*) 'TAU =' , tau
              WRITE(*,*) 'Please check the input file'
              STOP
-             
+
           END IF
-          
+
           IF ( ( T_ref .NE. -1.0_wp ) .OR. ( nu_ref .NE. -1.0_wp ) .OR.         &
                ( visc_par .NE. -1.0_wp ) .OR. ( mu .NE. -1.0_wp ) .OR.          &
                ( xi .NE. -1.0_wp ) ) THEN
@@ -2091,32 +2095,32 @@ CONTAINS
        ELSEIF ( rheology_model .EQ. 3 ) THEN
 
           IF ( nu_ref .EQ. -1.0_wp ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'NU_REF =' , nu_ref 
              WRITE(*,*) 'Please check the input file'
              STOP
-             
+
           END IF
 
           IF ( tau0 .EQ. -1.0_wp ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'TAU0 =' , tau0 
              WRITE(*,*) 'Please check the input file'
              STOP
-             
+
           END IF
 
           IF ( visc_par .EQ. -1.0_wp ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'VISC_PAR =' , visc_par
              WRITE(*,*) 'Please check the input file'
              STOP
-          
+
           ELSEIF ( visc_par .EQ. 0.0_wp ) THEN
-             
+
              WRITE(*,*) 'WARNING: temperature and momentum uncoupled'
              WRITE(*,*) 'VISC_PAR =' , visc_par
              WRITE(*,*) 'Press ENTER to continue'
@@ -2125,12 +2129,12 @@ CONTAINS
           ELSE
 
              IF ( T_ref .EQ. -1.0_wp ) THEN
-                
+
                 WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
                 WRITE(*,*) 'T_REF =' , T_ref 
                 WRITE(*,*) 'Please check the input file'
                 STOP
-                
+
              END IF
 
           END IF
@@ -2150,147 +2154,147 @@ CONTAINS
        ELSEIF ( rheology_model .EQ. 4 ) THEN
 
           IF ( gas_flag .OR. ( .NOT. liquid_flag ) ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'RHEOLOGY_MODEL =' , rheology_model
              WRITE(*,*) 'GAS FLAG = ' , gas_flag
              WRITE(*,*) 'LIQUID FLAG = ' , liquid_flag
              STOP
-             
+
           END IF
-          
+
           IF ( restart .AND. ( ANY(sed_vol_perc(1:n_solid) .EQ. -1.0_wp ) ) ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'RHEOLOGY_MODEL =' , rheology_model
              WRITE(*,*) 'SED_VOL_PERC = ' , sed_vol_perc(1:n_solid)
              STOP
-             
+
           END IF
-          
+
           IF ( alpha2 .EQ. -1.0_wp ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'ALPHA2 =' , alpha2 
              WRITE(*,*) 'Please check the input file'
              STOP
-             
+
           END IF
 
           IF ( beta2 .EQ. -1.0_wp ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'BETA2 =' , beta2 
              WRITE(*,*) 'Please check the input file'
              STOP
-             
+
           END IF
 
           IF ( T_ref .LE. 273.15_wp ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'T_REF =' , T_ref
              WRITE(*,*) 'Please check the input file'
              STOP
-             
+
           END IF
 
           IF ( alpha1_ref .EQ. -1.0_wp ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'ALPHA1 =' , alpha1_ref 
              WRITE(*,*) 'Please check the input file'
              STOP
-             
+
           ELSE
 
              Tc = T_ref - 273.15_wp
-             
+
              IF ( Tc .LT. 20.0_wp ) THEN
-                
+
                 expA = 1301.0_wp / ( 998.333_wp + 8.1855_wp * ( Tc - 20.0_wp )  &
                      + 0.00585_wp * ( Tc - 20.0_wp )**2 ) - 1.30223_wp
-                
+
                 alpha1_coeff = alpha1_ref / ( 1.0E-3_wp * 10.0_wp**expA )
-                
+
              ELSE
-                
+
                 expB = ( 1.3272_wp * ( 20.0_wp - Tc ) - 0.001053_wp *           &
                      ( Tc - 20.0_wp )**2 ) / ( Tc + 105.0_wp )
-                
+
                 alpha1_coeff = alpha1_ref / ( 1.002E-3_wp * 10.0_wp**expB )
-                
+
              END IF
-             
+
              WRITE(*,*) 'alpha1 coefficient:',alpha1_coeff
 
           END IF
 
           IF ( beta1 .EQ. -1.0_wp ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'BETA1 =' , beta1 
              WRITE(*,*) 'Please check the input file'
              STOP
-             
+
           END IF
 
           IF ( Kappa .EQ. -1.0_wp ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'KAPPA =' , kappa 
              WRITE(*,*) 'Please check the input file'
              STOP
-             
+
           END IF
 
           IF ( n_td .EQ. -1.0_wp ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'N_TD =' , n_td 
              WRITE(*,*) 'Please check the input file'
              STOP
-           
+
           ELSE
 
              n_td2 = n_td**2
-  
+
           END IF
 
        ELSEIF ( rheology_model .EQ. 5 ) THEN
 
           IF ( VERBOSE_LEVEL .GE. 0 ) THEN
-             
+
              WRITE(*,*) 'RHEOLOGY_MODEL =' , rheology_model
              WRITE(*,*) 'Kurganov & Petrova Example 5'
 
           END IF
-             
+
        ELSEIF ( rheology_model .EQ. 6 ) THEN
 
           IF ( VERBOSE_LEVEL .GE. 0 ) THEN
-          
+
              WRITE(*,*) 'RHEOLOGY_MODEL =' , rheology_model
              WRITE(*,*) 'Bursik & Woods'
 
           END IF
-             
+
           IF ( friction_factor .LT. 0.0_wp ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'FRICTION_FACTOR =' , friction_factor 
              WRITE(*,*) 'Please check the input file'
              STOP
-             
+
           END IF
-             
+
        ELSE
 
-             WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
-             WRITE(*,*) 'RHEOLOGY_MODEL =' , rheology_model
-             WRITE(*,*) 'Please check the input file'
-             STOP
-             
+          WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
+          WRITE(*,*) 'RHEOLOGY_MODEL =' , rheology_model
+          WRITE(*,*) 'Please check the input file'
+          STOP
+
        END IF
 
 
@@ -2299,16 +2303,16 @@ CONTAINS
     ! ------- READ temperature_parameters NAMELIST ------------------------------
 
     READ(input_unit, temperature_parameters,IOSTAT=ios)
-       
+
     IF ( ios .NE. 0 ) THEN
-       
+
        WRITE(*,*) 'IOSTAT=',ios
        WRITE(*,*) 'ERROR: problem with namelist TEMPERATURE_PARAMETERS'
        WRITE(*,*) 'Please check the input file'
        STOP
-       
+
     ELSE
-       
+
        REWIND(input_unit)
 
        IF ( rheology_model .EQ. 3 ) THEN
@@ -2319,9 +2323,9 @@ CONTAINS
           convective_term_coeff = atm_heat_transf_coeff * exp_area_fract
 
        END IF
-       
+
     END IF
-    
+
     ! ---------------------------------------------------------------------------
 
     IF ( verbose_level .GE. 1 ) WRITE(*,*) 
@@ -2390,13 +2394,13 @@ CONTAINS
     END IF
 
     IF ( VERBOSE_LEVEL .GE. 0 ) THEN
-       
+
        WRITE(*,*) 'Reading DEM file' 
        WRITE(*,*) 'ncols',ncols
        WRITE(*,*) 'nrows',nrows
 
     END IF
-       
+
     n_topography_profile_x = ncols
 
     n_topography_profile_y = nrows
@@ -2421,13 +2425,13 @@ CONTAINS
     DO k=1,n_topography_profile_y
 
        IF ( VERBOSE_LEVEL .GE. 0 ) THEN
-       
+
           WRITE(*,FMT="(A1,A,t21,F6.2,A)",ADVANCE="NO") ACHAR(13),              &
                & " Percent Complete: " ,                                        &
                ( REAL(k) / REAL(n_topography_profile_y))*100.0, "%"
 
        END IF
-          
+
        READ(2001,*) topography_profile(3,:,n_topography_profile_y-k+1)
 
     ENDDO
@@ -2443,23 +2447,23 @@ CONTAINS
     IF ( output_runout_flag ) THEN
 
        READ(input_unit, runout_parameters,IOSTAT=ios)
-       
+
        IF ( ios .NE. 0 ) THEN
-          
+
           WRITE(*,*) 'IOSTAT=',ios
           WRITE(*,*) 'ERROR: problem with namelist RUNOUT_PARAMETERS'
           WRITE(*,*) 'Please check the input file'
           WRITE(*,runout_parameters) 
           STOP
-          
+
        ELSE
-          
+
           REWIND(input_unit)
-          
+
        END IF
-       
+
        IF ( ( x0_runout .EQ. -1.0_wp ) .AND. ( y0_runout .EQ. -1.0_wp ) ) THEN
-          
+
           WRITE(*,*) 'Runout reference location not defined'
 
           IF ( collapsing_volume_flag ) THEN
@@ -2481,77 +2485,77 @@ CONTAINS
              WRITE(*,*) 'y0_runout =',y0_runout
 
           END IF
-          
+
        ELSE
 
           IF ( x0_runout .LT. x0 ) THEN
-             
+
              WRITE(*,*) 'Computational domain problem'
              WRITE(*,*) 'x0_runout < x0',x0,x0_runout
              STOP
-             
+
           END IF
-          
+
           IF ( x0 .GT. x0+comp_cells_x*cell_size ) THEN
-             
+
              WRITE(*,*) 'Computational domain problem'
              WRITE(*,*) 'x0_runout > x0+comp_cells_x*cell_size' , x0 ,          &
                   x0_runout+comp_cells_x*cell_size
              STOP
-             
+
           END IF
-          
+
           IF ( y0_runout .LT. y0 ) THEN
-             
+
              WRITE(*,*) 'Computational domain problem'
              WRITE(*,*) 'y0_runout < y0',y0,y0_runout
              STOP
-             
+
           END IF
-          
+
           IF ( y0 .GT. y0+comp_cells_y*cell_size ) THEN
-             
+
              WRITE(*,*) 'Computational domain problem'
              WRITE(*,*) 'y0_runout > y0+comp_cells_y*cell_size' , y0 ,          &
                   y0_runout+comp_cells_y*cell_size
              STOP
-             
+
           END IF
-          
+
        END IF
-       
+
        runout_file = TRIM(run_name)//'_runout'//'.txt'
 
        OPEN(runout_unit,FILE=runout_file,STATUS='unknown',form='formatted')
-  
+
        mass_center_file = TRIM(run_name)//'_mass_center'//'.txt'
 
        OPEN(mass_center_unit,FILE=mass_center_file,STATUS='unknown',form='formatted')
-  
 
-  
+
+
     END IF
 
     ! ----------- READ vulnerability_table_parameters NAMELIST ------------------
 
     READ(input_unit, vulnerability_table_parameters,IOSTAT=ios)
-    
+
     IF ( ios .NE. 0 ) THEN
 
        IF ( verbose_level .GE. 0.0_wp ) THEN
-       
+
           WRITE(*,*) 'IOSTAT=',ios
           WRITE(*,*) 'WARNING: namelist VULNERABILITY_TABLE_PARAMETERS not found'
 
        END IF
-          
+
     ELSE
-       
+
        REWIND(input_unit)
 
        n_thickness_levels = COUNT( thickness_levels0 .GE. 0.0_wp )
        n_dyn_pres_levels = COUNT( dyn_pres_levels0 .GE. 0.0_wp )
-       
+
        IF ( n_thickness_levels .GT. 0 ) THEN
 
           ALLOCATE( thickness_levels(n_thickness_levels) )
@@ -2564,7 +2568,7 @@ CONTAINS
              WRITE(*,*) 'Please check the input file'
              WRITE(*,*) 'thickness_levels(1:n_thickness_levels)',               &
                   thickness_levels(1:n_thickness_levels)
-            
+
              STOP
 
           END IF
@@ -2575,7 +2579,7 @@ CONTAINS
              dyn_pres_levels0(1:n_dyn_pres_levels) = 0.0_wp
 
           END IF
-             
+
        END IF
 
        IF ( n_dyn_pres_levels .GT. 0 ) THEN
@@ -2590,7 +2594,7 @@ CONTAINS
              WRITE(*,*) 'Please check the input file'
              WRITE(*,*) 'dyn_pres_levels(1:n_thickness_levels)',                &
                   dyn_pres_levels(1:n_dyn_pres_levels)
-            
+
              STOP
 
           END IF
@@ -2602,64 +2606,64 @@ CONTAINS
              thickness_levels(1:n_thickness_levels) = 0.0_wp
 
           END IF
-          
+
        END IF
-     
+
     END IF
 
     IF ( verbose_level .GE. 0 ) THEN
-       
+
        WRITE(*,*) 'thickness_levels',n_thickness_levels,thickness_levels
        WRITE(*,*) 'dyn_pres_levels',n_dyn_pres_levels,dyn_pres_levels
 
     END IF
-       
+
 
     !------ search for check points --------------------------------------------
 
     REWIND(input_unit)
 
     tend1 = .FALSE.
-    
+
     IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Searching for probes coords'
-   
+
     n_probes = 0
- 
+
     probes_search: DO
-       
+
        READ(input_unit,*, END = 300 ) card
-       
+
        IF( TRIM(card) == 'PROBES_COORDS' ) THEN
-          
+
           EXIT probes_search
-          
+
        END IF
-       
+
     END DO probes_search
-  
-    
+
+
     READ(input_unit,*) n_probes
-    
+
     WRITE(*,*) 'n_probes ',n_probes
 
     READ(input_unit,*) dt_probes
-    
+
     WRITE(*,*) 'dt_probes ',dt_probes
-    
+
     ALLOCATE( probes_coords( 2 , n_probes ) )
-    
+
     DO k = 1, n_probes
-       
+
        READ(input_unit,*) probes_coords( 1:2 , k ) 
-       
+
        IF ( verbose_level.GE.0 ) WRITE(*,*) k , probes_coords( 1:2 , k )  
-       
+
     END DO
-    
+
     GOTO 310
 300 tend1 = .TRUE.
 310 CONTINUE
-   
+
     ! ----- end search for check points -----------------------------------------
 
     CLOSE( input_unit )
@@ -2680,15 +2684,15 @@ CONTAINS
        WRITE(backup_unit,newrun_parameters)
 
        IF ( ( radial_source_flag ) .OR. ( bottom_radial_source_flag ) ) THEN
-          
+
           alphal_source = -1.0_wp
-          
+
           WRITE(backup_unit,radial_source_parameters)
-          
+
        ELSE
-          
+
           WRITE(backup_unit,initial_conditions)
-          
+
        END IF
 
     END IF
@@ -2729,23 +2733,23 @@ CONTAINS
        WRITE(backup_unit, vulnerability_table_parameters)
 
     END IF
-       
+
     IF ( n_probes .GT. 0 ) THEN
-       
+
        WRITE(backup_unit,*) '''PROBES_COORDS'''
        WRITE(backup_unit,*) n_probes
        WRITE(backup_unit,*) dt_probes
-       
+
        DO k = 1,n_probes
-          
+
           WRITE(backup_unit,109) probes_coords(1:2,k)
-          
+
 109       FORMAT(2(1x,e14.7))
-          
+
        END DO
-       
+
     END IF
-        
+
     CLOSE(backup_unit)
 
   END SUBROUTINE read_param

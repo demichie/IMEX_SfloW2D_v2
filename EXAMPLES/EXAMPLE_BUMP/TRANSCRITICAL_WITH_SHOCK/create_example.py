@@ -7,7 +7,7 @@ import numpy as np
 import time
 import sys
 
-if len(sys.argv)==5: 
+if len(sys.argv)==4: 
 
     print('Number of cells')
     a = sys.argv[1]
@@ -23,17 +23,11 @@ if len(sys.argv)==5:
 
     a = sys.argv[2]
     try:
-        alfas = float(a)
-    except ValueError:
-        print("You must enter a float")
-
-    a = sys.argv[3]
-    try:
         T = float(a)
     except ValueError:
         print("You must enter a float for temperature: "+a)
 
-    a = sys.argv[4]
+    a = sys.argv[3]
     if a == 'true': 
         plot_flag = True
     elif a == 'false':
@@ -45,30 +39,14 @@ else:
 
     print('Please provide three arguments:\n')
     print('1) Number of cells\n')
-    print('2) Solid volume fraction (0,1)\n')
     print('3) Temperature (>0)\n')
     print('4) Plot flag (true or false)\n')
     sys.exit()
 
 
-n_solid = 1
+rho_l = 1000.0
+SP_HEAT_L = 4200.0
 
-rho_s = 1000.0
-rho_a = 1.2
-SP_HEAT_S = 1617.0
-SP_HEAT_A = 998.0
-SP_GAS_CONST_A = 287.051
-PRES = 101300.0
-
-rho_a = PRES / ( T * SP_GAS_CONST_A )
-
-rho_m = alfas * rho_s + ( 1.0-alfas ) * rho_a
-
-print('rho_m',rho_m)
-
-xs = alfas * rho_s / rho_m
-
-SP_HEAT_MIX = xs * SP_HEAT_S + ( 1.0 - xs ) * SP_HEAT_A
 
 # Define the boundaries x_left and x_right of the spatial domain
 x_left = 0.0
@@ -162,17 +140,14 @@ output_full = 'topography_dem.asc'
 np.savetxt(output_full, np.transpose(B), header=header, fmt='%1.12f',comments='')
 
 # create intial solution file
-q0 = np.zeros((6+n_solid,n_cells))
+q0 = np.zeros((6,n_cells))
 
 q0[0,:] = x_cent
 q0[1,:] = 0.0
-q0[2,:] = rho_m * (w_cent-B_cent)
-q0[3,:] = rho_m * (w_cent-B_cent)*u_cent
+q0[2,:] = rho_l * (w_cent-B_cent)
+q0[3,:] = rho_l * (w_cent-B_cent)*u_cent
 q0[4,:] = 0.0
-q0[5,:] = rho_m * (w_cent-B_cent)* ( SP_HEAT_MIX * T + 0.5 * u_cent**2 )
-
-for i in range(n_solid):
-    q0[6+i,:] = rho_s*(w_cent-B_cent)*alfas/n_solid
+q0[5,:] = rho_l * (w_cent-B_cent)* ( SP_HEAT_L * T + 0.5 * u_cent**2 )
 
 init_file = 'exampleTrShock_0000.q_2d'
 

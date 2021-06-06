@@ -10,8 +10,6 @@ import time
 import sys
 import os.path
 
-print 
-
 if len(sys.argv)==3: 
  
     filename = sys.argv[1]
@@ -40,7 +38,6 @@ else:
 
 data = np.loadtxt(filename,skiprows=0)
 
-
 x_cent = data[:,0]
 y_cent = data[:,1]
 h = data[:,2]
@@ -48,10 +45,9 @@ u = data[:,3]
 v = data[:,4]
 B_cent = data[:,5]
 hB = data[:,6]
-alphas = data[:,7]
-T = data[:,8]
-rho_m = data[:,9]
-red_grav = data[:,10]
+T = data[:,7]
+rho_m = data[:,8]
+red_grav = data[:,9]
 
 x_unique = np.unique(x_cent)
 

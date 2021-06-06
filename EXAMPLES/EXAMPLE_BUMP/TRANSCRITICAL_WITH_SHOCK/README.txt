@@ -5,19 +5,17 @@ On the left boundary (subcritical) only the volumetric flow is fixed.
 On the right boundary (supercritical, right-going) zero gradient is fixed for all variables.
 
 A Python script is provided to create the input file for this example. 
-Please provide four arguments:
+Please provide three arguments:
 
 1) Number of cells in the x-direction 
 
-2) Volume fraction of particles
+2) Flow temperature (Kelvin)
 
-3) Flow temperature (Kelvin)
-
-4) Logical for plot of initial solution (true or false)
+3) Logical for plot of initial solution (true or false)
 
 Usage example of the script:
 
->> ./create_example.py 200 1.0 300 false
+>> ./create_example.py 200 300 false
 
 Run the solver (this assumes that the example is in the original folder):
 

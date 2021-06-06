@@ -45,10 +45,9 @@ u = data[:,3]
 v = data[:,4]
 B_cent = data[:,5]
 hB = data[:,6]
-alphas = data[:,7]
-T = data[:,8]
-rho_m = data[:,9]
-red_grav = data[:,10]
+T = data[:,7]
+rho_m = data[:,8]
+red_grav = data[:,9]
 
 x_unique = np.unique(x_cent)
 
