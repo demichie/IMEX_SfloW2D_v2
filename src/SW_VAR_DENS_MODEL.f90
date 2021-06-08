@@ -173,7 +173,7 @@ PROGRAM SW_VAR_DENS_MODEL
 
   t = t_start
 
-  CALL check_solve(.TRUE.)
+  CALL check_solve(.FALSE.)
 
   IF ( topo_change_flag ) CALL topography_reconstruction
 
@@ -280,7 +280,7 @@ PROGRAM SW_VAR_DENS_MODEL
 
      IF ( t.EQ. t_start ) THEN
 
-        CALL check_solve(.TRUE.)
+        CALL check_solve(.FALSE.)
 
      ELSE
 

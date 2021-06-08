@@ -33,7 +33,7 @@ MODULE solver_2d
   USE parameters_2d, ONLY : n_eqns , n_vars , n_nh , n_solid
   USE parameters_2d, ONLY : n_RK
   USE parameters_2d, ONLY : verbose_level
-  USE parameters_2d, ONLY : radial_source_flag
+  USE parameters_2d, ONLY : radial_source_flag , bottom_radial_source_flag
 
   USE parameters_2d, ONLY : bcW , bcE , bcS , bcN
 
@@ -617,6 +617,16 @@ CONTAINS
     !$OMP END WORKSHARE
     
     !$OMP BARRIER
+
+    IF ( bottom_radial_source_flag ) THEN
+
+       !$OMP WORKSHARE
+       WHERE ( cell_source_fractions .GT. 0.0_wp ) solve_mask = .TRUE.
+       !$OMP END WORKSHARE
+       
+       !$OMP BARRIER
+
+    END IF
     
     IF ( radial_source_flag ) THEN
              
@@ -957,6 +967,13 @@ CONTAINS
        j = j_cent(l)
        k = k_cent(l)
 
+       IF ( verbose_level .GE. 2 ) THEN
+
+          WRITE(*,*) 'solver, imex_RK_solver: j,k',j,k
+          READ(*,*)
+          
+       END IF
+
        ! Initialization of the solution guess
        q0( 1:n_vars , j , k ) = q( 1:n_vars , j , k )
        ! Initialization of the variables for the Runge-Kutta scheme
@@ -1000,7 +1017,8 @@ CONTAINS
 
           IF ( verbose_level .GE. 2 ) THEN
 
-             WRITE(*,*) 'solver, imex_RK_solver: j',j,k
+             WRITE(*,*) 'solver, imex_RK_solver: j,k',j,k
+             READ(*,*)
 
           END IF
 
@@ -1027,28 +1045,28 @@ CONTAINS
 
           CALL qc_to_qp(q_fv(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
 
-          IF ( qp(4,j,k) .LT. 290.0_wp ) THEN
-
-             WRITE(*,*) 'i_RK',i_RK
-             WRITE(*,*) j,k,qp(1:n_vars+2,j,k)
-             
-             CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
-             WRITE(*,*) j,k,qp(1:n_vars+2,j,k)
-             
-             WRITE(*,*) 'H_interface(1)'
-             WRITE(*,*) H_interface_x(1,j+1,k)/dx*dt, H_interface_x(1,j,k)/dx*dt
-             WRITE(*,*) H_interface_y(1,j,k+1)/dy*dt, H_interface_y(1,j,k)/dy*dt
-
-             WRITE(*,*) 'H_interface(4)'
-             WRITE(*,*) H_interface_x(4,j+1,k)/dx*dt, H_interface_x(4,j,k)/dx*dt
-             WRITE(*,*) H_interface_y(4,j,k+1)/dy*dt, H_interface_y(4,j,k)/dy*dt
-
-             WRITE(*,*) 'qp_interfaceB',qp_interfaceB(1:n_vars,j,k+1)
-             WRITE(*,*) 'qp_interfaceT',qp_interfaceT(1:n_vars,j,k+1)
-             
-             READ(*,*)
-             
-          END IF
+!!$          IF ( ( j.EQ.-100) .AND. (k.EQ.100) ) THEN
+!!$
+!!$             WRITE(*,*) 'i_RK',i_RK
+!!$             WRITE(*,*) j,k,qp(1:n_vars+2,j,k)
+!!$             
+!!$             CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
+!!$             WRITE(*,*) j,k,qp(1:n_vars+2,j,k)
+!!$             
+!!$             WRITE(*,*) 'H_interface(1)'
+!!$             WRITE(*,*) H_interface_x(1,j+1,k)/dx*dt, H_interface_x(1,j,k)/dx*dt
+!!$             WRITE(*,*) H_interface_y(1,j,k+1)/dy*dt, H_interface_y(1,j,k)/dy*dt
+!!$
+!!$             WRITE(*,*) 'H_interface(4)'
+!!$             WRITE(*,*) H_interface_x(4,j+1,k)/dx*dt, H_interface_x(4,j,k)/dx*dt
+!!$             WRITE(*,*) H_interface_y(4,j,k+1)/dy*dt, H_interface_y(4,j,k)/dy*dt
+!!$
+!!$             WRITE(*,*) 'qp_interfaceB',qp_interfaceB(1:n_vars,j,k+1)
+!!$             WRITE(*,*) 'qp_interfaceT',qp_interfaceT(1:n_vars,j,k+1)
+!!$             
+!!$             READ(*,*)
+!!$             
+!!$          END IF
           
           
           IF ( verbose_level .GE. 2 ) THEN
@@ -3164,6 +3182,18 @@ CONTAINS
              END IF
              
           ENDIF check_comp_cells_y
+
+!!$          IF ( ( j.EQ.100) .AND. ( k.EQ.100) ) THEN
+!!$
+!!$             WRITE(*,*) 'j,k,i',j,k,i
+!!$             WRITE(*,*) 'qrec_stencil', qrec_stencil
+!!$             WRITE(*,*) 'qrec_prime_y(i)', qrec_prime_y(i)
+!!$             WRITE(*,*) 'qrecS(i)',qrecS(i)
+!!$             WRITE(*,*) 'qrecN(i)',qrecN(i)
+!!$             WRITE(*,*) epsilon(1.0_wp)
+!!$             READ(*,*)
+!!$
+!!$          END IF
 
        ENDDO vars_loop
 

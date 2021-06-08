@@ -1195,7 +1195,7 @@ CONTAINS
     REAL(wp), INTENT(IN) :: b
     REAL(wp) :: sa , sb 
 
-    IF ( MIN(ABS(a),ABS(b)) .LT. -1.0e-40_wp ) THEN
+    IF ( MIN(ABS(a),ABS(b)) .LE. 0.0e-40_wp ) THEN
 
        minmod = 0.0_wp
 
@@ -1216,7 +1216,7 @@ CONTAINS
 
     REAL(wp) :: a , b , sa , sb 
 
-    IF ( ABS(a*b) .LT. 1.0e-30_wp ) THEN
+    IF ( ABS(a*b) .LE. 0.0e-30_wp ) THEN
 
        maxmod = 0.0_wp
 
