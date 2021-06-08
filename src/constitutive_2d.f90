@@ -1399,11 +1399,11 @@ CONTAINS
 
     ! units of dqc(2)/dt [kg m-1 s-2]
     expl_term(2) = - grav_coeff * r_rho_m * r_tilde_grav * r_h * Bprimej_x      &
-         + grav_coeff * r_red_grav * r_rho_m * 0.5_wp * r_h**2 * d_grav_coeff_dx 
+         + 0.5_wp * r_rho_m * r_red_grav * r_h**2 * d_grav_coeff_dx 
     
     ! units of dqc(3)/dt [kg m-1 s-2]
     expl_term(3) = - grav_coeff * r_rho_m * r_tilde_grav * r_h * Bprimej_y      &
-         + grav_coeff * r_red_grav * r_rho_m * 0.5_wp * r_h**2 * d_grav_coeff_dx
+         + 0.5_wp * r_rho_m * r_red_grav * r_h**2 * d_grav_coeff_dy
 
     IF ( energy_flag ) THEN
 
