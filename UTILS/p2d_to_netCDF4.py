@@ -115,8 +115,24 @@ ncfilename = filename_fix+'.nc'
 
 ncfile = netCDF4.Dataset(ncfilename,mode='w',format='NETCDF4_CLASSIC') 
 
-x_dim = ncfile.createDimension('x', nx) 
-y_dim = ncfile.createDimension('y', ny) 
+
+if ( ny == 1 ):
+
+    nx2 = nx
+    ny2 = 2
+    
+elif ( nx == 1 ):
+
+    nx2 = 2
+    ny2 = ny
+    
+else:
+
+    nx2 = nx
+    ny2 = ny
+
+x_dim = ncfile.createDimension('x', nx2) 
+y_dim = ncfile.createDimension('y', ny2) 
 time_dim = ncfile.createDimension('time', None) # unlimited axis (can be appended to).
 
 
@@ -168,6 +184,10 @@ for i in range(nsolid):
     globals()['dep'+'_{0:04}'.format(i)].standard_name = 'deposit' # 
     globals()['dep'+'_{0:04}'.format(i)].units = 'meters' # 
 
+    globals()['ers'+'_{0:04}'.format(i)] = ncfile.createVariable('ers'+'_{0:04}'.format(i),np.float64,('time','y','x'),zlib=True) 
+    globals()['ers'+'_{0:04}'.format(i)].standard_name = 'erosion' # 
+    globals()['ers'+'_{0:04}'.format(i)].units = 'meters' # 
+
     globals()['alphas'+'_{0:04}'.format(i)] = ncfile.createVariable('alphas'+'_{0:04}'.format(i),np.float64,('time','y','x'),zlib=True) 
     globals()['alphas'+'_{0:04}'.format(i)].standard_name = 'solid volume fraction' # 
     globals()['alphas'+'_{0:04}'.format(i)].units = '' # 
@@ -177,8 +197,9 @@ rhom.standard_name = 'flow density' #
 rhom.units = 'kilograms/second' # 
 
 
-X = np.zeros((ny,nx))
-Y = np.zeros((ny,nx))
+
+X = np.zeros((ny2,nx2))
+Y = np.zeros((ny2,nx2))
 
 
 if len(sys.argv)==2: 
@@ -198,23 +219,59 @@ for i_output in range(output_first,output_last):
 
         
         time[nc_output] = dt_output*i_output
-        h[nc_output,:,:] = data[:,2].reshape((ny,nx))
-        ux[nc_output,:,:] = data[:,3].reshape((ny,nx))
-        uy[nc_output,:,:] = data[:,4].reshape((ny,nx))
-        b[nc_output,:,:] = data[:,5].reshape((ny,nx))
-        W[nc_output,:,:] = data[:,6].reshape((ny,nx))
-        for i in range(nsolid):
-            globals()['alphas'+'_{0:04}'.format(i)][nc_output,:,:] = data[:,7+i].reshape((ny,nx))
-        T[nc_output,:,:] = data[:,7+nsolid].reshape((ny,nx))
-        rhom[nc_output,:,:] = data[:,8+nsolid].reshape((ny,nx))
-        for i in range(nsolid):
-            globals()['dep'+'_{0:04}'.format(i)][nc_output,:,:] = data[:,10+nsolid+i].reshape((ny,nx))
+        
+        if ( nx == 1 ) or ( ny == 1):
+            h[nc_output,:,:] = np.tile(data[:,2],2).reshape((ny2,nx2))
+            ux[nc_output,:,:] = np.tile(data[:,3],2).reshape((ny2,nx2))
+            uy[nc_output,:,:] = np.tile(data[:,4],2).reshape((ny2,nx2))
+            b[nc_output,:,:] = np.tile(data[:,5],2).reshape((ny2,nx2))
+            W[nc_output,:,:] = np.tile(data[:,6],2).reshape((ny2,nx2))
+
+            for i in range(nsolid):
+                globals()['alphas'+'_{0:04}'.format(i)][nc_output,:,:] = \
+                np.tile(data[:,7+i],2).reshape((ny2,nx2))
+
+            T[nc_output,:,:] = np.tile(data[:,7+nsolid],2).reshape((ny2,nx2))
+            rhom[nc_output,:,:] = np.tile(data[:,8+nsolid],2).reshape((ny2,nx2))
+
+            for i in range(nsolid):
+                globals()['dep'+'_{0:04}'.format(i)][nc_output,:,:] = np.tile(data[:,10+nsolid+i],2).reshape((ny2,nx2))
+
+            for i in range(nsolid):
+                globals()['ers'+'_{0:04}'.format(i)][nc_output,:,:] = np.tile(data[:,10+2*nsolid+i],2).reshape((ny2,nx2))
+
+        else:
+            h[nc_output,:,:] = data[:,2].reshape((ny,nx))
+            ux[nc_output,:,:] = data[:,3].reshape((ny,nx))
+            uy[nc_output,:,:] = data[:,4].reshape((ny,nx))
+            b[nc_output,:,:] = data[:,5].reshape((ny,nx))
+            W[nc_output,:,:] = data[:,6].reshape((ny,nx))
+
+            for i in range(nsolid):
+                globals()['alphas'+'_{0:04}'.format(i)][nc_output,:,:] = data[:,7+i].reshape((ny,nx))
+
+            T[nc_output,:,:] = data[:,7+nsolid].reshape((ny,nx))
+            rhom[nc_output,:,:] = data[:,8+nsolid].reshape((ny,nx))
+
+            for i in range(nsolid):
+                globals()['dep'+'_{0:04}'.format(i)][nc_output,:,:] = data[:,10+nsolid+i].reshape((ny,nx))
+
+            for i in range(nsolid):
+                globals()['ers'+'_{0:04}'.format(i)][nc_output,:,:] = data[:,10+2*nsolid+i].reshape((ny,nx))
 
         nc_output +=1
 
-
-X[:,:] = data[:,0].reshape((ny,nx))
-Y[:,:] = data[:,1].reshape((ny,nx))
+if ( nx==1 ):
+    X[:,0] = data[:,0].reshape((ny,nx))
+    X[:,1] = data[:,0].reshape((ny,nx)) + 0.04*( np.amax(data[:,1]) - np.amin(data[:,1]) )
+    Y[:,:] = np.tile(data[:,1],2).reshape((ny2,nx2))   
+elif ( ny==1 ):
+    X[:,:] = np.tile(data[:,0],2).reshape((ny2,nx2))
+    Y[0,:] = data[:,1].reshape((ny,nx))   
+    Y[1,:] = data[:,1].reshape((ny,nx)) + 0.04*( np.amax(data[:,0]) - np.amin(data[:,0]) )
+else:
+    X[:,:] = data[:,0].reshape((ny,nx))
+    Y[:,:] = data[:,1].reshape((ny,nx))
 
 x[:] = X[0,:]
 y[:] = Y[:,0]
