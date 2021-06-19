@@ -2310,6 +2310,8 @@ CONTAINS
   SUBROUTINE eval_bulk_debulk_term( qpj, deposition_avg_term, erosion_avg_term, &
        continuous_phase_loss_term , eqns_term, topo_term )
 
+    USE parameters_2d, ONLY : erodible_deposit_flag
+    
     IMPLICIT NONE
 
     REAL(wp), INTENT(IN) :: qpj(n_vars+2)                !< physical variables 
@@ -2355,6 +2357,8 @@ CONTAINS
     r_v = qpj(n_vars+2)
     r_T = qpj(4)
 
+    IF ( erodible_deposit_flag ) T_erodible = r_T
+    
     mag_vel2 = r_u**2 + r_v**2
 
     IF ( entrainment_flag .AND.  ( r_h .GT. 0.0_wp ) .AND.                      &
@@ -2400,7 +2404,7 @@ CONTAINS
     eqns_term(3) = - r_v * ( rho_dep_tot + r_rho_c * continuous_phase_loss_term )
 
     ! Temperature/Energy equation source term [kg s-3]:
-    ! deposition, erosion and entrainment are considered
+    ! deposition, erosion and entrainment are considered    
     IF ( energy_flag ) THEN
        
        eqns_term(4) = - r_T * ( SUM( rho_s * sp_heat_s * deposition_avg_term )  &

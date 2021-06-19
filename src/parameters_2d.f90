@@ -101,6 +101,14 @@ MODULE parameters_2d
   !> .
   LOGICAL :: curvature_term_flag
 
+  !> Flag to account for the deposit thickness in the erobidle layer
+  !> - T      => add deposit to erodible thickness
+  !> - F      => do not add deposit to erobile thickness
+  !> .
+  LOGICAL :: erodible_deposit_flag
+
+
+  
   INTEGER :: n_thickness_levels
   INTEGER :: n_dyn_pres_levels
   REAL(wp), ALLOCATABLE :: thickness_levels(:)

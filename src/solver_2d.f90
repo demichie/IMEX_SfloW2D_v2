@@ -2177,6 +2177,8 @@ CONTAINS
 
     USE constitutive_2d, ONLY : qc_to_qp , mixt_var
     USE parameters_2d, ONLY : topo_change_flag , bottom_radial_source_flag
+    USE parameters_2d, ONLY : erodible_deposit_flag
+    
 
     IMPLICIT NONE
     
@@ -2263,6 +2265,13 @@ CONTAINS
 
        erodible(j,k,1:n_solid) = erodible(j,k,1:n_solid)                        &
             - dt * erosion_term(1:n_solid)
+
+       IF ( erodible_deposit_flag ) THEN
+
+          erodible(j,k,1:n_solid) = erodible(j,k,1:n_solid)                     &
+               + dt * deposition_term(1:n_solid)
+
+       END IF
        
        ! Update the topography with erosion/deposition terms
        IF ( topo_change_flag ) THEN

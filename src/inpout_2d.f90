@@ -70,6 +70,7 @@ MODULE inpout_2d
   USE constitutive_2d, ONLY : settling_flag , erosion_coeff , erodible_porosity
   USE constitutive_2d, ONLY : erodible_fract , T_erodible
   USE constitutive_2d, ONLY : alphastot_min
+  USE parameters_2d, ONLY : erodible_deposit_flag
 
   ! --- Variables for the namelist GAS_TRANSPORT_PARAMETERS
   USE constitutive_2d, ONLY : sp_heat_a , sp_gas_const_a , kin_visc_a , pres ,  &
@@ -192,6 +193,8 @@ MODULE inpout_2d
   ! absolute precentages of solids in the initial volume
   REAL(wp), ALLOCATABLE :: sed_vol_perc(:)
 
+  REAL(wp) :: initial_erodible_thickness
+  
   REAL(wp) :: alphas0_E(10) , alphas0_W(10)
   
   REAL(wp) :: alpha1_ref
@@ -454,14 +457,16 @@ CONTAINS
     tau0 = -1
     friction_factor = -1
 
-    alpha2 = -1 
-    beta2 = -1
-    alpha1_ref = -1
-    beta1 = -1
-    Kappa = -1
-    n_td = -1
-    rho_s = -1
-
+    alpha2 = -1.0_wp
+    beta2 = -1.0_wp
+    alpha1_ref = -1.0_wp
+    beta1 = -1.0_wp
+    Kappa = -1.0_wp
+    n_td = -1.0_wp
+    rho_s = -1.0_wp
+    initial_erodible_thickness = -1.0_wp
+    erodible_deposit_flag = .FALSE.
+    
     exp_area_fract = -1.0_wp
     emissivity = -1.0_wp             
     atm_heat_transf_coeff = -1.0_wp
@@ -577,7 +582,8 @@ CONTAINS
 
     NAMELIST / solid_transport_parameters / rho_s , diam_s , sp_heat_s ,        &
          erosion_coeff , erodible_porosity , settling_flag , T_erodible ,       &
-         erodible_file , erodible_fract , alphastot_min
+         erodible_file , erodible_fract , alphastot_min ,                       &
+         initial_erodible_thickness , erodible_deposit_flag
 
 
     REAL(wp) :: max_cfl
@@ -1007,36 +1013,87 @@ CONTAINS
        ALLOCATE( erodible( comp_cells_x , comp_cells_y , n_solid ) )
        erodible(1:comp_cells_x,1:comp_cells_y,1:n_solid ) = 0.0_wp
 
-       IF ( TRIM(erodible_file) .EQ. '' ) THEN
+       IF ( erodible_deposit_flag ) THEN
 
-          erodible(:,:,1:n_solid) = 1.0E+5_wp
+          IF ( t_erodible .GT. 0.0_wp ) THEN
 
-          IF ( verbose_level .GE. 0.0_wp ) THEN
+             WRITE(*,*) 'WARNING: t_erodible NOT USED'
+             WRITE(*,*) 'Temperature of erodible layer is set equal to'
+             WRITE(*,*) 'that of the flow'
 
-             WRITE(*,*)
-             WRITE(*,*) 'WARNING: no file defined for erobile layer'
-             WRITE(*,*) 'Unlimited erosion'
-             WRITE(*,*)
-
+             
           END IF
 
-       ELSEIF ( erosion_coeff .EQ. 0.0_wp ) THEN
+       END IF
+       
+       IF ( TRIM(erodible_file) .EQ. '' ) THEN
 
-          WRITE(*,*) 'WARNING: erodible_file not used'
-          WRITE(*,*) 'erosion_coeff = ', erosion_coeff
+          IF ( initial_erodible_thickness .GE. 0.0_wp ) THEN
 
-          erodible(:,:,1:n_solid) = 1.0E+5_wp
+             IF( erosion_coeff .EQ. 0.0_wp ) THEN
+
+                WRITE(*,*) 'WARNING: erodible_file not used'
+                WRITE(*,*) 'erosion_coeff = ', erosion_coeff
+                
+                erodible(:,:,1:n_solid) = 0.0E+0_wp
+
+             ELSE
+             
+                DO i_solid=1,n_solid
+
+                   erodible(:,:,i_solid) = erodible_fract(i_solid) *            &
+                        initial_erodible_thickness
+                
+                END DO
+             
+                WRITE(*,*) 'Initial thickness of erodible layer',               &
+                     initial_erodible_thickness
+
+             END IF
+                
+          ELSE
+          
+             erodible(:,:,1:n_solid) = 0.0E+0_wp
+
+             IF ( verbose_level .GE. 0.0_wp ) THEN
+                
+                WRITE(*,*)
+                WRITE(*,*) 'WARNING: no file defined for erobile layer'
+                WRITE(*,*) 'WARNING: no initial thickness for erobile layer'
+                WRITE(*,*) 'Initial erodible thickness set to 0'
+                WRITE(*,*)
+                
+             END IF
+             
+          END IF
 
        ELSE
 
-          IF ( verbose_level .GE. 0.0_wp ) THEN
+          IF ( initial_erodible_thickness .GE. 0.0_wp ) THEN
 
-             WRITE(*,*) 'Maximum thick. for erosion read from : ',                 &
-                  TRIM(erodible_file)
+             WRITE(*,*) 'WARNING: initial_erodible_thicknes not used'
 
           END IF
+          
+          IF( erosion_coeff .EQ. 0.0_wp ) THEN
 
-          CALL read_erodible
+             WRITE(*,*) 'WARNING: erodible_file not used'
+             WRITE(*,*) 'erosion_coeff = ', erosion_coeff
+
+             erodible(:,:,1:n_solid) = 0.0E+0_wp
+
+          ELSE
+
+             IF ( verbose_level .GE. 0.0_wp ) THEN
+
+                WRITE(*,*) 'Maximum thick. for erosion read from : ',           &
+                     TRIM(erodible_file)
+
+             END IF
+
+             CALL read_erodible
+
+          END IF
 
        END IF
 
@@ -3509,7 +3566,7 @@ CONTAINS
     USE constitutive_2d, ONLY : qc_to_qp, mixt_var
 
     USE geometry_2d, ONLY : comp_cells_x , B_cent , comp_cells_y , x_comp,      &
-         y_comp , deposit , erosion 
+         y_comp , deposit , erosion , erodible
 
     USE parameters_2d, ONLY : n_vars
     USE parameters_2d, ONLY : t_output , dt_output 
@@ -3645,7 +3702,8 @@ CONTAINS
 
              WRITE(output_unit_2d,1010) x_comp(j), y_comp(k), r_h , r_u , r_v , &
                   B_out , r_h + B_out , r_alphas , r_T , r_rho_m , r_red_grav , &
-                  DEPOSIT(j,k,:) , EROSION(j,k,:)
+                  DEPOSIT(j,k,:) , EROSION(j,k,:) ,                             &
+                  SUM(ERODIBLE(j,k,:)) / ( 1.0_wp - erodible_porosity )  
 
           END DO
           
