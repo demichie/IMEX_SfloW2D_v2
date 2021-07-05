@@ -17,6 +17,7 @@
  COMP_CELLS_Y=  520,
  CELL_SIZE = 25.D0    ,
  N_SOLID = 1 ,
+ N_ADD_GAS = 0 ,
  GAS_FLAG = T ,
  LIQUID_FLAG = F ,
  RHEOLOGY_FLAG = T ,

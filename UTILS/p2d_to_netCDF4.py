@@ -192,6 +192,12 @@ for i in range(nsolid):
     globals()['alphas'+'_{0:04}'.format(i)].standard_name = 'solid volume fraction' # 
     globals()['alphas'+'_{0:04}'.format(i)].units = '' # 
 
+if (nsolid > 0):
+    erodible = ncfile.createVariable('erodible',np.float64,('time','y','x'),zlib=True) 
+    erodible.standard_name = 'erodible layer thickness' # 
+    erodible.units = 'meters' # 
+
+
 rhom = ncfile.createVariable('rhom',np.float64,('time','y','x'),zlib=True) 
 rhom.standard_name = 'flow density' # 
 rhom.units = 'kilograms/second' # 
@@ -239,6 +245,10 @@ for i_output in range(output_first,output_last):
 
             for i in range(nsolid):
                 globals()['ers'+'_{0:04}'.format(i)][nc_output,:,:] = np.tile(data[:,10+2*nsolid+i],2).reshape((ny2,nx2))
+                
+            if (nsolid>0):
+                erodible[nc_output,:,:] = np.tile(data[:,10+3*nsolid],2).reshape((ny2,nx2))
+                
 
         else:
             h[nc_output,:,:] = data[:,2].reshape((ny,nx))
@@ -258,6 +268,9 @@ for i_output in range(output_first,output_last):
 
             for i in range(nsolid):
                 globals()['ers'+'_{0:04}'.format(i)][nc_output,:,:] = data[:,10+2*nsolid+i].reshape((ny,nx))
+                
+            erodible[nc_output,:,:] = data[:,10+3*nsolid].reshape((ny,nx))
+
 
         nc_output +=1
 

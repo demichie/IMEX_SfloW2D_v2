@@ -17,6 +17,7 @@
  COMP_CELLS_Y=          1,
  CELL_SIZE= dx ,
  N_SOLID = 0 ,
+ N_ADD_GAS = 0 ,
  RHEOLOGY_FLAG=F,
  ENERGY_FLAG=F,
  GAS_FLAG=F,

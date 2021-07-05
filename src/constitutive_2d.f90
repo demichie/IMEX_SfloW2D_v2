@@ -4,7 +4,7 @@
 MODULE constitutive_2d
 
   USE parameters_2d, ONLY : wp, sp ,tolh
-  USE parameters_2d, ONLY : n_eqns , n_vars , n_solid
+  USE parameters_2d, ONLY : n_eqns , n_vars , n_solid , n_add_gas
   USE parameters_2d, ONLY : rheology_flag , rheology_model , energy_flag ,      &
        liquid_flag , gas_flag , alpha_flag , slope_correction_flag ,            &
        curvature_term_flag
@@ -114,6 +114,9 @@ MODULE constitutive_2d
   !> Specific heat of carrier phase (gas or liquid)
   REAL(wp) :: sp_heat_c  ! ( initialized from input)   
 
+  !> Specific gas constant of gas mixture (units: J kg-1 K-1)
+  REAL(wp) :: sp_gas_const_c
+  
   !> Density of carrier phase in substrate ( units: kg m-3 )
   REAL(wp) :: rho_c_sub
   
@@ -128,6 +131,12 @@ MODULE constitutive_2d
 
   !> Kinematic viscosity of air (units: m2 s-1)
   REAL(wp) :: kin_visc_a
+
+  !> Specific heat of additional gas (units: J K-1 kg-1)
+  REAL(wp), ALLOCATABLE :: sp_heat_g(:)
+
+  !> Specific gas constant of additional gas (units: J kg-1 K-1)
+  REAL(wp), ALLOCATABLE :: sp_gas_const_g(:)
 
   !> Kinematic viscosity of liquid (units: m2 s-1)
   REAL(wp) :: kin_visc_l
@@ -270,7 +279,7 @@ CONTAINS
   !******************************************************************************
 
   SUBROUTINE r_phys_var(r_qj , r_h , r_u , r_v , r_alphas , r_rho_m , r_T ,     &
-       r_alphal , r_red_grav )
+       r_alphal , r_alphag , r_red_grav )
 
     USE parameters_2d, ONLY : eps_sing , eps_sing4
     IMPLICIT none
@@ -283,19 +292,24 @@ CONTAINS
     REAL(wp), INTENT(OUT) :: r_rho_m           !< real-value mixture density
     REAL(wp), INTENT(OUT) :: r_T               !< real-value temperature
     REAL(wp), INTENT(OUT) :: r_alphal          !< real-value liquid volume fract
+    REAL(wp), INTENT(OUT) :: r_alphag(n_add_gas) !< real-value gas volume fracts
     REAL(wp), INTENT(OUT) :: r_red_grav        !< real-value reduced gravity
 
     REAL(wp) :: r_inv_rhom
-    REAL(wp) :: r_xs(n_solid)     !< real-value solid mass fraction
+    REAL(wp) :: r_xs(n_solid)     !< real-value solid mass fractions
+    REAL(wp) :: r_xg(n_add_gas)     !< real-value additional gas mass fractions
     REAL(wp) :: r_xs_tot
 
     REAL(wp) :: r_Ri            !< real-value Richardson number
     REAL(wp) :: r_xl            !< real-value liquid mass fraction
     REAL(wp) :: r_xc            !< real-value carrier phase mass fraction
     REAL(wp) :: r_alphac        !< real-value carrier phase volume fraction
-    REAL(wp) :: r_sp_heat_mix   !< Specific heat of mixture
+    REAL(wp) :: r_sp_heat_c     !< real-value specific heat of carrier phase
+    REAL(wp) :: r_sp_heat_mix   !< real-value specific heat of mixture
+    REAL(wp) :: r_sp_gas_const_c!< real-value gas constant of carrier phase
     REAL(wp) :: r_rho_c         !< real-value carrier phase density [kg/m3]
     REAL(wp) :: r_inv_rho_c
+    REAL(wp) :: r_inv_rho_g(n_add_gas)    !< add. gas density reciprocal
 
     REAL(wp) :: inv_qj1
  
@@ -312,10 +326,13 @@ CONTAINS
           r_xs(1:n_solid) = r_xs(1:n_solid) / SUM( r_xs(1:n_solid) )
 
        END IF
+
+       r_xg(1:n_add_gas) = r_qj(4+n_solid+1:4+n_solid+n_add_gas) * inv_qj1
        
     ELSE
 
        r_xs(1:n_solid) = 0.0_wp
+       r_xg(1:n_add_gas) = 0.0_wp
 
     END IF
 
@@ -333,22 +350,38 @@ CONTAINS
           r_xl = 0.0_wp
 
        END IF
-
+       
        ! compute carrier phase (gas) mass fraction
        r_xc =  1.0_wp - r_xs_tot - r_xl
 
+       ! compute specific heat of gas phase (weighted average of specific heat
+       ! of gas components, with weights given by mass fractions)
+       r_sp_heat_c = ( ( r_xc - SUM( r_xg(1:n_add_gas) ) ) * sp_heat_a +        &
+            DOT_PRODUCT( r_xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / r_xc           
+       
        ! specific heat of the mixutre: mass average of sp. heat pf phases
        r_sp_heat_mix = DOT_PRODUCT( r_xs(1:n_solid) , sp_heat_s(1:n_solid) )    &
-            + r_xl * sp_heat_l + r_xc * sp_heat_c
+            + r_xl * sp_heat_l + r_xc * r_sp_heat_c
 
     ELSE
 
        ! compute carrier phase (gas or liquid) mass fraction
        r_xc = 1.0_wp - r_xs_tot
 
+       IF ( gas_flag ) THEN
+          
+          r_sp_heat_c = ( ( r_xc - SUM( r_xg(1:n_add_gas) ) ) * sp_heat_a +     &
+               DOT_PRODUCT( r_xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / r_xc           
+          
+       ELSE
+          
+          r_sp_heat_c = sp_heat_l
+          
+       END IF
+       
        ! specific heaf of the mixutre: mass average of sp. heat pf phases
        r_sp_heat_mix = DOT_PRODUCT( r_xs(1:n_solid) , sp_heat_s(1:n_solid) )    &
-            + r_xc * sp_heat_c
+            + r_xc * r_sp_heat_c
 
     END IF
 
@@ -377,10 +410,14 @@ CONTAINS
     IF ( gas_flag ) THEN
 
        ! carrier phase is gas
-       r_rho_c =  pres / ( sp_gas_const_a * r_T )
-       r_inv_rho_c = sp_gas_const_a * r_T * inv_pres
-       sp_heat_c = sp_heat_a
+       r_sp_gas_const_c = ( ( r_xc - SUM( r_xg(1:n_add_gas) ) ) * sp_gas_const_a&
+            + DOT_PRODUCT( r_xg(1:n_add_gas) , sp_gas_const_g(1:n_add_gas) ) )  &
+            / r_xc
+       r_rho_c =  pres / ( r_sp_gas_const_c * r_T )
+       r_inv_rho_c = r_sp_gas_const_c * r_T * inv_pres
 
+       r_inv_rho_g(1:n_add_gas) = sp_gas_const_g(1:n_add_gas) * r_T * inv_pres
+       
     ELSE
 
        r_rho_c = rho_l
@@ -389,7 +426,8 @@ CONTAINS
 
     END IF
 
-    r_inv_rhom = DOT_PRODUCT( r_xs(1:n_solid) , inv_rho_s(1:n_solid) )       &
+    ! the liquid contribution (if present) is added below
+    r_inv_rhom = DOT_PRODUCT( r_xs(1:n_solid) , inv_rho_s(1:n_solid) )          &
          + r_xc * r_inv_rho_c
 
     IF ( gas_flag .AND. liquid_flag ) THEN
@@ -405,12 +443,8 @@ CONTAINS
     ! convert from mass fraction to volume fraction
     r_alphas(1:n_solid) = r_xs(1:n_solid) * r_rho_m * inv_rho_s(1:n_solid)
 
-!!$    IF ( ( r_qj(1) .GT. 0.0_wp ) .AND. ( ABS( r_alphas(1) - 0.1_wp ) .GT. 1.0E-5_wp ) ) THEN
-!!$
-!!$       WRITE(*,*) 'qui',r_alphas(1) - 0.1_wp,r_qj(1),r_qj(5)
-!!$       READ(*,*)
-!!$
-!!$    END IF
+    ! convert from mass fraction to volume fraction
+    r_alphag(1:n_solid) = r_xg(1:n_solid) * r_rho_m * r_inv_rho_g(1:n_solid)
     
     ! convert from mass fraction to volume fraction
     r_alphac = r_xc * r_rho_m * r_inv_rho_c
@@ -468,7 +502,8 @@ CONTAINS
   !> \date 2019/12/13
   !******************************************************************************
 
-  SUBROUTINE c_phys_var( c_qj , h , u , v , T , rho_m , alphas , inv_rhom )
+  SUBROUTINE c_phys_var( c_qj , h , u , v , T , rho_m , alphas , alphag ,       &
+       inv_rhom )
 
     USE COMPLEXIFY
     USE parameters_2d, ONLY : eps_sing , eps_sing4
@@ -481,39 +516,40 @@ CONTAINS
     COMPLEX(wp), INTENT(OUT) :: T               !< temperature [K]
     COMPLEX(wp), INTENT(OUT) :: rho_m           !< mixture density [kg m-3]
     COMPLEX(wp), INTENT(OUT) :: alphas(n_solid) !< sediment volume fractions
-    COMPLEX(wp), INTENT(OUT) :: inv_rhom       !< 1/mixture density [kg-1 m3]
+    COMPLEX(wp), INTENT(OUT) :: alphag(n_solid) !< sediment volume fractions
+    COMPLEX(wp), INTENT(OUT) :: inv_rhom        !< 1/mixture density [kg-1 m3]
 
     COMPLEX(wp) :: xs(n_solid)             !< sediment mass fractions
+    COMPLEX(wp) :: xg(n_add_gas)           !< additional gas comp. mass fractions
     COMPLEX(wp) :: xs_tot                  !< sum of solid mass fraction
     COMPLEX(wp) :: xl                      !< liquid mass fraction
     COMPLEX(wp) :: xc                      !< carrier phase mass fraction
+    COMPLEX(wp) :: sp_heat_c               !< Specific heat of carrier phase
     COMPLEX(wp) :: sp_heat_mix             !< Specific heat of mixture
+    COMPLEX(wp) :: sp_gas_const_c          !< Gas constant of carrier phase
     COMPLEX(wp) :: inv_cqj1                !< reciprocal of 1st cons. variable
-    COMPLEX(wp) :: inv_rho_c               !< carrier phase reciprocal
+    COMPLEX(wp) :: inv_rho_c               !< carrier phase density reciprocal
+    COMPLEX(wp) :: inv_rho_g(n_add_gas)    !< add. gas density reciprocal
 
+    
     ! compute solid mass fractions
     ! IF ( REAL(c_qj(1)) .GT. eps_sing ) THEN
     IF ( REAL(c_qj(1)) .GT. 0.0_wp ) THEN
 
        inv_cqj1 = 1.0_wp / c_qj(1)
-
        xs(1:n_solid) = c_qj(5:4+n_solid) * inv_cqj1
+
+       xg(1:n_add_gas) = c_qj(4+n_solid+1:4+n_solid+n_add_gas) * inv_cqj1
        
     ELSE
 
        inv_cqj1 = CMPLX(0.0_wp,0.0_wp,wp)
        xs(1:n_solid) = CMPLX(0.0_wp,0.0_wp,wp)
+       xg(1:n_add_gas) = CMPLX(0.0_wp,0.0_wp,wp)
 
     END IF
 
     xs_tot = SUM(xs)
-
-    ! compute carrier phase (gas or liquid) mass fraction
-    xc = CMPLX(1.0_wp,0.0_wp,wp) - xs_tot
-
-    ! specific heaf of the mixutre: mass average of sp. heat pf phases
-    sp_heat_mix = DOT_PRODUCT( xs(1:n_solid) , sp_heat_s(1:n_solid) )           &
-         + xc * sp_heat_c
 
     IF ( gas_flag .AND. liquid_flag ) THEN
 
@@ -523,10 +559,34 @@ CONTAINS
        ! compute carrier phase (gas) mass fraction
        xc =  xc - xl
 
-       ! specific heaf of the mixutre: mass average of sp. heat pf phases
-       sp_heat_mix = sp_heat_mix + xl * sp_heat_l
+       sp_heat_c = ( ( xc - SUM( xg(1:n_add_gas) ) ) * sp_heat_a +              &
+            DOT_PRODUCT( xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / xc           
+       
+       ! specific heat of the mixutre: mass average of sp. heat pf phases
+       sp_heat_mix = DOT_PRODUCT( xs(1:n_solid) , sp_heat_s(1:n_solid) )        &
+            + xl * sp_heat_l + xc * sp_heat_c
 
-    END IF
+    ELSE
+
+       ! compute carrier phase (gas or liquid) mass fraction
+       xc = 1.0_wp - xs_tot
+
+       IF ( gas_flag ) THEN
+          
+          sp_heat_c = ( ( xc - SUM( xg(1:n_add_gas) ) ) * sp_heat_a +           &
+               DOT_PRODUCT( xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / xc           
+          
+       ELSE
+          
+          sp_heat_c = CMPLX(sp_heat_l,0.0_wp,wp)
+          
+       END IF
+       
+       ! specific heaf of the mixutre: mass average of sp. heat pf phases
+       sp_heat_mix = DOT_PRODUCT( xs(1:n_solid) , sp_heat_s(1:n_solid) )        &
+            + xc * sp_heat_c
+
+    END IF    
 
     ! compute temperature from energy
     IF ( REAL(c_qj(1)) .GT. eps_sing ) THEN
@@ -553,7 +613,13 @@ CONTAINS
     IF ( gas_flag ) THEN
 
        ! carrier phase is gas
-       inv_rho_c = sp_gas_const_a * T * inv_pres
+       sp_gas_const_c = ( ( xc - SUM( xg(1:n_add_gas) ) ) * sp_gas_const_a      &
+            + DOT_PRODUCT( xg(1:n_add_gas) , sp_gas_const_g(1:n_add_gas) ) )    &
+            / xc
+
+       inv_rho_c = sp_gas_const_c * T * inv_pres
+
+       inv_rho_g(1:n_add_gas) = sp_gas_const_g(1:n_add_gas) * T * inv_pres
 
     ELSE
 
@@ -570,6 +636,9 @@ CONTAINS
 
     ! convert from mass fraction to volume fraction
     alphas(1:n_solid) = rho_m * xs(1:n_solid) * c_inv_rho_s(1:n_solid)
+
+    ! convert from mass fraction to volume fraction
+    alphag(1:n_add_gas) = rho_m * xg(1:n_solid) * inv_rho_g(1:n_add_gas)
     
     h = c_qj(1) * inv_rhom
 
@@ -622,6 +691,9 @@ CONTAINS
     REAL(wp) :: r_v                       !< real-value y-velocity
     REAL(wp) :: r_h                       !< real-value flow thickness
     REAL(wp) :: r_alphas(n_solid)         !< real-value solid volume fractions
+    REAL(wp) :: r_alphag(n_add_gas)       !< real-value add.gas volume fractions
+    REAL(wp) :: r_rho_a                   !< real-value atm.gas density
+    REAL(wp) :: r_rho_g(n_add_gas)        !< real-value add.gas densities
     REAL(wp) :: r_T                       !< real-value temperature [K]
     REAL(wp) :: r_alphal                  !< real-value liquid volume fraction
 
@@ -631,15 +703,10 @@ CONTAINS
 
     IF ( qpj(1) .LE. 0.0_wp ) THEN
 
-       r_u = 0.0_wp
-       r_v = 0.0_wp
-       r_T = T_ambient
-       r_alphas(1:n_solid) = 0.0_wp
        r_red_grav = 0.0_wp
-       r_Ri = 0.0_wp
        r_rho_m = rho_a_amb
-       IF ( gas_flag .AND. liquid_flag ) r_alphal = 0.0_wp
-
+       r_rho_c = rho_a_amb
+       
        RETURN
 
     END IF
@@ -651,27 +718,19 @@ CONTAINS
     IF ( alpha_flag ) THEN
 
        r_alphas(1:n_solid) = qpj(5:4+n_solid)
+       r_alphag(1:n_add_gas) = qpj(4+n_solid+1:4+n_solid+n_add_gas)
 
     ELSE
 
        r_alphas(1:n_solid) = qpj(5:4+n_solid) / qpj(1)
+       r_alphag(1:n_add_gas) = qpj(4+n_solid+1:4+n_solid+n_add_gas) / qpj(1)
 
     END IF
-
+    
     alphas_tot = SUM(r_alphas)
 
-    IF ( gas_flag ) THEN
-
-       ! continuous phase is air
-       r_rho_c =  pres / ( sp_gas_const_a * r_T )
-
-    ELSE
-
-       ! continuous phase is liquid
-       r_rho_c = rho_l
-
-    END IF
-
+    r_alphal = 0.0_wp
+    
     IF ( gas_flag .AND. liquid_flag ) THEN
 
        IF ( alpha_flag ) THEN
@@ -683,6 +742,27 @@ CONTAINS
           r_alphal = qpj(n_vars) / qpj(1)
 
        END IF
+
+    END IF
+       
+    IF ( gas_flag ) THEN
+
+       ! continuous phase is gas
+       r_rho_a =  pres / ( sp_gas_const_a * r_T )
+       r_rho_g(1:n_add_gas) = pres / ( sp_gas_const_g(1:n_add_gas) * r_T )
+
+       r_rho_c = ( ( 1.0_wp - r_alphal - alphas_tot - SUM(r_alphag) ) * r_rho_a &
+            + DOT_PRODUCT( r_alphag(1:n_add_gas) , r_rho_g(1:n_add_gas) ) )     &
+            / ( 1.0_wp - r_alphal - alphas_tot )
+
+    ELSE
+
+       ! continuous phase is liquid
+       r_rho_c = rho_l
+
+    END IF
+
+    IF ( gas_flag .AND. liquid_flag ) THEN
 
        ! density of mixture of carrier (gas), liquid and solids
        r_rho_m = ( 1.0_wp - alphas_tot - r_alphal ) * r_rho_c                   &
@@ -698,8 +778,6 @@ CONTAINS
 
     ! reduced gravity
     r_red_grav = ( r_rho_m - rho_a_amb ) / r_rho_m * grav
-
-    
 
     ! Richardson number
     IF ( ( r_u**2 + r_v**2 ) .GT. 0.0_wp ) THEN
@@ -726,6 +804,7 @@ CONTAINS
   !> - qp(3) = \f$ hv \f$
   !> - qp(4) = \f$ T \f$
   !> - qp(5:4+n_solid) = \f$ alphas(1:n_solid) \f$
+  !> - qp(4+n_solid+1:4+n_solid+n_add_gas) = \f$ alphas(1:n_add_gas) \f$
   !> - qp(n_vars) = \f$ alphal \f$
   !> - qp(n_vars+1) = \f$ u \f$
   !> - qp(n_vars+2) = \f$ v \f$
@@ -758,9 +837,11 @@ CONTAINS
     REAL(wp) :: r_rho_m           !< real-value mixture density [kg/m3]
     REAL(wp) :: r_T               !< real-value temperature [K]
     REAL(wp) :: r_alphal          !< real-value liquid volume fraction
+    REAL(wp) :: r_alphag(n_add_gas) !< real-value add. gas volume fractions
     REAL(wp) :: r_red_grav
     
-    CALL r_phys_var(qc,r_h,r_u,r_v,r_alphas,r_rho_m,r_T,r_alphal,r_red_grav)
+    CALL r_phys_var( qc , r_h , r_u , r_v , r_alphas , r_rho_m , r_T ,          &
+         r_alphal , r_alphag , r_red_grav )
 
     qp(1) = r_h
     
@@ -772,15 +853,17 @@ CONTAINS
     IF ( alpha_flag ) THEN
 
        qp(5:4+n_solid) = r_alphas(1:n_solid)
+       qp(4+n_solid+1:4+n_solid+n_add_gas) = r_alphag(1:n_add_gas)
        IF ( gas_flag .AND. liquid_flag ) qp(n_vars) = r_alphal
      
     ELSE
 
        qp(5:4+n_solid) = r_alphas(1:n_solid) * r_h
+       qp(4+n_solid+1:4+n_solid+n_add_gas) = r_alphag(1:n_add_gas) * r_h
        IF ( gas_flag .AND. liquid_flag ) qp(n_vars) = r_alphal * r_h
 
     END IF
-    
+
     qp(n_vars+1) = r_u
     qp(n_vars+2) = r_v
 
@@ -800,6 +883,7 @@ CONTAINS
   !> - qp(3) = \f$ h*v \f$
   !> - qp(4) = \f$ T \f$
   !> - qp(5:4+n_s) = \f$ alphas(1:n_s) \f$
+  !> - qp(4+n_s+1:4+n_s+n_g) = \f$ alphas(1:n_g) \f$
   !> - qp(n_vars) = \f$ alphal \f$
   !> - qp(n_vars+1) = \f$ u \f$
   !> - qp(n_vars+2) = \f$ v \f$
@@ -831,6 +915,7 @@ CONTAINS
     REAL(wp) :: r_hu              !< real-value volumetric x-flow
     REAL(wp) :: r_hv              !< real-value volumetric y-flow
     REAL(wp) :: r_alphas(n_solid) !< real-value solid volume fractions
+    REAL(wp) :: r_alphag(n_add_gas)!< real-value add.gas volume fractions
     REAL(wp) :: r_xl              !< real-value liquid mass fraction
     REAL(wp) :: r_xc              !< real-value carrier phase mass fraction
     REAL(wp) :: r_T               !< real-value temperature [K]
@@ -838,10 +923,16 @@ CONTAINS
     REAL(wp) :: r_alphac          !< real-value carrier phase volume fraction
     REAL(wp) :: r_rho_m           !< real-value mixture density [kg/m3]
     REAL(wp) :: r_rho_c           !< real-value carrier phase density [kg/m3]
-    REAL(wp) :: r_xs(n_solid)     !< real-value solid mass fraction
+    REAL(wp) :: r_rho_a           !< real-value atm.gas density [kg/m3]
+    REAL(wp) :: r_rho_g(n_add_gas)!< real-value add.gas densities [kg/m3]
+    REAL(wp) :: r_xs(n_solid)     !< real-value solid mass fractions
+    REAL(wp) :: r_xg(n_add_gas)   !< real-value add.gas mass fractions
  
     REAL(wp) :: r_alphas_rhos(n_solid)
+    REAL(wp) :: r_alphag_rhog(n_add_gas)
     REAL(wp) :: alphas_tot
+
+    REAL(wp) :: r_sp_heat_c
 
     REAL(wp) :: r_inv_rhom
 
@@ -873,28 +964,34 @@ CONTAINS
     IF ( alpha_flag ) THEN
 
        r_alphas(1:n_solid) = qp(5:4+n_solid)
+       r_alphag(1:n_add_gas) = qp(4+n_solid+1:4+n_solid+n_add_gas)
    
     ELSE
 
        r_alphas(1:n_solid) = qp(5:4+n_solid) / qp(1)
+       r_alphag(1:n_add_gas) = qp(4+n_solid+1:4+n_solid+n_add_gas) / qp(1)
 
     END IF
 
     alphas_tot = SUM(r_alphas)
 
     r_alphas_rhos(1:n_solid) = r_alphas(1:n_solid) * rho_s(1:n_solid)
- 
+     
     IF ( gas_flag ) THEN
 
-       ! carrier phase is gas
-       r_rho_c = pres / ( sp_gas_const_a * r_T )
-       sp_heat_c = sp_heat_a
+       ! continuous phase is air
+       r_rho_a =  pres / ( sp_gas_const_a * r_T )
+       r_rho_g(1:n_add_gas) = pres / ( sp_gas_const_g(1:n_add_gas) * r_T )
+       r_alphag_rhog(1:n_add_gas) = r_alphag(1:n_add_gas) * r_rho_g(1:n_add_gas)
+
+       r_rho_c = ( ( 1.0_wp - r_alphal - alphas_tot - SUM(r_alphag) ) * r_rho_a &
+            + SUM( r_alphag_rhog(1:n_add_gas) ) ) /                             &
+            ( 1.0_wp - r_alphal - alphas_tot )
 
     ELSE
 
        ! carrier phase is liquid
        r_rho_c = rho_l
-       sp_heat_c = sp_heat_l
 
     END IF
 
@@ -940,12 +1037,19 @@ CONTAINS
        ! solid mass fractions
        r_xs(1:n_solid) = r_alphas_rhos(1:n_solid) * r_inv_rhom
 
+       ! additional gas mass fractions
+       r_xg(1:n_add_gas) = r_alphag_rhog(1:n_add_gas) * r_inv_rhom
+
        ! carrier (gas) mass fraction
        r_xc = r_alphac * r_rho_c * r_inv_rhom
 
+       ! specific heat of gas (mass. avg. of sp.heat of gas components)
+       r_sp_heat_c = ( ( r_xc - SUM( r_xg(1:n_add_gas) ) ) * sp_heat_a +        &
+            DOT_PRODUCT( r_xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / r_xc           
+       
        ! mass averaged mixture specific heat
        r_sp_heat_mix =  DOT_PRODUCT( r_xs , sp_heat_s ) + r_xl * sp_heat_l      &
-            + r_xc * sp_heat_c
+            + r_xc * r_sp_heat_c
 
     ELSE
 
@@ -973,11 +1077,25 @@ CONTAINS
        ! solid mass fractions
        r_xs(1:n_solid) = r_alphas_rhos(1:n_solid) * r_inv_rhom
 
+       ! additional gas mass fractions
+       r_xg(1:n_add_gas) = r_alphag_rhog(1:n_add_gas) * r_inv_rhom
+
        ! carrier (gas or liquid) mass fraction
        r_xc = r_alphac * r_rho_c * r_inv_rhom
 
+       IF ( gas_flag ) THEN
+          
+          r_sp_heat_c = ( ( r_xc - SUM( r_xg(1:n_add_gas) ) ) * sp_heat_a +     &
+               DOT_PRODUCT( r_xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / r_xc           
+
+       ELSE
+
+          r_sp_heat_c = sp_heat_l
+
+       END IF
+          
        ! mass averaged mixture specific heat
-       r_sp_heat_mix =  DOT_PRODUCT( r_xs , sp_heat_s ) + r_xc * sp_heat_c
+       r_sp_heat_mix =  DOT_PRODUCT( r_xs , sp_heat_s ) + r_xc * r_sp_heat_c
 
     END IF
 
@@ -1006,8 +1124,9 @@ CONTAINS
 
     END IF
 
-    qc(5:4+n_solid) = r_h * r_alphas(1:n_solid) * rho_s(1:n_solid)
+    ! qc(5:4+n_solid) = r_h * r_alphas(1:n_solid) * rho_s(1:n_solid)
     qc(5:4+n_solid) = r_xs * qc(1)
+    qc(4+n_solid+1:4+n_solid+n_add_gas) = r_xg * qc(1)
 
     IF ( gas_flag .AND. liquid_flag ) qc(n_vars) = r_h * r_alphal * rho_l
 
@@ -1243,6 +1362,10 @@ CONTAINS
 
           END IF
 
+          ! Mass flux of add.gas in x-direction: u * ( h * alphag * rhog )
+          flux(4+n_solid+1:4+n_solid+n_add_gas) = r_u *                         &
+               qcj(4+n_solid+1:4+n_solid+n_add_gas)
+                    
           ! Mass flux of liquid in x-direction: u * ( h * alphal * rhol )
           IF ( gas_flag .AND. liquid_flag ) flux(n_vars) = r_u * qcj(n_vars)
 
@@ -1281,6 +1404,10 @@ CONTAINS
 
           END IF
 
+          ! Mass flux of add.gas in x-direction: u * ( h * alphag * rhog )
+          flux(4+n_solid+1:4+n_solid+n_add_gas) = r_v *                         &
+               qcj(4+n_solid+1:4+n_solid+n_add_gas)
+                    
           ! Mass flux of liquid in x-direction: u * ( h * alphal * rhol )
           IF ( gas_flag .AND. liquid_flag ) flux(n_vars) = r_v * qcj(n_vars)
 
@@ -1327,7 +1454,7 @@ CONTAINS
        qpj, expl_term, time, cell_fract_jk )
 
     USE parameters_2d, ONLY : vel_source , T_source , alphas_source ,           &
-         alphal_source , time_param , bottom_radial_source_flag
+         alphal_source , time_param , bottom_radial_source_flag , alphag_source
 
     
     IMPLICIT NONE
@@ -1355,9 +1482,12 @@ CONTAINS
     REAL(wp) :: r_Ri         !< real-value Richardson number
     REAL(wp) :: r_rho_m      !< real-value mixture density [kg/m3]
     REAL(wp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
+    REAL(wp) :: r_rho_g(n_add_gas) !< real-value add.gas densities [kg/m3]
     REAL(wp) :: r_red_grav   !< real-value reduced gravity
     REAL(wp) :: r_alphas(n_solid)  !< real-value solid volume fractions
     REAL(wp) :: r_xs(n_solid)      !< real-value solid mass fractions 
+    REAL(wp) :: r_alphag(n_add_gas)  !< real-value add.gas volume fractions
+    REAL(wp) :: r_xg(n_add_gas)      !< real-value add.gas mass fractions 
     REAL(wp) :: r_alphal     !< real-value liquid volume fraction      
     REAL(wp) :: r_xl         !< real-value liquid mass fraction
     REAL(wp) :: r_alphac     !< real-value carrier phase volume fraction
@@ -1417,11 +1547,8 @@ CONTAINS
     
     ! ----------- ADDITIONAL EXPLICIT TERMS FOR BOTTOM RADIAL SOURCE ------------ 
 
-    IF ( .NOT.bottom_radial_source_flag ) THEN
-
-       RETURN
-
-    END IF
+    IF ( ( .NOT.bottom_radial_source_flag ) .OR.                                &
+         ( cell_fract_jk .EQ. 0.0_wp ) ) RETURN
 
     t_rem = MOD( time + time_param(4) , time_param(1) )
 
@@ -1464,7 +1591,9 @@ CONTAINS
 
     r_alphas(1:n_solid) = alphas_source(1:n_solid) 
     alphas_tot = SUM(r_alphas)
-        
+
+    r_alphag(1:n_add_gas) = alphag_source(1:n_add_gas) 
+   
     IF ( gas_flag ) THEN
 
        ! carrier phase is gas
@@ -1623,6 +1752,7 @@ CONTAINS
     COMPLEX(wp) :: T                       !< temperature [K]
     COMPLEX(wp) :: rho_m                   !< mixture density [kg/m3]
     COMPLEX(wp) :: alphas(n_solid)         !< sediment volume fractions
+    COMPLEX(wp) :: alphag(n_solid)         !< add. gas volume fractions
     COMPLEX(wp) :: inv_rho_m               !< 1/mixture density [kg-1 m3]
  
     COMPLEX(wp) :: qj(n_vars)
@@ -1684,7 +1814,7 @@ CONTAINS
 
     IF (rheology_flag) THEN
 
-       CALL c_phys_var(qj,h,u,v,T,rho_m,alphas,inv_rho_m)
+       CALL c_phys_var(qj,h,u,v,T,rho_m,alphas,alphag,inv_rho_m)
 
        IF ( slope_correction_flag ) THEN
 
@@ -1902,7 +2032,7 @@ CONTAINS
   !******************************************************************************
 
   SUBROUTINE eval_nh_semi_impl_terms( Bprimej_x , Bprimej_y , Bsecondj_xx ,     &
-       Bsecondj_xy , Bsecondj_yy , grav_coeff , qcj , nh_semi_impl_term )
+       Bsecondj_xy , Bsecondj_yy , grav_coeff , qcj , qpj , nh_semi_impl_term )
 
     IMPLICIT NONE
 
@@ -1914,6 +2044,7 @@ CONTAINS
     REAL(wp), INTENT(IN) :: grav_coeff
 
     REAL(wp), INTENT(IN) :: qcj(n_vars)
+    REAL(wp), INTENT(IN) :: qpj(n_vars)
     REAL(wp), INTENT(OUT) :: nh_semi_impl_term(n_eqns)
 
     REAL(wp) :: source_term(n_eqns)
@@ -1938,7 +2069,10 @@ CONTAINS
     REAL(wp) :: r_rho_m           !< real-value mixture density [kg/m3]
     REAL(wp) :: r_T               !< real-value temperature [K]
     REAL(wp) :: r_alphal          !< real-value liquid volume fraction
+    REAL(wp) :: r_alphag(n_add_gas) !< real-value add. gas volume fractions
     REAL(wp) :: r_red_grav
+    REAL(wp) :: r_rho_c
+    REAL(wp) :: r_Ri
     
     REAL(wp) :: temp_term
     REAL(wp) :: centr_force_term
@@ -1948,7 +2082,44 @@ CONTAINS
 
     IF (rheology_flag) THEN
 
-       CALL r_phys_var(qcj,r_h,r_u,r_v,r_alphas,r_rho_m,r_T,r_alphal,r_red_grav)
+       r_h = qpj(1)
+       r_u = qpj(n_vars+1)
+       r_v = qpj(n_vars+2)
+
+       IF ( alpha_flag ) THEN
+          
+          r_alphas(1:n_solid) = qpj(5:4+n_solid)
+          r_alphag(1:n_add_gas) = qpj(4+n_solid+1:4+n_solid+n_add_gas)
+          
+       ELSE
+
+          r_alphas(1:n_solid) = qpj(5:4+n_solid) / qpj(1)
+          r_alphag(1:n_add_gas) = qpj(4+n_solid+1:4+n_solid+n_add_gas) / qpj(1)
+          
+       END IF
+
+       r_alphal = 0.0_wp
+       
+       IF ( gas_flag .AND. liquid_flag ) THEN
+          
+          IF ( alpha_flag ) THEN
+             
+             r_alphal = qpj(n_vars)
+             
+          ELSE
+             
+             r_alphal = qpj(n_vars) / qpj(1)
+             
+          END IF
+          
+       END IF
+
+       r_T = qpj(4)
+
+       CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav)
+       
+       !CALL r_phys_var(qcj,r_h,r_u,r_v,r_alphas,r_rho_m,r_T,r_alphal,r_alphag,  &
+       !     r_red_grav)
     
        ! Voellmy Salm rheology
        IF ( rheology_model .EQ. 1 ) THEN
@@ -2097,6 +2268,7 @@ CONTAINS
     REAL(wp) :: r_u          !< real-value x-velocity
     REAL(wp) :: r_v          !< real-value y-velocity
     REAL(wp) :: r_alphas(n_solid) !< real-value solid volume fractions
+    REAL(wp) :: r_alphag(n_add_gas) !< real-value add.gas volume fractions
     REAL(wp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
     REAL(wp) :: r_T          !< real-value mixture temperature [K]
     REAL(wp) :: r_rho_m      !< real-value mixture density [kg/m3]
@@ -2112,6 +2284,8 @@ CONTAINS
     REAL(wp) :: inv_kin_visc
     REAL(wp) :: rhoc
     REAL(wp) :: expA , expB
+    REAL(wp) :: r_Ri
+    REAL(wp) :: r_red_grav
  
     !> Hindered settling velocity (units: m s-1 )
     REAL(wp) :: settling_vel
@@ -2133,10 +2307,12 @@ CONTAINS
     IF ( alpha_flag ) THEN
 
        r_alphas(1:n_solid) = qpj(5:4+n_solid)
+       r_alphag(1:n_add_gas) = qpj(4+n_solid+1:4+n_solid+n_add_gas)
 
     ELSE
 
        r_alphas(1:n_solid) = qpj(5:4+n_solid) / qpj(1)
+       r_alphag(1:n_add_gas) = qpj(4+n_solid+1:4+n_solid+n_add_gas) / qpj(1)
 
     END IF
 
@@ -2163,20 +2339,8 @@ CONTAINS
     
     r_T = qpj(4)
 
-    IF ( gas_flag ) THEN
-
-       ! continuous phase is air
-       r_rho_c = pres / ( sp_gas_const_a * r_T )
-
-    ELSE
-
-       ! continuous phase is liquid
-       r_rho_c = rho_l
-
-    END IF
-
-    r_rho_m = ( 1.0_wp - alphas_tot ) * r_rho_c                                 &
-         + DOT_PRODUCT( r_alphas , rho_s ) 
+    CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav)
+    
 
     IF ( rheology_model .EQ. 4 ) THEN
        
@@ -2459,7 +2623,7 @@ CONTAINS
   SUBROUTINE eval_source_bdry( time, vect_x , vect_y , source_bdry )
 
     USE parameters_2d, ONLY : h_source , vel_source , T_source , alphas_source ,&
-         alphal_source , time_param
+         alphag_source , alphal_source , time_param
 
     IMPLICIT NONE
 
@@ -2532,6 +2696,7 @@ CONTAINS
     IF ( alpha_flag ) THEN
     
        source_bdry(5:4+n_solid) = alphas_source(1:n_solid)
+       source_bdry(4+n_solid+1:4+n_solid+n_add_gas) = alphag_source(1:n_add_gas)
 
        IF ( gas_flag .AND. liquid_flag ) THEN
           
@@ -2542,6 +2707,8 @@ CONTAINS
     ELSE
 
        source_bdry(5:4+n_solid) = t_coeff * h_source * alphas_source(1:n_solid)
+       source_bdry(4+n_solid+1:4+n_solid+n_add_gas) = t_coeff * h_source *      &
+            alphag_source(1:n_add_gas)
 
        IF ( gas_flag .AND. liquid_flag ) THEN
           

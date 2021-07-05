@@ -9,7 +9,7 @@ MODULE init_2d
 
   USE parameters_2d, ONLY : wp
   USE parameters_2d, ONLY : verbose_level
-  USE parameters_2d, ONLY : n_solid
+  USE parameters_2d, ONLY : n_solid , n_add_gas
 
   IMPLICIT none
 
@@ -44,7 +44,7 @@ CONTAINS
     USE parameters_2d, ONLY : n_vars , alpha_flag
 
     USE parameters_2d, ONLY : x_collapse , y_collapse , r_collapse , T_collapse , &
-       h_collapse , alphas_collapse
+       h_collapse , alphas_collapse , alphag_collapse
 
     USE solver_2d, ONLY : q
 
@@ -64,23 +64,13 @@ CONTAINS
     qp0_init(3) = 0.0_wp                  ! hv
     qp0_init(4) = T_collapse              ! T
     qp0_init(5:4+n_solid) = 0.0_wp        ! alphas
+    qp0_init(4+n_solid+1:4+n_solid+n_add_gas) = 0.0_wp        ! alphag
     qp0_init(n_vars+1:n_vars+2) = 0.0_wp  ! u,v
 
     ! values within the collapsing volume
-    qp_init(1) = h_collapse
     qp_init(2) = 0.0_wp
     qp_init(3) = 0.0_wp
     qp_init(4) = T_collapse
-    
-    IF ( alpha_flag ) THEN
-
-       qp_init(5:4+n_solid) = alphas_collapse(1:n_solid)
-
-    ELSE
-
-       qp_init(5:4+n_solid) = h_collapse * alphas_collapse(1:n_solid)
-
-    END IF
 
     qp_init(n_vars+1:n_vars+2) = 0.0_wp
     
@@ -91,8 +81,22 @@ CONTAINS
           IF ( cell_fract(j,k) .GT. 0.0_wp ) THEN
              
              qp_init(1) = cell_fract(j,k) * h_collapse
-             qp_init(5:4+n_solid) = qp_init(1) * alphas_collapse(1:n_solid) 
 
+             IF ( alpha_flag ) THEN
+
+                qp_init(5:4+n_solid) = cell_fract(j,k)*alphas_collapse(1:n_solid)
+                qp_init(4+n_solid+1:4+n_solid+n_add_gas) = cell_fract(j,k) *    &
+                     alphag_collapse(1:n_add_gas)
+       
+             ELSE
+
+                qp_init(5:4+n_solid) = cell_fract(j,k) * h_collapse *           &
+                     alphas_collapse(1:n_solid)
+                qp_init(4+n_solid+1:4+n_solid+n_add_gas) = cell_fract(j,k) *    &
+                     h_collapse * alphag_collapse(1:n_add_gas)
+
+             END IF
+             
              CALL qp_to_qc( qp_init(1:n_vars+2) , q(1:n_vars,j,k) )
              
           ELSE

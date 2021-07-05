@@ -121,6 +121,7 @@ MODULE parameters_2d
   REAL(wp) :: T_source
   REAL(wp) :: h_source
   REAL(wp) :: alphas_source(100)
+  REAL(wp) :: alphag_source(100)
   REAL(wp) :: alphal_source
   REAL(wp) :: time_param(4)
   
@@ -133,6 +134,7 @@ MODULE parameters_2d
   REAL(wp) :: T_collapse
   REAL(wp) :: h_collapse
   REAL(wp) :: alphas_collapse(100)
+  REAL(wp) :: alphag_collapse(100)
 
   LOGICAL :: bottom_radial_source_flag
 
@@ -165,6 +167,8 @@ MODULE parameters_2d
   INTEGER :: n_eqns   !< Number of equations
 
   INTEGER :: n_solid  !< Number of solid classes
+
+  INTEGER :: n_add_gas  !< Number of additional gas components
 
   INTEGER :: n_nh     !< Number of non-hyperbolic terms
 

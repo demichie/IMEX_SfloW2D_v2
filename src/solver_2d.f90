@@ -1090,7 +1090,7 @@ CONTAINS
                 CALL eval_nh_semi_impl_terms( B_prime_x(j,k) , B_prime_y(j,k) , &
                      B_second_xx(j,k) , B_second_xy(j,k) , B_second_yy(j,k) ,   &
                      grav_coeff(j,k) , q_fv( 1:n_vars , j , k ) ,               &
-                     SI_NH(1:n_eqns,j,k,i_RK) )
+                      qp( 1:n_vars , j , k ) , SI_NH(1:n_eqns,j,k,i_RK) )
 
                 ! Assemble the initial guess for the implicit solver
                 q_si(1:n_vars) = q_fv(1:n_vars,j,k ) + dt * a_diag *            &

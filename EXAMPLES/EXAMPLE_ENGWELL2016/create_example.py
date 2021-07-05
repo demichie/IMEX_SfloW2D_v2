@@ -232,7 +232,7 @@ with open('SW_VAR_DENS_MODEL.template', 'r') as file :
   filedata = file.read()
 
 # Replace the target string
-filedata = filedata.replace('runname', 'exampleRS')
+filedata = filedata.replace('runname', 'example_SE2016')
 filedata = filedata.replace('restartfile', init_file)
 filedata = filedata.replace('x_min', str(x_min)+'D0')
 filedata = filedata.replace('y_min', str(y_min)+'D0')
