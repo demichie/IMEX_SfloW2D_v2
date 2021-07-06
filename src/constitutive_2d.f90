@@ -331,8 +331,17 @@ CONTAINS
        
     ELSE
 
-       r_xs(1:n_solid) = 0.0_wp
-       r_xg(1:n_add_gas) = 0.0_wp
+       r_h = 0.0_wp
+       r_u = 0.0_wp
+       r_v = 0.0_wp
+       r_alphas = 0.0_wp
+       r_rho_m = rho_a_amb
+       r_T = T_ambient
+       r_alphal = 0.0_wp
+       r_alphag = 0.0_wp
+       r_red_grav = 0.0_wp
+       r_rho_c = rho_a_amb
+       RETURN
 
     END IF
 
@@ -531,6 +540,7 @@ CONTAINS
     COMPLEX(wp) :: inv_rho_c               !< carrier phase density reciprocal
     COMPLEX(wp) :: inv_rho_g(n_add_gas)    !< add. gas density reciprocal
 
+    REAL(wp) :: r_inv_rhom
     
     ! compute solid mass fractions
     ! IF ( REAL(c_qj(1)) .GT. eps_sing ) THEN
@@ -543,9 +553,16 @@ CONTAINS
        
     ELSE
 
-       inv_cqj1 = CMPLX(0.0_wp,0.0_wp,wp)
-       xs(1:n_solid) = CMPLX(0.0_wp,0.0_wp,wp)
-       xg(1:n_add_gas) = CMPLX(0.0_wp,0.0_wp,wp)
+       h = CMPLX(0.0_wp,0.0_wp,wp)
+       u = CMPLX(0.0_wp,0.0_wp,wp)
+       v = CMPLX(0.0_wp,0.0_wp,wp)
+       T = CMPLX(T_ambient,0.0_wp,wp)
+       rho_m = CMPLX(rho_a_amb,0.0_wp,wp)
+       alphas = CMPLX(0.0_wp,0.0_wp,wp)
+       alphag = CMPLX(0.0_wp,0.0_wp,wp)
+       r_inv_rhom = 1.0_wp/rho_m
+       inv_rhom = CMPLX(r_inv_rhom,0.0_wp,wp) 
+       RETURN       
 
     END IF
 
@@ -1404,7 +1421,7 @@ CONTAINS
 
           END IF
 
-          ! Mass flux of add.gas in x-direction: u * ( h * alphag * rhog )
+          ! Mass flux of add.gas in x-direction: v * ( h * alphag * rhog )
           flux(4+n_solid+1:4+n_solid+n_add_gas) = r_v *                         &
                qcj(4+n_solid+1:4+n_solid+n_add_gas)
                     

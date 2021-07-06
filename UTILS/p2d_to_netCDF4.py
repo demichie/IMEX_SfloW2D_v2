@@ -103,6 +103,12 @@ with open(bakfile) as fp:
            nsolid = np.int(nsolid_str)
            print("nsolid",nsolid)
 
+       if "N_ADD_GAS" in line:
+           naddgas_str= line.replace('N_ADD_GAS','')
+           naddgas_str= naddgas_str.replace('=','')
+           naddgas_str= naddgas_str.replace(',','')
+           naddgas = np.int(naddgas_str)
+           print("naddgas",naddgas)
 
 n_output = np.int((t_end-t_start)/dt_output)
 
@@ -197,6 +203,12 @@ if (nsolid > 0):
     erodible.standard_name = 'erodible layer thickness' # 
     erodible.units = 'meters' # 
 
+for i in range(naddgas):
+
+    globals()['alphag'+'_{0:04}'.format(i)] = ncfile.createVariable('alphag'+'_{0:04}'.format(i),np.float64,('time','y','x'),zlib=True) 
+    globals()['alphag'+'_{0:04}'.format(i)].standard_name = 'additional gas volume fraction' # 
+    globals()['alphag'+'_{0:04}'.format(i)].units = '' # 
+
 
 rhom = ncfile.createVariable('rhom',np.float64,('time','y','x'),zlib=True) 
 rhom.standard_name = 'flow density' # 
@@ -237,6 +249,10 @@ for i_output in range(output_first,output_last):
                 globals()['alphas'+'_{0:04}'.format(i)][nc_output,:,:] = \
                 np.tile(data[:,7+i],2).reshape((ny2,nx2))
 
+            for i in range(naddgas):
+                globals()['alphag'+'_{0:04}'.format(i)][nc_output,:,:] = \
+                np.tile(data[:,7+nsolid+i],2).reshape((ny2,nx2))
+
             T[nc_output,:,:] = np.tile(data[:,7+nsolid],2).reshape((ny2,nx2))
             rhom[nc_output,:,:] = np.tile(data[:,8+nsolid],2).reshape((ny2,nx2))
 
@@ -259,6 +275,9 @@ for i_output in range(output_first,output_last):
 
             for i in range(nsolid):
                 globals()['alphas'+'_{0:04}'.format(i)][nc_output,:,:] = data[:,7+i].reshape((ny,nx))
+
+            for i in range(naddgas):
+                globals()['alphag'+'_{0:04}'.format(i)][nc_output,:,:] = data[:,7+nsolid+i].reshape((ny,nx))
 
             T[nc_output,:,:] = data[:,7+nsolid].reshape((ny,nx))
             rhom[nc_output,:,:] = data[:,8+nsolid].reshape((ny,nx))

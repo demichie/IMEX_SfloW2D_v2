@@ -249,9 +249,6 @@ MODULE inpout_2d
   NAMELIST / runout_parameters / x0_runout , y0_runout , dt_runout ,            &
        eps_stop
 
-  NAMELIST / gas_transport_parameters / sp_heat_a , sp_gas_const_a , kin_visc_a,&
-       pres , T_ambient , entrainment_flag
-
   NAMELIST / liquid_transport_parameters / sp_heat_l , rho_l , kin_visc_l ,     &
        loss_rate
 
@@ -613,21 +610,24 @@ CONTAINS
     IMPLICIT none
 
     NAMELIST / west_boundary_conditions / h_bcW , hu_bcW , hv_bcW ,             &
-         alphas_bcW , halphas_bcW , T_bcW
+         alphas_bcW , halphas_bcW , T_bcW , alphag_bcW , halphag_bcW
 
     NAMELIST / east_boundary_conditions / h_bcE , hu_bcE , hv_bcE ,             &
-         alphas_bcE , halphas_bcE , T_bcE
+         alphas_bcE , halphas_bcE , T_bcE , alphag_bcE , halphag_bcE
 
     NAMELIST / south_boundary_conditions / h_bcS , hu_bcS , hv_bcS ,            &
-         alphas_bcS , halphas_bcS , T_bcS
+         alphas_bcS , halphas_bcS , T_bcS , alphag_bcS , halphag_bcS
 
     NAMELIST / north_boundary_conditions / h_bcN , hu_bcN , hv_bcN ,            &
-         alphas_bcN , halphas_bcN , T_bcN
+         alphas_bcN , halphas_bcN , T_bcN , alphag_bcN , halphag_bcN
 
     NAMELIST / solid_transport_parameters / rho_s , diam_s , sp_heat_s ,        &
          erosion_coeff , erodible_porosity , settling_flag , T_erodible ,       &
          erodible_file , erodible_fract , alphastot_min ,                       &
          initial_erodible_thickness , erodible_deposit_flag
+
+    NAMELIST / gas_transport_parameters / sp_heat_a , sp_gas_const_a , kin_visc_a,&
+         pres , T_ambient , entrainment_flag , sp_heat_g , sp_gas_const_g
 
 
     REAL(wp) :: max_cfl
@@ -857,9 +857,11 @@ CONTAINS
 
     n_vars = 4
 
+    IF ( gas_flag ) n_vars = n_vars + n_add_gas
+    
     IF ( liquid_flag ) THEN
 
-       IF ( gas_flag ) n_vars = n_vars + n_add_gas + 1
+       n_vars = n_vars + 1
 
        READ(input_unit, liquid_transport_parameters,IOSTAT=ios)
 
@@ -1182,6 +1184,8 @@ CONTAINS
 
     n_vars = n_vars + n_solid
     n_eqns = n_vars
+
+    WRITE(*,*) 'Model variables = ',n_vars
 
     alphas_bcW(1:n_solid)%flag = -1
     alphas_bcE(1:n_solid)%flag = -1
