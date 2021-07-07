@@ -1373,7 +1373,8 @@ CONTAINS
        CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
 
        IF ( qp(4,j,k) .LT. 290.0_wp ) THEN
-
+          
+          WRITE(*,*) 'temperature check'
           WRITE(*,*) j,k,qp(1:n_vars+2,j,k)
 
           CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
@@ -2890,6 +2891,7 @@ CONTAINS
     LOGICAL :: diverging_flag
 
     !WRITE(*,*) 'recontruction 0'
+    !WRITE(*,*) 'nvars',n_vars
     !WRITE(*,*) 'qp_expl(:,1,1)',qp_expl(:,1,1)
     
     !$OMP PARALLEL DO private(j,k,i,qrecW,qrecE,qrecS,qrecN,x_stencil,y_stencil,&
@@ -3028,11 +3030,11 @@ CONTAINS
 
              
              IF ( j.EQ.1 ) THEN
-                
+
                 ! Dirichelet boundary condition at the west of the domain
                 IF ( bcW(i)%flag .EQ. 0 ) THEN
                    
-                   qrecW(i) = bcW(i)%value 
+                   qrecW(i) = bcW(i)%value
                    
                 ELSE
 

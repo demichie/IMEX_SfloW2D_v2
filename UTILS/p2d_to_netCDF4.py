@@ -110,6 +110,21 @@ with open(bakfile) as fp:
            naddgas = np.int(naddgas_str)
            print("naddgas",naddgas)
 
+       if "GAS_FLAG" in line:
+           gasflag_str= line.replace('GAS_FLAG','')
+           gasflag_str= gasflag_str.replace('=','')
+           gasflag_str= gasflag_str.replace(',','')
+           gasflag = ( 'T' in gasflag_str)
+           print("gasflag",gasflag)
+
+       if "LIQUID_FLAG" in line:
+           liqflag_str= line.replace('LIQUID_FLAG','')
+           liqflag_str= liqflag_str.replace('=','')
+           liqflag_str= liqflag_str.replace(',','')
+           liqflag = ( 'T' in liqflag_str)
+           print("liqflag",liqflag)
+
+
 n_output = np.int((t_end-t_start)/dt_output)
 
 print('n_output',n_output+1)
@@ -209,11 +224,20 @@ for i in range(naddgas):
     globals()['alphag'+'_{0:04}'.format(i)].standard_name = 'additional gas volume fraction' # 
     globals()['alphag'+'_{0:04}'.format(i)].units = '' # 
 
+if ( gasflag and liqflag ):
+
+    alphal = ncfile.createVariable('alphal',np.float64,('time','y','x'),zlib=True) 
+    alphal.standard_name = 'liquid volum fraction' # 
+    alphal.units = '' # 
+
 
 rhom = ncfile.createVariable('rhom',np.float64,('time','y','x'),zlib=True) 
 rhom.standard_name = 'flow density' # 
 rhom.units = 'kilograms/second' # 
 
+redgrav = ncfile.createVariable('redgrav',np.float64,('time','y','x'),zlib=True) 
+redgrav.standard_name = 'reduced gravity' # 
+redgrav.units = 'meters/second^2' # 
 
 
 X = np.zeros((ny2,nx2))
@@ -238,7 +262,9 @@ for i_output in range(output_first,output_last):
         
         time[nc_output] = dt_output*i_output
         
+        
         if ( nx == 1 ) or ( ny == 1):
+        
             h[nc_output,:,:] = np.tile(data[:,2],2).reshape((ny2,nx2))
             ux[nc_output,:,:] = np.tile(data[:,3],2).reshape((ny2,nx2))
             uy[nc_output,:,:] = np.tile(data[:,4],2).reshape((ny2,nx2))
@@ -253,20 +279,30 @@ for i_output in range(output_first,output_last):
                 globals()['alphag'+'_{0:04}'.format(i)][nc_output,:,:] = \
                 np.tile(data[:,7+nsolid+i],2).reshape((ny2,nx2))
 
-            T[nc_output,:,:] = np.tile(data[:,7+nsolid],2).reshape((ny2,nx2))
-            rhom[nc_output,:,:] = np.tile(data[:,8+nsolid],2).reshape((ny2,nx2))
+            T[nc_output,:,:] = np.tile(data[:,7+nsolid+naddgas],2).reshape((ny2,nx2))
+            rhom[nc_output,:,:] = np.tile(data[:,8+nsolid+naddgas],2).reshape((ny2,nx2))
+            redgrav[nc_output,:,:] = np.tile(data[:,9+nsolid+naddgas],2).reshape((ny2,nx2))
 
             for i in range(nsolid):
-                globals()['dep'+'_{0:04}'.format(i)][nc_output,:,:] = np.tile(data[:,10+nsolid+i],2).reshape((ny2,nx2))
+                globals()['dep'+'_{0:04}'.format(i)][nc_output,:,:] = np.tile(data[:,10+nsolid+naddgas+i],2).reshape((ny2,nx2))
 
             for i in range(nsolid):
-                globals()['ers'+'_{0:04}'.format(i)][nc_output,:,:] = np.tile(data[:,10+2*nsolid+i],2).reshape((ny2,nx2))
+                globals()['ers'+'_{0:04}'.format(i)][nc_output,:,:] = np.tile(data[:,10+2*nsolid+naddgas+i],2).reshape((ny2,nx2))
                 
             if (nsolid>0):
-                erodible[nc_output,:,:] = np.tile(data[:,10+3*nsolid],2).reshape((ny2,nx2))
+            
+                erodible[nc_output,:,:] = np.tile(data[:,10+3*nsolid+naddgas],2).reshape((ny2,nx2))
+            
+                if ( liqflag and gasflag ):
+                    alphal[nc_output,:,:] = np.tile(data[:,11+3*nsolid+naddgas],2).reshape((ny2,nx2))
+        
+            else:        
                 
+                if ( liqflag and gasflag ):
+                    alphal[nc_output,:,:] = np.tile(data[:,10+naddgas],2).reshape((ny2,nx2))
 
         else:
+        
             h[nc_output,:,:] = data[:,2].reshape((ny,nx))
             ux[nc_output,:,:] = data[:,3].reshape((ny,nx))
             uy[nc_output,:,:] = data[:,4].reshape((ny,nx))
@@ -279,17 +315,27 @@ for i_output in range(output_first,output_last):
             for i in range(naddgas):
                 globals()['alphag'+'_{0:04}'.format(i)][nc_output,:,:] = data[:,7+nsolid+i].reshape((ny,nx))
 
-            T[nc_output,:,:] = data[:,7+nsolid].reshape((ny,nx))
-            rhom[nc_output,:,:] = data[:,8+nsolid].reshape((ny,nx))
+            T[nc_output,:,:] = data[:,7+nsolid+naddgas].reshape((ny,nx))
+            rhom[nc_output,:,:] = data[:,8+nsolid+naddgas].reshape((ny,nx))
+            redgrav[nc_output,:,:] = data[:,9+nsolid+naddgas].reshape((ny,nx))
 
             for i in range(nsolid):
-                globals()['dep'+'_{0:04}'.format(i)][nc_output,:,:] = data[:,10+nsolid+i].reshape((ny,nx))
+                globals()['dep'+'_{0:04}'.format(i)][nc_output,:,:] = data[:,10+nsolid+naddgas+i].reshape((ny,nx))
 
             for i in range(nsolid):
-                globals()['ers'+'_{0:04}'.format(i)][nc_output,:,:] = data[:,10+2*nsolid+i].reshape((ny,nx))
+                globals()['ers'+'_{0:04}'.format(i)][nc_output,:,:] = data[:,10+2*nsolid+naddgas+i].reshape((ny,nx))
                 
-            erodible[nc_output,:,:] = data[:,10+3*nsolid].reshape((ny,nx))
+            if (nsolid>0):
+    
+                erodible[nc_output,:,:] = data[:,10+3*nsolid+naddgas].reshape((ny,nx))
 
+                if ( liqflag and gasflag ):
+                    alphal[nc_output,:,:] = np.tile(data[:,11+3*nsolid+naddgas],2).reshape((ny,nx))
+                    
+            else:
+
+                if ( liqflag and gasflag ):
+                    alphal[nc_output,:,:] = np.tile(data[:,10+naddgas],2).reshape((ny,nx))
 
         nc_output +=1
 

@@ -156,6 +156,7 @@ MODULE inpout_2d
   TYPE(bc),ALLOCATABLE :: halphas_bcW(:)
   TYPE(bc),ALLOCATABLE :: alphag_bcW(:)
   TYPE(bc),ALLOCATABLE :: halphag_bcW(:)
+  TYPE(bc) :: alphal_bcW , halphal_bcW
 
   ! -- Variables for the namelists EAST_BOUNDARY_CONDITIONS
   TYPE(bc) :: h_bcE , hu_bcE , hv_bcE , T_bcE
@@ -163,6 +164,7 @@ MODULE inpout_2d
   TYPE(bc),ALLOCATABLE :: halphas_bcE(:)
   TYPE(bc),ALLOCATABLE :: alphag_bcE(:)
   TYPE(bc),ALLOCATABLE :: halphag_bcE(:)
+  TYPE(bc) :: alphal_bcE , halphal_bcE
 
   ! -- Variables for the namelists SOUTH_BOUNDARY_CONDITIONS
   TYPE(bc) :: h_bcS , hu_bcS , hv_bcS , T_bcS
@@ -170,6 +172,7 @@ MODULE inpout_2d
   TYPE(bc),ALLOCATABLE :: halphas_bcS(:)
   TYPE(bc),ALLOCATABLE :: alphag_bcS(:)
   TYPE(bc),ALLOCATABLE :: halphag_bcS(:)
+  TYPE(bc) :: alphal_bcS , halphal_bcS
 
   ! -- Variables for the namelists NORTH_BOUNDARY_CONDITIONS
   TYPE(bc) :: h_bcN , hu_bcN , hv_bcN , T_bcN
@@ -177,6 +180,7 @@ MODULE inpout_2d
   TYPE(bc),ALLOCATABLE :: halphas_bcN(:)
   TYPE(bc),ALLOCATABLE :: alphag_bcN(:)
   TYPE(bc),ALLOCATABLE :: halphag_bcN(:)
+  TYPE(bc) :: alphal_bcN , halphal_bcN
 
 
 
@@ -455,7 +459,10 @@ CONTAINS
     halphas_bcW%flag = -1 
     alphag_bcW%flag = -1 
     halphag_bcW%flag = -1 
-    T_bcW%flag = -1 
+    alphal_bcW%flag = -1 
+    halphal_bcW%flag = -1 
+    T_bcW%flag = -1
+    
 
     h_bcE%flag = -1 
     hu_bcE%flag = -1 
@@ -464,6 +471,8 @@ CONTAINS
     halphas_bcE%flag = -1 
     alphag_bcE%flag = -1 
     halphag_bcE%flag = -1 
+    alphal_bcE%flag = -1 
+    halphal_bcE%flag = -1 
     T_bcE%flag = -1 
 
     h_bcS%flag = -1 
@@ -473,6 +482,8 @@ CONTAINS
     halphas_bcS%flag = -1 
     alphag_bcS%flag = -1 
     halphag_bcS%flag = -1 
+    alphal_bcS%flag = -1 
+    halphal_bcS%flag = -1 
     T_bcS%flag = -1 
 
     h_bcN%flag = -1 
@@ -482,6 +493,8 @@ CONTAINS
     halphas_bcN%flag = -1 
     alphag_bcN%flag = -1 
     halphag_bcN%flag = -1 
+    alphal_bcN%flag = -1 
+    halphal_bcN%flag = -1 
     T_bcN%flag = -1 
 
     ! sed_vol_perc = -1.0_wp
@@ -610,16 +623,20 @@ CONTAINS
     IMPLICIT none
 
     NAMELIST / west_boundary_conditions / h_bcW , hu_bcW , hv_bcW ,             &
-         alphas_bcW , halphas_bcW , T_bcW , alphag_bcW , halphag_bcW
+         alphas_bcW , halphas_bcW , T_bcW , alphag_bcW , halphag_bcW ,          &
+         alphal_bcW , halphal_bcW
 
     NAMELIST / east_boundary_conditions / h_bcE , hu_bcE , hv_bcE ,             &
-         alphas_bcE , halphas_bcE , T_bcE , alphag_bcE , halphag_bcE
+         alphas_bcE , halphas_bcE , T_bcE , alphag_bcE , halphag_bcE ,          &
+         alphal_bcE , halphal_bcE
 
     NAMELIST / south_boundary_conditions / h_bcS , hu_bcS , hv_bcS ,            &
-         alphas_bcS , halphas_bcS , T_bcS , alphag_bcS , halphag_bcS
+         alphas_bcS , halphas_bcS , T_bcS , alphag_bcS , halphag_bcS ,          &
+         alphal_bcS , halphal_bcS
 
     NAMELIST / north_boundary_conditions / h_bcN , hu_bcN , hv_bcN ,            &
-         alphas_bcN , halphas_bcN , T_bcN , alphag_bcN , halphag_bcN
+         alphas_bcN , halphas_bcN , T_bcN , alphag_bcN , halphag_bcN ,          &
+         alphal_bcN , halphal_bcN
 
     NAMELIST / solid_transport_parameters / rho_s , diam_s , sp_heat_s ,        &
          erosion_coeff , erodible_porosity , settling_flag , T_erodible ,       &
@@ -869,6 +886,7 @@ CONTAINS
 
           WRITE(*,*) 'IOSTAT=',ios
           WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
+          WRITE(*,liquid_transport_parameters)
           WRITE(*,*) 'Please check the input file'
           STOP
 
@@ -911,43 +929,43 @@ CONTAINS
 
        READ(input_unit, rheology_parameters,IOSTAT=ios)
        REWIND(input_unit)
-
-       IF ( kin_visc_l .EQ. -1.0_wp ) THEN
-
-          IF ( ( RHEOLOGY_MODEL .NE. 4 ) .AND. ( RHEOLOGY_MODEL .NE. 3 ) ) THEN
-
-             WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
-             WRITE(*,*) 'KIN_VISC_L =' , kin_visc_l
-             WRITE(*,*) 'Please check the input file'
-             STOP
-
-          END IF
-
-       ELSE
-
-          IF ( RHEOLOGY_MODEL .EQ. 4 ) THEN
-
-             WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
-             WRITE(*,*) 'KIN_VISC_L =' , kin_visc_l
-             WRITE(*,*) 'Viscosity already is computed by REHOLOGY MODEL=4' 
-             WRITE(*,*) 'Please check the input file'
-             STOP
-
-          END IF
-
-          IF ( RHEOLOGY_MODEL .EQ. 3 ) THEN
-
-             WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
-             WRITE(*,*) 'KIN_VISC_L =' , kin_visc_l
-             WRITE(*,*) 'Viscosity already is computed by REHOLOGY MODEL=3' 
-             WRITE(*,*) 'Please check the input file'
-             STOP
-
-          END IF
-
-       END IF
-
+       
        IF ( .NOT. gas_flag ) THEN
+
+          IF ( kin_visc_l .EQ. -1.0_wp ) THEN
+
+             IF ( ( RHEOLOGY_MODEL .NE. 4 ) .AND. ( RHEOLOGY_MODEL .NE. 3 ) ) THEN
+
+                WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
+                WRITE(*,*) 'KIN_VISC_L =' , kin_visc_l
+                WRITE(*,*) 'Please check the input file'
+                STOP
+
+             END IF
+
+          ELSE
+
+             IF ( RHEOLOGY_MODEL .EQ. 4 ) THEN
+
+                WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
+                WRITE(*,*) 'KIN_VISC_L =' , kin_visc_l
+                WRITE(*,*) 'Viscosity already is computed by REHOLOGY MODEL=4' 
+                WRITE(*,*) 'Please check the input file'
+                STOP
+
+             END IF
+
+             IF ( RHEOLOGY_MODEL .EQ. 3 ) THEN
+
+                WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
+                WRITE(*,*) 'KIN_VISC_L =' , kin_visc_l
+                WRITE(*,*) 'Viscosity already is computed by REHOLOGY MODEL=3' 
+                WRITE(*,*) 'Please check the input file'
+                STOP
+
+             END IF
+
+          END IF
 
           IF ( verbose_level .GE. 0 ) THEN
 
@@ -1491,6 +1509,21 @@ CONTAINS
              STOP
           
           END IF
+
+          IF ( gas_flag .AND. liquid_flag ) THEN
+
+             IF ( alphal_bcW%flag .EQ. -1 ) THEN 
+                
+                WRITE(*,*) 'ERROR: problem with namelist WEST_BOUNDARY_CONDITIONS'
+                WRITE(*,*) 'B.C. for additional gas components not set properly'
+                WRITE(*,*) 'Please check the input file'
+                WRITE(*,*) 'alphal_bcW'
+                WRITE(*,*) alphal_bcW
+                STOP
+                
+             END IF
+             
+          END IF
           
        ELSE
 
@@ -1515,6 +1548,22 @@ CONTAINS
              STOP
           
           END IF
+
+          IF ( gas_flag .AND. liquid_flag ) THEN
+
+             IF ( halphal_bcW%flag .EQ. -1 ) THEN 
+                
+                WRITE(*,*) 'ERROR: problem with namelist WEST_BOUNDARY_CONDITIONS'
+                WRITE(*,*) 'B.C. for additional gas components not set properly'
+                WRITE(*,*) 'Please check the input file'
+                WRITE(*,*) 'halphal_bcW'
+                WRITE(*,*) halphal_bcW
+                STOP
+                
+             END IF
+             
+          END IF
+          
           
        END IF
 
@@ -1621,6 +1670,21 @@ CONTAINS
              
           END IF
 
+          IF ( gas_flag .AND. liquid_flag ) THEN
+
+             IF ( alphal_bcE%flag .EQ. -1 ) THEN 
+                
+                WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
+                WRITE(*,*) 'B.C. for additional gas components not set properly'
+                WRITE(*,*) 'Please check the input file'
+                WRITE(*,*) 'alphal_bcE'
+                WRITE(*,*) alphal_bcE
+                STOP
+                
+             END IF
+             
+          END IF
+          
        ELSE
 
           IF ( ANY(halphas_bcE(1:n_solid)%flag .EQ. -1 ) ) THEN 
@@ -1645,6 +1709,21 @@ CONTAINS
              
           END IF
           
+          IF ( gas_flag .AND. liquid_flag ) THEN
+
+             IF ( halphal_bcE%flag .EQ. -1 ) THEN 
+                
+                WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
+                WRITE(*,*) 'B.C. for additional gas components not set properly'
+                WRITE(*,*) 'Please check the input file'
+                WRITE(*,*) 'halphal_bcE'
+                WRITE(*,*) halphal_bcE
+                STOP
+                
+             END IF
+             
+          END IF
+
        END IF
 
        IF ( T_bcE%flag .EQ. -1 ) THEN 
@@ -1749,7 +1828,22 @@ CONTAINS
              STOP
              
           END IF
-         
+
+          IF ( gas_flag .AND. liquid_flag ) THEN
+
+             IF ( alphal_bcS%flag .EQ. -1 ) THEN 
+                
+                WRITE(*,*) 'ERROR: problem with namelist SOUTH_BOUNDARY_CONDITIONS'
+                WRITE(*,*) 'B.C. for additional gas components not set properly'
+                WRITE(*,*) 'Please check the input file'
+                WRITE(*,*) 'alphal_bcS'
+                WRITE(*,*) alphal_bcS
+                STOP
+                
+             END IF
+             
+          END IF
+          
        ELSE
 
           IF ( ANY(halphas_bcS(1:n_solid)%flag .EQ. -1 ) ) THEN 
@@ -1774,7 +1868,22 @@ CONTAINS
              STOP
              
           END IF
-                   
+
+          IF ( gas_flag .AND. liquid_flag ) THEN
+
+             IF ( halphal_bcS%flag .EQ. -1 ) THEN 
+                
+                WRITE(*,*) 'ERROR: problem with namelist SOUTH_BOUNDARY_CONDITIONS'
+                WRITE(*,*) 'B.C. for additional gas components not set properly'
+                WRITE(*,*) 'Please check the input file'
+                WRITE(*,*) 'halphal_bcS'
+                WRITE(*,*) halphal_bcS
+                STOP
+                
+             END IF
+             
+          END IF
+          
        END IF
 
        IF ( T_bcS%flag .EQ. -1 ) THEN 
@@ -1877,6 +1986,21 @@ CONTAINS
              STOP
              
           END IF
+
+          IF ( gas_flag .AND. liquid_flag ) THEN
+
+             IF ( alphal_bcN%flag .EQ. -1 ) THEN 
+                
+                WRITE(*,*) 'ERROR: problem with namelist NORTH_BOUNDARY_CONDITIONS'
+                WRITE(*,*) 'B.C. for additional gas components not set properly'
+                WRITE(*,*) 'Please check the input file'
+                WRITE(*,*) 'alphal_bcN'
+                WRITE(*,*) alphal_bcN
+                STOP
+                
+             END IF
+             
+          END IF
           
        ELSE
 
@@ -1900,7 +2024,23 @@ CONTAINS
              WRITE(*,*) halphag_bcN(1:n_add_gas)
              STOP
              
-          END IF          
+          END IF
+          
+          IF ( gas_flag .AND. liquid_flag ) THEN
+             
+             IF ( halphal_bcN%flag .EQ. -1 ) THEN 
+                
+                WRITE(*,*) 'ERROR: problem with namelist NORTH_BOUNDARY_CONDITIONS'
+                WRITE(*,*) 'B.C. for additional gas components not set properly'
+                WRITE(*,*) 'Please check the input file'
+                WRITE(*,*) 'halphal_bcN'
+                WRITE(*,*) halphal_bcN
+                STOP
+                
+             END IF
+             
+          END IF
+          
        END IF
 
        IF ( T_bcN%flag .EQ. -1 ) THEN 
@@ -1948,6 +2088,26 @@ CONTAINS
        bcN(4+n_solid+1:4+n_solid+n_add_gas) = halphag_bcN(1:n_add_gas)
        
     END IF
+
+    IF ( gas_flag .AND. liquid_flag ) THEN
+
+       IF ( alpha_flag ) THEN
+
+          bcW(n_vars) = alphal_bcW
+          bcE(n_vars) = alphal_bcE
+          bcS(n_vars) = alphal_bcS
+          bcN(n_vars) = alphal_bcN
+
+       ELSE
+          
+          bcW(n_vars) = halphal_bcW
+          bcE(n_vars) = halphal_bcE
+          bcS(n_vars) = halphal_bcS
+          bcN(n_vars) = halphal_bcN
+
+       END IF
+          
+       END IF
 
     ! ------- READ expl_terms_parameters NAMELIST -------------------------------
 
@@ -3779,6 +3939,7 @@ CONTAINS
 
     REAL(wp) :: r_u , r_v , r_h , r_alphas(n_solid) , r_T , r_Ri , r_rho_m
     REAL(wp) :: r_alphag(n_add_gas)
+    REAL(wp) :: r_alphal
     REAL(wp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
     REAL(wp) :: r_red_grav   !< real-value reduced gravity
     REAL(wp) :: p_dyn
@@ -3836,19 +3997,21 @@ CONTAINS
        IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'WRITING ',output_file_2d
        
        OPEN(output_unit_2d,FILE=output_file_2d,status='unknown',form='formatted')
+
+       r_alphal = 0.0_wp
        
        DO k = 1,comp_cells_y
           
           DO j = 1,comp_cells_x
 
              CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2) , p_dyn )
-
              CALL mixt_var(qp(1:n_vars+2),r_Ri,r_rho_m,r_rho_c,r_red_grav)
 
              r_h = qp(1)
              r_u = qp(n_vars+1)
              r_v = qp(n_vars+2)
              r_T = qp(4)
+
              IF ( r_h .GT. 0.0_wp ) THEN
 
                 IF ( alpha_flag ) THEN
@@ -3856,11 +4019,24 @@ CONTAINS
                    r_alphas(1:n_solid) = qp(5:4+n_solid)
                    r_alphag(1:n_add_gas) = qp(4+n_solid+1:4+n_solid+n_add_gas)
 
+                   IF ( gas_flag .AND. liquid_flag ) THEN
+                      
+                      r_alphal = qp(n_vars)
+
+                   END IF
+
                 ELSE
 
                    r_alphas(1:n_solid) = qp(5:4+n_solid) / r_h
                    r_alphag(1:n_add_gas) = qp(4+n_solid+1:4+n_solid+n_add_gas)  &
                         / r_h
+                   
+                   IF ( gas_flag .AND. liquid_flag ) THEN
+                      
+                      r_alphal = qp(n_vars) / r_h
+                      
+                   END IF
+
 
                 END IF
 
@@ -3868,6 +4044,7 @@ CONTAINS
 
                 r_alphas(1:n_solid) = 0.0_wp
                 r_alphag(1:n_add_gas) = 0.0_wp
+                r_alphal = 0.0_wp
 
              END IF
 
@@ -3898,10 +4075,13 @@ CONTAINS
              IF ( ABS( r_rho_m ) .LT. 1.0E-20_wp ) r_rho_m = 0.0_wp
              IF ( ABS( r_red_grav ) .LT. 1.0E-20_wp ) r_red_grav = 0.0_wp
 
+             IF ( ABS( r_alphal ) .LT. 1.0E-20_wp ) r_alphal = 0.0_wp
+
              WRITE(output_unit_2d,1010) x_comp(j), y_comp(k), r_h , r_u , r_v , &
-                  B_out , r_h + B_out , r_alphas , r_T , r_rho_m , r_red_grav , &
-                  DEPOSIT(j,k,:) , EROSION(j,k,:) ,                             &
-                  SUM(ERODIBLE(j,k,1:n_solid)) / ( 1.0_wp - erodible_porosity )
+                  B_out , r_h + B_out , r_alphas , r_alphag , r_T , r_rho_m ,   &
+                  r_red_grav , DEPOSIT(j,k,:) , EROSION(j,k,:) ,                &
+                  SUM(ERODIBLE(j,k,1:n_solid)) / ( 1.0_wp - erodible_porosity ),&
+                  r_alphal
 
 
           END DO

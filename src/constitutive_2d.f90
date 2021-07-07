@@ -344,13 +344,13 @@ CONTAINS
        RETURN
 
     END IF
-
+    
     r_xs_tot = SUM(r_xs)
 
     IF ( gas_flag .AND. liquid_flag ) THEN
 
        ! compute liquid mass fraction
-       IF ( r_qj(1) .GT. eps_sing ) THEN
+       IF ( r_qj(1) .GT. 0.0_wp ) THEN
 
           r_xl = r_qj(n_vars) * inv_qj1
 
@@ -442,12 +442,18 @@ CONTAINS
     IF ( gas_flag .AND. liquid_flag ) THEN
 
        r_inv_rhom = r_inv_rhom + r_xl * inv_rho_l
-       r_alphal = r_xl * r_rho_m * inv_rho_l
 
     END IF
 
     ! mixture density
     r_rho_m = 1.0_wp / r_inv_rhom
+
+    IF ( gas_flag .AND. liquid_flag ) THEN
+
+       r_alphal = r_xl * r_rho_m * inv_rho_l
+
+    END IF
+
 
     ! convert from mass fraction to volume fraction
     r_alphas(1:n_solid) = r_xs(1:n_solid) * r_rho_m * inv_rho_s(1:n_solid)
@@ -574,8 +580,8 @@ CONTAINS
        xl = c_qj(n_vars) * inv_cqj1
 
        ! compute carrier phase (gas) mass fraction
-       xc =  xc - xl
-
+       xc = 1.0_wp - xs_tot - xl
+       
        sp_heat_c = ( ( xc - SUM( xg(1:n_add_gas) ) ) * sp_heat_a +              &
             DOT_PRODUCT( xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / xc           
        
@@ -993,6 +999,22 @@ CONTAINS
     alphas_tot = SUM(r_alphas)
 
     r_alphas_rhos(1:n_solid) = r_alphas(1:n_solid) * rho_s(1:n_solid)
+
+    r_alphal = 0.0_wp
+    
+    IF ( gas_flag .AND. liquid_flag ) THEN
+
+       IF ( alpha_flag ) THEN
+
+          r_alphal = qp(n_vars)
+
+       ELSE
+
+          r_alphal = qp(n_vars) / qp(1)
+
+       END IF
+
+    END IF
      
     IF ( gas_flag ) THEN
 
@@ -1013,17 +1035,6 @@ CONTAINS
     END IF
 
     IF ( gas_flag .AND. liquid_flag ) THEN
-
-       ! mixture of gas, liquid and solid
-       IF ( alpha_flag ) THEN
-       
-          r_alphal = qp(n_vars)
-
-       ELSE
-
-          r_alphal = qp(n_vars) / qp(1)
-
-       END IF
 
        ! check and correction on dispersed phases volume fractions
        IF ( ( alphas_tot + r_alphal ) .GT. 1.0_wp ) THEN
@@ -1145,7 +1156,7 @@ CONTAINS
     qc(5:4+n_solid) = r_xs * qc(1)
     qc(4+n_solid+1:4+n_solid+n_add_gas) = r_xg * qc(1)
 
-    IF ( gas_flag .AND. liquid_flag ) qc(n_vars) = r_h * r_alphal * rho_l
+    IF ( gas_flag .AND. liquid_flag ) qc(n_vars) = r_xl * qc(1)
 
     RETURN
 
