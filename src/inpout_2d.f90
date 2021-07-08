@@ -878,7 +878,7 @@ CONTAINS
     
     IF ( liquid_flag ) THEN
 
-       n_vars = n_vars + 1
+       IF ( gas_flag ) n_vars = n_vars + 1
 
        READ(input_unit, liquid_transport_parameters,IOSTAT=ios)
 
@@ -3947,6 +3947,13 @@ CONTAINS
     INTEGER :: j,k
     INTEGER :: i
     INTEGER :: i_vars
+
+    LOGICAL :: sp_flag
+    REAL(wp) :: r_sp_heat_c
+    REAL(wp) :: r_sp_heat_mix
+
+    sp_flag = .FALSE.
+
     
     output_idx = output_idx + 1
 
@@ -4005,7 +4012,7 @@ CONTAINS
           DO j = 1,comp_cells_x
 
              CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2) , p_dyn )
-             CALL mixt_var(qp(1:n_vars+2),r_Ri,r_rho_m,r_rho_c,r_red_grav)
+             CALL mixt_var(qp(1:n_vars+2),r_Ri,r_rho_m,r_rho_c,r_red_grav,sp_flag,r_sp_heat_c,r_sp_heat_mix)
 
              r_h = qp(1)
              r_u = qp(n_vars+1)

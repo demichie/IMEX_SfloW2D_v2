@@ -1295,7 +1295,8 @@ CONTAINS
 
        END IF
        
-       negative_thickness_check:IF ( q(1,j,k) .LT. 0.0_wp ) THEN
+       ! negative_thickness_check:IF ( q(1,j,k) .LT. 0.0_wp ) THEN
+       negative_thickness_check:IF ( q(1,j,k) .LT. EPSILON(1.0_wp) ) THEN
 
           IF ( q(1,j,k) .GT. -1.0E-7_wp ) THEN
 
@@ -1375,15 +1376,20 @@ CONTAINS
        IF ( qp(4,j,k) .LT. 290.0_wp ) THEN
           
           WRITE(*,*) 'temperature check'
-          WRITE(*,*) j,k,qp(1:n_vars+2,j,k)
+          WRITE(*,*) j,k
+          WRITE(*,*) 'qp new',qp(1:n_vars+2,j,k)
+          WRITE(*,*) 'qc new',q(1:n_vars,j,k)
 
           CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
-          WRITE(*,*) j,k,qp(1:n_vars+2,j,k)
+          WRITE(*,*) j,k
+          WRITE(*,*) 'qp old',qp(1:n_vars+2,j,k)
+          WRITE(*,*) 'qc old',q0(1:n_vars,j,k)
 
           WRITE(*,*) 'H_interface(4)'
           WRITE(*,*) H_interface_x(4,j+1,k)/dx*dt, H_interface_x(4,j,k)/dx*dt
           WRITE(*,*) H_interface_y(4,j,k+1)/dy*dt, H_interface_y(4,j,k)/dy*dt
-                    
+
+          WRITE(*,*) H_interface_y(:,j,k)/dy*dt
           READ(*,*)
 
        END IF
@@ -1391,7 +1397,8 @@ CONTAINS
 
        IF ( SUM(q(5:4+n_solid,j,k)) .GT. q(1,j,k) ) THEN
 
-          IF ( (SUM(q(5:4+n_solid,j,k))-q(1,j,k))/q(1,j,k) .LT. 1.0E-10_wp ) THEN
+          IF ( ( (SUM(q(5:4+n_solid,j,k))-q(1,j,k))/q(1,j,k) .LT. 1.0E-10_wp )  &
+               .OR. ( q(1,j,k) .LT. epsilon(1.0_wp) ) ) THEN
 
              q(5:4+n_solid,j,k) = q(5:4+n_solid,j,k)                            &
                   / SUM(q(5:4+n_solid,j,k)) * q(1,j,k)
@@ -2201,6 +2208,13 @@ CONTAINS
 
     REAL(wp) :: p_dyn
 
+    LOGICAL :: sp_flag
+    REAL(wp) :: r_sp_heat_c
+    REAL(wp) :: r_sp_heat_mix
+
+    sp_flag = .FALSE.
+
+
     IF ( ( erosion_coeff .EQ. 0.0_wp ) .AND. ( .NOT.settling_flag ) ) RETURN
 
     !$OMP PARALLEL DO private(j,k,erosion_term,deposition_term,eqns_term,       &
@@ -2228,7 +2242,7 @@ CONTAINS
        ! Limit the deposition during a single time step
        deposition_term(1:n_solid) = MAX(0.0_wp,MIN( deposition_term(1:n_solid), &
             q(5:4+n_solid,j,k) / ( rho_s(1:n_solid) * dt ) ))
-
+       
        ! Limit the deposition during a single time step
        erosion_term(1:n_solid) = MAX(0.0_wp,MIN( erosion_term(1:n_solid),       &
             erodible(j,k,1:n_solid) / dt ) )
@@ -2257,7 +2271,23 @@ CONTAINS
 
        ! Update the solution with erosion/deposition terms
        q(1:n_eqns,j,k) = q(1:n_eqns,j,k) + dt * eqns_term(1:n_eqns)
+       q(5:4+n_solid,j,k) = MAX( 0.0_wp , q(5:4+n_solid,j,k) )
 
+       negative_alpha_check:IF ( ANY(q(5:4+n_solid,j,k) .LT. 0.0_wp ) ) THEN
+
+          WRITE(*,*) 'WARNINIG: negative solid mass'
+          WRITE(*,*) 'j,k',j,k
+          WRITE(*,*) 'dt',dt
+          WRITE(*,*) 'before erosion: qc',q(1:n_vars,j,k) - dt * eqns_term(1:n_eqns)
+          WRITE(*,*) 'deposition_term',deposition_term
+          WRITE(*,*) 'erosion_term',erosion_term
+          WRITE(*,*) 'after erosion: qc',q(1:n_vars,j,k)
+
+          READ(*,*)
+          
+       END IF negative_alpha_check
+       
+       
        deposit(j,k,1:n_solid) = deposit(j,k,1:n_solid)                          &
             + dt * deposition_term(1:n_solid)
 
@@ -2340,7 +2370,8 @@ CONTAINS
        IF ( q(1,j,k) .GT. 0.0_wp ) THEN
 
           CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
-          CALL mixt_var(qp(1:n_vars+2,j,k),r_Ri,r_rho_m,r_rho_c,r_red_grav)
+          CALL mixt_var(qp(1:n_vars+2,j,k),r_Ri,r_rho_m,r_rho_c,r_red_grav,     &
+               sp_flag,r_sp_heat_c,r_sp_heat_mix)
 
        ELSE
 
