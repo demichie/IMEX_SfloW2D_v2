@@ -690,7 +690,8 @@ CONTAINS
   !> \date 10/10/2019
   !******************************************************************************
 
-  SUBROUTINE mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav,sp_flag,r_sp_heat_c,r_sp_heat_mix)
+  SUBROUTINE mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav,sp_flag,r_sp_heat_c,  &
+       r_sp_heat_mix)
 
     IMPLICIT none
 
@@ -1353,7 +1354,8 @@ CONTAINS
 
     sp_flag = .FALSE.
 
-    CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav,sp_flag,r_sp_heat_c,r_sp_heat_mix)
+    CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav,sp_flag,r_sp_heat_c,      &
+         r_sp_heat_mix)
 
     r_h = qpj(1)
     r_u = qpj(n_vars+1)
@@ -1412,7 +1414,8 @@ CONTAINS
     sp_flag = .FALSE.
 
 
-    CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav,sp_flag,r_sp_heat_c,r_sp_heat_mix)
+    CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav,sp_flag,r_sp_heat_c,      &
+         r_sp_heat_mix)
 
     r_h = qpj(1)
     r_u = qpj(n_vars+1)
@@ -1483,7 +1486,8 @@ CONTAINS
        r_u = qpj(n_vars+1)
        r_v = qpj(n_vars+2)
 
-       CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav,sp_flag,r_sp_heat_c,r_sp_heat_mix)
+       CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav,sp_flag,r_sp_heat_c,   &
+            r_sp_heat_mix)
 
        IF ( dir .EQ. 1 ) THEN
 
@@ -1671,13 +1675,15 @@ CONTAINS
     
     expl_term(1:n_eqns) = 0.0_wp
 
-    IF ( ( qpj(1) .LE. EPSILON(1.0_wp) ) .AND. ( cell_fract_jk .EQ. 0.0_wp ) ) RETURN
+    IF ( ( qpj(1) .LE. EPSILON(1.0_wp) ) .AND. ( cell_fract_jk .EQ. 0.0_wp ) )  &
+         RETURN
 
     r_h = qpj(1)
     r_u = qpj(n_vars+1)
     r_v = qpj(n_vars+2)
 
-    CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav,sp_flag,r_sp_heat_c,r_sp_heat_mix)
+    CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav,sp_flag,r_sp_heat_c,      &
+         r_sp_heat_mix)
 
     IF ( curvature_term_flag ) THEN
 
@@ -2426,7 +2432,8 @@ CONTAINS
     
     r_T = qpj(4)
 
-    CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav,sp_flag,r_sp_heat_c,r_sp_heat_mix)
+    CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav,sp_flag,r_sp_heat_c,      &
+         r_sp_heat_mix)
     
     IF ( rheology_model .EQ. 4 ) THEN
        
@@ -2605,7 +2612,8 @@ CONTAINS
     END IF
 
     sp_flag = .TRUE.
-    CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav,sp_flag,r_sp_heat_c,r_sp_heat_mix)
+    CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav,sp_flag,r_sp_heat_c,      &
+         r_sp_heat_mix)
 
     r_h = qpj(1)
     r_u = qpj(n_vars+1)

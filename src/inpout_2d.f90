@@ -643,7 +643,7 @@ CONTAINS
          erodible_file , erodible_fract , alphastot_min ,                       &
          initial_erodible_thickness , erodible_deposit_flag
 
-    NAMELIST / gas_transport_parameters / sp_heat_a , sp_gas_const_a , kin_visc_a,&
+    NAMELIST / gas_transport_parameters / sp_heat_a, sp_gas_const_a, kin_visc_a,&
          pres , T_ambient , entrainment_flag , sp_heat_g , sp_gas_const_g
 
 
@@ -4012,7 +4012,8 @@ CONTAINS
           DO j = 1,comp_cells_x
 
              CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2) , p_dyn )
-             CALL mixt_var(qp(1:n_vars+2),r_Ri,r_rho_m,r_rho_c,r_red_grav,sp_flag,r_sp_heat_c,r_sp_heat_mix)
+             CALL mixt_var(qp(1:n_vars+2),r_Ri,r_rho_m,r_rho_c,r_red_grav,      &
+                  sp_flag,r_sp_heat_c,r_sp_heat_mix)
 
              r_h = qp(1)
              r_u = qp(n_vars+1)
