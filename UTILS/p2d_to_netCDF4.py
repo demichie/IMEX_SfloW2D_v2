@@ -330,12 +330,12 @@ for i_output in range(output_first,output_last):
                 erodible[nc_output,:,:] = data[:,10+3*nsolid+naddgas].reshape((ny,nx))
 
                 if ( liqflag and gasflag ):
-                    alphal[nc_output,:,:] = np.tile(data[:,11+3*nsolid+naddgas],2).reshape((ny,nx))
+                    alphal[nc_output,:,:] = data[:,11+3*nsolid+naddgas].reshape((ny,nx))
                     
             else:
 
                 if ( liqflag and gasflag ):
-                    alphal[nc_output,:,:] = np.tile(data[:,10+naddgas],2).reshape((ny,nx))
+                    alphal[nc_output,:,:] = data[:,10+naddgas].reshape((ny,nx))
 
         nc_output +=1
 
