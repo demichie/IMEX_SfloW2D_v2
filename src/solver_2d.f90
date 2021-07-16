@@ -2182,6 +2182,7 @@ CONTAINS
 
     USE constitutive_2d, ONLY : eval_erosion_dep_term
     USE constitutive_2d, ONLY : eval_bulk_debulk_term
+!     USE constitutive_2d, ONLY : eval_mass_exchange_terms
 
     USE constitutive_2d, ONLY : qc_to_qp , mixt_var
     USE parameters_2d, ONLY : topo_change_flag , bottom_radial_source_flag
@@ -2194,6 +2195,7 @@ CONTAINS
 
     REAL(wp) :: erosion_term(n_solid)
     REAL(wp) :: deposition_term(n_solid)
+    REAL(wp) :: continuous_phase_erosion_term
     REAL(wp) :: continuous_phase_loss_term
     REAL(wp) :: eqns_term(n_eqns)
     REAL(wp) :: topo_term
@@ -2218,7 +2220,8 @@ CONTAINS
     IF ( ( erosion_coeff .EQ. 0.0_wp ) .AND. ( .NOT.settling_flag ) ) RETURN
 
     !$OMP PARALLEL DO private(j,k,erosion_term,deposition_term,eqns_term,       &
-    !$OMP & topo_term,r_Ri,r_rho_m,r_rho_c,r_red_grav,continuous_phase_loss_term)
+    !$OMP & topo_term,r_Ri,r_rho_m,r_rho_c,r_red_grav,                          &
+    !$OMP & continuous_phase_erosion_term,continuous_phase_loss_term)
 
     DO l = 1,solve_cells
 
@@ -2237,7 +2240,7 @@ CONTAINS
 
        CALL eval_erosion_dep_term( qp(1:n_vars+2,j,k) ,  dt ,                   &
             erosion_term(1:n_solid) , deposition_term(1:n_solid) ,              &
-            continuous_phase_loss_term )
+            continuous_phase_erosion_term , continuous_phase_loss_term )
 
        ! Limit the deposition during a single time step
        deposition_term(1:n_solid) = MAX(0.0_wp,MIN( deposition_term(1:n_solid), &
@@ -2249,7 +2252,14 @@ CONTAINS
        
        ! Compute the source terms for the equations
        CALL eval_bulk_debulk_term( qp(1:n_vars+2,j,k) , deposition_term ,       &
-            erosion_term , continuous_phase_loss_term , eqns_term , topo_term )
+            erosion_term ,  continuous_phase_erosion_term ,                     &
+            continuous_phase_loss_term , eqns_term , topo_term )
+
+
+!!$       CALL eval_mass_exchange_terms( qp(1:n_vars+2,j,k) , erodible(j,k,1:n_solid) , &
+!!$            dt , erosion_term ,     &
+!!$       deposition_term , continuous_phase_erosion_term ,                        &
+!!$       continuous_phase_loss_term , eqns_term , topo_term  )
 
        IF ( bottom_radial_source_flag ) THEN
 

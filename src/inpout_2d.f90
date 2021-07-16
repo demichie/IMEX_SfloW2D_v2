@@ -3134,6 +3134,7 @@ CONTAINS
 
     IF ( liquid_flag ) WRITE(backup_unit,liquid_transport_parameters)
 
+    IF ( radial_source_flag ) WRITE(backup_unit,radial_source_parameters)
 
     IF ( output_runout_flag ) WRITE(backup_unit, runout_parameters)
 
