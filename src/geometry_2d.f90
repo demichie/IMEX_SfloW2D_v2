@@ -31,6 +31,9 @@ MODULE geometry_2d
   
   LOGICAL, ALLOCATABLE :: B_nodata(:,:)
 
+  INTEGER, ALLOCATABLE :: B_zone(:,:)
+
+  
   !> Topography slope (x direction) at the centers of the control volumes 
   REAL(wp), ALLOCATABLE :: B_prime_x(:,:)
 
@@ -151,6 +154,7 @@ CONTAINS
     USE parameters_2d, ONLY: eps_sing , eps_sing4
     USE parameters_2d, ONLY : bottom_radial_source_flag
     USE parameters_2d, ONLY : x_source , y_source , r_source
+    USE parameters_2d, ONLY : liquid_vaporization_flag
 
     IMPLICIT none
 
@@ -310,6 +314,7 @@ CONTAINS
     ! cell centers and 
     CALL topography_reconstruction
 
+    IF ( liquid_vaporization_flag ) CALL topography_zones
     
     pi_g = 4.0_wp * ATAN(1.0_wp)
 
@@ -323,7 +328,164 @@ CONTAINS
 
   END SUBROUTINE init_grid
 
+  !******************************************************************************
+  !> \brief Topography zone identification
+  !
+  !> This subroutine search for the connected zones where topography elevation
+  !> corresponds to a fixed value assigned in the input file (water_level). 
+  !> A value 1 to is assigned to variable B_zone in the cells belonging to the
+  !> largest connected area. 
+  !> @author 
+  !> Mattia de' Michieli Vitturi
+  !> \date 2021/07/21
+  !******************************************************************************
 
+  
+  SUBROUTINE topography_zones
+
+    USE parameters_2D, ONLY: water_level
+    
+    IMPLICIT NONE
+
+    INTEGER :: i,j,k
+
+    INTEGER :: zone_counter
+    INTEGER :: equi_list(0:1000)
+    INTEGER :: equi_list_new(0:1000)
+    INTEGER :: zone , zone_max
+    INTEGER :: zone_cells(1:1000)
+
+    ALLOCATE(  B_zone(comp_cells_x,comp_cells_y) )
+
+    B_zone = 0
+    
+    WHERE ( ABS( B_cent - water_level ) .LE. 1.0E-1_wp )
+
+       B_zone = -1
+       
+    END WHERE
+
+    RETURN
+    
+    DO i=0,1000
+
+       equi_list(i) = i
+
+    END DO
+    
+    zone_counter = 0
+    
+    y_loop:DO k = 1,comp_cells_y
+
+       x_loop:DO j = 1,comp_cells_x
+
+          IF ( B_zone(j,k) .EQ. -1 ) THEN
+
+             IF ( ( k .GT. 1 ) .AND. ( j.GT.1) ) THEN
+
+                B_zone(j,k) = MAX( B_zone(j-1,k) , B_zone(j,k-1) )
+
+                IF ( ( B_zone(j-1,k) .NE. B_zone(j,k-1) ) .AND.  &
+                     (MIN( B_zone(j-1,k) , B_zone(j,k-1) ) .GT. 0 ) ) THEN
+
+                   B_zone(j,k) = MIN( B_zone(j-1,k) , B_zone(j,k-1) )
+
+                   equi_list(MAX( B_zone(j-1,k) , B_zone(j,k-1) )) = &
+                        MIN( B_zone(j-1,k) , B_zone(j,k-1) )
+
+                END IF
+
+             ELSEIF ( j .GT. 1 ) THEN
+
+                B_zone(j,k) = B_zone(j-1,k)
+
+             ELSEIF ( k .GT. 1 ) THEN
+
+                B_zone(j,k) = B_zone(j,k-1)
+
+             END IF
+
+             IF ( B_zone(j,k) .LE. 0 ) THEN
+
+                zone_counter = zone_counter + 1
+                B_zone(j,k) = zone_counter
+
+             END IF
+
+          END IF
+
+       END DO x_loop
+
+    END DO y_loop
+
+    DO i=zone_counter,1,-1
+
+       DO WHILE ( equi_list(equi_list(i)) .NE. equi_list(i) )
+
+          equi_list(i) = equi_list(equi_list(i))
+
+       END DO
+
+    END DO
+
+    equi_list_new(0:zone_counter) = 0
+    i = 0
+
+    DO zone = 1, zone_counter
+
+       IF ( equi_list(zone) == zone ) THEN
+          
+          i = i + 1
+          equi_list_new(zone) = i
+          
+       END IF
+    END DO
+
+    zone_counter = i
+    
+    zone_cells = 0
+    !
+    !  Replace the labels by consecutive labels.
+    !
+    y_loop2:DO k = 1,comp_cells_y
+
+       x_loop2:DO j = 1,comp_cells_x
+
+          B_zone(j,k) = equi_list_new(equi_list(B_zone(j,k)))
+
+          IF ( B_zone(j,k) .GT. 0 ) THEN
+             
+             zone_cells( B_zone(j,k) ) = zone_cells( B_zone(j,k) ) + 1
+             
+          END IF
+             
+       END DO x_loop2
+
+    END DO y_loop2
+
+    WRITE(*,*) 'Number of cells of each conneceted area:'
+    WRITE(*,*) zone_cells(1:zone_counter)
+
+    zone_max = MAXLOC(zone_cells,1)
+
+    y_loop3:DO k = 1,comp_cells_y
+
+       x_loop3:DO j = 1,comp_cells_x
+
+          IF ( B_zone(j,k) .NE. zone_max ) THEN
+             
+             B_zone(j,k) = 0
+             
+          END IF
+             
+       END DO x_loop3
+
+    END DO y_loop3    
+    
+    RETURN
+    
+  END SUBROUTINE topography_zones
+  
   !******************************************************************************
   !> \brief Topography slope recontruction
   !

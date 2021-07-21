@@ -107,7 +107,15 @@ MODULE parameters_2d
   !> .
   LOGICAL :: erodible_deposit_flag
 
+  !> Flag to account for vaporization of liquid water
+  !> - T      => vaporization form a source of water
+  !> - F      => no vaporization
+  !> .  
+  LOGICAL :: liquid_vaporization_flag
 
+  !> Elevation of the water level in the DEM file
+  REAL(wp) :: water_level
+  
   
   INTEGER :: n_thickness_levels
   INTEGER :: n_dyn_pres_levels

@@ -76,6 +76,7 @@ MODULE inpout_2d
   ! --- Variables for the namelist GAS_TRANSPORT_PARAMETERS
   USE constitutive_2d, ONLY : sp_heat_a , sp_gas_const_a , kin_visc_a , pres ,  &
        T_ambient , entrainment_flag , sp_heat_g , sp_gas_const_g
+  USE parameters_2d, ONLY : liquid_vaporization_flag , water_level
 
   ! --- Variables for the namelist LIQUID_TRANSPORT_PARAMETERS
   USE constitutive_2d, ONLY : sp_heat_l , rho_l , kin_visc_l , loss_rate
@@ -559,19 +560,24 @@ CONTAINS
     T_ambient = -1.0_wp
     sp_heat_g = -1.0_wp
     sp_gas_const_g = -1.0_wp
+    liquid_vaporization_flag = .FALSE.
+    water_level = -1.0E7_wp
 
     !- Variables for the namelist LIQUID_TRANSPORT_PARAMETERS
     sp_heat_l = -1.0_wp
     rho_l = -1.0_wp
     kin_visc_l = -1.0_wp
     loss_rate = -1.0_wp
-
+    
     !- Variables for the namelist RADIAL_SOURCE_PARAMETERS
     T_source = -1.0_wp
     h_source = -1.0_wp
     r_source = -1.0_wp
     vel_source = -1.0_wp
     time_param(1:4) = -1.0_wp
+    alphas_source = -1.0_wp
+    alphag_source = -1.0_wp
+    alphal_source = -1.0_wp
 
     !- Variables for the namelist COLLAPSING_VOLUME_PARAMETERS
     T_collapse = -1.0_wp
@@ -644,7 +650,8 @@ CONTAINS
          initial_erodible_thickness , erodible_deposit_flag
 
     NAMELIST / gas_transport_parameters / sp_heat_a, sp_gas_const_a, kin_visc_a,&
-         pres , T_ambient , entrainment_flag , sp_heat_g , sp_gas_const_g
+         pres , T_ambient , entrainment_flag , sp_heat_g , sp_gas_const_g ,     &
+         liquid_vaporization_flag , water_level
 
 
     REAL(wp) :: max_cfl
@@ -870,6 +877,54 @@ CONTAINS
        WRITE(*,*) 'Ambient density = ',rho_a_amb,' (kg/m3)'
 
     END IF
+
+    IF ( liquid_vaporization_flag ) THEN
+       
+       IF ( .NOT. gas_flag ) THEN
+          
+          WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
+          WRITE(*,*) 'liquid_vaporization_flag =' , liquid_vaporization_flag
+          WRITE(*,*) 'This flag can be set to .TRUE. only when gas_flag = T'
+          WRITE(*,*) 'Please check the input file'
+          STOP
+          
+       END IF
+       
+       IF ( n_add_gas .LT. 1 ) THEN
+          
+          WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
+          WRITE(*,*) 'liquid_vaporization_flag =' , liquid_vaporization_flag
+          WRITE(*,*) 'This flag can be set to .TRUE. only when n_add_gas > 1 '
+          WRITE(*,*) 'Please check the input file'
+          STOP
+          
+       END IF
+       
+       IF ( water_level .EQ. -1.0E7_wp ) THEN
+          
+          WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
+          WRITE(*,*) 'water_level =' , water_level
+          WRITE(*,*) 'Specify a value when LIQUID_VAPORIZATION_FLAG = T'
+          WRITE(*,*) 'Please check the input file'
+          STOP
+
+       ELSE
+
+          IF ( .NOT. liquid_vaporization_flag ) THEN
+
+             WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
+             WRITE(*,*) 'water_level =' , water_level
+             WRITE(*,*) 'liquid_vaporization_flag =' , liquid_vaporization_flag
+             WRITE(*,*) 'Specify a value only when LIQUID_VAPORIZATION_FLAG = T'
+             WRITE(*,*) 'Please check the input file'
+             STOP
+
+          END IF
+          
+       END IF
+       
+    END IF
+    
     ! ------- READ liquid_transport_parameters NAMELIST -------------------------
 
     n_vars = 4
@@ -926,6 +981,7 @@ CONTAINS
           STOP
 
        END IF
+
 
        READ(input_unit, rheology_parameters,IOSTAT=ios)
        REWIND(input_unit)
@@ -4251,7 +4307,7 @@ CONTAINS
   SUBROUTINE output_esri(output_idx)
 
     USE geometry_2d, ONLY : B_cent , grid_output , deposit , erosion , B_nodata
-    USE geometry_2d, ONLY : deposit_tot , erosion_tot
+    USE geometry_2d, ONLY : deposit_tot , erosion_tot , B_zone
     ! USE geometry_2d, ONLY : comp_interfaces_x , comp_interfaces_y
     USE solver_2d, ONLY : qp
 
@@ -4300,6 +4356,29 @@ CONTAINS
        
        CLOSE(dem_esri_unit)
 
+       IF ( liquid_vaporization_flag ) THEN
+       
+          OPEN(dem_esri_unit,FILE='dem_esri_water.asc',status='unknown',form='formatted')
+          
+          IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'WRITING dem_esri_water.asc'
+          
+          WRITE(dem_esri_unit,'(A,I5)') 'ncols ', comp_cells_x
+          WRITE(dem_esri_unit,'(A,I5)') 'nrows ', comp_cells_y
+          WRITE(dem_esri_unit,'(A,F15.3)') 'xllcorner ', x0
+          WRITE(dem_esri_unit,'(A,F15.3)') 'yllcorner ', y0
+          WRITE(dem_esri_unit,'(A,F15.3)') 'cellsize ', cell_size
+          WRITE(dem_esri_unit,'(A,I5)') 'NODATA_value ', -9999
+          
+          DO j = comp_cells_y,1,-1
+             
+             WRITE(dem_esri_unit,*) B_zone(1:comp_cells_x,j)
+             
+          ENDDO
+          
+          CLOSE(dem_esri_unit)
+          
+       END IF
+          
     END IF
     
     idx_string = lettera(output_idx-1)
