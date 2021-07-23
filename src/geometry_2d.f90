@@ -364,8 +364,6 @@ CONTAINS
        B_zone = -1
        
     END WHERE
-
-    RETURN
     
     DO i=0,1000
 
@@ -418,6 +416,7 @@ CONTAINS
 
     END DO y_loop
 
+    ! Search for smallest value in the equivalence list
     DO i=zone_counter,1,-1
 
        DO WHILE ( equi_list(equi_list(i)) .NE. equi_list(i) )
@@ -444,9 +443,8 @@ CONTAINS
     zone_counter = i
     
     zone_cells = 0
-    !
+
     !  Replace the labels by consecutive labels.
-    !
     y_loop2:DO k = 1,comp_cells_y
 
        x_loop2:DO j = 1,comp_cells_x
@@ -475,6 +473,10 @@ CONTAINS
           IF ( B_zone(j,k) .NE. zone_max ) THEN
              
              B_zone(j,k) = 0
+
+          ELSE
+
+             B_zone(j,k) = 1
              
           END IF
              

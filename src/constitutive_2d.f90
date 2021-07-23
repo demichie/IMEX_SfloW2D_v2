@@ -2717,15 +2717,16 @@ CONTAINS
   END SUBROUTINE eval_bulk_debulk_term
 
 
-  SUBROUTINE eval_mass_exchange_terms( qpj , erodible , dt , erosion_term ,     &
-       deposition_term , continuous_phase_erosion_term ,                        &
+  SUBROUTINE eval_mass_exchange_terms( qpj , B_zone , erodible , dt ,           &
+       erosion_term , deposition_term , continuous_phase_erosion_term ,         &
        continuous_phase_loss_term , eqns_term , topo_term  )
 
-    USE parameters_2d, ONLY : erodible_deposit_flag
+    USE parameters_2d, ONLY : erodible_deposit_flag , liquid_vaporization_flag
     
     IMPLICIT NONE
 
-    REAL(wp), INTENT(IN) :: qpj(n_vars+2)              !< physical variables 
+    REAL(wp), INTENT(IN) :: qpj(n_vars+2)              !< physical variables
+    INTEGER, INTENT(IN) :: B_zone
     REAL(wp), INTENT(IN) :: erodible(n_solid)          !< erodible thickness
     REAL(wp), INTENT(IN) :: dt
 
@@ -2784,10 +2785,21 @@ CONTAINS
     REAL(wp) :: rho_dep_tot
     REAL(wp) :: rho_ers_tot
 
-    IF ( qpj(1) .LE. epsilon(1.0_wp) ) THEN
+    REAL(wp) :: gamma_steam
+    REAL(wp) :: T_liquid
+    REAL(wp) :: T_boiling
+    REAL(wp) :: sp_latent_heat
+    REAL(wp) :: sp_heat_liq_water
+    REAL(wp) :: mass_vap_rate
 
-       eqns_term(1:n_eqns) = 0.0_wp
-       topo_term = 0.0_wp
+    erosion_term(1:n_solid) = 0.0_wp
+    deposition_term(1:n_solid) = 0.0_wp
+    continuous_phase_erosion_term = 0.0_wp
+    continuous_phase_loss_term = 0.0_wp
+    eqns_term(1:n_eqns) = 0.0_wp
+    topo_term = 0.0_wp
+    
+    IF ( qpj(1) .LE. epsilon(1.0_wp) ) THEN
 
        RETURN
 
@@ -2797,9 +2809,6 @@ CONTAINS
     alpha_max = 0.6_wp
     hind_exp = 4.65_wp
 
-    deposition_term(1:n_solid) = 0.0_wp
-    erosion_term(1:n_solid) = 0.0_wp
-    continuous_phase_loss_term = 0.0_wp
 
     IF ( qpj(1) .LE. EPSILON(1.0_wp) ) RETURN
     
@@ -2842,7 +2851,7 @@ CONTAINS
     END IF
     
     ! Limit the deposition during a single time step
-    erosion_term(1:n_solid) = MAX(0.0_wp,MIN( erosion_term(1:n_solid),       &
+    erosion_term(1:n_solid) = MAX(0.0_wp,MIN( erosion_term(1:n_solid),          &
          erodible(1:n_solid) / dt ) )
         
     continuous_phase_erosion_term = tot_solid_erosion * erodible_porosity
@@ -2891,12 +2900,14 @@ CONTAINS
        fluid_visc = alpha1 * EXP( beta1 * alphas_tot )
        ! Kinematic viscosity [m2 s-1]
        inv_kin_visc = r_rho_m / fluid_visc
+       ! Continuous phase density used for the settling velocity
        rhoc = r_rho_m
 
     ELSE
 
        ! Viscosity read from input file [m2 s-1]
        inv_kin_visc = 1.0_wp / kin_visc_c
+       ! Continuous phase density used for the settling velocity
        rhoc = r_rho_c
        
     END IF
@@ -2978,9 +2989,8 @@ CONTAINS
        air_entr = 0.0_wp
 
     END IF
-
+        
     eqns_term(1:n_eqns) = 0.0_wp
-
     
     ! solid total volume deposition rate [m s-1]
     dep_tot = SUM( deposition_term )
@@ -2991,7 +3001,7 @@ CONTAINS
     rho_dep_tot = DOT_PRODUCT( rho_s , deposition_term )
     ! solid total mass erosion rate [kg m-2 s-1]
     rho_ers_tot = DOT_PRODUCT( rho_s , erosion_term )
-
+    
     ! total mass equation source term [kg m-2 s-1]:
     ! deposition, erosion and entrainment are considered
     eqns_term(1) = rho_a_amb * air_entr + rho_ers_tot - rho_dep_tot             &
@@ -3034,6 +3044,24 @@ CONTAINS
     ! due to solid erosion and deposition
     eqns_term(5:4+n_solid) = rho_s(1:n_solid) * ( erosion_term(1:n_solid)       &
          - deposition_term(1:n_solid) )
+
+    IF ( gas_flag .AND. liquid_vaporization_flag .AND. ( B_zone .NE. 0 ) ) THEN
+
+       gamma_steam = 0.114_wp
+       T_liquid = 290.0_wp
+       T_boiling = 373.15_wp
+       sp_latent_heat = 2264705.0_wp
+
+       mass_vap_rate = gamma_steam * r_T * SUM( rho_s * sp_heat_s *             &
+            deposition_term ) / ( sp_heat_liq_water * ( T_boiling - T_liquid )  &
+            + sp_latent_heat )
+
+       eqns_term(1) = eqns_term(1) + mass_vap_rate
+       eqns_term(4) = eqns_term(4) + mass_vap_rate * ( sp_heat_liq_water *      &
+            ( T_boiling - T_liquid ) + sp_latent_heat )
+       eqns_term(5+n_solid) = eqns_term(5+n_solid) + mass_vap_rate
+
+    END IF
     
     ! erodible layer thickness source terms [m s-1]:
     ! due to erosion and deposition of solid+continuous phase
