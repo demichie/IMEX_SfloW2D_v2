@@ -75,7 +75,8 @@ MODULE inpout_2d
 
   ! --- Variables for the namelist GAS_TRANSPORT_PARAMETERS
   USE constitutive_2d, ONLY : sp_heat_a , sp_gas_const_a , kin_visc_a , pres ,  &
-       T_ambient , entrainment_flag , sp_heat_g , sp_gas_const_g
+       T_ambient , entrainment_flag , sp_heat_g , sp_gas_const_g , gamma_steam
+  
   USE parameters_2d, ONLY : liquid_vaporization_flag , water_level
 
   ! --- Variables for the namelist LIQUID_TRANSPORT_PARAMETERS
@@ -562,6 +563,7 @@ CONTAINS
     sp_gas_const_g = -1.0_wp
     liquid_vaporization_flag = .FALSE.
     water_level = -1.0E7_wp
+    gamma_steam = -1.0_wp
 
     !- Variables for the namelist LIQUID_TRANSPORT_PARAMETERS
     sp_heat_l = -1.0_wp
@@ -651,7 +653,7 @@ CONTAINS
 
     NAMELIST / gas_transport_parameters / sp_heat_a, sp_gas_const_a, kin_visc_a,&
          pres , T_ambient , entrainment_flag , sp_heat_g , sp_gas_const_g ,     &
-         liquid_vaporization_flag , water_level
+         liquid_vaporization_flag , water_level , gamma_steam
 
 
     REAL(wp) :: max_cfl
@@ -882,7 +884,7 @@ CONTAINS
        
        IF ( .NOT. gas_flag ) THEN
           
-          WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
+          WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
           WRITE(*,*) 'liquid_vaporization_flag =' , liquid_vaporization_flag
           WRITE(*,*) 'This flag can be set to .TRUE. only when gas_flag = T'
           WRITE(*,*) 'Please check the input file'
@@ -892,17 +894,27 @@ CONTAINS
        
        IF ( n_add_gas .LT. 1 ) THEN
           
-          WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
+          WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
           WRITE(*,*) 'liquid_vaporization_flag =' , liquid_vaporization_flag
           WRITE(*,*) 'This flag can be set to .TRUE. only when n_add_gas > 1 '
           WRITE(*,*) 'Please check the input file'
           STOP
           
        END IF
-       
+
+       IF ( ( gamma_steam .LT. 0.0_wp ) .OR. ( gamma_steam .GT. 1.0_wp ) ) THEN
+          
+          WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
+          WRITE(*,*) 'gamma_steam =' , gamma_steam
+          WRITE(*,*) 'Specify a value between 0 and 1'
+          WRITE(*,*) 'Please check the input file'
+          STOP
+
+       END IF
+              
        IF ( water_level .EQ. -1.0E7_wp ) THEN
           
-          WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
+          WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
           WRITE(*,*) 'water_level =' , water_level
           WRITE(*,*) 'Specify a value when LIQUID_VAPORIZATION_FLAG = T'
           WRITE(*,*) 'Please check the input file'
@@ -912,15 +924,27 @@ CONTAINS
 
           IF ( .NOT. liquid_vaporization_flag ) THEN
 
-             WRITE(*,*) 'ERROR: problem with namelist LIQUID_TRANSPORT_PARAMETERS'
+             WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
              WRITE(*,*) 'water_level =' , water_level
              WRITE(*,*) 'liquid_vaporization_flag =' , liquid_vaporization_flag
-             WRITE(*,*) 'Specify a value only when LIQUID_VAPORIZATION_FLAG = T'
+             WRITE(*,*) 'Specify a value only when GAS_VAPORIZATION_FLAG = T'
              WRITE(*,*) 'Please check the input file'
              STOP
 
           END IF
           
+       END IF
+
+    ELSE
+
+       IF ( gamma_steam .NE. -1.0_wp ) THEN
+          
+          WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
+          WRITE(*,*) 'gamma_steam =' , gamma_steam
+          WRITE(*,*) 'Specify a value only when GAS_VAPORIZATION_FLAG = T'
+          WRITE(*,*) 'Please check the input file'
+          STOP
+
        END IF
        
     END IF

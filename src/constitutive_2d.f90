@@ -202,6 +202,10 @@ MODULE constitutive_2d
   !> Sepcific heat of liquid (units: J K-1 kg-1)
   REAL(wp) :: sp_heat_l
 
+  !> Fraction of heat lost by particles producing steam
+  REAL(wp) :: gamma_steam
+
+  
 CONTAINS
 
   !******************************************************************************
@@ -2785,7 +2789,6 @@ CONTAINS
     REAL(wp) :: rho_dep_tot
     REAL(wp) :: rho_ers_tot
 
-    REAL(wp) :: gamma_steam
     REAL(wp) :: T_liquid
     REAL(wp) :: T_boiling
     REAL(wp) :: sp_latent_heat
@@ -3047,7 +3050,7 @@ CONTAINS
 
     IF ( gas_flag .AND. liquid_vaporization_flag .AND. ( B_zone .NE. 0 ) ) THEN
 
-       gamma_steam = 0.114_wp
+       ! gamma_steam = 0.114_wp
        T_liquid = 290.0_wp
        T_boiling = 373.15_wp
        sp_latent_heat = 2264705.0_wp
