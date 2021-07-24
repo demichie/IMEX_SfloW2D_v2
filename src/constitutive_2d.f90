@@ -3054,14 +3054,14 @@ CONTAINS
        T_liquid = 290.0_wp
        T_boiling = 373.15_wp
        sp_latent_heat = 2264705.0_wp
+       sp_heat_liq_water = 4184.0_wp
 
        mass_vap_rate = gamma_steam * r_T * SUM( rho_s * sp_heat_s *             &
             deposition_term ) / ( sp_heat_liq_water * ( T_boiling - T_liquid )  &
             + sp_latent_heat )
 
        eqns_term(1) = eqns_term(1) + mass_vap_rate
-       eqns_term(4) = eqns_term(4) + mass_vap_rate * ( sp_heat_liq_water *      &
-            ( T_boiling - T_liquid ) + sp_latent_heat )
+       eqns_term(4) = eqns_term(4) + mass_vap_rate * sp_heat_g(1) * T_boiling
        eqns_term(5+n_solid) = eqns_term(5+n_solid) + mass_vap_rate
 
     END IF
@@ -3098,6 +3098,8 @@ CONTAINS
     USE parameters_2d, ONLY : h_source , vel_source , T_source , alphas_source ,&
          alphag_source , alphal_source , time_param
 
+    USE geometry_2d, ONLY : pi_g
+
     IMPLICIT NONE
 
     REAL(wp), INTENT(IN) :: time
@@ -3107,7 +3109,6 @@ CONTAINS
 
     REAL(wp) :: t_rem
     REAL(wp) :: t_coeff
-    REAL(wp) :: pi_g
 
     IF ( time .GE. time_param(4) ) THEN
 
@@ -3132,8 +3133,6 @@ CONTAINS
     END IF
 
     t_rem = MOD( time , time_param(1) )
-
-    pi_g = 4.0_wp * ATAN(1.0_wp) 
 
     t_coeff = 0.0_wp
 
