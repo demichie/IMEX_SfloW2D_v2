@@ -1224,7 +1224,7 @@ CONTAINS
     INTEGER nXin,nYin
     
     nXin = size(xin)-1
-    nYin = size(yin)-1
+    nYin = size(yin)
 
     dXin = xin(2) - xin(1)
     dYin = yin(2) - yin(1)
