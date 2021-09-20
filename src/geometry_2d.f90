@@ -314,6 +314,10 @@ CONTAINS
     ! cell centers and 
     CALL topography_reconstruction
 
+    ALLOCATE(  B_zone(comp_cells_x,comp_cells_y) )
+
+    B_zone = 0
+ 
     IF ( liquid_vaporization_flag ) CALL topography_zones
     
     pi_g = 4.0_wp * ATAN(1.0_wp)
@@ -355,10 +359,6 @@ CONTAINS
     INTEGER :: zone , zone_max
     INTEGER :: zone_cells(1:1000)
 
-    ALLOCATE(  B_zone(comp_cells_x,comp_cells_y) )
-
-    B_zone = 0
-    
     WHERE ( ABS( B_cent - water_level ) .LE. 1.0E-1_wp )
 
        B_zone = -1
