@@ -540,8 +540,6 @@ CONTAINS
     COMPLEX(wp) :: inv_cqj1                !< reciprocal of 1st cons. variable
     COMPLEX(wp) :: inv_rho_c               !< carrier phase density reciprocal
     COMPLEX(wp) :: inv_rho_g(n_add_gas)    !< add. gas density reciprocal
-
-    REAL(wp) :: r_inv_rhom
     
     ! compute solid mass fractions
     IF ( REAL(c_qj(1)) .GT.  EPSILON(1.0_wp) ) THEN
@@ -560,8 +558,7 @@ CONTAINS
        rho_m = CMPLX(rho_a_amb,0.0_wp,wp)
        alphas = CMPLX(0.0_wp,0.0_wp,wp)
        alphag = CMPLX(0.0_wp,0.0_wp,wp)
-       r_inv_rhom = 1.0_wp/rho_m
-       inv_rhom = CMPLX(r_inv_rhom,0.0_wp,wp) 
+       inv_rhom = 1.0_wp / rho_m
        RETURN       
 
     END IF
@@ -882,7 +879,7 @@ CONTAINS
 
     REAL(wp) :: r_xl              !< real-value liquid mass fraction
     REAL(wp) :: r_xc              !< real-value carrier phase mass fraction
-    REAL(wp) :: r_T               !< real-value temperature [K]
+
     REAL(wp) :: r_xs(n_solid)     !< real-value solid mass fractions
     REAL(wp) :: r_xg(n_add_gas)   !< real-value add.gas mass fractions    
 
@@ -1460,8 +1457,6 @@ CONTAINS
 
   SUBROUTINE eval_fluxes(qcj,qpj,grav_coeff,dir,flux)
 
-    USE parameters_2d, ONLY : eps_sing
-
     IMPLICIT none
 
     REAL(wp), INTENT(IN) :: qcj(n_vars)
@@ -1652,17 +1647,7 @@ CONTAINS
     REAL(wp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
     REAL(wp) :: r_rho_g(n_add_gas) !< real-value add.gas densities [kg/m3]
     REAL(wp) :: r_red_grav   !< real-value reduced gravity
-    REAL(wp) :: r_alphas(n_solid)  !< real-value solid volume fractions
-    REAL(wp) :: r_xs(n_solid)      !< real-value solid mass fractions 
-    REAL(wp) :: r_alphag(n_add_gas)  !< real-value add.gas volume fractions
-    REAL(wp) :: r_xg(n_add_gas)      !< real-value add.gas mass fractions 
-    REAL(wp) :: r_alphal     !< real-value liquid volume fraction      
-    REAL(wp) :: r_xl         !< real-value liquid mass fraction
-    REAL(wp) :: r_alphac     !< real-value carrier phase volume fraction
-    REAL(wp) :: r_xc         !< real-values carrier phase mass fraction
-    
-    REAL(wp) :: alphas_tot   !< total volume fraction of solid
-    REAL(wp) :: sum_sl       !< sum of liquid and solid volume fractions
+
     REAL(wp) :: r_sp_heat_mix !< real_value mixture specific heat
     REAL(wp) :: r_sp_heat_c
     
@@ -1881,6 +1866,8 @@ CONTAINS
 
     COMPLEX(wp) :: temp_term
 
+    COMPLEX(wp) :: c_tau
+
     IF ( present(c_qj) .AND. present(c_nh_term_impl) ) THEN
 
        qj = c_qj
@@ -2064,12 +2051,12 @@ CONTAINS
 
        ELSEIF ( rheology_model .EQ. 5 ) THEN
 
-          tau = 1.0E-3_wp / ( 1.0_wp + 10.0_wp * h ) * mod_vel
+          c_tau = 1.0E-3_wp / ( 1.0_wp + 10.0_wp * h ) * mod_vel
 
           IF ( REAL(mod_vel) .NE. 0.0_wp ) THEN
 
-             source_term(2) = source_term(2) - rho_m * tau * ( u / mod_vel )
-             source_term(3) = source_term(3) - rho_m * tau * ( v / mod_vel )
+             source_term(2) = source_term(2) - rho_m * c_tau * ( u / mod_vel )
+             source_term(3) = source_term(3) - rho_m * c_tau * ( v / mod_vel )
 
           END IF
 
@@ -2214,8 +2201,8 @@ CONTAINS
 
        r_T = qpj(4)
 
-       CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav,sp_heat_flag,r_sp_heat_c,   &
-            r_sp_heat_mix)
+       CALL mixt_var(qpj, r_Ri, r_rho_m, r_rho_c, r_red_grav, sp_heat_flag,     &
+            r_sp_heat_c, r_sp_heat_mix)
        
        ! Voellmy Salm rheology
        IF ( rheology_model .EQ. 1 ) THEN
@@ -2378,7 +2365,6 @@ CONTAINS
     
     REAL(wp) :: alpha1       !< viscosity of continuous phase [kg m-1 s-1]
     REAL(wp) :: fluid_visc   
-    REAL(wp) :: kin_visc
     REAL(wp) :: inv_kin_visc
     REAL(wp) :: rhoc
     REAL(wp) :: expA , expB
@@ -2766,7 +2752,6 @@ CONTAINS
     
     REAL(wp) :: alpha1       !< viscosity of continuous phase [kg m-1 s-1]
     REAL(wp) :: fluid_visc   
-    REAL(wp) :: kin_visc
     REAL(wp) :: inv_kin_visc
     REAL(wp) :: rhoc
     REAL(wp) :: expA , expB
@@ -3231,7 +3216,7 @@ CONTAINS
     REAL(wp) :: inv_sqrt_C_D_old  !< previous iteration sqrt of drag coefficient
     REAL(wp) :: set_vel_old   !< previous iteration settling velocity
 
-    INTEGER :: dig          !< order of magnitude of settling velocity
+    ! INTEGER :: dig          !< order of magnitude of settling velocity
 
     inv_sqrt_C_D = 1.0_wp
 

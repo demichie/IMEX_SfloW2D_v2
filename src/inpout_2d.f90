@@ -4651,7 +4651,7 @@ CONTAINS
   !
   !******************************************************************************
 
-  CHARACTER*4 FUNCTION lettera(k)
+  CHARACTER(LEN=4) FUNCTION lettera(k)
     IMPLICIT NONE
     CHARACTER ones,tens,hund,thou
     !
@@ -4752,7 +4752,7 @@ CONTAINS
 
     USE geometry_2d, ONLY : x_comp , y_comp , B_cent , dx , dy
     USE parameters_2d, ONLY : t_runout 
-    USE solver_2d, ONLY : qp , q , dt , hpos , hpos_old
+    USE solver_2d, ONLY : qp , q , hpos , hpos_old
 
 
     IMPLICIT NONE

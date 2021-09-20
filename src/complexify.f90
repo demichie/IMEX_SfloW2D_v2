@@ -244,7 +244,7 @@ contains
   complex(wp) function abs_c(val)
     complex(wp), intent(in) :: val
     abs_c = val
-    if (real(val) < 0) abs_c = cmplx(-real(val),-aimag(val))
+    if (real(val) < 0) abs_c = cmplx(-real(val),-aimag(val),wp)
     return
   end function abs_c
 
@@ -265,7 +265,7 @@ contains
     complex(wp), intent(in) :: z
 !   acos_c = - cmplx(0., 1.)*log(z+sqrt(z**2-1.))
 !   not general complex valued formula:
-    acos_c = cmplx(acos(real(z)),-aimag(z)/sqrt(1.-real(z)**2))
+    acos_c = cmplx(acos(real(z)),-aimag(z)/sqrt(1.-real(z)**2),wp)
     return
   end function acos_c
 
@@ -274,7 +274,7 @@ contains
     complex(wp), intent(in) :: z
 !   asin_c = - cmplx(0., 1.)*log(cmplx(0.,1.)*z+sqrt(1.-z**2))
 !   not general complex valued formula:
-    asin_c = cmplx(asin(real(z)),aimag(z)/sqrt(1.-real(z)**2))
+    asin_c = cmplx(asin(real(z)),aimag(z)/sqrt(1.-real(z)**2),wp)
     return
   end function asin_c
 
@@ -292,7 +292,7 @@ contains
 !   yans   = 0.25*log((r2+2.0*y+1.0)/(r2-2.0*y+1.0))
 !   atan_c = cmplx (xans, yans)
 !   not general complex valued formula:
-    atan_c = cmplx(atan(real(z)),aimag(z)/(1.+real(z)**2))
+    atan_c = cmplx(atan(real(z)),aimag(z)/(1.+real(z)**2),wp)
     return
   end function atan_c
   
@@ -318,7 +318,7 @@ contains
     b=aimag(csn)
     c=real(ccs)
     d=aimag(ccs)
-    atan2_cc=cmplx(atan2(a,c),(c*b-a*d)/(a**2+c**2))
+    atan2_cc=cmplx(atan2(a,c),(c*b-a*d)/(a**2+c**2),wp)
     return
   end function atan2_cc
 
@@ -330,7 +330,7 @@ contains
 !   eminus = exp(z)
 !   cosh_c = (eplus + eminus)/2.
 !   not general complex valued formula:
-    cosh_c=cmplx(cosh(real(z)),aimag(z)*sinh(real(z)))
+    cosh_c=cmplx(cosh(real(z)),aimag(z)*sinh(real(z)),wp)
     return
   end function cosh_c
 
@@ -342,7 +342,7 @@ contains
 !   eminus = exp(z)
 !   sinh_c = (eplus - eminus)/2.
 !   not general complex valued formula:
-    sinh_c=cmplx(sinh(real(z)),aimag(z)*cosh(real(z)))
+    sinh_c=cmplx(sinh(real(z)),aimag(z)*cosh(real(z)),wp)
     return
   end function sinh_c
 
@@ -354,7 +354,7 @@ contains
 !   eiminus = exp(-cmplx(0.,1.)*z)
 !   tan_c = cmplx(0.,1.)*(eiminus - eiplus)/(eiplus + eiminus)
 !   not general complex valued formula:
-    tan_c=cmplx(tan(real(z)),aimag(z)/cos(real(z))**2)
+    tan_c=cmplx(tan(real(z)),aimag(z)/cos(real(z))**2,wp)
     return
   end function tan_c
   
@@ -370,7 +370,7 @@ contains
 !     tanh_c = (eplus - eminus)/(eplus + eminus)
 !   end if
 !   not general complex valued formula:
-    tanh_c=cmplx(tanh(real(a)),aimag(a)/cosh(real(a))**2)
+    tanh_c=cmplx(tanh(real(a)),aimag(a)/cosh(real(a))**2,wp)
     return
   end function tanh_c
 
@@ -390,7 +390,7 @@ contains
     if (real(val1) > val2) then
       max_cr = val1
     else
-      max_cr = cmplx(val2, 0.)
+      max_cr = cmplx(val2, 0.0_wp,wp)
     endif
     return
   end function max_cr
@@ -398,7 +398,7 @@ contains
     real(wp), intent(in) :: val1
     complex(wp), intent(in) :: val2
     if (val1 > real(val2)) then
-      max_rc = cmplx(val1, 0.)
+      max_rc = cmplx(val1, 0.0_wp,wp)
     else
       max_rc = val2
     endif
@@ -452,7 +452,7 @@ contains
     if (real(val1) < val2) then
       min_cr = val1
     else
-      min_cr = cmplx(val2, 0.)
+      min_cr = cmplx(val2, 0.0_wp,wp)
     endif
     return
   end function min_cr
@@ -460,7 +460,7 @@ contains
     real(wp), intent(in) :: val1
     complex(wp), intent(in) :: val2
     if (val1 < real(val2)) then
-      min_rc = cmplx(val1, 0.)
+      min_rc = cmplx(val1, 0.0_wp,wp)
     else
       min_rc = val2
     endif
@@ -504,7 +504,7 @@ contains
   complex(wp) function sign_cc(val1, val2)
     complex(wp), intent(in) :: val1, val2
     real(wp)  sign
-    if (real(val2) < 0.) then
+    if (real(val2) < 0.0_wp) then
       sign = -1.
     else
       sign = 1.
@@ -516,7 +516,7 @@ contains
     complex(wp), intent(in) :: val1
     real(wp), intent(in) :: val2
     real(wp) sign
-    if (real(val2) < 0.) then
+    if (real(val2) < 0.0_wp) then
       sign = -1.
     else
       sign = 1.
@@ -528,7 +528,7 @@ contains
     real(wp), intent(in) :: val1
     complex(wp), intent(in) :: val2
     real(wp) sign
-    if (real(val2) < 0.) then
+    if (real(val2) < 0.0_wp) then
       sign = -1.
     else
       sign = 1.
@@ -543,7 +543,7 @@ contains
     if (val1 > val2) then
       dim_cc = val1 - val2
     else
-      dim_cc = cmplx(0., 0.)
+      dim_cc = cmplx(0.0_wp, 0.0_wp,wp)
     endif
     return
   end function dim_cc
@@ -551,9 +551,9 @@ contains
     complex(wp), intent(in) :: val1
     real(wp), intent(in) :: val2
     if (val1 > val2) then
-      dim_cr = val1 - cmplx(val2, 0.)
+      dim_cr = val1 - cmplx(val2, 0.0_wp,wp)
     else
-      dim_cr = cmplx(0., 0.)
+      dim_cr = cmplx(0.0_wp, 0.0_wp,wp)
     endif
     return
   end function dim_cr
@@ -561,9 +561,9 @@ contains
     real(wp), intent(in) :: val1
     complex(wp), intent(in) :: val2
     if (val1 > val2) then
-      dim_rc = cmplx(val1, 0.) - val2
+      dim_rc = cmplx(val1, 0.0_wp,wp) - val2
     else
-      dim_rc = cmplx(0., 0.)
+      dim_rc = cmplx(0.0_wp, 0.0_wp,wp)
     endif
     return
   end function dim_rc

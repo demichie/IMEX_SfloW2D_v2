@@ -2176,7 +2176,7 @@ CONTAINS
 
   SUBROUTINE update_erosion_deposition_cell(dt)
 
-    USE constitutive_2d, ONLY : erosion_coeff , settling_flag , rho_s
+    USE constitutive_2d, ONLY : erosion_coeff , settling_flag
 
     USE geometry_2d, ONLY : deposit , erosion , erodible
     USE geometry_2d, ONLY : B_zone
@@ -2426,7 +2426,6 @@ CONTAINS
   SUBROUTINE eval_hyperbolic_terms( q_expl , qp_expl , divFlux_iRK )
 
     ! External variables
-    USE geometry_2d, ONLY : dx,dy
     USE parameters_2d, ONLY : solver_scheme
 
     IMPLICIT NONE
@@ -2892,8 +2891,7 @@ CONTAINS
     USE parameters_2d, ONLY : limiter
 
     ! External variables
-    USE geometry_2d, ONLY : x_comp , x_stag , y_comp , y_stag , dx , dx2 , dy , &
-         dy2
+    USE geometry_2d, ONLY : x_comp , x_stag , y_comp , y_stag , dx2 , dy2
 
     USE geometry_2d, ONLY : sourceW , sourceE , sourceN , sourceS
     USE geometry_2d, ONLY : sourceW_vect_x , sourceW_vect_y
