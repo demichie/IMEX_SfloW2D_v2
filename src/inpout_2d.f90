@@ -1122,7 +1122,7 @@ CONTAINS
              erodible_porosity = 0.0_wp
              erodible_fract(1:n_solid) = 1.0_wp / n_solid
              T_erodible = 300.0_wp
-             subtract_init_flag = .FALSE.
+             !subtract_init_flag = .FALSE.
 
           ELSE
 
@@ -3578,43 +3578,52 @@ CONTAINS
                   yr , thickness_init(j,k) )
 
           END DO
-
+          
        END DO
 
        IF ( subtract_init_flag ) THEN
-          
-          IF ( MAXVAL(erodible_init(:,:)) .GT. 0.0_wp ) THEN
 
-             WRITE(*,*)
-             WRITE(*,*) 'Subtracting initial thickness from erodible thickness'
-             erodible_init(:,:) = erodible_init(:,:) - thickness_init(:,:) *    &
-                  ( SUM(alphas_init(1:n_solid))  /                              &
-                  ( 1.0_wp - erodible_porosity ) )
-             
-             IF ( MINVAL(erodible_init(:,:)) .LT. 0.0_wp ) THEN
-                
-                WRITE(*,*) 'WARNING: MINVAL(erodible_init) = ',                 &
-                     MINVAL(erodible_init(:,:)) 
-                WRITE(*,*) 'Initial erodible thick. negative values changed to 0'
-                
-                erodible_init = MAX( 0.0_wp , erodible_init )
-                
+          IF ( erosion_coeff .GT. 0.0_wp ) THEN
+
+             IF ( MAXVAL(erodible_init(:,:)) .GT. 0.0_wp ) THEN
+
+                WRITE(*,*)
+                WRITE(*,*) 'Subtracting initial thickness from erodible thickness'
+                erodible_init(:,:) = erodible_init(:,:) - thickness_init(:,:) *    &
+                     ( SUM(alphas_init(1:n_solid))  /                              &
+                     ( 1.0_wp - erodible_porosity ) )
+
+                IF ( MINVAL(erodible_init(:,:)) .LT. 0.0_wp ) THEN
+
+                   WRITE(*,*) 'WARNING: MINVAL(erodible_init) = ',                 &
+                        MINVAL(erodible_init(:,:)) 
+                   WRITE(*,*) 'Initial erodible thick. negative values changed to 0'
+
+                   erodible_init = MAX( 0.0_wp , erodible_init )
+
+                END IF
+
+                WRITE(*,*) 'Absolute fractions of solide phases in deposit:'
+
+                DO i_solid=1,n_solid
+
+                   WRITE(*,*) erodible_fract(i_solid) * ( 1.0_wp-erodible_porosity )
+                   erodible(:,:,i_solid) = erodible_fract(i_solid) *               &
+                        ( 1.0_wp - erodible_porosity ) * erodible_init(:,:)
+
+                END DO
+
+                WRITE(*,*)
+
              END IF
 
-             WRITE(*,*) 'Absolute fractions of solide phases in deposit:'
-             
-             DO i_solid=1,n_solid
+          ELSE
 
-                WRITE(*,*) erodible_fract(i_solid) * ( 1.0_wp-erodible_porosity )
-                erodible(:,:,i_solid) = erodible_fract(i_solid) *               &
-                     ( 1.0_wp - erodible_porosity ) * erodible_init(:,:)
-                
-             END DO
-
-             WRITE(*,*)
+             WRITE(*,*) 'Subtricting initial thickness from DEM'
+             B_cent(:,:) = B_cent(:,:) - thickness_init(:,:)
              
           END IF
-          
+
        END IF
        
        
