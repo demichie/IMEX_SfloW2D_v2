@@ -24,8 +24,8 @@ elif len(sys.argv)==3:
 
     output_indexes = sys.argv[2]
     output_indexes = output_indexes.split('-')
-    output_first = np.int(output_indexes[0])
-    output_last = np.int(output_indexes[-1])+1
+    output_first = int(output_indexes[0])
+    output_last = int(output_indexes[-1])+1
 
 else:
 
