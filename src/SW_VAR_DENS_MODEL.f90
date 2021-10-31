@@ -295,6 +295,10 @@ PROGRAM SW_VAR_DENS_MODEL
      END IF
 
      CALL timestep
+
+     IF ( t_end - t_output < 1.0E-7_WP ) t_output = t_end
+     IF ( t_end - t_runout < 1.0E-7_WP ) t_runout = t_end
+     IF ( t_end - t_probes < 1.0E-7_WP ) t_probes = t_end
      
      IF ( t+dt .GT. t_end ) dt = t_end - t
      IF ( t+dt .GT. t_output ) dt = t_output - t
