@@ -1455,12 +1455,14 @@ CONTAINS
   !
   !******************************************************************************
 
-  SUBROUTINE eval_fluxes(qcj,qpj,grav_coeff,dir,flux)
+  SUBROUTINE eval_fluxes(qcj,qpj,B_prime_x,B_prime_y,grav_coeff,dir,flux)
 
     IMPLICIT none
 
     REAL(wp), INTENT(IN) :: qcj(n_vars)
     REAL(wp), INTENT(IN) :: qpj(n_vars+2)
+    REAL(wp), INTENT(IN) :: B_prime_x
+    REAL(wp), INTENT(IN) :: B_prime_y
     REAL(wp), INTENT(IN) :: grav_coeff
     INTEGER, INTENT(IN) :: dir
 
@@ -1477,6 +1479,20 @@ CONTAINS
     REAL(wp) :: r_sp_heat_c
     REAL(wp) :: r_sp_heat_mix
 
+    REAL(wp) :: r_w
+    REAL(wp) :: mod_vel2 , mod_vel
+    
+    REAL(wp), PARAMETER :: vonK = 0.4
+    REAL(wp) :: shear_stress
+    REAL(wp) :: shear_vel    !< shear velocity
+
+    REAL(wp) :: inv_kin_visc
+    REAL(wp) :: settling_vel
+
+    REAL(wp) :: Rouse_no(n_solid)
+
+    INTEGER :: i_solid
+    
     sp_heat_flag = .FALSE.
 
     pos_thick:IF ( qpj(1) .GT. EPSILON(1.0_wp) ) THEN
@@ -1488,6 +1504,55 @@ CONTAINS
        CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav,sp_heat_flag,          &
             r_sp_heat_c,r_sp_heat_mix)
 
+       
+       IF ( slope_correction_flag ) THEN
+          
+          r_w = r_u * B_prime_x + r_v * B_prime_y
+          
+       ELSE
+          
+          r_w = CMPLX( 0.0_wp , 0.0_wp , wp )
+          
+       END IF
+
+       r_w = 0.0_wp
+       
+       mod_vel2 = r_u**2 + r_v**2 + r_w**2
+       mod_vel = SQRT( mod_vel2 )
+       
+       IF ( rheology_model .EQ. 6 ) THEN
+          
+          shear_stress = r_rho_m * friction_factor * mod_vel2
+          
+          shear_vel = SQRT( shear_stress / r_rho_m ) 
+          
+          ! Viscosity read from input file [m2 s-1]
+          inv_kin_visc = 1.0_wp / kin_visc_c
+          
+          DO i_solid=1,n_solid
+             
+             settling_vel = settling_velocity( diam_s(i_solid) ,          &
+                  rho_s(i_solid) , r_rho_c , inv_kin_visc )
+             
+             IF ( shear_vel .GT. 0.0_wp ) THEN
+                
+                Rouse_no(i_solid) = settling_vel / ( vonK * shear_vel )
+                
+             ELSE
+                
+                Rouse_no(i_solid) = 0.0_wp
+                
+             END IF
+             
+          END DO
+          
+       ELSE
+          
+          Rouse_no(i_solid) = 0.0_wp
+          
+       END IF
+       
+             
        IF ( dir .EQ. 1 ) THEN
 
           ! Mass flux in x-direction: u * ( rhom * h )

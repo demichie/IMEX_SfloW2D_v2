@@ -4006,10 +4006,14 @@ CONTAINS
   SUBROUTINE output_solution(time)
 
     ! external procedures
-    USE constitutive_2d, ONLY : qc_to_qp, mixt_var
+    USE constitutive_2d, ONLY : qc_to_qp, mixt_var , settling_velocity
+
+    ! external variables
+
+    USE constitutive_2d, ONLY : kin_visc_c
 
     USE geometry_2d, ONLY : comp_cells_x , B_cent , comp_cells_y , x_comp,      &
-         y_comp , deposit , erosion , erodible
+         y_comp , deposit , erosion , erodible , B_prime_x , B_prime_y 
 
     USE parameters_2d, ONLY : n_vars
     USE parameters_2d, ONLY : t_output , dt_output 
@@ -4034,13 +4038,30 @@ CONTAINS
     REAL(wp) :: r_red_grav   !< real-value reduced gravity
     REAL(wp) :: p_dyn
 
+    REAL(wp) :: r_w          !< vertical component of the velocity
+    REAL(wp) :: mod_vel , mod_vel2
+    REAL(wp) :: shear_stress
+    REAL(wp) :: shear_vel    !< shear velocity
+
     INTEGER :: j,k
     INTEGER :: i
     INTEGER :: i_vars
+    INTEGER :: i_solid
 
     LOGICAL :: sp_flag
     REAL(wp) :: r_sp_heat_c
     REAL(wp) :: r_sp_heat_mix
+
+    !> Hindered settling velocity (units: m s-1 )
+    REAL(wp) :: settling_vel
+
+    !> Inverse of kinematic viscosity of continuous phase
+    REAL(wp) :: inv_kin_visc
+
+    REAL(wp) :: Rouse_no(n_solid)
+
+    !> Von Karman constant
+    REAL(wp) :: vonK
 
     sp_flag = .FALSE.
 
@@ -4102,6 +4123,7 @@ CONTAINS
           DO j = 1,comp_cells_x
 
              CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2) , p_dyn )
+
              CALL mixt_var(qp(1:n_vars+2),r_Ri,r_rho_m,r_rho_c,r_red_grav,      &
                   sp_flag,r_sp_heat_c,r_sp_heat_mix)
 
@@ -4109,6 +4131,54 @@ CONTAINS
              r_u = qp(n_vars+1)
              r_v = qp(n_vars+2)
              r_T = qp(4)
+
+             IF ( slope_correction_flag ) THEN
+                
+                r_w = r_u * B_prime_x(j,k) + r_v * B_prime_y(j,k)
+                
+             ELSE
+                
+                r_w = 0.0_wp
+                
+             END IF
+             
+             mod_vel2 = r_u**2 + r_v**2 + r_w**2
+             mod_vel = SQRT( mod_vel2 )
+
+             IF ( rheology_model .EQ. 6 ) THEN
+
+                vonK = 0.4
+
+                shear_stress = r_rho_m * friction_factor * mod_vel2
+
+                shear_vel = SQRT( shear_stress / r_rho_m ) 
+
+                ! Viscosity read from input file [m2 s-1]
+                inv_kin_visc = 1.0_wp / kin_visc_c
+      
+                DO i_solid=1,n_solid
+
+                   settling_vel = settling_velocity( diam_s(i_solid) ,          &
+                        rho_s(i_solid) , r_rho_c , inv_kin_visc )
+ 
+                   IF ( shear_vel .GT. 0.0_wp ) THEN
+                      
+                      Rouse_no(i_solid) = settling_vel / ( vonK * shear_vel )
+                      
+                   ELSE
+                      
+                      Rouse_no(i_solid) = 0.0_wp
+                      
+                   END IF
+                   
+                END DO
+                
+             ELSE
+                
+                Rouse_no(1:n_solid) = 0.0_wp
+                shear_vel = 0.0_wp
+                
+             END IF
 
              IF ( r_h .GT. 0.0_wp ) THEN
 
@@ -4179,7 +4249,7 @@ CONTAINS
                   B_out , r_h + B_out , r_alphas , r_alphag , r_T , r_rho_m ,   &
                   r_red_grav , DEPOSIT(j,k,:) , EROSION(j,k,:) ,                &
                   SUM(ERODIBLE(j,k,1:n_solid)) / ( 1.0_wp - erodible_porosity ),&
-                  r_alphal
+                  r_alphal , shear_vel , Rouse_no(1:n_solid)
 
 
           END DO

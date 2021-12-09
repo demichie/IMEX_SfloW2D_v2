@@ -113,7 +113,6 @@ PROGRAM SW_VAR_DENS_MODEL
 
   !> Dynamic pressure
   REAL(wp) :: p_dyn
-  
 
 
   WRITE(*,*) '---------------------'

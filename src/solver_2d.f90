@@ -2540,12 +2540,12 @@ CONTAINS
           k = k_stag_x(l)
 
           CALL eval_fluxes( q_interfaceL(1:n_vars,j,k) ,                        &
-               qp_interfaceL(1:n_vars+2,j,k) , grav_coeff_stag_x(j,k) , 1 ,     &
-               fluxL)
+               qp_interfaceL(1:n_vars+2,j,k) , B_prime_x(j-1,k) ,               &
+               B_prime_y(j-1,k) , grav_coeff_stag_x(j,k) , 1 , fluxL )
 
           CALL eval_fluxes( q_interfaceR(1:n_vars,j,k) ,                        &
-               qp_interfaceR(1:n_vars+2,j,k) , grav_coeff_stag_x(j,k) , 1 ,     &
-               fluxR)
+               qp_interfaceR(1:n_vars+2,j,k) , B_prime_x(j,k) ,                 &
+               B_prime_y(j,k) , grav_coeff_stag_x(j,k) , 1 , fluxR )
 
           IF ( ( qp_interfaceL(n_vars+1,j,k) .GT. 0.0_wp ) .AND.                &
                ( qp_interfaceR(n_vars+1,j,k) .GE. 0.0_wp ) ) THEN
@@ -2588,12 +2588,12 @@ CONTAINS
           k = k_stag_y(l)
 
           CALL eval_fluxes( q_interfaceB(1:n_vars,j,k) ,                        &
-               qp_interfaceB(1:n_vars+2,j,k) , grav_coeff_stag_y(j,k) , 2 ,     &
-               fluxB)
+               qp_interfaceB(1:n_vars+2,j,k) , B_prime_x(j,k-1) ,               &
+               B_prime_y(j,k-1) , grav_coeff_stag_y(j,k) , 2 , fluxB )
 
           CALL eval_fluxes( q_interfaceT(1:n_vars,j,k) ,                        &
-               qp_interfaceT(1:n_vars+2,j,k) , grav_coeff_stag_y(j,k) ,2 ,      &
-               fluxT)
+               qp_interfaceT(1:n_vars+2,j,k) , B_prime_x(j,k) ,                 &
+               B_prime_y(j,k) , grav_coeff_stag_y(j,k) , 2 , fluxT )
 
           IF ( ( q_interfaceB(3,j,k) .GT. 0.0_wp ) .AND.                        &
                ( q_interfaceT(3,j,k) .GE. 0.0_wp ) ) THEN
@@ -2678,13 +2678,13 @@ CONTAINS
           k = k_stag_x(l)
 
           CALL eval_fluxes( q_interfaceL(1:n_vars,j,k) ,                        &
-               qp_interfaceL(1:n_vars+2,j,k) , grav_coeff_stag_x(j,k) , 1 ,     &
-               fluxL)
-          
-          CALL eval_fluxes( q_interfaceR(1:n_vars,j,k) ,                        &
-               qp_interfaceR(1:n_vars+2,j,k) , grav_coeff_stag_x(j,k) , 1 ,     &
-               fluxR)
+               qp_interfaceL(1:n_vars+2,j,k) , B_prime_x(j-1,k) ,               &
+               B_prime_y(j-1,k) , grav_coeff_stag_x(j,k) , 1 , fluxL )
 
+          CALL eval_fluxes( q_interfaceR(1:n_vars,j,k) ,                        &
+               qp_interfaceR(1:n_vars+2,j,k) , B_prime_x(j,k) ,                 &
+               B_prime_y(j,k) , grav_coeff_stag_x(j,k) , 1 , fluxR )
+          
           CALL average_KT( a_interface_xNeg(:,j,k), a_interface_xPos(:,j,k) ,   &
                fluxL , fluxR , flux_avg_x )
 
@@ -2743,13 +2743,13 @@ CONTAINS
           k = k_stag_y(l)
 
           CALL eval_fluxes( q_interfaceB(1:n_vars,j,k) ,                        &
-               qp_interfaceB(1:n_vars+2,j,k) , grav_coeff_stag_y(j,k) , 2 ,     &
-               fluxB)    
+               qp_interfaceB(1:n_vars+2,j,k) , B_prime_x(j,k-1) ,               &
+               B_prime_y(j,k-1) , grav_coeff_stag_y(j,k) , 2 , fluxB )
 
           CALL eval_fluxes( q_interfaceT(1:n_vars,j,k) ,                        &
-               qp_interfaceT(1:n_vars+2,j,k) , grav_coeff_stag_y(j,k) , 2 ,     &
-               fluxT)
-
+               qp_interfaceT(1:n_vars+2,j,k) , B_prime_x(j,k) ,                 &
+               B_prime_y(j,k) , grav_coeff_stag_y(j,k) , 2 , fluxT )
+          
           CALL average_KT( a_interface_yNeg(:,j,k) ,                            &
                a_interface_yPos(:,j,k) , fluxB , fluxT , flux_avg_y )
 

@@ -200,6 +200,10 @@ W = ncfile.createVariable('W',np.float64,('time','y','x'),zlib=True)
 W.standard_name = 'free surface' # 
 W.units = 'meters' # 
 
+shear_vel = ncfile.createVariable('shear_vel',np.float64,('time','y','x'),zlib=True) 
+shear_vel.standard_name = 'shear velocity' # 
+shear_vel.units = 'meters/second' # 
+
 for i in range(nsolid):
     globals()['dep'+'_{0:04}'.format(i)] = ncfile.createVariable('dep'+'_{0:04}'.format(i),np.float64,('time','y','x'),zlib=True) 
     globals()['dep'+'_{0:04}'.format(i)].standard_name = 'deposit' # 
@@ -212,6 +216,11 @@ for i in range(nsolid):
     globals()['alphas'+'_{0:04}'.format(i)] = ncfile.createVariable('alphas'+'_{0:04}'.format(i),np.float64,('time','y','x'),zlib=True) 
     globals()['alphas'+'_{0:04}'.format(i)].standard_name = 'solid volume fraction' # 
     globals()['alphas'+'_{0:04}'.format(i)].units = '' # 
+
+    globals()['Rouse_no'+'_{0:04}'.format(i)] = ncfile.createVariable('Rouse_no'+'_{0:04}'.format(i),np.float64,('time','y','x'),zlib=True) 
+    globals()['Rouse_no'+'_{0:04}'.format(i)].standard_name = 'Rouse number' # 
+    globals()['Rouse_no'+'_{0:04}'.format(i)].units = '' # 
+
 
 if (nsolid > 0):
     erodible = ncfile.createVariable('erodible',np.float64,('time','y','x'),zlib=True) 
@@ -301,6 +310,13 @@ for i_output in range(output_first,output_last):
                 if ( liqflag and gasflag ):
                     alphal[nc_output,:,:] = np.tile(data[:,10+naddgas],2).reshape((ny2,nx2))
 
+            shear_vel[nc_output,:,:] = np.tile(data[:,12+3*nsolid+naddgas],2).reshape((ny2,nx2))
+
+            for i in range(nsolid):
+            
+                globals()['Rouse_no'+'_{0:04}'.format(i)][nc_output,:,:] = np.tile(data[:,13+3*nsolid+naddgas+i],2).reshape((ny2,nx2))
+                
+
         else:
         
             h[nc_output,:,:] = data[:,2].reshape((ny,nx))
@@ -336,6 +352,13 @@ for i_output in range(output_first,output_last):
 
                 if ( liqflag and gasflag ):
                     alphal[nc_output,:,:] = data[:,10+naddgas].reshape((ny,nx))
+
+            shear_vel[nc_output,:,:] = data[:,12+3*nsolid+naddgas].reshape((ny,nx))
+            
+            for i in range(nsolid):
+            
+                globals()['Rouse_no'+'_{0:04}'.format(i)][nc_output,:,:] = data[:,13+3*nsolid+naddgas+i].reshape((ny,nx))
+
 
         nc_output +=1
 
