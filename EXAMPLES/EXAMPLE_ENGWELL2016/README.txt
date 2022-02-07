@@ -30,13 +30,9 @@ Usage example of the script:
 
 >> python create_example.py 200 2000 2000 900 0.9 0.8
 
-Once the input file (SW_VAR_DENS_MODEL.inp) is created, create a simbolic link of the executable in this folder:
+Once the input file (SW_VAR_DENS_MODEL.inp) is created, launch the solver:
 
->> ln -s ../../bin/SW_VAR_DENS_MODEL .
-
-Finally, launch the solver:
-
->> ./SW_VAR_DENS_MODEL
+>> ../../bin/SW_VAR_DENS_MODEL
 
 A script to convert the output of the model in NetCDF4 format is provided in the UTILS folder.
 First create a simbolic link of the script in this folder:
@@ -45,7 +41,7 @@ First create a simbolic link of the script in this folder:
 
 Then, execute the python script
 
->> python p2d_to_netCDF4.py exampleRS.bak
+>> python p2d_to_netCDF4.py example_SE2016.bak
 
 The new file can be plotted with Paraview.
 

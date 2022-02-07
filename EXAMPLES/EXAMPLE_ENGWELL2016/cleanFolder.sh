@@ -2,7 +2,7 @@
 clear
 echo "Cleaning folder form output of previous runs of SW_VAR_DENS_MODEL"
 
-file="exampleRS*"
+file="example_SE*"
 
 rm -f $file
 

@@ -28,13 +28,9 @@ Usage example of the script:
 
 >> python create_example.py 150 20 0.08 300 2.5 0.99
 
-Once the input file (SW_VAR_DENS_MODEL.inp) is created create a simbolic link of the executable in this folder:
+Once the input file (SW_VAR_DENS_MODEL.inp) is created, run the solver (this assumes that the example is in the original folder):
 
->> ln -s ../../bin/SW_VAR_DENS_MODEL .
-
-Finally, launch the solver:
-
->> ./SW_VAR_DENS_MODEL
+>> ../../bin/SW_VAR_DENS_MODEL
 
 Two Python scripts to plot the results are provided. The first one works better with small simulations.
 Usage example:
@@ -46,6 +42,18 @@ The second script allows to plot the topography, the flow thickness and the valu
 Usage example:
 
 >> ./plot_large.py exampleRS_0050.p_2d u
+
+In addition, a script to convert the output of the model in NetCDF4 format is provided in the UTILS folder.
+First create a simbolic link of the script in this folder:
+
+>> ln -s ../../UTILS/p2d_to_netCDF4.py .
+
+Then, execute the python script
+
+>> python p2d_to_netCDF4.py exampleRS.bak
+
+The new file can be plotted with Paraview.
+
 
 REFERENCES
 

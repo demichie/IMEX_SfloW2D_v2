@@ -57,13 +57,9 @@ The last four parameters define the temporal changes in the inflow:
 4) the point within a cycle corresponding to the beginning of the simulation. In this case we start at 50s of a cycle, i.e. at the time corresponding to the peak. With these four values of the parameters, the source starts from the peak, decreases linearly for 50s, and then remains null for the remaining of the simulation.
 
 
-Once the input file (SW_VAR_DENS_MODEL.inp) is created create a simbolic link of the executable in this folder:
-
->> ln -s ../../bin/SW_VAR_DENS_MODEL .
-
 Finally, launch the solver:
 
->> ./SW_VAR_DENS_MODEL
+>> ../../bin/SW_VAR_DENS_MODEL
 
 A script to convert the output of the model in NetCDF4 format is provided in the UTILS folder.
 First create a simbolic link of the script in this folder:
