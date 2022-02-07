@@ -113,6 +113,13 @@ MODULE parameters_2d
   !> .  
   LOGICAL :: liquid_vaporization_flag
 
+  !> Flag for vertical velocity/concentration profiles
+  !> - T      => we use vertical profiles
+  !> - F      => constant vertical profiles
+  !> .  
+  LOGICAL :: vertical_profiles_flag
+
+  
   !> Elevation of the water level in the DEM file
   REAL(wp) :: water_level
   

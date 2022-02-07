@@ -205,6 +205,14 @@ MODULE constitutive_2d
   !> Fraction of heat lost by particles producing steam
   REAL(wp) :: gamma_steam
 
+  !> Von Karman constant
+  REAL(wp) :: vonK
+
+  !> Substrate Roughness (units: m) 
+  REAL(wp) :: k_s
+
+  !> Schmidt number: ratio of momentum and mass diffusivity
+  REAL(wp) :: Sc
   
 CONTAINS
 
@@ -285,7 +293,9 @@ CONTAINS
   SUBROUTINE r_phys_var(r_qj , r_h , r_u , r_v , r_alphas , r_rho_m , r_T ,     &
        r_alphal , r_alphag , r_red_grav )
 
-    USE parameters_2d, ONLY : eps_sing , eps_sing4
+    USE geometry_2d, ONLY : lambertw
+    
+    USE parameters_2d, ONLY : eps_sing , eps_sing4 , vertical_profiles_flag
     IMPLICIT none
 
     REAL(wp), INTENT(IN) :: r_qj(n_vars)       !< real-value conservative var
@@ -316,7 +326,31 @@ CONTAINS
     REAL(wp) :: r_inv_rho_g(n_add_gas)    !< add. gas density reciprocal
 
     REAL(wp) :: inv_qj1
- 
+
+    REAL(wp) :: rhos_alfas(n_solid)
+    
+    REAL(wp) :: rhos_alfas_tot_u 
+    REAL(wp) :: rhos_alfas_tot_v
+    REAL(wp) :: rhos_alfas_tot_mod_vel
+
+    REAL(wp) :: settling_vel(n_solid)
+
+    REAL(wp) :: inv_kin_visc
+
+    REAL(wp) :: a_crit_rel
+    REAL(wp) :: H_crit_rel
+    REAL(wp) :: h_rel
+
+    REAL(wp) :: a,b,c,d
+
+    REAL(wp) :: h0_rel
+    REAL(wp) :: u_coeff
+
+    REAL(wp) :: h0
+    REAL(wp) :: u_rel0
+    
+    INTEGER :: i_solid
+    
     ! compute solid mass fractions
     IF ( r_qj(1) .GT. EPSILON(1.0_wp) ) THEN
 
@@ -464,19 +498,85 @@ CONTAINS
     ! reduced gravity
     r_red_grav = ( r_rho_m - rho_a_amb ) * r_inv_rhom * grav
 
-    ! velocity components
-    IF ( r_qj(1) .GT. eps_sing ) THEN
+    IF ( vertical_profiles_flag ) THEN
 
-       r_u = r_qj(2) * inv_qj1
-       r_v = r_qj(3) * inv_qj1
+       rhos_alfas_tot_u = r_xs_tot * r_qj(2) / r_h  
+       rhos_alfas_tot_v = r_xs_tot * r_qj(3) / r_h  
+      
+       rhos_alfas_tot_mod_vel = SQRT(  rhos_alfas_tot_u**2 +  rhos_alfas_tot_v**2 )
 
+       rhos_alfas(1:n_solid) = r_alphas(1:n_solid) * rho_s(1:n_solid)
+
+       ! Viscosity read from input file [m2 s-1]
+       inv_kin_visc = 1.0_wp / kin_visc_c
+       
+       DO i_solid=1,n_solid
+          
+          settling_vel(i_solid) = settling_velocity( diam_s(i_solid) ,          &
+               rho_s(i_solid) , r_rho_c , inv_kin_visc )
+
+       END DO
+
+       a_crit_rel = vonK / SQRT( friction_factor) + 1.0_wp
+       H_crit_rel = 1.0_wp / 30.0_wp * ( -a_crit_rel / lambertw(-a_crit_rel *   &
+            EXP(-a_crit_rel)) - 1.0_wp)
+
+       ! The profile parameters depend on h/k_s, not on the absolute value of h.
+       h_rel = r_h / k_s
+
+       IF ( h_rel .GT. H_crit_rel ) THEN
+
+          ! we search for h0_rel such that the average integral between 0 and
+          ! h_rel is equal to 1
+          ! For h_rel > H_crit_rel this integral is the sum of two pieces:
+          ! integral between 0 and h0_rel of the log profile
+          ! integral between h0_rel and h_rel of the costant profile
+
+          a = h_rel * vonK / SQRT(friction_factor)
+          b = 1.0_wp / 30.0_wp + h_rel
+          c = 30.0_wp
+
+          ! solve b*log(c*z+1)-z=a for z
+          d = a/b-1.0_wp/(b*c)
+
+          h0_rel = -b*lambertw( -exp(d)/(b*c) ) - 1.0_wp / c
+          u_coeff = 1.0_wp
+
+       else
+
+          ! when h_rel <= H_crit_rel we have only the log profile and we have to
+          ! rescale it in order to have the integral between o and h_rel equal to
+          ! 1
+          ! The factor used to scale the velocity is u_coeff
+
+          h0_rel = h_rel
+          u_coeff = vonK / SQRT(friction_factor)/( ( 1.0_wp + 1.0_wp/ ( 30.0_wp*h_rel ) ) * log( 30.0_wp*h_rel + 1.0_wp )-1.0_wp)
+
+       end if
+
+       h0 = h0_rel*k_s
+
+       b = 30.0_wp / k_s
+
+       u_rel0 = u_coeff * sqrt(friction_factor) / vonK * log( b*h0 + 1.0_wp )
+      
     ELSE
-
-       r_u = SQRT(2.0_wp) * r_qj(1) * r_qj(2) / SQRT( r_qj(1)**4 + eps_sing4 )
-       r_v = SQRT(2.0_wp) * r_qj(1) * r_qj(3) / SQRT( r_qj(1)**4 + eps_sing4 )
+    
+       ! velocity components
+       IF ( r_qj(1) .GT. eps_sing ) THEN
+          
+          r_u = r_qj(2) * inv_qj1
+          r_v = r_qj(3) * inv_qj1
+          
+       ELSE
+          
+          r_u = SQRT(2.0_wp) * r_qj(1) * r_qj(2) / SQRT( r_qj(1)**4 + eps_sing4 )
+          r_v = SQRT(2.0_wp) * r_qj(1) * r_qj(3) / SQRT( r_qj(1)**4 + eps_sing4 )
+          
+       END IF
 
     END IF
-
+       
     ! Richardson number
     IF ( ( r_u**2 + r_v**2 ) .GT. 0.0_wp ) THEN
 
@@ -491,7 +591,111 @@ CONTAINS
     RETURN
 
   END SUBROUTINE r_phys_var
+  
+  SUBROUTINE avg_profiles_mix( h , settling_vel , rho_alphas_avg,&
+       u_guess , h0 , b , u_coeff , u_rel0 , rho_c , uRho_avg_new )
 
+    USE geometry_2d, ONLY : calcei
+    
+    IMPLICIT NONE
+
+    REAL(wp), INTENT(IN) :: h
+    REAL(wp), INTENT(IN) :: settling_vel(n_solid)
+    REAL(wp), INTENT(IN) :: rho_alphas_avg(n_solid)
+    
+    REAL(wp), INTENT(IN) :: u_guess
+    REAL(wp), INTENT(IN) :: h0
+    REAL(wp), INTENT(IN) :: b
+    REAL(wp), INTENT(IN) :: u_coeff
+    REAL(wp), INTENT(IN) :: u_rel0
+    REAL(wp), INTENT(IN) :: rho_c
+    REAL(wp), INTENT(OUT) :: uRho_avg_new
+
+    !> Shear velocity computed from u_guess
+    REAL(wp) :: u_star
+
+    !>  Rouse numbers for the particle classes
+    REAL(wp) :: Pn(n_solid)
+
+    !> array for depth-averaged value of rho*u(z)*C(z)
+    REAL(wp) :: rho_u_alphas(n_solid)
+
+    REAL(wp) :: rho_alphas_int(n_solid)
+
+    INTEGER :: i_solid
+
+    REAL(wp) :: a
+    REAL(wp) :: int
+    REAL(wp) :: alphas_rel_max
+    REAL(wp) :: alphas_rel0
+    REAL(wp) :: y
+    REAL(wp) :: int_h0 , int_0 , int_def
+
+    INTEGER ( kind = 4 ) :: i
+    REAL(wp) :: x,ei
+    
+    
+    ! The input here are the depth-averaged velocity and the depth-averaged
+    ! values of rho*C(z). We compute the vertical profiles and the integral of 
+    ! u(z)*rho*C(z), and we compare this value with the desired one to update
+    ! the average velocity.
+
+    ! Shear velocity computed from u_guess
+    u_star = u_guess * SQRT(friction_factor)
+
+    ! Rouse numbers for the particle classes
+    Pn(1:n_solid) = settling_vel(1:n_solid) / ( vonK * u_star )
+
+    DO i_solid=1,n_solid
+
+       a = -( 6.0_wp * Pn(i_solid) * Sc ) / h
+
+       int = ( ( EXP(a*h0) -1.0_wp ) / a + EXP(a*h0)*(h-h0) )/h
+
+       alphas_rel_max = 1.0/int
+
+       ! relative concentration C_rel at depth h0 (from the bottom)
+       ! C_rel is defined as C(z)/C_avg
+       alphas_rel0 = alphas_rel_max * exp(a*h0)
+
+       ! depth-averaged value of rho*C(z)
+       ! this results from the sum of the log region with thickness h0 and the 
+       ! constant region with thickness h-h0
+       rho_alphas_int(i_solid) = rho_alphas_avg(i_solid) * ( alphas_rel_max * ( exp(a*h0) - 1.0 ) / a + (h-h0)*alphas_rel0 ) / h
+
+       ! we compute the integral in the log region of u_tilde(z)*C_rel(z), where 
+       ! u_tilde is defined as u(z)/(u_guess*u_coeff*sqrt(friction_coeff))
+
+       i = 1
+       x = -a*(h0+1.0_wp/b)
+       call calcei ( x, ei, i )
+       
+       int_h0 = ( exp(a*h0)*log(b*h0+1.0) + exp(-a/b) * ei ) / a
+
+       x = -a*(1.0_wp/b)
+       call calcei ( x, ei, i )
+       int_0 = ( exp(-a/b) * ei ) / a
+
+       ! integral of u_rel(z)*C_rel(z) in the log region (0<=z<=h0)
+       ! here u_rel(z) = u(z)/u_guess 
+       int_def = u_coeff * sqrt(friction_factor) / vonK * alphas_rel_max * (int_h0-int_0)
+
+       ! we add the contribution of the integral of the constant region, we
+       ! average by dividing by h and we multiply by the density of solid and
+       ! average concentration and by u_guess.
+       rho_u_alphas(i_solid) = rho_alphas_avg(i_solid) * u_guess * ( int_def + ( h - h0 ) * alphas_rel0 * u_rel0 ) / h
+
+    END DO
+
+    ! we add the contribution of the gas phase to the mixture depth-averaged 
+    ! momentum
+    uRho_avg_new = ( u_guess*rho_c + sum((rho_s-rho_c) / rho_s * rho_u_alphas) )
+
+  end SUBROUTINE avg_profiles_mix
+
+
+  
+  
   !******************************************************************************
   !> \brief Physical variables
   !
@@ -1482,7 +1686,6 @@ CONTAINS
     REAL(wp) :: r_w
     REAL(wp) :: mod_vel2 , mod_vel
     
-    REAL(wp), PARAMETER :: vonK = 0.4
     REAL(wp) :: shear_stress
     REAL(wp) :: shear_vel    !< shear velocity
 
@@ -1849,6 +2052,67 @@ CONTAINS
     RETURN
 
   END SUBROUTINE eval_expl_terms
+
+  
+  !******************************************************************************
+  !> \brief Analytic integration of friction terms
+  !
+  !> This subroutine integrate analytically the friction term for turbulent
+  !> friction only.
+  !> \date 2021/12/10
+  !> \param[inout]     r_qj            real conservative variables 
+  !> \param[in]        dt              time step 
+  !
+  !> @author 
+  !> Mattia de' Michieli Vitturi
+  !
+  !******************************************************************************
+
+  SUBROUTINE integrate_friction_term( r_qj , dt )
+
+    IMPLICIT NONE
+
+    REAL(wp), INTENT(INOUT) :: r_qj(n_vars)
+    REAL(wp), INTENT(IN) :: dt 
+    
+
+    REAL(wp) :: r_qp(n_vars)
+    REAL(wp) :: p_dyn
+    REAL(wp) :: r_h
+    REAL(wp) :: r_u
+    REAL(wp) :: r_v
+    
+    REAL(wp) :: mod_vel0
+    REAL(wp) :: mod_vel
+
+    IF ( r_qj(1) .EQ. 0.0_wp ) RETURN
+    
+    CALL qc_to_qp(r_qj , r_qp , p_dyn )
+
+    r_h = r_qp(1)
+    
+    r_u = r_qp(n_vars+1)
+    r_v = r_qp(n_vars+2)
+    
+    mod_vel0 = SQRT( r_u**2 + r_v**2 )
+
+    mod_vel = 1.0_wp / ( 1.0_wp  / mod_vel0 + friction_factor / r_h * dt )
+
+    r_u = r_u * ( mod_vel / mod_vel0 )
+    r_v = r_v * ( mod_vel / mod_vel0 )
+
+    r_qp(2) = r_h*r_u
+    r_qp(3) = r_h*r_v
+    
+    r_qp(n_vars+1) = r_u
+    r_qp(n_vars+2) = r_v
+
+    CALL qp_to_qc(r_qp,r_qj)
+
+    RETURN
+        
+  END SUBROUTINE integrate_friction_term
+
   
   !******************************************************************************
   !> \brief Implicit source terms
@@ -2771,7 +3035,6 @@ CONTAINS
 
   END SUBROUTINE eval_bulk_debulk_term
 
-
   SUBROUTINE eval_mass_exchange_terms( qpj , B_zone , erodible , dt ,           &
        erosion_term , deposition_term , continuous_phase_erosion_term ,         &
        continuous_phase_loss_term , eqns_term , topo_term  )
@@ -2861,7 +3124,6 @@ CONTAINS
     ! parameters for Michaels and Bolger (1962) sedimentation correction
     alpha_max = 0.6_wp
     hind_exp = 4.65_wp
-
 
     IF ( qpj(1) .LE. EPSILON(1.0_wp) ) RETURN
     

@@ -26,7 +26,8 @@ MODULE inpout_2d
   USE parameters_2d, ONLY : n_solid , n_add_gas
   USE parameters_2d, ONLY : rheology_flag , energy_flag , alpha_flag ,          &
        topo_change_flag , radial_source_flag , collapsing_volume_flag ,         &
-       liquid_flag , gas_flag , subtract_init_flag , bottom_radial_source_flag
+       liquid_flag , gas_flag , subtract_init_flag , bottom_radial_source_flag ,&
+       vertical_profiles_flag
 
   USE parameters_2d, ONLY : slope_correction_flag , curvature_term_flag 
 
@@ -85,7 +86,9 @@ MODULE inpout_2d
   ! --- Variables for the namelist VULNERABILITY_TABLE_PARAMETERS
   USE parameters_2d, ONLY : n_thickness_levels , n_dyn_pres_levels ,            &
        thickness_levels , dyn_pres_levels
-  
+
+  ! --- Variables for the namelist VERTICAL_PROFILES_PARAMETERS
+  USE constitutive_2d, ONLY : vonK , k_s , Sc
 
   IMPLICIT NONE
 
@@ -227,7 +230,8 @@ MODULE inpout_2d
        comp_cells_x , comp_cells_y , cell_size , rheology_flag , alpha_flag ,   &
        energy_flag , liquid_flag , radial_source_flag , collapsing_volume_flag ,&
        topo_change_flag , gas_flag , subtract_init_flag , n_add_gas ,           &
-       bottom_radial_source_flag , slope_correction_flag , curvature_term_flag 
+       bottom_radial_source_flag , slope_correction_flag , curvature_term_flag ,&
+       vertical_profiles_flag
 
   NAMELIST / initial_conditions /  released_volume , x_release , y_release ,    &
        velocity_mod_release , velocity_ang_release , T_init , T_ambient
@@ -259,6 +263,8 @@ MODULE inpout_2d
        loss_rate
 
   NAMELIST / vulnerability_table_parameters / thickness_levels0 , dyn_pres_levels0
+
+  NAMELIST / vertical_profiles_parameters / vonK , k_s  , Sc
   
 CONTAINS
 
@@ -324,7 +330,8 @@ CONTAINS
     subtract_init_flag = .FALSE.
     alpha_flag = .FALSE.
     slope_correction_flag = .FALSE.
-    curvature_term_flag  = .FALSE. 
+    curvature_term_flag  = .FALSE.
+    vertical_profiles_flag = .FALSE.
 
     !-- Inizialization of the Variables for the namelist NUMERIC_PARAMETERS
     dt0 = 1.0E-4_wp
@@ -592,6 +599,11 @@ CONTAINS
     thickness_levels0 = -1.0_wp
     dyn_pres_levels0 = -1.0_wp
 
+    !- Initial values for VERTICAL_PROFILES_PARAMETERS
+    vonK = -1
+    k_s = -1
+    Sc = -1
+    
   END SUBROUTINE init_param
 
   !******************************************************************************
@@ -3108,7 +3120,70 @@ CONTAINS
 
     END IF
 
+    ! ------------ READ vertical_profiles_parameters NAMELIST ------------------
 
+    IF ( vertical_profiles_flag ) THEN
+
+       IF ( rheology_flag .AND. ( rheology_model .NE. 6 ) ) THEN
+
+          WRITE(*,*) 'ERROR: problem with input values'
+          WRITE(*,*) 'RHEOLOGY_model',rheology_model
+          WRITE(*,*) 'VERTICAL_PROFILES_FLAG',vertical_profiles_flag
+          WRITE(*,*) 'Vertical profiles can be used only with RHEOLOGY_FLAG = F'
+          WRITE(*,*) ' or with RHEOLOGY_MODEL = 6'
+          STOP
+
+       END IF
+          
+
+       REWIND(input_unit)    
+       READ(input_unit, vertical_profiles_parameters,IOSTAT=ios)
+      
+       IF ( ios .NE. 0 ) THEN
+
+          WRITE(*,*) 'IOSTAT=',ios
+          WRITE(*,*) 'ERROR: problem with namelist VERTICAL_PROFILES_PARAMETERS'
+          WRITE(*,*) 'Please check the input file'
+          WRITE(*,vertical_profiles_parameters) 
+          STOP
+
+       ELSE
+
+          REWIND(input_unit)
+
+          IF ( vonK .LE. 0.0_wp ) THEN
+             
+             WRITE(*,*) 'ERROR: problem with namelist VERTICAL_PROFILES_PARAMETERS'
+             WRITE(*,*) 'vonK =' , vonK 
+             WRITE(*,*) 'Please check the input file'
+             STOP
+             
+          END IF
+          
+          IF ( k_s .LE. 0.0_wp ) THEN
+             
+             WRITE(*,*) 'ERROR: problem with namelist VERTICAL_PROFILES_PARAMETERS'
+             WRITE(*,*) 'k_s =' , k_s 
+             WRITE(*,*) 'Please check the input file'
+             STOP
+             
+          END IF
+          
+          IF ( Sc .LE. 0.0_wp ) THEN
+             
+             WRITE(*,*) 'ERROR: problem with namelist VERTICAL_PROFILES_PARAMETERS'
+             WRITE(*,*) 'Sc =' , Sc 
+             WRITE(*,*) 'Please check the input file'
+             STOP
+             
+          END IF
+
+       END IF
+          
+    END IF
+       
+
+    
     !------ search for check points --------------------------------------------
 
     REWIND(input_unit)
@@ -3225,6 +3300,8 @@ CONTAINS
 
     END IF
 
+    IF ( vertical_profiles_flag ) WRITE(backup_unit, vertical_profiles_parameters)
+    
     IF ( n_probes .GT. 0 ) THEN
 
        WRITE(backup_unit,*) '''PROBES_COORDS'''
@@ -4006,7 +4083,7 @@ CONTAINS
   SUBROUTINE output_solution(time)
 
     ! external procedures
-    USE constitutive_2d, ONLY : qc_to_qp, mixt_var , settling_velocity
+    USE constitutive_2d, ONLY : qc_to_qp, mixt_var , settling_velocity , vonK
 
     ! external variables
 
@@ -4060,9 +4137,7 @@ CONTAINS
 
     REAL(wp) :: Rouse_no(n_solid)
 
-    !> Von Karman constant
-    REAL(wp) :: vonK
-
+ 
     sp_flag = .FALSE.
 
     
@@ -4146,8 +4221,6 @@ CONTAINS
              mod_vel = SQRT( mod_vel2 )
 
              IF ( rheology_model .EQ. 6 ) THEN
-
-                vonK = 0.4
 
                 shear_stress = r_rho_m * friction_factor * mod_vel2
 
