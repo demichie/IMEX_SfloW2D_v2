@@ -5,7 +5,7 @@ The concavity of the niche is searched automatically to match the desired volume
 The parameters defining the ellipsoid are in the file input_ellipsoid.py. Here an example of its content:
 
 DEM_folder = './DEM/'
-DEM_file = 'collage_10m.asc'
+DEM_file = 'Etna2014_crop.asc'
 
 x1 = 500300
 y1 = 4177600
@@ -15,13 +15,13 @@ y2 = 4177500
 
 semi_width = 200.0 
 
-vol = 1000000
+vol = 500000
 
 If you need to clean the folder from files created by a previous simulation:
 
 >> ./cleanfolder.sh
 
-To create the initial files, run:
+To create the initial files, first unzip the file in the DEM folder, and then run:
 
 >> python create_input_ellipsoid.py
 
