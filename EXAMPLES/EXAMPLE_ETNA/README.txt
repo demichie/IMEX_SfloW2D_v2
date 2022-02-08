@@ -13,9 +13,9 @@ y1 = 4177600
 x2 = 500430
 y2 = 4177500
 
-semi_width = 200.0 
+semi_width = 150.0 
 
-vol = 500000
+vol = 250000
 
 If you need to clean the folder from files created by a previous simulation:
 
