@@ -40,6 +40,11 @@ Then, execute the python script
 
 The new file can be plotted with Paraview.
 
-The simulation also creates output files in the ESRI ascii raster format .asc. These files can be used with a GIS software, or post-processed with a python script creating bitmap images:
+The simulation also creates output files in the ESRI ascii raster format .asc. These files can be used with a GIS software, or post-processed with a python script creating bitmap images.
+To do that, first create a simbolic link of the script in this folder:
+
+>> ln -s ../../UTILS/plot_overlay.py .
+
+Then, execute the python script
 
 >> python plot_overlay.py

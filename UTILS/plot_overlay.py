@@ -581,7 +581,7 @@ for file in glob.glob("*.asc"):
     plt.ylim([plt_ymin,plt_ymax])
     plt.tight_layout()
     fig.set_size_inches(6.0/rows*cols, 6.0)
-    plt.savefig(source2.replace('asc','jpg'),dpi=200)
+    plt.savefig(source2.replace('asc','png'),dpi=200)
     plt.close(fig)
 
 
