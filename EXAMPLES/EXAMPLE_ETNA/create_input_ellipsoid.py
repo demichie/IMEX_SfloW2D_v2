@@ -55,6 +55,91 @@ def isfloat(string):
   except ValueError:  # String is not a number
     return False
 
+def compute_vol_new(DEM,dist,XS,YS,x1,y1,semi_axis,cell_topo,n):
+
+    indexes = np.where( ( dist>semi_axis-cell_topo )*( dist<semi_axis+cell_topo ) )
+    indexes_np = np.asarray(indexes)
+
+    idx_max = np.argmax(DEM[indexes])
+
+    ix = indexes_np[1,idx_max]
+    iy = indexes_np[0,idx_max]
+
+    dist_real = np.sqrt( (XS[iy,ix]-x1)**2 + (YS[iy,ix]-y1)**2 )
+
+    x2 = x1 + (XS[iy,ix]-x1)*semi_axis/dist_real
+    y2 = y1 + (YS[iy,ix]-y1)*semi_axis/dist_real
+
+    # compute the first point elevation by linearly interpolating the DEM data
+    X1 = np.zeros((1,1))
+    X1[0,0] = x1
+
+    Y1 = np.zeros((1,1))
+    Y1[0,0] = y1
+
+    z1 = interp2Dgrids(xs_topo,ys_topo,DEM,X1,Y1).flatten()[0]
+
+    # compute the second point elevation by linearly interpolating the DEM data
+    X2 = np.zeros((1,1))
+    X2[0,0] = x2
+
+    Y2 = np.zeros((1,1))
+    Y2[0,0] = y2
+
+    z2 = interp2Dgrids(xs_topo,ys_topo,DEM,X2,Y2).flatten()[0]
+
+    # define the center of the ellipsoid 3D coordinates and the vertical semi-axis
+    if z1>z2:
+
+        xc = x2
+        yc = y2
+        zc = z1
+    
+        xh = x1
+        yh = y1
+        c = z1-z2
+    
+    else:
+
+        xc = x1
+        yc = y1
+        zc = z2
+    
+        xh = x2
+        yh = y2
+        c = z2-z1
+    
+    print('Ellissoid center:',xc,yc,zc)    
+
+    semi_width = semi_axis
+
+    # define the other semi-axis of the ellipsoid
+    a = np.sqrt((y1-y2)**2+(x1-x2)**2)
+    b = semi_width 
+
+    print('Ellipsoid semi-axis: ',a,b,c)
+
+    # compute the horizontal angle between the original x,y, coordinate system
+    # and the coordinate system defined by the horizonal semi-axis a,b
+    alpha = 90.0-np.arctan2(yh-yc,xh-xc)/np.pi*180.0
+
+    print('Rotation angle: ',alpha)
+
+    # translate the coordinate of the centers of the cells
+    X,Y = np.meshgrid(xs_topo-xc,ys_topo-yc)
+
+    # rotation to find the coordinates of the centers of the cells
+    # in the new coordinate system, centered in the center of the
+    # ellispoid and with the axis parallel to its semi-axis
+    X_new = X*np.cos(alpha) + Y*np.sin(alpha)
+    Y_new = -X*np.sin(alpha) + Y*np.cos(alpha)
+
+    Z_new,Z_ell,vol = compute_vol(X_new,Y_new,DEM,zc,a,b,c,n)
+    
+    return Z_new,Z_ell,vol,zc
+
+
+
 def compute_vol(X_new,Y_new,DEM,zc,a,b,c,n):
 
     # compute the ellipsoid
@@ -216,6 +301,13 @@ rows_topo = int(rows_topo)
 xs_topo = lx_topo+0.5*cell_topo + np.linspace(0,(cols_topo-1)*cell_topo,int(cols_topo))
 ys_topo = ly_topo+0.5*cell_topo + np.linspace(0,(rows_topo-1)*cell_topo,int(rows_topo))
 
+XS,YS = np.meshgrid(xs_topo,ys_topo)
+
+dist = np.sqrt( (XS-x1)**2 + (YS-y1)**2 ) 
+
+
+#print('indexes',indexes)
+#print(indexes_np.shape)
 
 DEM = pd.read_table(DEM_file, delim_whitespace=True, header=None,skiprows=6, dtype='unicode').astype(float).values
 DEM = np.flipud(DEM)
@@ -224,73 +316,18 @@ print('Completed reading DEM, shape: '+str(DEM.shape))
 print('')
 
 
-# compute the first point elevation by linearly interpolating the DEM data
-X1 = np.zeros((1,1))
-X1[0,0] = x1
 
-Y1 = np.zeros((1,1))
-Y1[0,0] = y1
+semi_axis0 = 0.5*( 3.0/4.0*np.pi * vol)**(1.0/3.0)
+print('semi_axis0',semi_axis0)
+        
+Z_new0,Z_ell0,vol0,zc = compute_vol_new(DEM,dist,XS,YS,x1,y1,semi_axis0,cell_topo,2.0)
 
-z1 = interp2Dgrids(xs_topo,ys_topo,DEM,X1,Y1).flatten()[0]
 
-# compute the second point elevation by linearly interpolating the DEM data
-X2 = np.zeros((1,1))
-X2[0,0] = x2
+semi_axis2 = 2.0*( 3.0/4.0*np.pi * vol)**(1.0/3.0)
+print('semi_axis2',semi_axis2)
+        
+Z_new2,Z_ell2,vol2,zc = compute_vol_new(DEM,dist,XS,YS,x1,y1,semi_axis2,cell_topo,2.0)
 
-Y2 = np.zeros((1,1))
-Y2[0,0] = y2
-
-z2 = interp2Dgrids(xs_topo,ys_topo,DEM,X2,Y2).flatten()[0]
-
-# define the center of the ellipsoid 3D coordinates and the vertical semi-axis
-if z1>z2:
-
-    xc = x2
-    yc = y2
-    zc = z1
-    
-    xh = x1
-    yh = y1
-    c = z1-z2
-    
-else:
-
-    xc = x1
-    yc = y1
-    zc = z2
-    
-    xh = x2
-    yh = y2
-    c = z2-z1
-    
-print('Ellissoid center:',xc,yc,zc)    
-
-# define the other semi-axis of the ellipsoid
-a = np.sqrt((y1-y2)**2+(x1-x2)**2)
-b = semi_width 
-
-print('Ellipsoid semi-axis: ',a,b,c)
-
-# compute the horizontal angle between the original x,y, coordinate system
-# and the coordinate system defined by the horizonal semi-axis a,b
-alpha = 90.0-np.arctan2(yh-yc,xh-xc)/np.pi*180.0
-
-print('Rotation angle: ',alpha)
-
-# translate the coordinate of the centers of the cells
-X,Y = np.meshgrid(xs_topo-xc,ys_topo-yc)
-
-# rotation to find the coordinates of the centers of the cells
-# in the new coordinate system, centered in the center of the
-# ellispoid and with the axis parallel to its semi-axis
-X_new = X*np.cos(alpha) + Y*np.sin(alpha)
-Y_new = -X*np.sin(alpha) + Y*np.cos(alpha)
-
-n0 = 1
-Z_new0,Z_ell0,vol0 = compute_vol(X_new,Y_new,DEM,zc,a,b,c,n0)
-
-n2 = 10
-Z_new2,Z_ell2,vol2 = compute_vol(X_new,Y_new,DEM,zc,a,b,c,n2)
 
 if vol0 > vol:
 
@@ -304,22 +341,22 @@ elif vol2 < vol:
 
 else:
 
-    for i in range(15):
+    for i in range(10):
     
-        n1 = 0.5*(n0+n2)
-        print('n1',n1)
+        semi_axis1 = 0.5*(semi_axis0+semi_axis2)
+        print('semi_axis1',semi_axis1)
         
-        Z_new1,Z_ell1,vol1 = compute_vol(X_new,Y_new,DEM,zc,a,b,c,n1)
+        Z_new1,Z_ell1,vol1,zc = compute_vol_new(DEM,dist,XS,YS,x1,y1,semi_axis1,cell_topo,2.0)
         
         if ( vol1 < vol ):
         
-            n0 = n1
+            semi_axis0 = semi_axis1
             Z_new0 = Z_new1
             Z_ell0 = Z_ell1
             
         else:
 
-            n2 = n1
+            semi_axis2 = semi_axis1
             Z_new2 = Z_new1
             Z_ell2 = Z_ell1
             
