@@ -11,7 +11,7 @@ from matplotlib.colors import LightSource
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import matplotlib
-matplotlib.use('Agg')
+matplotlib.use('agg')
 
 def merge_vt(VTfile):
 
