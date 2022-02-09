@@ -8,9 +8,15 @@ import time
 import sys
 import os.path
 import netCDF4 
+import glob, os
 
+if len(sys.argv)==1:
 
-if len(sys.argv)==2: 
+    for file in glob.glob("*.bak"):
+        # print(file)
+        bakfile = file
+    
+elif len(sys.argv)==2: 
  
     bakfile = sys.argv[1]
 
@@ -26,7 +32,7 @@ elif len(sys.argv)==3:
     output_indexes = output_indexes.split('-')
     output_first = int(output_indexes[0])
     output_last = int(output_indexes[-1])+1
-
+    
 else:
 
     print('Please provide bak file name:\n')
@@ -130,7 +136,6 @@ n_output = int((t_end-t_start)/dt_output)
 print('n_output',n_output+1)
 
 filename_fix = bakfile.replace('.bak','')
-
 
 ncfilename = filename_fix+'.nc'
 
@@ -253,7 +258,7 @@ X = np.zeros((ny2,nx2))
 Y = np.zeros((ny2,nx2))
 
 
-if len(sys.argv)==2: 
+if len(sys.argv)<=2: 
 
     output_first=0
     output_last=n_output+1
