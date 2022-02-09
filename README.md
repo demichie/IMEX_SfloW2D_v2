@@ -23,6 +23,6 @@ It is possible also to use Docker container with the latest version of the model
 
 > docker pull demichie/sw_var_dens_model_alpine
 
-Create a folde for you simulation with all the input files and then run the container with:
+Create a folde for your simulation with all the input files and then run the container with:
 
 > docker run -v $PWD:/home/user_sw/SW_RUNS -i -t sw_var_dens_model bash
