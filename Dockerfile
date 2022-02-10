@@ -9,7 +9,10 @@ CMD ["/sbin/my_init"]
 
 # install packages
 RUN apt-get update
-RUN apt-get install -y autoconf automake gfortran nano gdb make curl python3-numpy liblapack-dev libopenmpi-dev unzip python3-netcdf4
+RUN apt-get install -y autoconf automake gfortran nano gdb make curl python3-numpy liblapack-dev libopenmpi-dev unzip python3-netcdf4 python3-matplotlib python3-numpy
+
+RUN mkdir -p /root/.config/matplotlib
+RUN echo "backend : Agg" > /root/.config/matplotlib/matplotlibrc
 
 # Clean up APT when done.
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
@@ -35,4 +38,10 @@ RUN curl -LOk https://github.com/demichie/SW_VAR_DENS_MODEL/archive/master.zip \
     && make install \
     && cd /home/user_sw/ \
     && rm *.zip \
-    && echo 'alias python=python3' >> .bash_aliases
+    && echo 'alias python=python3' >> .bash_aliases \
+    && mkdir /home/user_sw/scripts \
+    && mv /home/user_sw/SW_VAR_DENS_MODEL-master/commands.sh /home/user_sw/scripts/commands.sh \
+    && chmod +x /home/user_sw/scripts/commands.sh
+
+ENTRYPOINT ["/home/user_sw/scripts/commands.sh"]
+
