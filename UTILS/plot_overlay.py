@@ -545,7 +545,8 @@ for file in glob.glob("*.asc"):
         levels = 10.0**np.linspace(min_int,max_int_thk,2*int(max_int_thk-min_int_thk)+1)
         label_str = 'Flow thickness (m)'
 
-    fig, ax = plt.subplots(1,1,figsize=(6.0/rows*cols, 6.0))
+    fig, ax = plt.subplots()
+    fig.set_size_inches(2.0+6.0/rows*cols, 6.0)
 
     ls = LightSource(azdeg=315, altdeg=45)
 
@@ -557,19 +558,20 @@ for file in glob.glob("*.asc"):
 
     ax.set_aspect('equal', 'box')
 
-        
+    
+    im_ratio = rows/cols    
     cmap = plt.get_cmap('terrain_r')
     norm = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
     p1 = plt.pcolormesh(X,Y,arr, cmap=cmap, norm=norm,alpha=0.65)        
         
     if file[0:len(run_name)]==run_name and "_vt_" in file:
         ticks  = 0.5*(levels[:-1]+levels[1:])
-        clb = plt.colorbar(format=ticker.FuncFormatter(fmt),ticks=ticks,ax=ax)
+        clb = plt.colorbar(p1,fraction=0.046*im_ratio, pad=0.04,format=ticker.FuncFormatter(fmt),ticks=ticks,ax=ax)
         clb.set_ticklabels(np.char.mod('%d', levels[:-1]))
             
     else:
         
-        clb = plt.colorbar(format=ticker.FuncFormatter(fmt),ax=ax)
+        clb = plt.colorbar(p1,fraction=0.046*im_ratio, pad=0.04,format=ticker.FuncFormatter(fmt),ax=ax)
 
     clb.set_label(label_str, labelpad=-40, y=1.05, rotation=0)
         
@@ -580,7 +582,6 @@ for file in glob.glob("*.asc"):
     plt.xlim([plt_xmin,plt_xmax])
     plt.ylim([plt_ymin,plt_ymax])
     plt.tight_layout()
-    fig.set_size_inches(6.0/rows*cols, 6.0)
     plt.savefig(source2.replace('asc','png'),dpi=200)
     plt.close(fig)
 
