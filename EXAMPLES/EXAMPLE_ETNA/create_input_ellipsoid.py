@@ -139,7 +139,6 @@ def compute_vol_new(DEM,dist,XS,YS,x1,y1,semi_axis,cell_topo,n):
     return Z_new,Z_ell,vol,zc
 
 
-
 def compute_vol(X_new,Y_new,DEM,zc,a,b,c,n):
 
     # compute the ellipsoid
@@ -320,49 +319,44 @@ print('')
 semi_axis0 = 0.5*( 3.0/4.0*np.pi * vol)**(1.0/3.0)
 print('semi_axis0',semi_axis0)
         
-Z_new0,Z_ell0,vol0,zc = compute_vol_new(DEM,dist,XS,YS,x1,y1,semi_axis0,cell_topo,2.0)
-
-
-semi_axis2 = 2.0*( 3.0/4.0*np.pi * vol)**(1.0/3.0)
-print('semi_axis2',semi_axis2)
-        
-Z_new2,Z_ell2,vol2,zc = compute_vol_new(DEM,dist,XS,YS,x1,y1,semi_axis2,cell_topo,2.0)
-
+Z_new_temp,Z_ell_temp,vol0,zc = compute_vol_new(DEM,dist,XS,YS,x1,y1,semi_axis0,cell_topo,2.0)
 
 if vol0 > vol:
 
-    Z_new = Z_new0
-    Z_ell = Z_ell0
-    
-elif vol2 < vol:    
-
-    Z_new = Z_new2
-    Z_ell = Z_ell2
+    Z_new = Z_new_temp
+    Z_ell = Z_ell_temp
 
 else:
 
-    for i in range(10):
+    semi_axis2 = 2.0*( 3.0/4.0*np.pi * vol)**(1.0/3.0)
+    print('semi_axis2',semi_axis2)
+        
+    Z_new_temp,Z_ell_temp,vol2,zc = compute_vol_new(DEM,dist,XS,YS,x1,y1,semi_axis2,cell_topo,2.0)
+
+
     
-        semi_axis1 = 0.5*(semi_axis0+semi_axis2)
+if vol2 < vol:    
+
+    Z_new = Z_new_temp
+    Z_ell = Z_ell_temp
+
+elif vol0<vol:
+
+    for i in range(10):
+            
+        semi_axis1 = semi_axis0+((vol-vol0)/(vol2-vol0))**(1.0/3.0)*(semi_axis2-semi_axis0)
         print('semi_axis1',semi_axis1)
         
-        Z_new1,Z_ell1,vol1,zc = compute_vol_new(DEM,dist,XS,YS,x1,y1,semi_axis1,cell_topo,2.0)
+        Z_new,Z_ell,vol1,zc = compute_vol_new(DEM,dist,XS,YS,x1,y1,semi_axis1,cell_topo,2.0)
         
         if ( vol1 < vol ):
         
             semi_axis0 = semi_axis1
-            Z_new0 = Z_new1
-            Z_ell0 = Z_ell1
             
         else:
 
             semi_axis2 = semi_axis1
-            Z_new2 = Z_new1
-            Z_ell2 = Z_ell1
-            
-Z_new = Z_new1
-Z_ell = Z_ell1
-            
+                        
 
 # Write output
 print('')
