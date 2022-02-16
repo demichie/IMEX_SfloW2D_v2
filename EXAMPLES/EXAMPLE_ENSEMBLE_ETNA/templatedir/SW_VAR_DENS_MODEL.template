@@ -11,11 +11,11 @@
  VERBOSE_LEVEL=          0,
  /
 &NEWRUN_PARAMETERS
- X0= 498813.0    ,
- Y0=  4175700.0     ,
+ X0= 499800.0    ,
+ Y0=  4176700.0     ,
  TOPOGRAPHY_FILE = './DEM/new_dem.asc' ,
- COMP_CELLS_X=  450,
- COMP_CELLS_Y=  350,
+ COMP_CELLS_X=  280,
+ COMP_CELLS_Y=  180,
  CELL_SIZE = 10.D0    ,
  N_SOLID = 1 ,
  N_ADD_GAS = 0 ,

@@ -238,7 +238,7 @@ def main():
 
     ###
     # list of 2D points
-    points = [[500085, 4177539], [500346, 4177504]]
+    points = [[500360, 4177600], [500650, 4177913]]
     # weight of 2D points
     weights = [2, 1]
 

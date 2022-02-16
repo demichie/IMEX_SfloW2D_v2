@@ -11,7 +11,7 @@ from os.path import exists
 from matplotlib.colors import LightSource
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-topography_file = './DEM/Etna2014_crop.asc'
+topography_file = '../DEM/Etna2014_crop.asc'
 
 
 def fmt(x, pos):
@@ -35,15 +35,6 @@ with open('SW_VAR_DENS_MODEL.template') as fp:
             run_name = run_name.replace(',', '')
             run_name = run_name.replace(' ', '')
             run_name = run_name.rstrip()
-
-        if "TOPOGRAPHY_FILE" in line:
-
-            topography_file = line.replace('TOPOGRAPHY_FILE', '')
-            topography_file = topography_file.replace('=', '')
-            topography_file = topography_file.replace('"', '')
-            topography_file = topography_file.replace(',', '')
-            topography_file = topography_file.replace(' ', '')
-            topography_file = os.getcwd() + '/' + topography_file.rstrip()
 
         if "T_START" in line:
             t_start_str = line.replace('T_START', '')
