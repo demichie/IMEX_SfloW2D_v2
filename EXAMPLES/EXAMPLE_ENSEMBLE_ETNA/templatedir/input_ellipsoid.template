@@ -1,0 +1,7 @@
+DEM_folder = './DEM/'
+DEM_file = 'collage_10m_crop.asc'
+
+x1 = ENSEMBLE_Coor_x 
+y1 = ENSEMBLE_Coor_y
+
+vol = ENSEMBLE_Volume
