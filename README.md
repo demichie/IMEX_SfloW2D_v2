@@ -5,7 +5,9 @@ Shallow water model for multiphase flow (gas+particles) with density of gas temp
 To compile:
 
 > touch README
+> 
 > autoreconf
+> 
 > ./configure
 
 To compile the code with OpenMP add the following flag in src/Makefile:
