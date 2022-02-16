@@ -32,13 +32,13 @@ STEP 5: launch the simulations
 
 > python launch_jobs.py
 
-This script launch all the simulations. The maximum number of concurrent runs can be prescribed in the file. This script launch a batch script "run.sh" present in each folder "ensemble.xxxxx". If the post-processing is not needed, comment the lines in "run.sh" inside tmeplatedir (before creating the folders).
+This script launch all the simulations. The maximum number of concurrent runs can be prescribed in the file (max_processes). This script launches the batch script "run.sh" present in each folder "ensemble.xxxxx". This script executes the pre-processing step for the initial volume, run the code and post-processes the output files. If the post-processing is not needed, comment the lines in "run.sh" inside tmeplatedir (before creating the folders).
 
 STEP 6: create probabilistic output
 
 > python create_prob_maps.py
 
-This script creates probabilistic maps (as raster .asc files) from the .asc files for the maximum thickness and dyn.press.+thickness (VT files). The elements of the ensamble can be treated as a single large group or partitioned in smaller groups by using the pandas "groupby" function. A few examples can be found in the script. For each group, a folder named result.xxx is created.
+This script creates probabilistic maps (as raster .asc files) from the .asc files for the maximum thickness and dyn.press.+thickness (VT files). The elements of the ensamble can be treated as a single large group or partitioned into smaller groups by using the pandas "groupby" function. A few examples can be found in the script. For each group, a folder named result.xxx is created.
 
 STEP 8: post-processing of probabilistic output
 
