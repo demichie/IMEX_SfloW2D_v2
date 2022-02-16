@@ -19,7 +19,8 @@ STEP 3: create a CSV file with uncertain input parameters
 > python create_ensemble.py
 
 The number of sample, the uncertain parameters and their ranges are defined in the create_ensemble.py file
-Each parameters has a keyword, for example "var1"
+Each parameters has a keyword, for example "var1".
+Here, we have two different locations with different weights and uncertainty ranges for the rheological parameters.
 
 STEP 4: create the ensamble folders
 
