@@ -12,13 +12,6 @@ if [ -f $file ] ; then
     rm $file
 fi
 
-file="samples*"
-
-if [ -f $file ] ; then
-    rm $file
-fi
-
-
 file="dem_interfaces_esri.asc"
 
 if [ -f $file ] ; then
