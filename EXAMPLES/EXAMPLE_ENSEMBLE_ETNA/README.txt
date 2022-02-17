@@ -1,12 +1,24 @@
-Example of ensemble simulation for pyroclastic avalanches at Etna
+Example of ensemble simulation for pyroclastic avalanches at Etna. 
+For ensamble scenarios, in order to avoid multiple copies of the same files, we suggest to keep the structure of the folders as in this example. 
 
-STEP 1: create a symbolic link in the template folder to the executable
+-- ENSEMBLE FOLDER
+      |
+      |---- DEM
+      |
+      |---- templatedir
+                 |
+                 |---- DEM
+                 
+The executable should be placed in the templatedir as a symbolic link.                 
+The topography file should be in the top DEM folder, and a symbolic link should be created in the templatedir/DEM folder.
+
+STEP 1: create a symbolic link to the executable in the template folder
 
 > cd templatedir
 > ln -s ../../../bin/SW_VAR_DENS_MODEL .
 > cd ..
 
-STEP 2: unzip the DEM file and create a symbolic link in the templatedir/DEM folder to it
+STEP 2: unzip the DEM file and create a symbolic link in the templatedir/DEM folder 
 
 > cd DEM
 > unzip Etna2014_crop.zip
@@ -14,20 +26,27 @@ STEP 2: unzip the DEM file and create a symbolic link in the templatedir/DEM fol
 > ln -s ../../DEM/Etna2014_crop.asc .
 > cd ../..
 
-STEP 3: create a CSV file with uncertain input parameters
+STEP 3: generate the input parameters of the ensemble, creating a CSV file
 
 > python create_ensemble.py
 
-The number of sample, the uncertain parameters and their ranges are defined in the create_ensemble.py file
+The number of sample, the uncertain parameters and their ranges are defined in the file create_ensemble.py.
 Each parameters has a keyword, for example "var1".
 Here, we have two different locations with different weights and uncertainty ranges for the rheological parameters.
 
-STEP 4: create the ensamble folders
+STEP 4: create the folders for the ensemble
 
 > python create_inputfiles.py
 
 This script create the folders by making a copy of the folder "templatedir". The values of the uncertain parameters
-in the input file must be replaced by the string "ENSAMBLE_xyz", where "xyz" is the keyword assigned in create_ensamble.py. For example, if "var1" is defined as unknown in create_ensemble.py, we must have in an input file "ENSEMBLE_var1".   
+in the template input files must be replaced by the strings "ENSAMBLE_xyz", where "xyz" is the keyword assigned in create_ensamble.py. For example, if "var1" is defined as unknown in create_ensemble.py, we must have in an input file the string "ENSEMBLE_var1".   
+For example, in this simulation we have:
+
+&RHEOLOGY_PARAMETERS
+ RHEOLOGY_MODEL = 1,
+ MU = ENSEMBLE_mu,
+ XI = ENSEMBLE_xi
+ /
 
 STEP 5: launch the simulations
 
