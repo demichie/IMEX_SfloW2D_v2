@@ -348,7 +348,23 @@ CONTAINS
 
     REAL(wp) :: h0
     REAL(wp) :: u_rel0
-    
+  
+    REAL(wp) :: uRho_avg
+    REAL(wp) :: uRho_avg_new
+
+    REAL(wp) :: u_avg_guess
+    REAL(wp) :: u_avg_new
+
+    REAL(wp) :: rhom_avg
+
+    REAL(wp) :: x0,x1,x2
+
+    INTEGER :: i_aitken
+    REAL(wp) :: abs_tol , rel_tol
+    REAL(wp) :: denominator
+    REAL(wp) :: aitkenX
+    REAL(wp) :: lambda
+  
     INTEGER :: i_solid
     
     ! compute solid mass fractions
@@ -503,7 +519,7 @@ CONTAINS
        rhos_alfas_tot_u = r_xs_tot * r_qj(2) / r_h  
        rhos_alfas_tot_v = r_xs_tot * r_qj(3) / r_h  
       
-       rhos_alfas_tot_mod_vel = SQRT(  rhos_alfas_tot_u**2 +  rhos_alfas_tot_v**2 )
+       rhos_alfas_tot_mod_vel = SQRT( rhos_alfas_tot_u**2 + rhos_alfas_tot_v**2 )
 
        rhos_alfas(1:n_solid) = r_alphas(1:n_solid) * rho_s(1:n_solid)
 
@@ -539,7 +555,7 @@ CONTAINS
           ! solve b*log(c*z+1)-z=a for z
           d = a/b-1.0_wp/(b*c)
 
-          h0_rel = -b*lambertw( -exp(d)/(b*c) ) - 1.0_wp / c
+          h0_rel = -b*lambertw( -EXP(d)/(b*c) ) - 1.0_wp / c
           u_coeff = 1.0_wp
 
        else
@@ -550,7 +566,8 @@ CONTAINS
           ! The factor used to scale the velocity is u_coeff
 
           h0_rel = h_rel
-          u_coeff = vonK / SQRT(friction_factor)/( ( 1.0_wp + 1.0_wp/ ( 30.0_wp*h_rel ) ) * log( 30.0_wp*h_rel + 1.0_wp )-1.0_wp)
+          u_coeff = vonK / SQRT(friction_factor)/( ( 1.0_wp + 1.0_wp /          &
+               ( 30.0_wp*h_rel ) ) * LOG( 30.0_wp*h_rel + 1.0_wp )-1.0_wp)
 
        end if
 
@@ -558,7 +575,67 @@ CONTAINS
 
        b = 30.0_wp / k_s
 
-       u_rel0 = u_coeff * sqrt(friction_factor) / vonK * log( b*h0 + 1.0_wp )
+       u_rel0 = u_coeff * SQRT(friction_factor) / vonK * LOG( b*h0 + 1.0_wp )
+
+       uRho_avg = SQRT( r_qj(2)**2 + r_qj(3)**2 ) 
+
+       u_avg_guess = uRho_avg / r_rho_m
+       x0 = u_avg_guess
+
+       ! loop to compute the average velocity from average rho*alpha and average 
+       ! uRho ( = 1/h*int( u*rhog*alphag + sum[u*rhos(i)*alphas(i)] ) ) 
+ 
+       rel_tol = 1.e-10
+       abs_tol = 1.e-8
+      
+       aitken_loop:DO i_aitken=1,10
+
+          x0 = u_avg_guess
+
+          CALL avg_profiles_mix( r_h , settling_vel ,  r_qj(5:4+n_solid) ,      &
+               u_avg_guess , h0 , b , u_coeff , u_rel0 ,                        &
+               r_rho_c , rhom_avg , uRho_avg_new )
+
+          u_avg_new = u_avg_guess * uRho_avg / ( uRho_avg_new)
+
+          x1 = u_avg_new
+
+          CALL avg_profiles_mix( r_h , settling_vel ,  r_qj(5:4+n_solid) ,      &
+               u_avg_new , h0 , b , u_coeff , u_rel0 ,                          &
+               r_rho_c , rhom_avg , uRho_avg_new )
+
+          u_avg_new = u_avg_new * uRho_avg / ( uRho_avg_new)
+     
+          x2 = u_avg_new
+
+          IF (x1 .NE.  x0) THEN
+
+             lambda = abs((x2 - x1)/(x1 - x0))
+
+          END IF
+
+          denominator = (x2 - x1) - (x1 - x0)
+
+          IF ( ABS(denominator) .LT. 0.1*abs_tol ) EXIT aitken_loop
+
+          aitkenX = x2 - ( (x2 - x1)**2 )/denominator
+
+          u_avg_new = aitkenX
+
+          IF ( ( abs(u_avg_guess-u_avg_new)/u_avg_guess < rel_tol ) .OR.        &
+               ( abs(u_avg_guess-u_avg_new) < abs_tol ) ) THEN
+
+             u_avg_guess = u_avg_new
+             EXIT aitken_loop
+
+          END IF
+
+          u_avg_guess = u_avg_new
+
+       END DO aitken_loop
+
+       r_u = u_avg_new * r_qj(2) / ( SQRT( r_qj(2)**2 + r_qj(3)**2 ) )
+       r_v = u_avg_new * r_qj(3) / ( SQRT( r_qj(2)**2 + r_qj(3)**2 ) )
       
     ELSE
     
@@ -591,9 +668,10 @@ CONTAINS
     RETURN
 
   END SUBROUTINE r_phys_var
-  
-  SUBROUTINE avg_profiles_mix( h , settling_vel , rho_alphas_avg,&
-       u_guess , h0 , b , u_coeff , u_rel0 , rho_c , uRho_avg_new )
+ 
+ 
+  SUBROUTINE avg_profiles_mix( h , settling_vel , rho_alphas_avg , u_guess ,    &
+       h0 , b , u_coeff , u_rel0 , rho_c , rhom_avg , uRho_avg_new )
 
     USE geometry_2d, ONLY : calcei
     
@@ -609,6 +687,7 @@ CONTAINS
     REAL(wp), INTENT(IN) :: u_coeff
     REAL(wp), INTENT(IN) :: u_rel0
     REAL(wp), INTENT(IN) :: rho_c
+    REAL(wp), INTENT(OUT) :: rhom_avg
     REAL(wp), INTENT(OUT) :: uRho_avg_new
 
     !> Shear velocity computed from u_guess
@@ -634,7 +713,9 @@ CONTAINS
     INTEGER ( kind = 4 ) :: i
     REAL(wp) :: x,ei
     
-    
+    vonK = 0.4_wp
+    friction_factor = 0.01_wp
+    Sc = 1.0_wp
     ! The input here are the depth-averaged velocity and the depth-averaged
     ! values of rho*C(z). We compute the vertical profiles and the integral of 
     ! u(z)*rho*C(z), and we compare this value with the desired one to update
@@ -661,12 +742,13 @@ CONTAINS
        ! depth-averaged value of rho*C(z)
        ! this results from the sum of the log region with thickness h0 and the 
        ! constant region with thickness h-h0
-       rho_alphas_int(i_solid) = rho_alphas_avg(i_solid) * ( alphas_rel_max * ( exp(a*h0) - 1.0 ) / a + (h-h0)*alphas_rel0 ) / h
+       rho_alphas_int(i_solid) = rho_alphas_avg(i_solid) * ( alphas_rel_max *   &
+            ( exp(a*h0) - 1.0 ) / a + (h-h0)*alphas_rel0 ) / h
 
        ! we compute the integral in the log region of u_tilde(z)*C_rel(z), where 
        ! u_tilde is defined as u(z)/(u_guess*u_coeff*sqrt(friction_coeff))
 
-       i = 1
+       i = 2
        x = -a*(h0+1.0_wp/b)
        call calcei ( x, ei, i )
        
@@ -678,18 +760,25 @@ CONTAINS
 
        ! integral of u_rel(z)*C_rel(z) in the log region (0<=z<=h0)
        ! here u_rel(z) = u(z)/u_guess 
-       int_def = u_coeff * sqrt(friction_factor) / vonK * alphas_rel_max * (int_h0-int_0)
+       int_def = u_coeff * sqrt(friction_factor) / vonK * alphas_rel_max *      &
+            (int_h0-int_0)
 
        ! we add the contribution of the integral of the constant region, we
        ! average by dividing by h and we multiply by the density of solid and
        ! average concentration and by u_guess.
-       rho_u_alphas(i_solid) = rho_alphas_avg(i_solid) * u_guess * ( int_def + ( h - h0 ) * alphas_rel0 * u_rel0 ) / h
+       rho_u_alphas(i_solid) = rho_alphas_avg(i_solid) * u_guess *              &
+            ( int_def + ( h - h0 ) * alphas_rel0 * u_rel0 ) / h
 
     END DO
 
+    ! we add the contribution of the gas phase to the depth-averaged mixture 
+    ! density. This value should be equal to that used to compute the input
+    ! values rhoalphas_avg.
+    rhom_avg = rho_c + SUM( ( rho_s - rho_c ) / rho_s * rho_alphas_int )
+
     ! we add the contribution of the gas phase to the mixture depth-averaged 
     ! momentum
-    uRho_avg_new = ( u_guess*rho_c + sum((rho_s-rho_c) / rho_s * rho_u_alphas) )
+    uRho_avg_new = ( u_guess*rho_c + SUM((rho_s-rho_c) / rho_s * rho_u_alphas) )
 
   end SUBROUTINE avg_profiles_mix
 

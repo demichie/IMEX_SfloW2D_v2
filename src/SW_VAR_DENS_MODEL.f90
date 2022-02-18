@@ -90,6 +90,8 @@ PROGRAM SW_VAR_DENS_MODEL
   USE solver_2d, ONLY : solve_mask , solve_cells
   USE solver_2d, ONLY : j_cent , k_cent
 
+  USE constitutive_2d, ONLY : avg_profiles_mix
+
   USE OMP_LIB
 
   IMPLICIT NONE
@@ -115,6 +117,9 @@ PROGRAM SW_VAR_DENS_MODEL
   REAL(wp) :: p_dyn
 
   REAL(wp) :: w , z, u1,u2,u
+
+  REAL(wp) :: ans1
+
 
   WRITE(*,*) '---------------------'
   WRITE(*,*) 'SW_VAR_DENS_MODEL 1.0'
@@ -148,6 +153,19 @@ PROGRAM SW_VAR_DENS_MODEL
   CALL init_param
 
   CALL read_param
+
+!!$
+!!$  !avg_profiles_mix( h , settling_vel , rho_alphas_avg,&
+!!$  !      u_guess , h0 , b , u_coeff , u_rel0 , rho_c , uRho_avg_new )
+!!$
+!!$  CALL avg_profiles_mix( 100.0_wp,(/ 1.0E-3_wp /), &
+!!$       (/ 1.0_wp /) , 10.0_wp , 3.8916_wp , 20.0_wp , 1.0_wp , &
+!!$       1.0918_wp , 1.2_wp, ans1)
+!!$
+!!$
+!!$  WRITE(*,*) 'ans1',ans1
+!!$
+!!$  STOP
 
   CALL init_grid
 
