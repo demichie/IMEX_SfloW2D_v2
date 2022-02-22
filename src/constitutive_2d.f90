@@ -1748,12 +1748,13 @@ CONTAINS
   !
   !******************************************************************************
 
-  SUBROUTINE eval_fluxes(qcj,qpj,B_prime_x,B_prime_y,grav_coeff,dir,flux)
+  SUBROUTINE eval_fluxes(qcj,qpj,shape_coeff,B_prime_x,B_prime_y,grav_coeff,dir,flux)
 
     IMPLICIT none
 
     REAL(wp), INTENT(IN) :: qcj(n_vars)
     REAL(wp), INTENT(IN) :: qpj(n_vars+2)
+    REAL(wp), INTENT(IN) :: shape_coeff(n_vars)
     REAL(wp), INTENT(IN) :: B_prime_x
     REAL(wp), INTENT(IN) :: B_prime_y
     REAL(wp), INTENT(IN) :: grav_coeff
@@ -1848,30 +1849,30 @@ CONTAINS
        IF ( dir .EQ. 1 ) THEN
 
           ! Mass flux in x-direction: u * ( rhom * h )
-          flux(1) = r_u * qcj(1)
+          flux(1) = r_u * qcj(1) * shape_coeff(1)
           
           ! x-momentum flux in x-direction + hydrostatic pressure term
-          flux(2) = r_u * qcj(2) + 0.5_wp * r_rho_m * grav_coeff * r_red_grav   &
-               * r_h**2
+          flux(2) = r_u * qcj(2) * shape_coeff(2) + 0.5_wp * r_rho_m *          &
+               grav_coeff * r_red_grav * r_h**2
 
           ! y-momentum flux in x-direction: u * ( rho * h * v )
-          flux(3) = r_u * qcj(3)
+          flux(3) = r_u * qcj(3) * shape_coeff(3)
 
           IF ( energy_flag ) THEN
 
              ! ENERGY flux in x-direction
-             flux(4) = r_u * ( qcj(4) + 0.5_wp * r_rho_m * grav_coeff           &
-                  * r_red_grav * r_h**2 )
+             flux(4) = r_u * ( qcj(4) * shape_coeff(4) + 0.5_wp * r_rho_m       &
+                  * grav_coeff * r_red_grav * r_h**2 )
 
           ELSE
 
              ! Temperature flux in x-direction: u * ( rhom * Cp * h * T )
-             flux(4) = r_u * qcj(4)
+             flux(4) = r_u * qcj(4) * shape_coeff(4)
 
           END IF
 
           ! Mass flux of solid in x-direction: u * ( h * alphas * rhos )
-          flux(5:4+n_solid) = r_u * qcj(5:4+n_solid)
+          flux(5:4+n_solid) = r_u * qcj(5:4+n_solid) * shape_coeff(5:4+n_solid)
 
           ! Solid flux can't be larger than total flux
           IF ( ( flux(1) .GT. 0.0_wp ) .AND. ( SUM(flux(5:4+n_solid)) / flux(1) &
@@ -1884,36 +1885,38 @@ CONTAINS
 
           ! Mass flux of add.gas in x-direction: u * ( h * alphag * rhog )
           flux(4+n_solid+1:4+n_solid+n_add_gas) = r_u *                         &
-               qcj(4+n_solid+1:4+n_solid+n_add_gas)
+               qcj(4+n_solid+1:4+n_solid+n_add_gas) *                           &
+               shape_coeff(4+n_solid+1:4+n_solid+n_add_gas)
                     
           ! Mass flux of liquid in x-direction: u * ( h * alphal * rhol )
-          IF ( gas_flag .AND. liquid_flag ) flux(n_vars) = r_u * qcj(n_vars)
+          IF ( gas_flag .AND. liquid_flag ) flux(n_vars) = r_u * qcj(n_vars) *  &
+               shape_coeff(n_vars)
 
        ELSEIF ( dir .EQ. 2 ) THEN
 
           ! flux G (derivated wrt y in the equations)
-          flux(1) = r_v * qcj(1)
+          flux(1) = r_v * qcj(1) * shape_coeff(1)
 
-          flux(2) = r_v * qcj(2)
+          flux(2) = r_v * qcj(2) * shape_coeff(2)
 
-          flux(3) = r_v * qcj(3) + 0.5_wp * r_rho_m * grav_coeff * r_red_grav   &
-               * r_h**2
+          flux(3) = r_v * qcj(3) * shape_coeff(3) + 0.5_wp * r_rho_m *          &
+               grav_coeff * r_red_grav * r_h**2
 
           IF ( energy_flag ) THEN
 
              ! ENERGY flux in x-direction
-             flux(4) = r_v * ( qcj(4) + 0.5_wp * r_rho_m * grav_coeff           &
-                  * r_red_grav * r_h**2 )
+             flux(4) = r_v * ( qcj(4) * shape_coeff(4) + 0.5_wp * r_rho_m *     &
+                  grav_coeff * r_red_grav * r_h**2 )
 
           ELSE
 
              ! Temperature flux in y-direction
-             flux(4) = r_v * qcj(4)
+             flux(4) = r_v * qcj(4) * shape_coeff(4)
 
           END IF
 
           ! Mass flux of solid in y-direction: v * ( h * alphas * rhos )
-          flux(5:4+n_solid) = r_v * qcj(5:4+n_solid)
+          flux(5:4+n_solid) = r_v * qcj(5:4+n_solid) * shape_coeff(5:4+n_solid)
 
           ! Solid flux can't be larger than total flux
           IF ( ( flux(1) .GT. 0.0_wp ) .AND. ( SUM(flux(5:4+n_solid)) / flux(1) &
@@ -1926,10 +1929,12 @@ CONTAINS
 
           ! Mass flux of add.gas in x-direction: v * ( h * alphag * rhog )
           flux(4+n_solid+1:4+n_solid+n_add_gas) = r_v *                         &
-               qcj(4+n_solid+1:4+n_solid+n_add_gas)
+               qcj(4+n_solid+1:4+n_solid+n_add_gas) *                           &
+               shape_coeff(4+n_solid+1:4+n_solid+n_add_gas)
                     
           ! Mass flux of liquid in x-direction: u * ( h * alphal * rhol )
-          IF ( gas_flag .AND. liquid_flag ) flux(n_vars) = r_v * qcj(n_vars)
+          IF ( gas_flag .AND. liquid_flag ) flux(n_vars) = r_v * qcj(n_vars) *  &
+               shape_coeff(n_vars)
 
        END IF
 
