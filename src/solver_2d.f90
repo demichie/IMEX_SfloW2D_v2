@@ -970,7 +970,6 @@ CONTAINS
 
     USE constitutive_2d, ONLY : T_ambient
 
-
     USE geometry_2d, ONLY : B_nodata
 
 !!$    USE parameters_2d, ONLY : time_param , bottom_radial_source_flag
