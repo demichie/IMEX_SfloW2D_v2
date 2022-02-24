@@ -2015,8 +2015,8 @@ CONTAINS
           
        DO i_solid=1,n_solid
              
-          settling_vel = settling_velocity( diam_s(i_solid) ,          &
-               rho_s(i_solid) , r_rho_c , inv_kin_visc )
+          settling_vel = settling_velocity( diam_s(i_solid) , rho_s(i_solid) ,  &
+               r_rho_c , inv_kin_visc )
              
           IF ( shear_vel .GT. 0.0_wp ) THEN
                 
@@ -2104,16 +2104,16 @@ CONTAINS
           ! u_tilde is defined as u(z)/(u_guess*u_coeff*sqrt(friction_coeff)) 
           y = h0
 
-          call calcei (  -a*(h0+1.0_wp/b), ei, 2 )
-          int_h0 = ( exp(a*y)*log(b*y+1.0) + exp(-a/b) * ei ) / a
+          CALL calcei (  -a*(h0+1.0_wp/b), ei, 2 )
+          int_h0 = ( EXP(a*y)*LOG(b*y+1.0) + EXP(-a/b) * ei ) / a
     
           y = 0
-          call calcei (  -a*(1.0_wp/b), ei, 2 )
-          int_0 = ( exp(a*y)*log(b*y+1.0) + exp(-a/b) * ei ) / a
+          CALL calcei (  -a*(1.0_wp/b), ei, 2 )
+          int_0 = ( EXP(a*y)*LOG(b*y+1.0) + EXP(-a/b) * ei ) / a
 
           ! integral of u_rel(z)*alphas_rel(z) in the log region (0<=z<=h0)
           ! here u_rel(z) = u(z)/u_avg 
-          int_def = u_coeff * sqrt(friction_factor) / vonK * alphas_rel_max *   &
+          int_def = u_coeff * SQRT(friction_factor) / vonK * alphas_rel_max *   &
                (int_h0-int_0)
 
           ! we add the contribution of the integral of the constant region, we
@@ -2124,23 +2124,24 @@ CONTAINS
           
           ! integral of u_rel(z)^2*alphas_rel(z) in the log region (0<=z<=h0)
           ! here u_rel(z) = u(z)/u_avg
-          int_quad = sum( exp(a*x) * w_log_term_x )
+          int_quad = SUM( EXP(a*x) * w_log_term_x )
           
           rhom_mod_vel2 = rhom_mod_vel2 + ( rho_s(i_solid) - r_rho_c ) *        &
                alphas_rel_max * r_alphas(i_solid) * ( mod_vel * u_coeff *       &
-               sqrt(friction_factor) / vonK )**2 * ( int_quad + ( r_h - h0 ) *  &
+               SQRT(friction_factor) / vonK )**2 * ( int_quad + ( r_h - h0 ) *  &
                exp_a_h0 * log_term_h0 )
           
        END DO
 
        ! we add the contribution of the gas phase to the mixture depth-averaged 
        ! momentum
-       uRho_avg = ( mod_Vel * r_rho_c + sum((rho_s - r_rho_c)/rho_s*rho_u_alphas) )
+       uRho_avg = ( mod_Vel * r_rho_c + SUM((rho_s - r_rho_c) / rho_s *         &
+            rho_u_alphas) )
 
        ! integral of the square of the velocity profile between 0 and h
-       int_u2 = ( mod_vel * u_coeff * sqrt(friction_factor) / vonK )**2 * &
-            ( ( 2.0_wp*b*h0 + b_term * log_term_h0 - &
-            2.0_wp*b_term * log(b_term) )/b + ( r_h - h0 ) * log_term_h0 );
+       int_u2 = ( mod_vel * u_coeff * SQRT(friction_factor) / vonK )**2 *       &
+            ( ( 2.0_wp*b*h0 + b_term * log_term_h0 - 2.0_wp*b_term *            &
+            LOG(b_term) )/b + ( r_h - h0 ) * log_term_h0 )
 
        rhom_u_u = ( rhom_u_u + r_rho_c * int_u2 ) / r_h
 
@@ -2148,7 +2149,7 @@ CONTAINS
 
        shape_coeff(2:3) = rhom_u_u / ( uRho_avg * mod_vel )
 
-       shape_coeff(4+n_solid+1:4+n_solid+n_add_gas) = rho_u_alphas &
+       shape_coeff(4+n_solid+1:4+n_solid+n_add_gas) = rho_u_alphas              &
             / ( rho_s * r_alphas * mod_vel )
 
     ELSE
