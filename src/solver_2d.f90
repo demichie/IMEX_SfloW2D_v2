@@ -55,9 +55,6 @@ MODULE solver_2d
   !> Solution of the finite-volume semidiscrete cheme
   REAL(wp), ALLOCATABLE :: q_fv(:,:,:)     
 
-  !> Shape coefficients
-  REAL(wp), ALLOCATABLE :: shape_coeff(:,:,:)        
-
   !> Map of positive thickness 
   LOGICAL, ALLOCATABLE :: hpos(:,:)        
   !> Map of positive thickness at previous output step
@@ -73,16 +70,6 @@ MODULE solver_2d
   !> Reconstructed value at the top of the y-interface
   REAL(wp), ALLOCATABLE :: q_interfaceT(:,:,:)
 
-  !> Reconstructed shape coeff. at the left of the x-interface
-  REAL(wp), ALLOCATABLE :: shape_coeffL(:,:,:)        
-  !> Reconstructed shape coeff. at the right of the x-interface
-  REAL(wp), ALLOCATABLE :: shape_coeffR(:,:,:)
-  !> Reconstructed shape coeff. at the bottom of the y-interface
-  REAL(wp), ALLOCATABLE :: shape_coeffB(:,:,:)        
-  !> Reconstructed shape coeff. at the top of the y-interface
-  REAL(wp), ALLOCATABLE :: shape_coeffT(:,:,:)
-
-  
   !> Reconstructed physical value at the left of the x-interface
   REAL(wp), ALLOCATABLE :: qp_interfaceL(:,:,:)        
   !> Reconstructed physical value at the right of the x-interface
@@ -276,10 +263,6 @@ CONTAINS
 
     ALLOCATE( q_fv( n_vars , comp_cells_x , comp_cells_y ) )
 
-    ALLOCATE( shape_coeff( n_vars , comp_cells_x , comp_cells_y ) )
-
-    shape_coeff = 1.0_wp
-    
     ALLOCATE( q_interfaceL( n_vars , comp_interfaces_x, comp_cells_y ) )
     ALLOCATE( q_interfaceR( n_vars , comp_interfaces_x, comp_cells_y ) )
     ALLOCATE( a_interface_xNeg( n_eqns , comp_interfaces_x, comp_cells_y ) )
@@ -305,16 +288,6 @@ CONTAINS
     ALLOCATE( qp_interfaceB( n_vars+2 , comp_cells_x, comp_interfaces_y ) )
     ALLOCATE( qp_interfaceT( n_vars+2 , comp_cells_x, comp_interfaces_y ) )
 
-    ALLOCATE( shape_coeffL( n_vars , comp_interfaces_x, comp_cells_y ) )
-    ALLOCATE( shape_coeffR( n_vars , comp_interfaces_x, comp_cells_y ) )
-    ALLOCATE( shape_coeffB( n_vars , comp_cells_x, comp_interfaces_y ) )
-    ALLOCATE( shape_coeffT( n_vars , comp_cells_x, comp_interfaces_y ) )
-
-    shape_coeffL = 1.0_wp
-    shape_coeffR = 1.0_wp
-    shape_coeffB = 1.0_wp
-    shape_coeffT = 1.0_wp
-    
     ALLOCATE( q_cellNW( n_vars , comp_cells_x , comp_cells_y ) )
     ALLOCATE( q_cellNE( n_vars , comp_cells_x , comp_cells_y ) )
     ALLOCATE( q_cellSW( n_vars , comp_cells_x , comp_cells_y ) )
@@ -969,6 +942,7 @@ CONTAINS
     USE constitutive_2d, ONLY : eval_expl_terms
 
     USE constitutive_2d, ONLY : T_ambient
+
 
     USE geometry_2d, ONLY : B_nodata
 
@@ -2584,14 +2558,12 @@ CONTAINS
           k = k_stag_x(l)
 
           CALL eval_fluxes( q_interfaceL(1:n_vars,j,k) ,                        &
-               qp_interfaceL(1:n_vars+2,j,k) , shape_coeffL(1:n_vars,j,k) ,     &
-               B_prime_x(j-1,k) , B_prime_y(j-1,k) , grav_coeff_stag_x(j,k) ,   &
-               1 , fluxL )
+               qp_interfaceL(1:n_vars+2,j,k) , B_prime_x(j-1,k) ,               &
+               B_prime_y(j-1,k) , grav_coeff_stag_x(j,k) , 1 , fluxL )
 
           CALL eval_fluxes( q_interfaceR(1:n_vars,j,k) ,                        &
-               qp_interfaceR(1:n_vars+2,j,k) , shape_coeffR(1:n_vars,j,k) ,     &
-               B_prime_x(j,k) , B_prime_y(j,k) , grav_coeff_stag_x(j,k) , 1 ,   &
-               fluxR )
+               qp_interfaceR(1:n_vars+2,j,k) , B_prime_x(j,k) ,                 &
+               B_prime_y(j,k) , grav_coeff_stag_x(j,k) , 1 , fluxR )
 
           IF ( ( qp_interfaceL(n_vars+1,j,k) .GT. 0.0_wp ) .AND.                &
                ( qp_interfaceR(n_vars+1,j,k) .GE. 0.0_wp ) ) THEN
@@ -2634,14 +2606,12 @@ CONTAINS
           k = k_stag_y(l)
 
           CALL eval_fluxes( q_interfaceB(1:n_vars,j,k) ,                        &
-               qp_interfaceB(1:n_vars+2,j,k) , shape_coeffB(1:n_vars,j,k) ,     &
-               B_prime_x(j,k-1) , B_prime_y(j,k-1) , grav_coeff_stag_y(j,k) ,   &
-               2 , fluxB )
+               qp_interfaceB(1:n_vars+2,j,k) , B_prime_x(j,k-1) ,               &
+               B_prime_y(j,k-1) , grav_coeff_stag_y(j,k) , 2 , fluxB )
 
           CALL eval_fluxes( q_interfaceT(1:n_vars,j,k) ,                        &
-               qp_interfaceT(1:n_vars+2,j,k) , shape_coeffT(1:n_vars,j,k) ,     &
-               B_prime_x(j,k) , B_prime_y(j,k) , grav_coeff_stag_y(j,k) , 2 ,   &
-               fluxT )
+               qp_interfaceT(1:n_vars+2,j,k) , B_prime_x(j,k) ,                 &
+               B_prime_y(j,k) , grav_coeff_stag_y(j,k) , 2 , fluxT )
 
           IF ( ( q_interfaceB(3,j,k) .GT. 0.0_wp ) .AND.                        &
                ( q_interfaceT(3,j,k) .GE. 0.0_wp ) ) THEN
@@ -2726,14 +2696,12 @@ CONTAINS
           k = k_stag_x(l)
 
           CALL eval_fluxes( q_interfaceL(1:n_vars,j,k) ,                        &
-               qp_interfaceL(1:n_vars+2,j,k) , shape_coeffL(1:n_vars,j,k) ,     &
-               B_prime_x(j-1,k) , B_prime_y(j-1,k) , grav_coeff_stag_x(j,k) ,   &
-               1 , fluxL )
+               qp_interfaceL(1:n_vars+2,j,k) , B_prime_x(j-1,k) ,               &
+               B_prime_y(j-1,k) , grav_coeff_stag_x(j,k) , 1 , fluxL )
 
           CALL eval_fluxes( q_interfaceR(1:n_vars,j,k) ,                        &
-               qp_interfaceR(1:n_vars+2,j,k) , shape_coeffR(1:n_vars,j,k) ,     &
-               B_prime_x(j,k) , B_prime_y(j,k) , grav_coeff_stag_x(j,k) , 1 ,   &
-               fluxR )
+               qp_interfaceR(1:n_vars+2,j,k) , B_prime_x(j,k) ,                 &
+               B_prime_y(j,k) , grav_coeff_stag_x(j,k) , 1 , fluxR )
           
           CALL average_KT( a_interface_xNeg(:,j,k), a_interface_xPos(:,j,k) ,   &
                fluxL , fluxR , flux_avg_x )
@@ -2793,14 +2761,12 @@ CONTAINS
           k = k_stag_y(l)
 
           CALL eval_fluxes( q_interfaceB(1:n_vars,j,k) ,                        &
-               qp_interfaceB(1:n_vars+2,j,k) , shape_coeffB(1:n_vars,j,k) ,     &
-               B_prime_x(j,k-1) , B_prime_y(j,k-1) , grav_coeff_stag_y(j,k) ,   &
-               2 , fluxB )
+               qp_interfaceB(1:n_vars+2,j,k) , B_prime_x(j,k-1) ,               &
+               B_prime_y(j,k-1) , grav_coeff_stag_y(j,k) , 2 , fluxB )
 
           CALL eval_fluxes( q_interfaceT(1:n_vars,j,k) ,                        &
-               qp_interfaceT(1:n_vars+2,j,k) , shape_coeffT(1:n_vars,j,k) ,     &
-               B_prime_x(j,k) , B_prime_y(j,k) , grav_coeff_stag_y(j,k) , 2 ,   &
-               fluxT )
+               qp_interfaceT(1:n_vars+2,j,k) , B_prime_x(j,k) ,                 &
+               B_prime_y(j,k) , grav_coeff_stag_y(j,k) , 2 , fluxT )
           
           CALL average_KT( a_interface_yNeg(:,j,k) ,                            &
                a_interface_yPos(:,j,k) , fluxB , fluxT , flux_avg_y )

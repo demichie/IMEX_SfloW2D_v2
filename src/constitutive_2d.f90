@@ -1748,13 +1748,12 @@ CONTAINS
   !
   !******************************************************************************
 
-  SUBROUTINE eval_fluxes(qcj,qpj,shape_coeff,B_prime_x,B_prime_y,grav_coeff,dir,flux)
+  SUBROUTINE eval_fluxes(qcj,qpj,B_prime_x,B_prime_y,grav_coeff,dir,flux)
 
     IMPLICIT none
 
     REAL(wp), INTENT(IN) :: qcj(n_vars)
     REAL(wp), INTENT(IN) :: qpj(n_vars+2)
-    REAL(wp), INTENT(IN) :: shape_coeff(n_vars)
     REAL(wp), INTENT(IN) :: B_prime_x
     REAL(wp), INTENT(IN) :: B_prime_y
     REAL(wp), INTENT(IN) :: grav_coeff
@@ -1773,6 +1772,8 @@ CONTAINS
     REAL(wp) :: r_sp_heat_c
     REAL(wp) :: r_sp_heat_mix
 
+    REAL(wp) :: shape_coeff(n_eqns)
+    
     REAL(wp) :: r_w
     REAL(wp) :: mod_vel2 , mod_vel
     
@@ -1788,6 +1789,8 @@ CONTAINS
     
     sp_heat_flag = .FALSE.
 
+    shape_coeff(1:n_eqns) = 1.0_wp
+    
     pos_thick:IF ( qpj(1) .GT. EPSILON(1.0_wp) ) THEN
 
        r_h = qpj(1)
