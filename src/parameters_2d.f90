@@ -135,6 +135,9 @@ MODULE parameters_2d
   REAL(wp) :: vel_source
   REAL(wp) :: T_source
   REAL(wp) :: h_source
+  REAL(wp) :: Ri_source
+  REAL(wp) :: mfr_source
+  
   REAL(wp) :: alphas_source(100)
   REAL(wp) :: alphag_source(100)
   REAL(wp) :: alphal_source

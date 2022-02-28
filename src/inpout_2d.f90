@@ -50,7 +50,7 @@ MODULE inpout_2d
   ! -- Variables for the namelist RADIAL_SOURCE_PARAMETERS
   USE parameters_2d, ONLY : x_source , y_source , r_source , vel_source ,       &
        T_source , h_source , alphas_source , alphal_source , alphag_source ,    &
-       time_param
+       time_param , Ri_source , mfr_source
 
   ! -- Variables for the namelist COLLAPSING_VOLUME_PARAMETERS
   USE parameters_2d, ONLY : x_collapse , y_collapse , r_collapse , T_collapse , &
@@ -243,7 +243,7 @@ MODULE inpout_2d
  
   NAMELIST / radial_source_parameters / x_source , y_source , r_source ,        &
        vel_source , T_source , h_source , alphas_source , alphal_source ,       &
-       alphag_source , time_param
+       alphag_source , time_param , Ri_source , mfr_source
   
   NAMELIST / collapsing_volume_parameters / x_collapse , y_collapse ,           &
        r_collapse , T_collapse , h_collapse , alphas_collapse , alphag_collapse
@@ -583,6 +583,8 @@ CONTAINS
     h_source = -1.0_wp
     r_source = -1.0_wp
     vel_source = -1.0_wp
+    Ri_source = -1.0_wp
+    mfr_source = -1.0_wp
     time_param(1:4) = -1.0_wp
     alphas_source = -1.0_wp
     alphag_source = -1.0_wp
@@ -640,6 +642,9 @@ CONTAINS
     USE constitutive_2d, ONLY : radiative_term_coeff , SBconst
     USE constitutive_2d, ONLY : convective_term_coeff
 
+    ! External procedures
+    USE constitutive_2d, ONLY : mixt_var
+    
     IMPLICIT none
 
     NAMELIST / west_boundary_conditions / h_bcW , hu_bcW , hv_bcW ,             &
@@ -687,6 +692,19 @@ CONTAINS
 
     REAL(wp) :: expA , expB , Tc
 
+    REAL(wp) :: qp_source(n_vars+2)
+    REAL(wp) :: red_grav
+    REAL(wp) :: rho_c
+    REAL(wp) :: rho_m
+    REAL(wp) :: Ri
+    LOGICAL :: sp_heat_flag
+    REAL(wp) :: sp_heat_mix
+    REAL(wp) :: mfr
+
+    REAL(wp) :: pi_g
+
+
+    
     OPEN(input_unit,FILE=input_file,STATUS='old')
 
     ! ---------- READ run_parameters NAMELIST -----------------------------------
@@ -2233,7 +2251,7 @@ CONTAINS
 
     ! ------- READ radial_source_parameters NAMELIST ----------------------------
 
-    IF ( ( radial_source_flag ) .OR. ( bottom_radial_source_flag ) ) THEN
+    source_flag:IF ( ( radial_source_flag ) .OR. ( bottom_radial_source_flag ) ) THEN
 
        alphal_source = -1.0_wp
 
@@ -2259,25 +2277,38 @@ CONTAINS
 
           END IF
 
-          IF ( ( h_source .EQ. -1.0_wp ) .AND. (.NOT. bottom_radial_source_flag) ) THEN
+          IF ( ( ( h_source .EQ. -1.0_wp ) .AND. ( mfr_source .EQ. -1 ) ) &
+               .AND. (.NOT. bottom_radial_source_flag) ) THEN
 
              WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
-             WRITE(*,*) 'PLEASE CHECK VALUE OF H_SOURCE',h_source
+             WRITE(*,*) 'PLEASE ASSIGN A VALUE TO H_SOURCE OR MFR_SOURCE'
              STOP
 
           ELSE
 
-             IF ( ( h_source .GE. 0.0_wp ) .AND. ( bottom_radial_source_flag ) ) THEN
+             IF ( ( ( h_source .GE. 0.0_wp ) .OR. ( mfr_source .GE. 0.0_wp ) ) &
+                  .AND. ( bottom_radial_source_flag ) ) THEN
 
                 WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
                 WRITE(*,*) 'When BOTTOM_RADIAL_SOURCE_FLAG = TRUE'
                 WRITE(*,*) 'h_source should not be given',h_source
+                WRITE(*,*) 'mfr_source should not be given',mfr_source
                 STOP
 
              END IF
 
           END IF
 
+          IF ( ( h_source .GE. 0.0_wp ) .AND. ( mfr_source .GE. 0.0_wp ) ) THEN
+
+                WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+                WRITE(*,*) 'PLEASE ASSIGN ONLY H_SOURCE OR MFR_SOURCE'
+                WRITE(*,*) 'h_source',h_source
+                WRITE(*,*) 'mfr_source',mfr_source
+                STOP             
+             
+          END IF
+          
           IF ( r_source .EQ. -1.0_wp ) THEN
 
              WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
@@ -2286,7 +2317,7 @@ CONTAINS
 
           END IF
 
-          IF ( vel_source .EQ. -1.0_wp ) THEN
+          IF ( ( vel_source .EQ. -1.0_wp ) .AND. ( bottom_radial_source_flag ) ) THEN
 
              WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
              WRITE(*,*) 'PLEASE CHECK VALUE OF VEL_SOURCE',vel_source
@@ -2294,6 +2325,34 @@ CONTAINS
 
           END IF
 
+          IF ( ( Ri_source .NE. -1.0_wp ) .AND. ( bottom_radial_source_flag ) ) THEN
+
+             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+             WRITE(*,*) 'PLEASE REMOVE VALUE OF RI_SOURCE',Ri_source
+             STOP
+
+          END IF
+         
+          IF ( radial_source_flag ) THEN
+
+             IF ( ( vel_source .EQ. -1.0_wp ) .AND. ( Ri_source .EQ. -1.0_wp ) ) THEN
+
+                WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+                WRITE(*,*) 'PLEASE ASSIGN VALUE TO VEL_SOURCE OR RI_SOURCE'
+                STOP
+
+             ELSEIF ( ( vel_source .NE. -1.0_wp ) .AND. ( Ri_source .NE. -1.0_wp ) ) THEN
+
+                WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+                WRITE(*,*) 'PLEASE ASSIGN ONLY VEL_SOURCE OR RI_SOURCE'
+                WRITE(*,*) 'VEL_SOURCE:',vel_source
+                WRITE(*,*) 'RI_SOURCE:',Ri_source
+                STOP
+                
+             END IF
+
+          END IF
+          
           IF ( ( x_source - r_source ) .LE. X0 + cell_size ) THEN
 
              WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
@@ -2397,12 +2456,133 @@ CONTAINS
 
           END IF
 
+          IF ( radial_source_flag ) THEN
+
+             ! compute the velocity, given the Richardson number
+
+             ! fix an initial velocity 
+             IF ( Ri_source .NE. -1.0_wp ) vel_source = 1.0_wp
+
+             IF ( mfr_source .GE. 0.0_wp ) h_source = 1.0_wp
+
+             ! define the physical variable from the source values and the
+             ! initial velocity
+             qp_source(1) = h_source
+             qp_source(2) = h_source*vel_source
+             qp_source(3) = 0.0_wp
+    
+             qp_source(4) = T_source
+
+             IF ( alpha_flag ) THEN
+
+                qp_source(5:4+n_solid) = alphas_source(1:n_solid)
+                qp_source(4+n_solid+1:4+n_solid+n_add_gas) = alphag_source(1:n_add_gas)
+
+                IF ( gas_flag .AND. liquid_flag ) qp_source(n_vars) = alphal_source
+                
+             ELSE
+                
+                qp_source(5:4+n_solid) = alphas_source(1:n_solid) * h_source
+                qp_source(4+n_solid+1:4+n_solid+n_add_gas) = alphag_source(1:n_add_gas) * h_source
+
+                IF ( gas_flag .AND. liquid_flag ) qp_source(n_vars) = alphal_source * h_source
+
+             END IF
+
+             qp_source(n_vars+1) = vel_source
+             qp_source(n_vars+2) = 0.0_wp
+
+             sp_heat_flag = .FALSE.
+
+             ! compute the Richardson number for vel = 1.0
+             CALL mixt_var( qp_source, Ri, rho_m, rho_c, red_grav, sp_heat_flag,         &
+                  sp_heat_c, sp_heat_mix)
+
+             pi_g = ATAN(1.0_wp)*4.0_wp
+
+             IF ( mfr_source .GE. 0.0_wp ) THEN
+                
+                IF ( Ri_source .GE. 0.0_wp ) THEN
+                   ! mfr and Ri given as input
+                   
+                   h_source = ( mfr_source / ( r_source * 2.0_wp * pi_g * rho_m ) * SQRT( Ri_source/red_grav ) )**(2.0_wp/3.0_wp)
+
+             qp_source(1) = h_source
+             qp_source(2) = h_source*vel_source
+             qp_source(3) = 0.0_wp
+    
+             qp_source(4) = T_source
+
+             IF ( alpha_flag ) THEN
+
+                qp_source(5:4+n_solid) = alphas_source(1:n_solid)
+                qp_source(4+n_solid+1:4+n_solid+n_add_gas) = alphag_source(1:n_add_gas)
+
+                IF ( gas_flag .AND. liquid_flag ) qp_source(n_vars) = alphal_source
+                
+             ELSE
+                
+                qp_source(5:4+n_solid) = alphas_source(1:n_solid) * h_source
+                qp_source(4+n_solid+1:4+n_solid+n_add_gas) = alphag_source(1:n_add_gas) * h_source
+
+                IF ( gas_flag .AND. liquid_flag ) qp_source(n_vars) = alphal_source * h_source
+
+             END IF
+
+             qp_source(n_vars+1) = vel_source
+             qp_source(n_vars+2) = 0.0_wp
+                   
+                   ! compute the Richardson number for vel = 1.0
+                   CALL mixt_var( qp_source, Ri, rho_m, rho_c, red_grav, sp_heat_flag,         &
+                        sp_heat_c, sp_heat_mix)
+                   
+                   ! compute the correct velocity for the desired Richardson number
+                   vel_source = SQRT( Ri/Ri_source )
+                   
+                ELSE
+                   
+                   ! mfr and velocity
+                   
+                   CALL mixt_var( qp_source, Ri, rho_m, rho_c, red_grav, sp_heat_flag,         &
+                        sp_heat_c, sp_heat_mix)
+                   
+                   h_source = mfr_source / ( r_source * 2.0_wp * pi_g * rho_m * vel_source )
+                   
+                END IF
+                
+             ELSE
+                
+                IF ( Ri_source .GE. 0.0_wp ) THEN
+                   
+                   ! compute the correct velocity for the desired Richardson number
+                   vel_source = SQRT( Ri/Ri_source )
+                   
+                END IF
+
+             END IF
+                
+             qp_source(1) = h_source
+             qp_source(2) = h_source*vel_source
+             qp_source(n_vars+1) = vel_source
+             
+             ! Check that the Richardson number is correct
+             CALL mixt_var( qp_source, Ri, rho_m, rho_c, red_grav, sp_heat_flag,         &
+                  sp_heat_c, sp_heat_mix)
+             
+             WRITE(*,*) ''
+             WRITE(*,*) 'Source Richardson number',Ri
+             WRITE(*,*) 'Source velocity',vel_source
+             WRITE(*,*) 'Source thickness=',h_source,'(m)'
+
+             mfr = rho_m*h_source*r_source*2.0*pi_g*vel_source
+             WRITE(*,*) 'Source mass flow rate',mfr,'(kg/s)'
+             WRITE(*,*)
+
+          END IF
+          
        END IF
 
-    END IF
-
-
-
+    END IF source_flag
 
     ! ------- READ collapsing_volume_parameters NAMELIST ------------------------
 
@@ -2509,7 +2689,7 @@ CONTAINS
           END IF
 
        END IF
-
+       
     END IF
 
     ! ------- READ rheology_parameters NAMELIST ---------------------------------
