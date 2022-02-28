@@ -5031,7 +5031,7 @@ CONTAINS
 
   SUBROUTINE output_probes(time)
 
-    USE geometry_2d, ONLY : x_comp , y_comp 
+    USE geometry_2d, ONLY : x_comp , y_comp , deposit
     USE parameters_2d, ONLY : t_probes
     USE solver_2d, ONLY : qp
 
@@ -5047,8 +5047,11 @@ CONTAINS
 
     REAL(wp) :: f2
 
-    INTEGER :: k 
-
+    INTEGER :: k
+    
+    INTEGER :: i_solid
+    REAL(wp) :: dep_probe(n_solid)
+    
     DO k=1,n_probes
 
        idx_string = lettera(k)
@@ -5058,7 +5061,7 @@ CONTAINS
        IF ( time .EQ. t_start ) THEN
 
           OPEN(probes_unit,FILE=probes_file,status='unknown',form='formatted')
-          WRITE(probes_unit,'(2e20.12)') probes_coords(1,k) , probes_coords(2,k)
+          WRITE(probes_unit,'(100ES15.7E2)') probes_coords(1,k) , probes_coords(2,k)
 
        ELSE
 
@@ -5066,16 +5069,33 @@ CONTAINS
                form='formatted')
 
        END IF
-
+       
        CALL interp_2d_scalarB( x_comp , y_comp , qp(1,:,:)  ,                   &
             probes_coords(1,k) , probes_coords(2,k) , f2 )
 
-       WRITE(probes_unit,'(2e20.12)') time , f2
+       IF ( settling_flag ) THEN
+       
+          DO i_solid=1,n_solid
+             
+             CALL interp_2d_scalarB( x_comp , y_comp , DEPOSIT(:,:,i_solid)  ,     &
+                  probes_coords(1,k) , probes_coords(2,k) , dep_probe(i_solid) )
+             
+          END DO
+          
+          WRITE(probes_unit,1710) time , f2 , dep_probe(1:n_solid)
+
+       ELSE
+
+          WRITE(probes_unit,1710) time , f2
+
+       END IF
 
        CLOSE(probes_unit)
 
     END DO
 
+1710 FORMAT(100ES15.7E2)
+    
     t_probes = time + dt_probes
 
   END SUBROUTINE output_probes
