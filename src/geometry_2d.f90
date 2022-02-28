@@ -1539,8 +1539,6 @@ CONTAINS
     w2 = lambertw0(z)
     z2 = w2*exp(w2)
 
-    WRITE(*,*) 'w1,w2',w1,w2
-
     IF ( ABS( z1-z ) .LT. ABS( z2-z ) ) THEN
 
        lambertw = w1
@@ -2100,8 +2098,43 @@ CONTAINS
     end if
 
     result = ei
-
+    
     return
   end subroutine calcei
+
+  subroutine gaulegf(x1, x2, x, w, n)
+
+    implicit none
+    integer, intent(in) :: n
+    REAL(wp), intent(in) :: x1, x2
+    REAL(wp), dimension(n), intent(out) :: x, w
+    integer :: i, j, m
+    REAL(wp) :: p1, p2, p3, pp, xl, xm, z, z1
+    REAL(wp), parameter :: eps=3.0E-14_wp
+
+    m = (n+1)/2
+    xm = 0.5_wp*(x2+x1)
+    xl = 0.5_wp*(x2-x1)
+    do i=1,m
+       z = cos(pi_g*(i-0.25_wp)/(n+0.5_wp))
+       z1 = 0.0_wp
+       do while(abs(z-z1) .gt. eps)
+          p1 = 1.0_wp
+          p2 = 0.0_wp
+          do j=1,n
+             p3 = p2
+             p2 = p1
+             p1 = ((2.0_wp*j-1.0_wp)*z*p2-(j-1.0_wp)*p3)/j
+          end do
+          pp = n*(z*p1-p2)/(z*z-1.0_wp)
+          z1 = z
+          z = z1 - p1/pp
+       end do
+       x(i) = xm - xl*z
+       x(n+1-i) = xm + xl*z
+       w(i) = (2.0_wp*xl)/((1.0_wp-z*z)*pp*pp)
+       w(n+1-i) = w(i)
+    end do
+  end subroutine gaulegf
 
 END MODULE geometry_2d

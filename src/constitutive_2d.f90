@@ -331,7 +331,6 @@ CONTAINS
     
     REAL(wp) :: rhos_alfas_tot_u 
     REAL(wp) :: rhos_alfas_tot_v
-    REAL(wp) :: rhos_alfas_tot_mod_vel
 
     REAL(wp) :: settling_vel(n_solid)
 
@@ -519,8 +518,6 @@ CONTAINS
        rhos_alfas_tot_u = r_xs_tot * r_qj(2) / r_h  
        rhos_alfas_tot_v = r_xs_tot * r_qj(3) / r_h  
       
-       rhos_alfas_tot_mod_vel = SQRT( rhos_alfas_tot_u**2 + rhos_alfas_tot_v**2 )
-
        rhos_alfas(1:n_solid) = r_alphas(1:n_solid) * rho_s(1:n_solid)
 
        ! Viscosity read from input file [m2 s-1]
@@ -625,7 +622,6 @@ CONTAINS
           IF ( ( abs(u_avg_guess-u_avg_new)/u_avg_guess < rel_tol ) .OR.        &
                ( abs(u_avg_guess-u_avg_new) < abs_tol ) ) THEN
 
-             u_avg_guess = u_avg_new
              EXIT aitken_loop
 
           END IF
@@ -636,6 +632,12 @@ CONTAINS
 
        r_u = u_avg_new * r_qj(2) / ( SQRT( r_qj(2)**2 + r_qj(3)**2 ) )
        r_v = u_avg_new * r_qj(3) / ( SQRT( r_qj(2)**2 + r_qj(3)**2 ) )
+
+       WRITE(*,*) 'r_h',r_h
+       WRITE(*,*) 'rhom_avg',rhom_avg
+       WRITE(*,*) 'uRho_avg_new',uRho_avg_new
+       WRITE(*,*) 'u_avg',u_avg_new
+       READ(*,*)
       
     ELSE
     
@@ -673,7 +675,7 @@ CONTAINS
   SUBROUTINE avg_profiles_mix( h , settling_vel , rho_alphas_avg , u_guess ,    &
        h0 , b , u_coeff , u_rel0 , rho_c , rhom_avg , uRho_avg_new )
 
-    USE geometry_2d, ONLY : calcei
+    USE geometry_2d, ONLY : calcei , gaulegf
     
     IMPLICIT NONE
 
@@ -711,7 +713,11 @@ CONTAINS
     REAL(wp) :: int_h0 , int_0 , int_def
 
     INTEGER ( kind = 4 ) :: i
-    REAL(wp) :: x,ei
+    ! REAL(wp) :: x,ei
+
+    REAL(wp) :: x(20)
+    REAL(wp) :: w(20)
+    REAL(wp) :: int_quad
     
     vonK = 0.4_wp
     friction_factor = 0.01_wp
@@ -727,6 +733,8 @@ CONTAINS
     ! Rouse numbers for the particle classes
     Pn(1:n_solid) = settling_vel(1:n_solid) / ( vonK * shear_vel )
 
+    CALL gaulegf(0.0_wp, h0, x, w, 20)
+   
     DO i_solid=1,n_solid
 
        a = -( 6.0_wp * Pn(i_solid) * Sc ) / h
@@ -748,21 +756,26 @@ CONTAINS
        ! we compute the integral in the log region of u_tilde(z)*C_rel(z), where 
        ! u_tilde is defined as u(z)/(u_guess*u_coeff*sqrt(friction_coeff))
 
-       i = 2
-       x = -a*(h0+1.0_wp/b)
-       call calcei ( x, ei, i )
-       
-       int_h0 = ( exp(a*h0)*log(b*h0+1.0) + exp(-a/b) * ei ) / a
+!!$       i = 2
+!!$       x = -a*(h0+1.0_wp/b)
+!!$       call calcei ( x, ei, i )
+!!$       
+!!$       int_h0 = ( exp(a*h0)*log(b*h0+1.0) + exp(-a/b) * ei ) / a
+!!$
+!!$       x = -a*(1.0_wp/b)
+!!$       call calcei ( x, ei, i )
+!!$       int_0 = ( exp(-a/b) * ei ) / a
+!!$
+!!$       ! integral of u_rel(z)*C_rel(z) in the log region (0<=z<=h0)
+!!$       ! here u_rel(z) = u(z)/u_guess 
+!!$       int_def = u_coeff * sqrt(friction_factor) / vonK * alphas_rel_max *      &
+!!$            (int_h0-int_0)
 
-       x = -a*(1.0_wp/b)
-       call calcei ( x, ei, i )
-       int_0 = ( exp(-a/b) * ei ) / a
-
-       ! integral of u_rel(z)*C_rel(z) in the log region (0<=z<=h0)
-       ! here u_rel(z) = u(z)/u_guess 
+       int_quad = SUM( w * ( EXP(a*x) * LOG( b*x + 1.0_wp ) ) )
        int_def = u_coeff * sqrt(friction_factor) / vonK * alphas_rel_max *      &
-            (int_h0-int_0)
+           int_quad
 
+       
        ! we add the contribution of the integral of the constant region, we
        ! average by dividing by h and we multiply by the density of solid and
        ! average concentration and by u_guess.
@@ -1338,6 +1351,10 @@ CONTAINS
 
   SUBROUTINE qp_to_qc(qp,qc)
 
+    USE parameters_2d, ONLY : vertical_profiles_flag
+    USE geometry_2d, ONLY : gaulegf
+    USE geometry_2d, ONLY : lambertw
+    
     IMPLICIT none
 
     REAL(wp), INTENT(IN) :: qp(n_vars+2)
@@ -1373,6 +1390,37 @@ CONTAINS
 
     REAL(wp) :: r_inv_rhom
 
+    REAL(wp) :: rho_u_alphas(n_solid)
+    REAL(wp) :: uRho_avg
+
+    REAL(wp) :: u_rel0
+    REAL(wp) :: u_coeff
+    REAL(wp) :: shear_vel
+
+    REAL(wp) :: a , b , c , d
+
+    REAL(wp) :: x(20) , w(20)
+
+    REAL(wp) :: inv_kin_visc
+    REAL(wp) :: settling_vel
+
+    REAL(wp) :: Rouse_no(n_solid)
+
+    INTEGER :: i_solid
+
+    REAL(wp) :: r_w
+    REAL(wp) :: mod_vel
+    REAL(wp) :: log_term_h0
+    REAL(wp) :: int_quad , int , int_def
+    REAL(wp) :: h_rel , H_crit_rel , h0_rel , h0
+    REAL(wp) :: a_coeff
+    REAL(wp) :: a_crit_rel
+    REAL(wp) :: alphas_rel0
+    real(wp) :: alphas_rel_max
+    REAL(wp) :: b_term
+    REAL(wp) :: exp_a_h0
+
+    
     r_h = qp(1)
 
     IF ( r_h .GT. EPSILON(1.0_wp) ) THEN
@@ -1529,7 +1577,7 @@ CONTAINS
           r_sp_heat_c = sp_heat_l
 
        END IF
-          
+
        ! mass averaged mixture specific heat
        r_sp_heat_mix =  DOT_PRODUCT( r_xs , sp_heat_s ) + r_xc * r_sp_heat_c
 
@@ -1538,10 +1586,153 @@ CONTAINS
     !CALL eval_sp_heat( r_alphal , r_alphas , r_alphag , r_alphac ,  &
     !     r_rho_g , r_rho_c , r_inv_rhom , r_sp_heat_c , r_sp_heat_mix )
 
-    qc(1) = r_rho_m * r_h 
-    qc(2) = r_rho_m * r_hu
-    qc(3) = r_rho_m * r_hv
+    qc(1) = r_rho_m * r_h
 
+    IF ( vertical_profiles_flag ) THEN
+
+       r_w = 0.0_wp
+
+       mod_vel = SQRT( r_u**2 + r_v**2 + r_w**2 )
+
+       shear_vel = SQRT( friction_factor ) * mod_vel
+
+       ! Viscosity read from input file [m2 s-1]
+       inv_kin_visc = 1.0_wp / kin_visc_c
+
+       DO i_solid=1,n_solid
+
+          settling_vel = settling_velocity( diam_s(i_solid) , rho_s(i_solid) ,     &
+               r_rho_c , inv_kin_visc )
+
+          IF ( shear_vel .GT. 0.0_wp ) THEN
+
+             Rouse_no(i_solid) = settling_vel / ( vonK * shear_vel )
+
+          ELSE
+
+             Rouse_no(i_solid) = 0.0_wp
+
+          END IF
+
+       END DO
+
+       a_crit_rel = vonK / SQRT( friction_factor) + 1.0_wp
+       H_crit_rel = 1.0_wp / 30.0_wp * ( -a_crit_rel / lambertw(-a_crit_rel *      &
+            EXP(-a_crit_rel)) - 1.0_wp)
+
+       ! The profile parameters depend on h/k_s, not on the absolute value of h.
+       h_rel = r_h / k_s
+
+       IF ( h_rel .GT. H_crit_rel ) THEN
+
+          ! we search for h0_rel such that the average integral between 0 and
+          ! h_rel is equal to 1
+          ! For h_rel > H_crit_rel this integral is the sum of two pieces:
+          ! integral between 0 and h0_rel of the log profile
+          ! integral between h0_rel and h_rel of the costant profile
+
+          a = h_rel * vonK / SQRT(friction_factor)
+          b = 1.0_wp / 30.0_wp + h_rel
+          c = 30.0_wp
+
+          ! solve b*log(c*z+1)-z=a for z
+          d = a/b-1.0_wp/(b*c)
+
+          h0_rel = -b*lambertw( -EXP(d)/(b*c) ) - 1.0_wp / c
+          u_coeff = 1.0_wp
+
+       else
+
+          ! when h_rel <= H_crit_rel we have only the log profile and we have to
+          ! rescale it in order to have the integral between o and h_rel equal to
+          ! 1
+          ! The factor used to scale the velocity is u_coeff
+
+          h0_rel = h_rel
+          u_coeff = vonK / SQRT(friction_factor)/( ( 1.0_wp + 1.0_wp /             &
+               ( 30.0_wp*h_rel ) ) * LOG( 30.0_wp*h_rel + 1.0_wp )-1.0_wp)
+
+       end if
+
+       h0 = h0_rel*k_s
+
+       b = 30.0_wp / k_s
+
+       u_rel0 = u_coeff * SQRT(friction_factor) / vonK * LOG( b*h0 + 1.0_wp )
+
+       b_term = b*h0 + 1.0_wp
+
+       log_term_h0 = log( b_term )**2
+
+       a_coeff = - 6.0_wp * Sc / r_h
+
+       CALL gaulegf(0.0_wp, h0, x, w, 20)
+
+       DO i_solid = 1,n_solid
+
+          a = a_coeff * Rouse_no(i_solid)
+
+          exp_a_h0 = EXP(a*h0)
+
+          int = ( ( exp_a_h0 -1.0_wp ) / a + exp_a_h0 * ( r_h-h0 ) ) / r_h
+
+          alphas_rel_max = 1.0_wp / int
+
+          ! relative concentration alphas_rel at depth h0 (from the bottom)
+          ! alphas_rel is defined as alphas(z)/alphas_avg
+          alphas_rel0 = alphas_rel_max * exp_a_h0
+
+!!$       ! we compute the integral in the log region of u_tilde(z)*alphas_rel(z), 
+!!$       ! where u_tilde is u(z)/(u_avg*u_coeff*sqrt(friction_factor)) 
+!!$       y = h0
+!!$
+!!$       CALL calcei (  -a*(h0+1.0_wp/b), ei, 2 )
+!!$       int_h0 = ( EXP(a*y)*LOG(b*y+1.0) + EXP(-a/b) * ei ) / a
+!!$
+!!$       y = 0
+!!$       CALL calcei (  -a/b, ei, 2 )
+!!$       int_0 = EXP(-a/b) * ei / a
+!!$
+!!$       
+!!$       ! integral of u_rel(z)*alphas_rel(z) in the log region (0<=z<=h0)
+!!$       ! here u_rel(z) = u(z)/u_avg 
+!!$       int_def = u_coeff * SQRT(friction_factor) / vonK * alphas_rel_max *      &
+!!$            (int_h0-int_0)
+!!$
+          int_quad = SUM( w * ( EXP(a*x) * LOG( b*x + 1.0_wp ) ) )
+
+          int_def = u_coeff * SQRT(friction_factor) / vonK * alphas_rel_max *      &
+               int_quad
+
+          ! we add the contribution of the integral of the constant region, we
+          ! average by dividing by h and we multiply by the density of solid and
+          ! average concentration and by u_guess.
+          rho_u_alphas(i_solid) = rho_s(i_solid)*r_alphas(i_solid) * mod_vel *     &
+               ( int_def + ( r_h - h0 ) * alphas_rel0 * u_rel0 ) / r_h
+
+       END DO
+
+       ! we add the contribution of the gas phase to the mixture depth-averaged 
+       ! momentum
+       uRho_avg = ( mod_vel * r_rho_c + SUM((rho_s - r_rho_c) / rho_s *            &
+            rho_u_alphas) )
+
+       qc(2) = uRho_avg * r_u / mod_vel
+       qc(3) = uRho_avg * r_v / mod_vel
+
+       WRITE(*,*) 'r_h',r_h
+       WRITE(*,*) 'mod_vel',mod_vel
+       WRITE(*,*) 'r_rho_m',r_rho_m
+       WRITE(*,*) 'uRho_avg',uRho_avg
+       READ(*,*)
+       
+    ELSE
+       
+       qc(2) = r_rho_m * r_hu
+       qc(3) = r_rho_m * r_hv
+
+    END IF
+       
     IF ( energy_flag ) THEN
 
        IF ( r_h .GT. 0.0_wp ) THEN
@@ -1750,6 +1941,8 @@ CONTAINS
 
   SUBROUTINE eval_fluxes(qcj,qpj,B_prime_x,B_prime_y,grav_coeff,dir,flux)
 
+    USE parameters_2d, ONLY : vertical_profiles_flag
+    
     IMPLICIT none
 
     REAL(wp), INTENT(IN) :: qcj(n_vars)
@@ -1799,7 +1992,10 @@ CONTAINS
 
        CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav,sp_heat_flag,          &
             r_sp_heat_c,r_sp_heat_mix)
-             
+
+       IF ( vertical_profiles_flag ) CALL eval_flux_coeffs( qpj , B_prime_x ,   &
+            B_prime_y , r_rho_c , r_rho_m , shape_coeff )
+       
        IF ( dir .EQ. 1 ) THEN
 
           ! Mass flux in x-direction: u * ( rhom * h )
@@ -1907,25 +2103,33 @@ CONTAINS
 
     USE geometry_2d, ONLY : lambertw
     USE geometry_2d, ONLY : calcei
+    USE geometry_2d, ONLY : gaulegf
     
     IMPLICIT none
 
     REAL(wp), INTENT(IN) :: qpj(n_vars+2)
     REAL(wp), INTENT(IN) :: B_prime_x
     REAL(wp), INTENT(IN) :: B_prime_y
-    REAL(wp), INTENT(IN) :: r_rho_m      !< real-value mixture density [kg m-3]
-    REAL(wp), INTENT(IN) :: r_rho_c      !< real-value carrier phase density [kg m-3]
+    REAL(wp), INTENT(INOUT) :: r_rho_m      !< real-value mixture density [kg m-3]
+    REAL(wp), INTENT(INOUT) :: r_rho_c      !< real-value carrier phase density [kg m-3]
+
 
     REAL(wp), INTENT(OUT) :: shape_coeff(n_vars)
     
     REAL(wp) :: Rouse_no(n_solid)
 
     REAL(wp) :: r_h          !< real-value flow thickness [m]
+    REAL(wp) :: r_hu          !< real-value h*x-velocity [m2 s-1]
+    REAL(wp) :: r_hv          !< real-value h*y-velocity [m2 s-1]
+    REAL(wp) :: r_hw          !< real-value h*z-velocity [m s-1]
     REAL(wp) :: r_u          !< real-value x-velocity [m s-1]
     REAL(wp) :: r_v          !< real-value y-velocity [m s-1]
     REAL(wp) :: r_w          !< real-value z-velocity [m s-1]
     REAL(wp) :: r_alphas(n_solid) !< real-value solid volume fractions
     REAL(wp) :: r_alphag(1:n_add_gas)
+
+    REAL(wp) :: mod_hvel
+
     REAL(wp) :: mod_vel
     REAL(wp) :: mod_vel2
     
@@ -1970,194 +2174,204 @@ CONTAINS
     REAL(wp) :: int_h0 , int_0 , int_def , int_quad
     REAL(wp) :: ei
     REAL(wp) :: uRho_avg
-    REAL(wp) :: int_u2
-    REAL(wp) :: rhom_u_u
+    REAL(wp) :: int_hvel_vel
+    REAL(wp) :: rhom_hvel_vel
 
     shape_coeff(1:n_eqns) = 1.0_wp
 
-    pos_thick:IF ( qpj(1) .GT. EPSILON(1.0_wp) ) THEN
+    r_h = qpj(1)
+    r_hu = qpj(2)
+    r_hv = qpj(3)
+    r_u = qpj(n_vars+1)
+    r_v = qpj(n_vars+2)
 
-       r_h = qpj(1)
-       r_u = qpj(n_vars+1)
-       r_v = qpj(n_vars+2)
+    IF ( alpha_flag ) THEN
 
-       IF ( alpha_flag ) THEN
-          
-          r_alphas(1:n_solid) = qpj(5:4+n_solid)
-          r_alphag(1:n_add_gas) = qpj(4+n_solid+1:4+n_solid+n_add_gas)
-          
-       ELSE
-          
-          r_alphas(1:n_solid) = qpj(5:4+n_solid) / qpj(1)
-          r_alphag(1:n_add_gas) = qpj(4+n_solid+1:4+n_solid+n_add_gas) / qpj(1)
-          
-       END IF
-
-       IF ( slope_correction_flag ) THEN
-          
-          r_w = r_u * B_prime_x + r_v * B_prime_y
-          
-       ELSE
-          
-          r_w = 0.0_wp
-          
-       END IF
-
-       mod_vel2 = r_u**2 + r_v**2 + r_w**2
-       mod_vel = SQRT( mod_vel2 )
-       
-       shear_stress = r_rho_m * friction_factor * mod_vel2
-          
-       shear_vel = SQRT( shear_stress / r_rho_m ) 
-          
-       ! Viscosity read from input file [m2 s-1]
-       inv_kin_visc = 1.0_wp / kin_visc_c
-          
-       DO i_solid=1,n_solid
-             
-          settling_vel = settling_velocity( diam_s(i_solid) , rho_s(i_solid) ,  &
-               r_rho_c , inv_kin_visc )
-             
-          IF ( shear_vel .GT. 0.0_wp ) THEN
-                
-             Rouse_no(i_solid) = settling_vel / ( vonK * shear_vel )
-             
-          ELSE
-             
-             Rouse_no(i_solid) = 0.0_wp
-             
-          END IF
-          
-       END DO
-       
-       a_crit_rel = vonK / SQRT( friction_factor) + 1.0_wp
-       H_crit_rel = 1.0_wp / 30.0_wp * ( -a_crit_rel / lambertw(-a_crit_rel *   &
-            EXP(-a_crit_rel)) - 1.0_wp)
-
-       ! The profile parameters depend on h/k_s, not on the absolute value of h.
-       h_rel = r_h / k_s
-
-       IF ( h_rel .GT. H_crit_rel ) THEN
-
-          ! we search for h0_rel such that the average integral between 0 and
-          ! h_rel is equal to 1
-          ! For h_rel > H_crit_rel this integral is the sum of two pieces:
-          ! integral between 0 and h0_rel of the log profile
-          ! integral between h0_rel and h_rel of the costant profile
-
-          a = h_rel * vonK / SQRT(friction_factor)
-          b = 1.0_wp / 30.0_wp + h_rel
-          c = 30.0_wp
-
-          ! solve b*log(c*z+1)-z=a for z
-          d = a/b-1.0_wp/(b*c)
-
-          h0_rel = -b*lambertw( -EXP(d)/(b*c) ) - 1.0_wp / c
-          u_coeff = 1.0_wp
-
-       else
-
-          ! when h_rel <= H_crit_rel we have only the log profile and we have to
-          ! rescale it in order to have the integral between o and h_rel equal to
-          ! 1
-          ! The factor used to scale the velocity is u_coeff
-
-          h0_rel = h_rel
-          u_coeff = vonK / SQRT(friction_factor)/( ( 1.0_wp + 1.0_wp /          &
-               ( 30.0_wp*h_rel ) ) * LOG( 30.0_wp*h_rel + 1.0_wp )-1.0_wp)
-
-       end if
-
-       h0 = h0_rel*k_s
-
-       b = 30.0_wp / k_s
-
-       u_rel0 = u_coeff * SQRT(friction_factor) / vonK * LOG( b*h0 + 1.0_wp )
-
-       rhom_mod_vel2 = 0.0_wp
-
-       log_term_x = log( b*x + 1.0_wp )**2
-
-       w_log_term_x = w * log_term_x
-
-       b_term = b*h0 + 1.0_wp
-
-       log_term_h0 = log( b_term )**2
-
-       a_coeff = - 6.0_wp * Sc / r_h 
-       
-       DO i_solid = 1,n_solid
-
-          a = a_coeff * Rouse_no(i_solid)
-
-          exp_a_h0 = EXP(a*h0)
-
-          int = ( ( exp_a_h0 -1.0_wp ) / a + exp_a_h0 * ( r_h-h0 ) ) / r_h
-
-          alphas_rel_max = 1.0_wp / int
-
-          ! relative concentration alphas_rel at depth h0 (from the bottom)
-          ! alphas_rel is defined as alphas(z)/alphas_avg
-          alphas_rel0 = alphas_rel_max * exp_a_h0
-
-          ! we compute the integral in the log region of u_tilde(z)*alphas_rel(z), where 
-          ! u_tilde is defined as u(z)/(u_guess*u_coeff*sqrt(friction_coeff)) 
-          y = h0
-
-          CALL calcei (  -a*(h0+1.0_wp/b), ei, 2 )
-          int_h0 = ( EXP(a*y)*LOG(b*y+1.0) + EXP(-a/b) * ei ) / a
-    
-          y = 0
-          CALL calcei (  -a*(1.0_wp/b), ei, 2 )
-          int_0 = ( EXP(a*y)*LOG(b*y+1.0) + EXP(-a/b) * ei ) / a
-
-          ! integral of u_rel(z)*alphas_rel(z) in the log region (0<=z<=h0)
-          ! here u_rel(z) = u(z)/u_avg 
-          int_def = u_coeff * SQRT(friction_factor) / vonK * alphas_rel_max *   &
-               (int_h0-int_0)
-
-          ! we add the contribution of the integral of the constant region, we
-          ! average by dividing by h and we multiply by the density of solid and
-          ! average concentration and by u_guess.
-          rho_u_alphas(i_solid) = rho_s(i_solid)*r_alphas(i_solid) * mod_vel *  &
-               ( int_def + ( r_h - h0 ) * alphas_rel0 * u_rel0 ) / r_h
-          
-          ! integral of u_rel(z)^2*alphas_rel(z) in the log region (0<=z<=h0)
-          ! here u_rel(z) = u(z)/u_avg
-          int_quad = SUM( EXP(a*x) * w_log_term_x )
-          
-          rhom_mod_vel2 = rhom_mod_vel2 + ( rho_s(i_solid) - r_rho_c ) *        &
-               alphas_rel_max * r_alphas(i_solid) * ( mod_vel * u_coeff *       &
-               SQRT(friction_factor) / vonK )**2 * ( int_quad + ( r_h - h0 ) *  &
-               exp_a_h0 * log_term_h0 )
-          
-       END DO
-
-       ! we add the contribution of the gas phase to the mixture depth-averaged 
-       ! momentum
-       uRho_avg = ( mod_Vel * r_rho_c + SUM((rho_s - r_rho_c) / rho_s *         &
-            rho_u_alphas) )
-
-       ! integral of the square of the velocity profile between 0 and h
-       int_u2 = ( mod_vel * u_coeff * SQRT(friction_factor) / vonK )**2 *       &
-            ( ( 2.0_wp*b*h0 + b_term * log_term_h0 - 2.0_wp*b_term *            &
-            LOG(b_term) )/b + ( r_h - h0 ) * log_term_h0 )
-
-       rhom_u_u = ( rhom_u_u + r_rho_c * int_u2 ) / r_h
-
-       shape_coeff(1) = uRho_avg / ( mod_vel * r_rho_m )
-
-       shape_coeff(2:3) = rhom_u_u / ( uRho_avg * mod_vel )
-
-       shape_coeff(4+n_solid+1:4+n_solid+n_add_gas) = rho_u_alphas              &
-            / ( rho_s * r_alphas * mod_vel )
+       r_alphas(1:n_solid) = qpj(5:4+n_solid)
+       r_alphag(1:n_add_gas) = qpj(4+n_solid+1:4+n_solid+n_add_gas)
 
     ELSE
-       
-       shape_coeff(1:n_eqns) = 1.0_wp
-       
-    ENDIF pos_thick
 
+       r_alphas(1:n_solid) = qpj(5:4+n_solid) / qpj(1)
+       r_alphag(1:n_add_gas) = qpj(4+n_solid+1:4+n_solid+n_add_gas) / qpj(1)
+
+    END IF
+
+    IF ( slope_correction_flag ) THEN
+
+       r_hw = r_hu * B_prime_x + r_hv * B_prime_y
+       r_w = r_u * B_prime_x + r_v * B_prime_y
+
+    ELSE
+
+       r_hw = 0.0_wp
+       r_w = 0.0_wp
+
+    END IF
+
+    mod_hvel = SQRT(r_hu**2 + r_hv**2 + r_hw**2)
+
+    mod_vel2 = r_u**2 + r_v**2 + r_w**2
+    mod_vel = SQRT( mod_vel2 )
+
+    shear_vel = SQRT( friction_factor ) * mod_vel
+
+    ! Viscosity read from input file [m2 s-1]
+    inv_kin_visc = 1.0_wp / kin_visc_c
+
+    DO i_solid=1,n_solid
+
+       settling_vel = settling_velocity( diam_s(i_solid) , rho_s(i_solid) ,     &
+            r_rho_c , inv_kin_visc )
+
+       IF ( shear_vel .GT. 0.0_wp ) THEN
+
+          Rouse_no(i_solid) = settling_vel / ( vonK * shear_vel )
+
+       ELSE
+
+          Rouse_no(i_solid) = 0.0_wp
+
+       END IF
+
+    END DO
+
+    a_crit_rel = vonK / SQRT( friction_factor) + 1.0_wp
+    H_crit_rel = 1.0_wp / 30.0_wp * ( -a_crit_rel / lambertw(-a_crit_rel *      &
+         EXP(-a_crit_rel)) - 1.0_wp)
+
+    ! The profile parameters depend on h/k_s, not on the absolute value of h.
+    h_rel = r_h / k_s
+
+    IF ( h_rel .GT. H_crit_rel ) THEN
+
+       ! we search for h0_rel such that the average integral between 0 and
+       ! h_rel is equal to 1
+       ! For h_rel > H_crit_rel this integral is the sum of two pieces:
+       ! integral between 0 and h0_rel of the log profile
+       ! integral between h0_rel and h_rel of the costant profile
+
+       a = h_rel * vonK / SQRT(friction_factor)
+       b = 1.0_wp / 30.0_wp + h_rel
+       c = 30.0_wp
+
+       ! solve b*log(c*z+1)-z=a for z
+       d = a/b-1.0_wp/(b*c)
+
+       h0_rel = -b*lambertw( -EXP(d)/(b*c) ) - 1.0_wp / c
+       u_coeff = 1.0_wp
+
+    else
+
+       ! when h_rel <= H_crit_rel we have only the log profile and we have to
+       ! rescale it in order to have the integral between o and h_rel equal to
+       ! 1
+       ! The factor used to scale the velocity is u_coeff
+
+       h0_rel = h_rel
+       u_coeff = vonK / SQRT(friction_factor)/( ( 1.0_wp + 1.0_wp /             &
+            ( 30.0_wp*h_rel ) ) * LOG( 30.0_wp*h_rel + 1.0_wp )-1.0_wp)
+
+    end if
+
+    h0 = h0_rel*k_s
+
+    b = 30.0_wp / k_s
+
+    u_rel0 = u_coeff * SQRT(friction_factor) / vonK * LOG( b*h0 + 1.0_wp )
+
+    rhom_hvel_vel = 0.0_wp
+
+    b_term = b*h0 + 1.0_wp
+
+    log_term_h0 = log( b_term )**2
+
+    a_coeff = - 6.0_wp * Sc / r_h
+
+    CALL gaulegf(0.0_wp, h0, x, w, 20)
+
+    log_term_x = log( b*x + 1.0_wp )**2
+
+    w_log_term_x = w * log_term_x
+
+    DO i_solid = 1,n_solid
+       
+       a = a_coeff * Rouse_no(i_solid)
+
+       exp_a_h0 = EXP(a*h0)
+       
+       int = ( ( exp_a_h0 -1.0_wp ) / a + exp_a_h0 * ( r_h-h0 ) ) / r_h
+       
+       alphas_rel_max = 1.0_wp / int
+
+       ! relative concentration alphas_rel at depth h0 (from the bottom)
+       ! alphas_rel is defined as alphas(z)/alphas_avg
+       alphas_rel0 = alphas_rel_max * exp_a_h0
+
+!!$       ! we compute the integral in the log region of u_tilde(z)*alphas_rel(z), 
+!!$       ! where u_tilde is u(z)/(u_avg*u_coeff*sqrt(friction_factor)) 
+!!$       y = h0
+!!$
+!!$       CALL calcei (  -a*(h0+1.0_wp/b), ei, 2 )
+!!$       int_h0 = ( EXP(a*y)*LOG(b*y+1.0) + EXP(-a/b) * ei ) / a
+!!$
+!!$       y = 0
+!!$       CALL calcei (  -a/b, ei, 2 )
+!!$       int_0 = EXP(-a/b) * ei / a
+!!$
+!!$       
+!!$       ! integral of u_rel(z)*alphas_rel(z) in the log region (0<=z<=h0)
+!!$       ! here u_rel(z) = u(z)/u_avg 
+!!$       int_def = u_coeff * SQRT(friction_factor) / vonK * alphas_rel_max *      &
+!!$            (int_h0-int_0)
+!!$
+       int_quad = SUM( w * ( EXP(a*x) * LOG( b*x + 1.0_wp ) ) )
+
+       int_def = u_coeff * SQRT(friction_factor) / vonK * alphas_rel_max *      &
+            int_quad
+
+       ! we add the contribution of the integral of the constant region, we
+       ! average by dividing by h and we multiply by the density of solid and
+       ! average concentration and by u_guess.
+       rho_u_alphas(i_solid) = rho_s(i_solid)*r_alphas(i_solid) * mod_vel *     &
+            ( int_def + ( r_h - h0 ) * alphas_rel0 * u_rel0 ) / r_h
+
+       ! integral of u_rel(z)^2*alphas_rel(z) in the log region (0<=z<=h0)
+       ! here u_rel(z) = u(z)/u_avg
+       int_quad = SUM( EXP(a*x) * w_log_term_x )
+
+       rhom_hvel_vel = rhom_hvel_vel + ( rho_s(i_solid) - r_rho_c ) *           &
+            alphas_rel_max * r_alphas(i_solid) * mod_vel * mod_hvel *           &
+            ( u_coeff * SQRT(friction_factor) / vonK )**2 *                     &
+            ( int_quad + ( r_h - h0 ) * exp_a_h0 * log_term_h0 )
+
+
+    END DO
+
+    ! we add the contribution of the gas phase to the mixture depth-averaged 
+    ! momentum
+    uRho_avg = ( mod_vel * r_rho_c + SUM((rho_s - r_rho_c) / rho_s *            &
+         rho_u_alphas) )
+
+    ! integral of (h*velocity)*velocity profile between 0 and h
+    int_hvel_vel = mod_hvel * mod_vel *                                         &
+         ( u_coeff * SQRT(friction_factor) / vonK )**2 *                        &
+         ( ( 2.0_wp*b*h0 + b_term * log_term_h0 - 2.0_wp*b_term *               &
+         LOG(b_term) )/b + ( r_h - h0 ) * log_term_h0 )
+
+    rhom_hvel_vel = ( rhom_hvel_vel + r_rho_c * int_hvel_vel ) / r_h**2
+
+    shape_coeff(1) = uRho_avg / ( mod_vel * r_rho_m )
+
+    shape_coeff(2:3) = rhom_hvel_vel / ( uRho_avg * mod_vel )
+
+    shape_coeff(5:4+n_solid) = rho_u_alphas / ( rho_s * r_alphas * mod_vel )
+
+    WRITE(*,*) 'r_h,mod_vel',r_h,mod_vel
+    WRITE(*,*) 'uRho_avg',uRho_avg
+    WRITE(*,*) 'shape_coeff',shape_coeff
+    READ(*,*)
+    
     RETURN
 
     
