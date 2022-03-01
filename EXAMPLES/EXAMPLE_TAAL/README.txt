@@ -12,9 +12,18 @@ Simulation example of a supercritical radial flow of a dilute gas-particle mixtu
 
 The last four parameters define the pulsating flow:
 1) the first parameter defines the period between two cycles (30sec) 
-2) the second parameter defines the duration of radial flow (20sec). This means that thera are 10sec of pause between two pulses.
+2) the second parameter defines the duration of radial flow (20sec). This means that there are 10sec of pause between two pulses.
 3) the third parameters defines the time required to the radial source to increase from no flow to maximum flow, and vice versa. Initial thickness and velocity are scaled in order to keep constant the Richardson number.
-4) the toal duration of radial source.
+4) the last parameter is the total duration of radial source.
+
+For a steady state source, remove the line with the four parameters.
+
+For a single pulse, the first parameter (time between cycles) has to be larger than the fourth one (duration of source). For example:
+
+TIME_PARAM = 300.D0 , 20.D0 , 0.0D0, 150.D0 ,
+
+In this case, we have a single 20 seconds pulse.
+
 
 To run the example, first create a simbolic link of the executable in this folder:
 
