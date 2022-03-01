@@ -3206,11 +3206,11 @@ CONTAINS
 
        END IF
 
-       runout_file = TRIM(run_name)//'_runout'//'.txt'
+       runout_file = TRIM(run_name)//'_runout'//'.csv'
 
        OPEN(runout_unit,FILE=runout_file,STATUS='unknown',form='formatted')
 
-       mass_center_file = TRIM(run_name)//'_mass_center'//'.txt'
+       mass_center_file = TRIM(run_name)//'_mass_center'//'.csv'
 
        OPEN(mass_center_unit,FILE=mass_center_file,STATUS='unknown',form='formatted')
 
@@ -5169,6 +5169,14 @@ CONTAINS
 
     IF ( time .EQ. t_start ) THEN
 
+       WRITE(runout_unit,'(A13,A13,A13)') 'Time (s),','Runout (m),',' Area (m2)'
+
+       WRITE(mass_center_unit,'(A18,A18,A18,A18,A18)')  'Time (s),',            &
+            'Barycenter-x (m),' , 'Barycenter-y (m),' , 'Baricenter-dx (m),' ,  &
+            'Baricenter-dy (m)'
+       
+       CALL flush(runout_unit)
+
        IF ( MAXVAL( qp(1,:,:) ) .EQ. 0.0_wp ) THEN
 
           IF ( collapsing_volume_flag ) THEN
@@ -5286,15 +5294,14 @@ CONTAINS
     area_old = dx*dy*COUNT(hpos_old)
     area = dx*dy*COUNT(hpos)
     
-    WRITE(runout_unit,'(A,F12.3,A,F12.3,A,F14.3)') 'Time (s) = ',time ,         &
-         ' Runout (m) = ',dist(imax(1),imax(2)) - init_runout,' Area (m^2) = ', &
-         area
+    WRITE(runout_unit,'(F12.3,A,F12.3,A,F14.3)') time ,',',                     &
+         dist(imax(1),imax(2)) - init_runout,',',area
     
     CALL flush(runout_unit)
 
-    WRITE(mass_center_unit,'(F12.3,F12.3,F12.3,F12.3,F12.3)') time ,            &
-         x_mass_center , y_mass_center ,                                        &
-         dist_x(imax_x(1),imax_x(2)) - init_runout_x ,                          &
+    WRITE(mass_center_unit,'(F17.3,A,F17.3,A,F17.3,A,F17.3,A,F17.3)') time ,    &
+         ',' , x_mass_center , ',' , y_mass_center , ',' ,                      &
+         dist_x(imax_x(1),imax_x(2)) - init_runout_x , ',' ,                    &
          dist_y(imax_y(1),imax_y(2)) - init_runout_y  
     
     CALL flush(mass_center_unit)
