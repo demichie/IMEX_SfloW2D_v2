@@ -5046,6 +5046,7 @@ CONTAINS
     CHARACTER(LEN=4) :: idx_string
     
     REAL(wp) :: h_prb
+    REAL(wp) :: hrhom_prb
     REAL(wp) :: rhom_prb
     REAL(wp) :: u_prb
     REAL(wp) :: v_prb
@@ -5122,8 +5123,10 @@ CONTAINS
 
        IF ( h_prb .GT. 1.0E-5_wp ) THEN
        
-          CALL interp_2d_scalarB( x_comp , y_comp , q(1,:,:)/qp(1,:,:) ,        &
-               probes_coords(1,k) , probes_coords(2,k) , rhom_prb )
+          CALL interp_2d_scalarB( x_comp , y_comp , q(1,:,:) ,        &
+               probes_coords(1,k) , probes_coords(2,k) , hrhom_prb )
+
+          rhom_prb = hrhom_prb/h_prb
           
           WRITE(probes_unit,1710,ADVANCE='no') rhom_prb,','
 
