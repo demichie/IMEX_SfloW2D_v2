@@ -692,7 +692,7 @@ CONTAINS
 
     REAL(wp) :: expA , expB , Tc
 
-    REAL(wp) :: qp_source(n_vars+2)
+    REAL(wp), ALLOCATABLE :: qp_source(:)
     REAL(wp) :: red_grav
     REAL(wp) :: rho_c
     REAL(wp) :: rho_m
@@ -2456,6 +2456,8 @@ CONTAINS
 
           END IF
 
+          ALLOCATE( qp_source(n_vars+2) )
+          
           IF ( radial_source_flag ) THEN
 
              ! compute the velocity, given the Richardson number
