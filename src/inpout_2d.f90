@@ -5032,8 +5032,8 @@ CONTAINS
   SUBROUTINE output_probes(time)
 
     USE geometry_2d, ONLY : x_comp , y_comp , deposit
-    USE parameters_2d, ONLY : t_probes
-    USE solver_2d, ONLY : qp
+    USE parameters_2d, ONLY : t_probes , n_vars
+    USE solver_2d, ONLY : q , qp
 
 
     USE geometry_2d, ONLY : interp_2d_scalarB
@@ -5044,57 +5044,188 @@ CONTAINS
     REAL(wp), INTENT(IN) :: time
 
     CHARACTER(LEN=4) :: idx_string
+    
+    REAL(wp) :: h_prb
+    REAL(wp) :: rhom_prb
+    REAL(wp) :: u_prb
+    REAL(wp) :: v_prb
+    REAL(wp) :: T_prb
+    REAL(wp) :: pDyn_prb
 
-    REAL(wp) :: f2
+    REAL(wp) :: alphas_prb(n_solid)
+    REAL(wp) :: alphag_prb(n_add_gas)
+    REAL(wp) :: dep_probe(n_solid)
 
     INTEGER :: k
     
-    INTEGER :: i_solid
-    REAL(wp) :: dep_probe(n_solid)
+    INTEGER :: i_solid , i_gas
     
     DO k=1,n_probes
 
        idx_string = lettera(k)
 
-       probes_file = TRIM(run_name)//'_'//idx_string//'.prb'
+       probes_file = TRIM(run_name)//'_prb_'//idx_string//'.csv'
 
        IF ( time .EQ. t_start ) THEN
 
           OPEN(probes_unit,FILE=probes_file,status='unknown',form='formatted')
           WRITE(probes_unit,'(100ES15.7E2)') probes_coords(1,k) , probes_coords(2,k)
+          WRITE(probes_unit,'(A15)',ADVANCE='no') 'time (s),'
+          WRITE(probes_unit,'(A15)',ADVANCE='no') 'h (m),'
+          WRITE(probes_unit,'(A15)',ADVANCE='no') 'rho (kg/m3),'
+          WRITE(probes_unit,'(A15)',ADVANCE='no') 'T (K),'
+          WRITE(probes_unit,'(A15)',ADVANCE='no') 'u (m/s),'
+          WRITE(probes_unit,'(A15)',ADVANCE='no') 'v (m/s),'
+          WRITE(probes_unit,'(A15)',ADVANCE='no') 'Dyn.pres.(Pa),'
+          
 
+          DO i_solid=1,n_solid
+
+             WRITE(idx_string,'(I2.2)') i_solid
+             WRITE(probes_unit,'(A15)',ADVANCE='no') 'alfa_s('//TRIM(idx_string)//'),'
+             
+          END DO
+
+          DO i_gas=1,n_add_gas
+
+             WRITE(idx_string,'(I2.2)') i_gas
+             WRITE(probes_unit,'(A15)',ADVANCE='no') 'alfa_g('//TRIM(idx_string)//'),'
+             
+          END DO
+
+          IF ( settling_flag ) THEN
+       
+             DO i_solid=1,n_solid
+
+                WRITE(idx_string,'(I2.2)') i_solid
+                WRITE(probes_unit,'(A15)',ADVANCE='no') 'dep_s('//TRIM(idx_string)//') (m),'
+                
+             END DO
+
+          END IF
+
+          WRITE(probes_unit,*) ''
+          
        ELSE
 
           OPEN(probes_unit,FILE=probes_file,status='old',position='append',     &
                form='formatted')
 
        END IF
+
+       WRITE(probes_unit,1710,ADVANCE='no') time,','
        
        CALL interp_2d_scalarB( x_comp , y_comp , qp(1,:,:)  ,                   &
-            probes_coords(1,k) , probes_coords(2,k) , f2 )
+            probes_coords(1,k) , probes_coords(2,k) , h_prb )
 
+       WRITE(probes_unit,1710,ADVANCE='no') h_prb,',' 
+
+       IF ( h_prb .GT. 1.0E-5_wp ) THEN
+       
+          CALL interp_2d_scalarB( x_comp , y_comp , q(1,:,:)/qp(1,:,:) ,        &
+               probes_coords(1,k) , probes_coords(2,k) , rhom_prb )
+          
+          WRITE(probes_unit,1710,ADVANCE='no') rhom_prb,','
+
+          CALL interp_2d_scalarB( x_comp , y_comp , qp(4,:,:)  ,                &
+               probes_coords(1,k) , probes_coords(2,k) , T_prb )
+          
+          WRITE(probes_unit,1710,ADVANCE='no') T_prb,','
+          
+          CALL interp_2d_scalarB( x_comp , y_comp , qp(n_vars+1,:,:)  ,         &
+               probes_coords(1,k) , probes_coords(2,k) , u_prb )
+          
+          WRITE(probes_unit,1710,ADVANCE='no') u_prb,','
+          
+          CALL interp_2d_scalarB( x_comp , y_comp , qp(n_vars+2,:,:)  ,         &
+               probes_coords(1,k) , probes_coords(2,k) , v_prb )
+          
+          WRITE(probes_unit,1710,ADVANCE='no') v_prb,','
+
+          pDyn_prb = 0.5 * rhom_prb * ( u_prb**2 + v_prb**2 ) 
+
+          WRITE(probes_unit,1710,ADVANCE='no') pDyn_prb,','
+
+          DO i_solid=1,n_solid
+             
+             CALL interp_2d_scalarB( x_comp , y_comp ,  qp(4+i_solid,:,:)  ,       &
+                  probes_coords(1,k) , probes_coords(2,k) , alphas_prb(i_solid) )
+             
+             IF ( alpha_flag ) THEN
+                
+                WRITE(probes_unit,1710,ADVANCE='no') alphas_prb(i_solid),','
+                
+             ELSE
+                
+                WRITE(probes_unit,1710,ADVANCE='no') alphas_prb(i_solid)/h_prb,','
+                
+             END IF
+             
+          END DO
+          
+          DO i_gas=1,n_add_gas
+             
+             CALL interp_2d_scalarB( x_comp , y_comp , qp(4+n_solid+i_gas,:,:)  ,   &
+                  probes_coords(1,k) , probes_coords(2,k) , alphag_prb(i_gas) )
+             
+             IF ( alpha_flag ) THEN
+                
+                WRITE(probes_unit,1710,ADVANCE='no') alphag_prb(i_gas),','
+                
+             ELSE
+                
+                WRITE(probes_unit,1710,ADVANCE='no') alphag_prb(i_gas)/h_prb,','
+
+             END IF
+             
+          END DO
+
+       ELSE
+
+          WRITE(probes_unit,1710,ADVANCE='no') 0.0_wp,','
+
+          WRITE(probes_unit,1710,ADVANCE='no') T_ambient,','
+          
+          WRITE(probes_unit,1710,ADVANCE='no') 0.0_wp,','
+          
+          WRITE(probes_unit,1710,ADVANCE='no') 0.0_wp,','
+          
+          WRITE(probes_unit,1710,ADVANCE='no') 0.0_wp,','
+
+          DO i_solid=1,n_solid
+             
+             WRITE(probes_unit,1710,ADVANCE='no') 0.0_wp,','
+              
+          END DO
+          
+          DO i_gas=1,n_add_gas
+             
+             WRITE(probes_unit,1710,ADVANCE='no') 0.0_wp,','
+             
+          END DO
+
+       END IF
+          
        IF ( settling_flag ) THEN
        
           DO i_solid=1,n_solid
              
-             CALL interp_2d_scalarB( x_comp , y_comp , DEPOSIT(:,:,i_solid)  ,     &
+             CALL interp_2d_scalarB( x_comp , y_comp , DEPOSIT(:,:,i_solid)  ,   &
                   probes_coords(1,k) , probes_coords(2,k) , dep_probe(i_solid) )
+
+             WRITE(probes_unit,1710,ADVANCE='no') dep_probe(i_solid),','
              
           END DO
           
-          WRITE(probes_unit,1710) time , f2 , dep_probe(1:n_solid)
-
-       ELSE
-
-          WRITE(probes_unit,1710) time , f2
-
        END IF
 
+       WRITE(probes_unit,*) ''
+       
        CLOSE(probes_unit)
 
     END DO
 
-1710 FORMAT(100ES15.7E2)
+1710 FORMAT(ES14.7E2,A1)
     
     t_probes = time + dt_probes
 
