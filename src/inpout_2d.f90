@@ -5269,6 +5269,9 @@ CONTAINS
 
     REAL(wp) :: vel_mass_center , vel_radial_growth
 
+    CHARACTER(18) :: txt_string
+    REAL(wp) :: old_runout
+
     sX = size(x_comp) 
     sY = size(y_comp) 
 
@@ -5416,9 +5419,21 @@ CONTAINS
 
     imax_y = MAXLOC( dist_y )
 
-    OPEN(dakota_unit,FILE='dakota.txt',status='replace',form='formatted')
-    
-    WRITE(dakota_unit,*) 'final runout =', dist(imax(1),imax(2)) - init_runout
+    IF ( time .GT. t_start ) THEN
+       
+       OPEN(dakota_unit,FILE='runout.txt',status='old',form='formatted')
+       READ(dakota_unit,'(A18,F12.3)') txt_string,old_runout
+       CLOSE(dakota_unit)
+
+    ELSE
+
+       old_runout = 0.0_wp
+
+    END IF
+       
+    OPEN(dakota_unit,FILE='runout.txt',status='replace',form='formatted')
+    WRITE(dakota_unit,'(A18,F12.3)') 'maximum runout =', MAX(old_runout,dist(imax(1),imax(2)) - init_runout)
+    WRITE(dakota_unit,'(A18,F12.3)') 'final runout =', dist(imax(1),imax(2)) - init_runout
     
     CLOSE(dakota_unit)
 
