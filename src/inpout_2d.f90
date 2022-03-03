@@ -5073,13 +5073,12 @@ CONTAINS
 
           OPEN(probes_unit,FILE=probes_file,status='unknown',form='formatted')
           WRITE(probes_unit,'(100ES15.7E2)') probes_coords(1,k) , probes_coords(2,k)
-          WRITE(probes_unit,'(A15)',ADVANCE='no') 'time (s),'
-          WRITE(probes_unit,'(A15)',ADVANCE='no') 'h (m),'
-          WRITE(probes_unit,'(A15)',ADVANCE='no') 'rho (kg/m3),'
-          WRITE(probes_unit,'(A15)',ADVANCE='no') 'T (K),'
-          WRITE(probes_unit,'(A15)',ADVANCE='no') 'u (m/s),'
-          WRITE(probes_unit,'(A15)',ADVANCE='no') 'v (m/s),'
-          WRITE(probes_unit,'(A15)',ADVANCE='no') 'Dyn.pres.(Pa),'
+          WRITE(probes_unit,'(A15)',ADVANCE='no') 'time,'
+          WRITE(probes_unit,'(A15)',ADVANCE='no') 'h,'
+          WRITE(probes_unit,'(A15)',ADVANCE='no') 'rho,'
+          WRITE(probes_unit,'(A15)',ADVANCE='no') 'T,'
+          WRITE(probes_unit,'(A15)',ADVANCE='no') 'u,'
+          WRITE(probes_unit,'(A15)',ADVANCE='no') 'v,'
           
 
           DO i_solid=1,n_solid
@@ -5101,13 +5100,47 @@ CONTAINS
              DO i_solid=1,n_solid
 
                 WRITE(idx_string,'(I2.2)') i_solid
-                WRITE(probes_unit,'(A15)',ADVANCE='no') 'dep_s('//TRIM(idx_string)//') (m),'
+                WRITE(probes_unit,'(A15)',ADVANCE='no') 'dep_s('//TRIM(idx_string)//'),'
                 
              END DO
 
           END IF
 
-          WRITE(probes_unit,*) ''
+          WRITE(probes_unit,'(A15)') 'Dyn.pres.'
+          
+          ! Write a line with units
+          WRITE(probes_unit,'(A15)',ADVANCE='no') '(s),'
+          WRITE(probes_unit,'(A15)',ADVANCE='no') '(m),'
+          WRITE(probes_unit,'(A15)',ADVANCE='no') '(kg/m3),'
+          WRITE(probes_unit,'(A15)',ADVANCE='no') '(K),'
+          WRITE(probes_unit,'(A15)',ADVANCE='no') '(m/s),'
+          WRITE(probes_unit,'(A15)',ADVANCE='no') '(m/s),'
+          
+
+          DO i_solid=1,n_solid
+
+             WRITE(probes_unit,'(A15)',ADVANCE='no') '(),'
+             
+          END DO
+
+          DO i_gas=1,n_add_gas
+
+             WRITE(probes_unit,'(A15)',ADVANCE='no') '(),'
+             
+          END DO
+
+          IF ( settling_flag ) THEN
+       
+             DO i_solid=1,n_solid
+
+                WRITE(probes_unit,'(A15)',ADVANCE='no') '(m),'
+                
+             END DO
+
+          END IF
+
+          WRITE(probes_unit,'(A15)') '(Pa)'
+          
           
        ELSE
 
@@ -5147,10 +5180,6 @@ CONTAINS
           
           WRITE(probes_unit,1710,ADVANCE='no') v_prb,','
 
-          pDyn_prb = 0.5 * rhom_prb * ( u_prb**2 + v_prb**2 ) 
-
-          WRITE(probes_unit,1710,ADVANCE='no') pDyn_prb,','
-
           DO i_solid=1,n_solid
              
              CALL interp_2d_scalarB( x_comp , y_comp ,  qp(4+i_solid,:,:)  ,       &
@@ -5185,6 +5214,8 @@ CONTAINS
              
           END DO
 
+          pDyn_prb = 0.5 * rhom_prb * ( u_prb**2 + v_prb**2 ) 
+
        ELSE
 
           WRITE(probes_unit,1710,ADVANCE='no') 0.0_wp,','
@@ -5195,8 +5226,6 @@ CONTAINS
           
           WRITE(probes_unit,1710,ADVANCE='no') 0.0_wp,','
           
-          WRITE(probes_unit,1710,ADVANCE='no') 0.0_wp,','
-
           DO i_solid=1,n_solid
              
              WRITE(probes_unit,1710,ADVANCE='no') 0.0_wp,','
@@ -5209,6 +5238,8 @@ CONTAINS
              
           END DO
 
+          pDyn_prb = 0.0_wp
+          
        END IF
           
        IF ( settling_flag ) THEN
@@ -5224,8 +5255,8 @@ CONTAINS
           
        END IF
 
-       WRITE(probes_unit,*) ''
-       
+       WRITE(probes_unit,1710) pDyn_prb
+        
        CLOSE(probes_unit)
 
     END DO
