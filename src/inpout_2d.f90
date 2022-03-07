@@ -5158,7 +5158,7 @@ CONTAINS
 
        IF ( h_prb .GT. 1.0E-5_wp ) THEN
        
-          CALL interp_2d_scalarB( x_comp , y_comp , q(1,:,:) ,        &
+          CALL interp_2d_scalarB( x_comp , y_comp , q(1,:,:) ,                  &
                probes_coords(1,k) , probes_coords(2,k) , hrhom_prb )
 
           rhom_prb = hrhom_prb/h_prb
@@ -5182,7 +5182,7 @@ CONTAINS
 
           DO i_solid=1,n_solid
              
-             CALL interp_2d_scalarB( x_comp , y_comp ,  qp(4+i_solid,:,:)  ,       &
+             CALL interp_2d_scalarB( x_comp , y_comp ,  qp(4+i_solid,:,:)  ,    &
                   probes_coords(1,k) , probes_coords(2,k) , alphas_prb(i_solid) )
              
              IF ( alpha_flag ) THEN

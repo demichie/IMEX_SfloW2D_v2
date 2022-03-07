@@ -14,7 +14,8 @@ MODULE solver_2d
   ! external variables
 
   USE constitutive_2d, ONLY : implicit_flag, rheology_model
-
+  USE constitutive_2d, ONLY : T_ambient
+    
   USE geometry_2d, ONLY : comp_cells_x,comp_cells_y,comp_cells_xy
   USE geometry_2d, ONLY : comp_interfaces_x,comp_interfaces_y
 
@@ -251,6 +252,7 @@ CONTAINS
 
     q(1:n_vars,1:comp_cells_x,1:comp_cells_y) = 0.0_wp
     qp(1:n_vars+2,1:comp_cells_x,1:comp_cells_y) = 0.0_wp
+    qp(4,1:comp_cells_x,1:comp_cells_y) = T_ambient
 
     ALLOCATE( hmax( comp_cells_x , comp_cells_y ) )
 
@@ -787,7 +789,7 @@ CONTAINS
     USE geometry_2d, ONLY : dx,dy
     USE parameters_2d, ONLY : max_dt , cfl
 
-    USE constitutive_2d, ONLY : qc_to_qp , T_ambient
+    USE constitutive_2d, ONLY : qc_to_qp
 
     IMPLICIT none
 
@@ -979,6 +981,8 @@ CONTAINS
        ! Initialization of the variables for the Runge-Kutta scheme
        q_rk( 1:n_vars , j , k , 1:n_RK ) = 0.0_wp
        qp_rk( 1:n_vars+2 , j , k , 1:n_RK ) = 0.0_wp
+       qp_rk( 4 , j , k , 1:n_RK ) = T_ambient
+       
 
        divFlux(1:n_eqns , j , k , 1:n_RK ) = 0.0_wp
        NH( 1:n_eqns, j , k , 1:n_RK ) = 0.0_wp
@@ -989,8 +993,6 @@ CONTAINS
     !$OMP END DO
 
     !$OMP END PARALLEL
-
-    qp_rk( 4 , : , : , 1:n_RK ) = T_ambient
 
     runge_kutta:DO i_RK = 1,n_RK
 
@@ -2254,6 +2256,7 @@ CONTAINS
        ELSE
 
           qp(1:n_vars+2,j,k) = 0.0_wp
+          qp(4,j,k) = T_ambient
 
        END IF
 
@@ -2406,6 +2409,7 @@ CONTAINS
        ELSE
 
           qp(1:n_vars+2,j,k) = 0.0_wp
+          qp(4,j,k) = T_ambient
           r_red_grav = 0.0_wp
 
        END IF

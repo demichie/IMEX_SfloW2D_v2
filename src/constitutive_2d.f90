@@ -459,6 +459,14 @@ CONTAINS
        r_T = T_ambient
 
     END IF
+
+    IF ( r_T .LT. T_ambient ) THEN
+
+       WRITE(*,*) 'T',r_T
+       WRITE(*,*) 'r_qj',r_qj
+       READ(*,*)
+
+    END IF
     
     IF ( gas_flag ) THEN
 

@@ -926,7 +926,7 @@ CONTAINS
        alfa_y = 0.0_wp
 
     END IF
-
+    
     IF ( size(x1,1) .EQ. 1 ) THEN
 
        f2 = alfa_y * f1(ix,iy) + ( 1.0_wp - alfa_y ) * f1(ix,iy+1)

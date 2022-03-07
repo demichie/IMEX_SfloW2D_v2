@@ -26,7 +26,7 @@
 !> \brief Main Program 
 PROGRAM SW_VAR_DENS_MODEL
 
-  USE constitutive_2d, ONLY : init_problem_param
+  USE constitutive_2d, ONLY : init_problem_param , T_ambient
 
 
   USE geometry_2d, ONLY : init_grid
@@ -260,6 +260,7 @@ PROGRAM SW_VAR_DENS_MODEL
      ELSE
 
         qp(1:n_vars,j,k) = 0.0_wp
+        qp(4,j,k) = T_ambient
         hmax(j,k) = 0.0_wp
 
      END IF
@@ -381,6 +382,7 @@ PROGRAM SW_VAR_DENS_MODEL
         ELSE
 
            qp(1:n_vars+2,j,k) = 0.0_wp
+           qp(4,j,k) = T_ambient
 
         END IF
 
