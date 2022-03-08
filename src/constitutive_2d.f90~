@@ -532,6 +532,8 @@ CONTAINS
       
        rhos_alfas(1:n_solid) = r_alphas(1:n_solid) * rho_s(1:n_solid)
 
+       !WRITE(*,*) 'rhos_alfas(1:n_solid)',rhos_alfas(1:n_solid)
+
        ! Viscosity read from input file [m2 s-1]
        inv_kin_visc = 1.0_wp / kin_visc_c
        
@@ -542,8 +544,20 @@ CONTAINS
 
        END DO
 
+       !a_crit_rel = vonK / SQRT( friction_factor) + 1.0_wp
+       !H_crit_rel = 1.0_wp / 30.0_wp * ( -a_crit_rel / lambertw0(-a_crit_rel *   &
+       !     EXP(-a_crit_rel)) - 1.0_wp )
 
-       ! The profile parameters depend on h/k_s, not on the absolute value of h
+       !WRITE(*,*) 'H_crit_rel',H_crit_rel
+       !WRITE(*,*) 'a_crit_rel',a_crit_rel
+       !WRITE(*,*) 'arg lambertw0',-a_crit_rel *EXP(-a_crit_rel)
+       !WRITE(*,*) 'lambertw0',lambertw0( - a_crit_rel * EXP(-a_crit_rel) )
+       !WRITE(*,*) 'H_crit_rel',H_crit_rel
+       !WRITE(*,*) 'H_crit',H_crit_rel*k_s
+       !READ(*,*)
+
+
+       ! The profile parameters depend on h/k_s, not on the absolute value of h.
        h_rel = r_h / k_s
 
        IF ( h_rel .GT. H_crit_rel ) THEN
@@ -562,10 +576,14 @@ CONTAINS
           d =  a / b - 1.0_wp / ( b*c )
 
           h0_rel_1 = -b*lambertw0( -EXP(d)/(b*c) ) - 1.0_wp / c
+          !WRITE(*,*) 'h0_rel',h0_rel
           h0_rel_2 = -b*lambertwm1( -EXP(d)/(b*c) ) - 1.0_wp / c
-          h0_rel = MIN( h0_rel_1 , h0_rel_2)
+          !WRITE(*,*) 'h0_rel',h0_rel
 
+          h0_rel = MIN( h0_rel_1 , h0_rel_2)
           ! h0_rel = -b*lambertw( -EXP(d)/(b*c) ) - 1.0_wp / c
+          !WRITE(*,*) 'h0_rel',h0_rel
+          !READ(*,*)
 
           u_coeff = 1.0_wp
 
@@ -621,7 +639,7 @@ CONTAINS
 
           IF (x1 .NE.  x0) THEN
 
-             lambda = ABS((x2 - x1)/(x1 - x0))
+             lambda = abs((x2 - x1)/(x1 - x0))
 
           END IF
 
@@ -629,7 +647,7 @@ CONTAINS
 
           IF ( ABS(denominator) .LT. 0.1*abs_tol ) EXIT aitken_loop
 
-          aitkenX = x2 - ( (x2 - x1)**2 ) / denominator
+          aitkenX = x2 - ( (x2 - x1)**2 )/denominator
 
           u_avg_new = aitkenX
 
@@ -644,10 +662,21 @@ CONTAINS
 
        END DO aitken_loop
 
+       r_u = r_qj(2) * inv_qj1
+       r_v = r_qj(3) * inv_qj1
+   
+       IF ( r_h .GT. 0.0_wp ) THEN
+
+          !WRITE(*,*) 'r_h',r_h
+          !WRITE(*,*) 'r_u',r_u
+          !READ(*,*) 
+
+       END IF
+
        r_u = u_avg_new * r_qj(2) / ( SQRT( r_qj(2)**2 + r_qj(3)**2 ) )
        r_v = u_avg_new * r_qj(3) / ( SQRT( r_qj(2)**2 + r_qj(3)**2 ) )
 
-       !IF ( r_h .GT. 0.0_wp ) THEN
+       IF ( r_h .GT. 0.0_wp ) THEN
 
           !WRITE(*,*) 'h0',h0
           !WRITE(*,*) 'r_rho_m', r_rho_m
@@ -657,7 +686,7 @@ CONTAINS
           !WRITE(*,*) 'r_u profile',r_u
           !READ(*,*)
 
-       !END IF
+       END IF
 
     ELSE
     
@@ -739,22 +768,29 @@ CONTAINS
     REAL(wp) :: w(20)
     REAL(wp) :: int_quad
     
+    vonK = 0.4_wp
+    friction_factor = 0.01_wp
+    Sc = 1.0_wp
+    ! The input here are the depth-averaged velocity and the depth-averaged
+    ! values of rho*C(z). We compute the vertical profiles and the integral of 
+    ! u(z)*rho*C(z), and we compare this value with the desired one to update
+    ! the average velocity.
+
     ! Shear velocity computed from u_guess
     shear_vel = u_guess * SQRT(friction_factor)
 
     ! Rouse numbers for the particle classes
     Pn(1:n_solid) = settling_vel(1:n_solid) / ( vonK * shear_vel )
 
-    ! Compute the abscissas and weights for the quadrature formula
     CALL gaulegf(0.0_wp, h0, x, w, 20)
    
     DO i_solid=1,n_solid
 
        a = -( 6.0_wp * Pn(i_solid) * Sc ) / h
 
-       int = ( ( EXP(a*h0) - 1.0_wp ) / a + EXP(a*h0)*(h-h0) ) / h
+       int = ( ( EXP(a*h0) -1.0_wp ) / a + EXP(a*h0)*(h-h0) )/h
 
-       alphas_rel_max = 1.0_wp / int
+       alphas_rel_max = 1.0/int
 
        ! relative concentration C_rel at depth h0 (from the bottom)
        ! C_rel is defined as C(z)/C_avg
@@ -764,13 +800,14 @@ CONTAINS
        ! this results from the sum of the log region with thickness h0 and the 
        ! constant region with thickness h-h0
        rho_alphas_int(i_solid) = rho_alphas_avg(i_solid) * ( alphas_rel_max *   &
-            ( EXP(a*h0) - 1.0_wp ) / a + (h-h0)*alphas_rel0 ) / h
+            ( EXP(a*h0) - 1.0 ) / a + (h-h0)*alphas_rel0 ) / h
 
        ! we compute the integral in the log region of u_tilde(z)*C_rel(z), where 
        ! u_tilde is defined as u(z)/(u_guess*u_coeff*sqrt(friction_coeff))
        int_quad = SUM( w * ( EXP(a*x) * LOG( b*x + 1.0_wp ) ) )
        int_def = u_coeff * SQRT(friction_factor) / vonK * alphas_rel_max *      &
            int_quad
+
        
        ! we add the contribution of the integral of the constant region, we
        ! average by dividing by h and we multiply by the density of solid and
@@ -876,7 +913,7 @@ CONTAINS
        xc = 1.0_wp - xs_tot - xl
        
        sp_heat_c = ( ( xc - SUM( xg(1:n_add_gas) ) ) * sp_heat_a +              &
-            DOT_PRODUCT( xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / xc
+            DOT_PRODUCT( xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / xc           
        
        ! specific heat of the mixutre: mass average of sp. heat pf phases
        sp_heat_mix = DOT_PRODUCT( xs(1:n_solid) , sp_heat_s(1:n_solid) )        &
@@ -890,7 +927,7 @@ CONTAINS
        IF ( gas_flag ) THEN
           
           sp_heat_c = ( ( xc - SUM( xg(1:n_add_gas) ) ) * sp_heat_a +           &
-               DOT_PRODUCT( xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / xc
+               DOT_PRODUCT( xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / xc           
           
        ELSE
           
@@ -1213,11 +1250,10 @@ CONTAINS
        r_xs(1:n_solid) = r_alphas(1:n_solid) * rho_s(1:n_solid) * r_inv_rhom
 
        ! additional gas mass fractions
-       r_xg(1:n_add_gas) = r_alphag(1:n_add_gas) * rho_g(1:n_add_gas)           &
-            * r_inv_rhom
+       r_xg(1:n_add_gas) = r_alphag(1:n_add_gas) * rho_g(1:n_add_gas) * r_inv_rhom
 
        ! carrier (gas or liquid) mass fraction
-       r_xc = 1.0_wp - SUM( r_xs(1:n_solid) )
+       r_xc = 1.0_wp -SUM( r_xs(1:n_solid) )
 
        r_sp_heat_c = 0.0_wp
               
@@ -1613,6 +1649,10 @@ CONTAINS
 
        END DO
 
+       !a_crit_rel = vonK / SQRT( friction_factor) + 1.0_wp
+       !H_crit_rel = 1.0_wp / 30.0_wp * ( -a_crit_rel / lambertw0(-a_crit_rel *  &
+       !     EXP(-a_crit_rel)) - 1.0_wp)
+
        ! The profile parameters depend on h/k_s, not on the absolute value of h.
        h_rel = r_h / k_s
 
@@ -1629,12 +1669,13 @@ CONTAINS
           c = 30.0_wp
 
           ! solve b*log(c*z+1)-z=a for z
-          d = a/b - 1.0_wp / (b*c)
+          d = a/b-1.0_wp/(b*c)
 
 
           h0_rel_1 = -b*lambertw0( -EXP(d)/(b*c) ) - 1.0_wp / c
           h0_rel_2 = -b*lambertwm1( -EXP(d)/(b*c) ) - 1.0_wp / c
           h0_rel = MIN( h0_rel_1 , h0_rel_2)
+
 
           !h0_rel = -b*lambertw( -EXP(d)/(b*c) ) - 1.0_wp / c
 
@@ -1653,7 +1694,7 @@ CONTAINS
 
        end if
 
-       h0 = h0_rel * k_s
+       h0 = h0_rel*k_s
 
        b = 30.0_wp / k_s
 
@@ -1701,6 +1742,12 @@ CONTAINS
 
        qc(2) = r_h * uRho_avg * r_u / mod_vel
        qc(3) = r_h * uRho_avg * r_v / mod_vel
+
+       !WRITE(*,*) 'r_h',r_h
+       !WRITE(*,*) 'mod_vel',mod_vel
+       !WRITE(*,*) 'r_rho_m',r_rho_m
+       !WRITE(*,*) 'uRho_avg',uRho_avg
+       !READ(*,*)
        
     ELSE
        
@@ -1730,7 +1777,8 @@ CONTAINS
 
     END IF
 
-        qc(5:4+n_solid) = r_xs * qc(1)
+    ! qc(5:4+n_solid) = r_h * r_alphas(1:n_solid) * rho_s(1:n_solid)
+    qc(5:4+n_solid) = r_xs * qc(1)
     qc(4+n_solid+1:4+n_solid+n_add_gas) = r_xg * qc(1)
 
     IF ( gas_flag .AND. liquid_flag ) qc(n_vars) = r_xl * qc(1)
@@ -2213,6 +2261,10 @@ CONTAINS
        END IF
 
     END DO
+
+    !a_crit_rel = vonK / SQRT( friction_factor) + 1.0_wp
+    !H_crit_rel = 1.0_wp / 30.0_wp * ( -a_crit_rel / lambertw0(-a_crit_rel *      &
+    !     EXP(-a_crit_rel)) - 1.0_wp)
 
     ! The profile parameters depend on h/k_s, not on the absolute value of h.
     h_rel = r_h / k_s

@@ -1484,7 +1484,7 @@ CONTAINS
   END SUBROUTINE compute_cell_fract
 
 
-  REAL(wp) FUNCTION lambertws(p)
+  real*8 function lambertws(p)
     !
     !   Compute W(z) by a truncated Maclaurin series around the branch point W=-1
     !
@@ -1492,65 +1492,52 @@ CONTAINS
     !               "Precise and fast computation of Lambert W-functions
     !                without transcendental function evaluations"
     !
-    REAL(wp) :: p,P2,P3,P4,P5,P6,P7,P8,P9,P10,P11,P12,P13,P14,P15,P16,P17,P18,  &
-         P19,P20
-
-    parameter (P2=-0.33333333333333333333E0_wp)
-    parameter (P3=0.15277777777777777778E0_wp)
-    parameter (P4=-0.079629629629629629630E0_wp)
-    parameter (P5=0.044502314814814814815E0_wp)
-    parameter (P6=-0.025984714873603762493E0_wp)
-    parameter (P7=0.015635632532333921223E0_wp)
-    parameter (P8=-0.0096168920242994317068E0_wp)
-    parameter (P9=0.0060145432529561178610E0_wp)
-    parameter (P10=-0.0038112980348919992267E0_wp)
-    parameter (P11=0.0024408779911439826659E0_wp)
-    parameter (P12=-0.0015769303446867842539E0_wp)
-    parameter (P13=0.0010262633205076071544E0_wp)
-    parameter (P14=-0.00067206163115613620400E0_wp)
-    parameter (P15=0.00044247306181462090993E0_wp)
-    parameter (P16=-0.00029267722472962744485E0_wp)
-    parameter (P17=0.00019438727605453931782E0_wp)
-    parameter (P18=-0.00012957426685274881888E0_wp)
-    parameter (P19=0.000086650358052081271660E0_wp)
-    parameter (P20=-0.000058113607504413816772E0_wp)
+    real*8 p,P2,P3,P4,P5,P6,P7,P8,P9,P10,P11,P12,P13,P14,P15,P16,P17,P18,P19,P20
+    parameter (P2=-0.33333333333333333333d0)
+    parameter (P3=0.15277777777777777778d0)
+    parameter (P4=-0.079629629629629629630d0)
+    parameter (P5=0.044502314814814814815d0)
+    parameter (P6=-0.025984714873603762493d0)
+    parameter (P7=0.015635632532333921223d0)
+    parameter (P8=-0.0096168920242994317068d0)
+    parameter (P9=0.0060145432529561178610d0)
+    parameter (P10=-0.0038112980348919992267d0)
+    parameter (P11=0.0024408779911439826659d0)
+    parameter (P12=-0.0015769303446867842539d0)
+    parameter (P13=0.0010262633205076071544d0)
+    parameter (P14=-0.00067206163115613620400d0)
+    parameter (P15=0.00044247306181462090993d0)
+    parameter (P16=-0.00029267722472962744485d0)
+    parameter (P17=0.00019438727605453931782d0)
+    parameter (P18=-0.00012957426685274881888d0)
+    parameter (P19=0.000086650358052081271660d0)
+    parameter (P20=-0.000058113607504413816772d0)
     !
-    
-    IF (abs(p).lt.0.01159E0_wp) THEN
-
-       lambertws=-1.E0_wp+p*(1.E0_wp+p*(P2+p*(P3+p*(P4+p*(P5+p*P6)))))
-
-    ELSEIF (abs(p).lt.0.0766E0_wp) THEN
-
-       lambertws=-1.E0_wp+p*(1.E0_wp+p*(P2+p*(P3+p*(P4+p*(P5+p*(P6+p*(P7+p*     &
-            (P8+p*(P9+p*P10)))))))))
-
-    ELSE
-
-       lambertws=-1.E0_wp+p*(1.E0_wp+p*(P2+p*(P3+p*(P4+p*(P5+p*(P6+p*(P7+p*     &
-            (P8+p*(P9+p*(P10+p*(P11+p*(P12+p*(P13+p*(P14+p*(P15+p*(P16+p*       &
-            (P17+p*(P18+p*(P19+p*P20)))))))))))))))))))
-
-    END IF
-    
-    RETURN
-
-  END function lambertws
+    if(abs(p).lt.0.01159d0) then
+       lambertws=-1.d0+p*(1.d0+p*(P2+p*(P3+p*(P4+p*(P5+p*P6)))))
+    elseif(abs(p).lt.0.0766d0) then
+       lambertws=-1.d0+p*(1.d0+p*(P2+p*(P3+p*(P4+p*(P5+p*(P6+p*(P7+p*(P8+p*(P9+p*P10)))))))))
+    else
+       lambertws=-1.d0+p*(1.d0+p*(P2+p*(P3+p*(P4+p*(P5+p*(P6+p*(P7+p*(P8+p*(P9+p*(P10+p*(P11 &
+            +p*(P12+p*(P13+p*(P14+p*(P15+p*(P16+p*(P17+p*(P18+p*(P19+p*P20)))))))))))))))))))
+    endif
+    return
+  end function lambertws
 
 
-  REAL(wp) FUNCTION lambertw(z)
+  real*8 function lambertw(z)
 
     IMPLICIT NONE
 
-    REAL(wp), INTENT(IN) :: z
-    REAL(wp) :: w1,w2
-    REAL(wp) :: z1,z2
+    REAL*8, INTENT(IN) :: z
+    REAL*8 :: w1,w2
+    REAL*8 :: z1,z2
 
     w1 = lambertwm1(z)
-    z1 = w1 * EXP(w1)
+    z1 = w1*exp(w1)
 
     w2 = lambertw0(z)
-    z2 = w2 * EXP(w2)
+    z2 = w2*exp(w2)
 
     IF ( ABS( z1-z ) .LT. ABS( z2-z ) ) THEN
 

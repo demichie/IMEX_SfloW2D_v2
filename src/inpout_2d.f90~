@@ -3321,16 +3321,7 @@ CONTAINS
           STOP
 
        END IF
-
-       IF ( energy_flag ) THEN
-
-          WRITE(*,*) 'ERROR: problem with input values'
-          WRITE(*,*) 'ENERGY_flag',energy_flag
-          WRITE(*,*) 'VERTICAL_PROFILES_FLAG',vertical_profiles_flag
-          WRITE(*,*) 'Vertical profiles can be used only with ENERGY_FLAG = F'
-          STOP
-
-       END IF          
+          
 
        REWIND(input_unit)    
        READ(input_unit, vertical_profiles_parameters,IOSTAT=ios)
