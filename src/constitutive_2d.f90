@@ -37,12 +37,6 @@ MODULE constitutive_2d
   !> evironment temperature [K]
   REAL(wp) :: T_env
 
-  !> radiative coefficient
-  REAL(wp) :: rad_coeff
-
-  !> friction coefficient
-  REAL(wp) :: frict_coeff
-
   !> reference temperature [K]
   REAL(wp) :: T_ref
 
@@ -767,7 +761,7 @@ CONTAINS
             ( EXP(a*h0) - 1.0_wp ) / a + (h-h0)*alphas_rel0 ) / h
 
        ! we compute the integral in the log region of u_tilde(z)*C_rel(z), where 
-       ! u_tilde is defined as u(z)/(u_guess*u_coeff*sqrt(friction_coeff))
+       ! u_tilde is defined as u(z)/(u_guess*u_coeff*sqrt(friction_factor))
        int_quad = SUM( w * ( EXP(a*x) * LOG( b*x + 1.0_wp ) ) )
        int_def = u_coeff * SQRT(friction_factor) / vonK * alphas_rel_max *      &
            int_quad
@@ -2084,18 +2078,17 @@ CONTAINS
     REAL(wp), INTENT(IN) :: qpj(n_vars+2)
     REAL(wp), INTENT(IN) :: B_prime_x
     REAL(wp), INTENT(IN) :: B_prime_y
-    REAL(wp), INTENT(INOUT) :: r_rho_m !< real-value mixture density [kg m-3]
-    REAL(wp), INTENT(INOUT) :: r_rho_c !< real-value carrier phase density [kg m-3]
-
+    REAL(wp), INTENT(IN) :: r_rho_m !< real-value mixture density [kg m-3]
+    REAL(wp), INTENT(IN) :: r_rho_c !< real-value carrier phase density [kg m-3]
 
     REAL(wp), INTENT(OUT) :: shape_coeff(n_vars)
     
     REAL(wp) :: Rouse_no(n_solid)
 
     REAL(wp) :: r_h          !< real-value flow thickness [m]
-    REAL(wp) :: r_hu          !< real-value h*x-velocity [m2 s-1]
-    REAL(wp) :: r_hv          !< real-value h*y-velocity [m2 s-1]
-    REAL(wp) :: r_hw          !< real-value h*z-velocity [m s-1]
+    REAL(wp) :: r_hu         !< real-value h*x-velocity [m2 s-1]
+    REAL(wp) :: r_hv         !< real-value h*y-velocity [m2 s-1]
+    REAL(wp) :: r_hw         !< real-value h*z-velocity [m s-1]
     REAL(wp) :: r_u          !< real-value x-velocity [m s-1]
     REAL(wp) :: r_v          !< real-value y-velocity [m s-1]
     REAL(wp) :: r_w          !< real-value z-velocity [m s-1]
@@ -2115,8 +2108,6 @@ CONTAINS
 
     REAL(wp) :: rhom_mod_vel2
 
-    !REAL(wp) :: a_crit_rel
-    !REAL(wp) :: H_crit_rel
     REAL(wp) :: h_rel
     
     REAL(wp) :: a , b, c, d
@@ -2343,7 +2334,159 @@ CONTAINS
     
   END SUBROUTINE eval_flux_coeffs
 
-  
+
+
+
+
+  SUBROUTINE eval_dep_coeffs(qpj,B_prime_x,B_prime_y,r_rho_c,r_rho_m,dep_coeff)
+
+    USE geometry_2d, ONLY : lambertw,lambertw0,lambertwm1
+    USE geometry_2d, ONLY : calcei
+    USE geometry_2d, ONLY : gaulegf
+    
+    IMPLICIT none
+
+    REAL(wp), INTENT(IN) :: qpj(n_vars+2)
+    REAL(wp), INTENT(IN) :: B_prime_x
+    REAL(wp), INTENT(IN) :: B_prime_y
+    REAL(wp), INTENT(INOUT) :: r_rho_m !< real-value mixture density [kg m-3]
+    REAL(wp), INTENT(INOUT) :: r_rho_c !< real-value carrier phase density [kg m-3]
+
+    REAL(wp), INTENT(OUT) :: dep_coeff(n_solid)
+    
+    REAL(wp) :: Rouse_no(n_solid)
+
+    REAL(wp) :: r_h          !< real-value flow thickness [m]
+
+    REAL(wp) :: r_u          !< real-value x-velocity [m s-1]
+    REAL(wp) :: r_v          !< real-value y-velocity [m s-1]
+    REAL(wp) :: r_w          !< real-value z-velocity [m s-1]
+
+    REAL(wp) :: mod_vel
+    REAL(wp) :: mod_vel2
+    
+    REAL(wp) :: shear_vel    !< shear velocity
+
+    REAL(wp) :: inv_kin_visc
+    REAL(wp) :: settling_vel
+
+    REAL(wp) :: rhom_mod_vel2
+
+    REAL(wp) :: h_rel
+    
+    REAL(wp) :: a , b, c, d
+
+    REAL(wp) :: h0_rel
+    REAL(wp) :: h0_rel_1
+    REAL(wp) :: h0_rel_2
+
+    REAL(wp) :: h0
+
+    INTEGER :: i_solid
+
+    REAL(wp) :: a_coeff
+
+    REAL(wp) :: int
+    REAL(wp) :: exp_a_h0
+    REAL(wp) :: y
+
+    dep_coeff(1:n_eqns) = 1.0_wp
+
+    r_h = qpj(1)
+    r_u = qpj(n_vars+1)
+    r_v = qpj(n_vars+2)
+
+    IF ( slope_correction_flag ) THEN
+
+       r_w = r_u * B_prime_x + r_v * B_prime_y
+
+    ELSE
+
+       r_w = 0.0_wp
+
+    END IF
+
+    mod_vel2 = r_u**2 + r_v**2 + r_w**2
+    mod_vel = SQRT( mod_vel2 )
+
+    shear_vel = SQRT( friction_factor ) * mod_vel
+
+    ! Viscosity read from input file [m2 s-1]
+    inv_kin_visc = 1.0_wp / kin_visc_c
+
+    DO i_solid=1,n_solid
+
+       settling_vel = settling_velocity( diam_s(i_solid) , rho_s(i_solid) ,     &
+            r_rho_c , inv_kin_visc )
+
+       IF ( shear_vel .GT. 0.0_wp ) THEN
+
+          Rouse_no(i_solid) = settling_vel / ( vonK * shear_vel )
+
+       ELSE
+
+          Rouse_no(i_solid) = 0.0_wp
+
+       END IF
+
+    END DO
+
+    ! The profile parameters depend on h/k_s, not on the absolute value of h
+    h_rel = r_h / k_s
+
+    IF ( h_rel .GT. H_crit_rel ) THEN
+
+       ! we search for h0_rel such that the average integral between 0 and
+       ! h_rel is equal to 1
+       ! For h_rel > H_crit_rel this integral is the sum of two pieces:
+       ! integral between 0 and h0_rel of the log profile
+       ! integral between h0_rel and h_rel of the costant profile
+
+       a = h_rel * vonK / SQRT(friction_factor)
+       b = 1.0_wp / 30.0_wp + h_rel
+       c = 30.0_wp
+
+       ! solve b*log(c*z+1)-z=a for z
+       d = a/b-1.0_wp/(b*c)
+
+       h0_rel_1 = -b*lambertw0( -EXP(d)/(b*c) ) - 1.0_wp / c
+       h0_rel_2 = -b*lambertwm1( -EXP(d)/(b*c) ) - 1.0_wp / c
+       h0_rel = MIN( h0_rel_1 , h0_rel_2)
+
+
+       ! h0_rel = -b*lambertw( -EXP(d)/(b*c) ) - 1.0_wp / c
+
+    ELSE
+
+       ! when h_rel <= H_crit_rel we have only the log profile and we have to
+       ! rescale it in order to have the integral between o and h_rel equal to 1
+
+       h0_rel = h_rel
+
+    END IF
+
+    h0 = h0_rel*k_s
+
+    a_coeff = - 6.0_wp * Sc / r_h
+
+    DO i_solid = 1,n_solid
+       
+       a = a_coeff * Rouse_no(i_solid)
+
+       exp_a_h0 = EXP(a*h0)
+
+       int = ( ( exp_a_h0 - 1.0_wp ) / a + exp_a_h0 * ( r_h-h0 ) ) / r_h
+       
+       dep_coeff(i_solid) = 1.0_wp / int
+
+    END DO
+
+    RETURN
+
+    
+  END SUBROUTINE eval_dep_coeffs
+
+    
   !******************************************************************************
   !> \brief Explicit source term
   !
