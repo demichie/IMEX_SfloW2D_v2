@@ -415,7 +415,7 @@ CONTAINS
        ! compute specific heat of gas phase (weighted average of specific heat
        ! of gas components, with weights given by mass fractions)
        r_sp_heat_c = ( ( r_xc - SUM( r_xg(1:n_add_gas) ) ) * sp_heat_a +        &
-            DOT_PRODUCT( r_xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / r_xc           
+            DOT_PRODUCT( r_xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / r_xc
        
        ! specific heat of the mixutre: mass average of sp. heat pf phases
        r_sp_heat_mix = DOT_PRODUCT( r_xs(1:n_solid) , sp_heat_s(1:n_solid) )    &
@@ -429,7 +429,7 @@ CONTAINS
        IF ( gas_flag ) THEN
           
           r_sp_heat_c = ( ( r_xc - SUM( r_xg(1:n_add_gas) ) ) * sp_heat_a +     &
-               DOT_PRODUCT( r_xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / r_xc           
+               DOT_PRODUCT( r_xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / r_xc
           
        ELSE
           
@@ -1631,7 +1631,6 @@ CONTAINS
           ! solve b*log(c*z+1)-z=a for z
           d = a/b - 1.0_wp / (b*c)
 
-
           h0_rel_1 = -b*lambertw0( -EXP(d)/(b*c) ) - 1.0_wp / c
           h0_rel_2 = -b*lambertwm1( -EXP(d)/(b*c) ) - 1.0_wp / c
           h0_rel = MIN( h0_rel_1 , h0_rel_2)
@@ -2241,7 +2240,7 @@ CONTAINS
 
        u_coeff = 1.0_wp
 
-    else
+    ELSE
 
        ! when h_rel <= H_crit_rel we have only the log profile and we have to
        ! rescale it in order to have the integral between o and h_rel equal to
@@ -2252,7 +2251,7 @@ CONTAINS
        u_coeff = vonK / SQRT(friction_factor)/( ( 1.0_wp + 1.0_wp /             &
             ( 30.0_wp*h_rel ) ) * LOG( 30.0_wp*h_rel + 1.0_wp )-1.0_wp)
 
-    end if
+    END IF
 
     h0 = h0_rel*k_s
 
@@ -2307,7 +2306,6 @@ CONTAINS
             alphas_rel_max * r_alphas(i_solid) * mod_vel * mod_hvel *           &
             ( u_coeff * SQRT(friction_factor) / vonK )**2 *                     &
             ( int_quad + ( r_h - h0 ) * exp_a_h0 * log_term_h0 )
-
 
     END DO
 
