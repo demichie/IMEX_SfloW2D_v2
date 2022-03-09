@@ -4,7 +4,7 @@
 MODULE constitutive_2d
 
   USE parameters_2d, ONLY : wp, sp ,tolh
-  USE parameters_2d, ONLY : n_eqns , n_vars , n_solid , n_add_gas
+  USE parameters_2d, ONLY : n_eqns , n_vars , n_solid , n_add_gas , n_quad
   USE parameters_2d, ONLY : rheology_flag , rheology_model , energy_flag ,      &
        liquid_flag , gas_flag , alpha_flag , slope_correction_flag ,            &
        curvature_term_flag
@@ -16,10 +16,10 @@ MODULE constitutive_2d
 
   !> map from implicit variables to original variables 
   INTEGER, ALLOCATABLE :: implicit_map(:)
-  
+
   !> flag to activate air entrainment
   LOGICAL :: entrainment_flag
-  
+
   !> gravitational acceleration 
   REAL(wp) :: grav
   REAL(wp) :: inv_grav
@@ -48,7 +48,7 @@ MODULE constitutive_2d
 
   !> yield strength for lava rheology [kg m-1 s-2] (Eq.4 Kelfoun & Varga, 2015)
   REAL(wp) :: tau0
-  
+
   !> velocity boundary layer fraction of total thickness
   REAL(wp) :: emme
 
@@ -57,7 +57,7 @@ MODULE constitutive_2d
 
   !> coefficient for the convective term in the temperature equation for lava
   REAL(wp) :: convective_term_coeff
-  
+
   !> atmospheric heat trasnfer coefficient [W m-2 K-1] (lambda in C&M, 2005)
   REAL(wp) :: atm_heat_transf_coeff
 
@@ -110,10 +110,10 @@ MODULE constitutive_2d
 
   !> Specific gas constant of gas mixture (units: J kg-1 K-1)
   REAL(wp) :: sp_gas_const_c
-  
+
   !> Density of carrier phase in substrate ( units: kg m-3 )
   REAL(wp) :: rho_c_sub
-  
+
   !> Ambient density of air ( units: kg m-3 )
   REAL(wp) :: rho_a_amb
 
@@ -161,7 +161,7 @@ MODULE constitutive_2d
 
   !> Minimum volume fraction of solids in the flow
   REAL(wp) :: alphastot_min
-  
+
   !> erosion model coefficient  (units: m-1 )
   REAL(wp), ALLOCATABLE :: erosion_coeff
 
@@ -173,7 +173,7 @@ MODULE constitutive_2d
 
   !> erodible substrate porosity (we assume filled by continous phase)
   REAL(wp) :: erodible_porosity
- 
+
   !> coefficient to compute (eroded/deposited) volume of continuous phase
   !> from volume of solid  
   REAL(wp) :: coeff_porosity
@@ -209,7 +209,7 @@ MODULE constitutive_2d
 
   !> Schmidt number: ratio of momentum and mass diffusivity
   REAL(wp) :: Sc
-  
+
 CONTAINS
 
   !******************************************************************************
@@ -239,7 +239,7 @@ CONTAINS
        implicit_flag(4) = .TRUE.
 
     END IF
-       
+
     ! Solid volume fraction
     implicit_flag(5:4+n_solid) = .FALSE.
 
@@ -260,9 +260,9 @@ CONTAINS
     END DO
 
     WRITE(*,*) 'Implicit equations =',n_nh
-    
+
     RETURN
-    
+
   END SUBROUTINE init_problem_param
 
   !******************************************************************************
@@ -290,7 +290,7 @@ CONTAINS
        r_alphal , r_alphag , r_red_grav )
 
     USE geometry_2d, ONLY : lambertw , lambertw0 , lambertwm1
-    
+
     USE parameters_2d, ONLY : eps_sing , eps_sing4 , vertical_profiles_flag
     IMPLICIT none
 
@@ -324,7 +324,7 @@ CONTAINS
     REAL(wp) :: inv_qj1
 
     REAL(wp) :: rhos_alfas(n_solid)
-    
+
     REAL(wp) :: rhos_alfas_tot_u 
     REAL(wp) :: rhos_alfas_tot_v
 
@@ -346,7 +346,7 @@ CONTAINS
 
     REAL(wp) :: h0
     REAL(wp) :: u_rel0
-  
+
     REAL(wp) :: uRho_avg
     REAL(wp) :: uRho_avg_new
 
@@ -362,9 +362,9 @@ CONTAINS
     REAL(wp) :: denominator
     REAL(wp) :: aitkenX
     REAL(wp) :: lambda
-  
+
     INTEGER :: i_solid
-    
+
     ! compute solid mass fractions
     IF ( r_qj(1) .GT. EPSILON(1.0_wp) ) THEN
 
@@ -379,7 +379,7 @@ CONTAINS
        END IF
 
        r_xg(1:n_add_gas) = r_qj(4+n_solid+1:4+n_solid+n_add_gas) * inv_qj1
-       
+
     ELSE
 
        r_h = 0.0_wp
@@ -395,7 +395,7 @@ CONTAINS
        RETURN
 
     END IF
-    
+
     r_xs_tot = SUM(r_xs)
 
     IF ( gas_flag .AND. liquid_flag ) THEN
@@ -410,7 +410,7 @@ CONTAINS
        ! of gas components, with weights given by mass fractions)
        r_sp_heat_c = ( ( r_xc - SUM( r_xg(1:n_add_gas) ) ) * sp_heat_a +        &
             DOT_PRODUCT( r_xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / r_xc
-       
+
        ! specific heat of the mixutre: mass average of sp. heat pf phases
        r_sp_heat_mix = DOT_PRODUCT( r_xs(1:n_solid) , sp_heat_s(1:n_solid) )    &
             + r_xl * sp_heat_l + r_xc * r_sp_heat_c
@@ -421,16 +421,16 @@ CONTAINS
        r_xc = 1.0_wp - r_xs_tot
 
        IF ( gas_flag ) THEN
-          
+
           r_sp_heat_c = ( ( r_xc - SUM( r_xg(1:n_add_gas) ) ) * sp_heat_a +     &
                DOT_PRODUCT( r_xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / r_xc
-          
+
        ELSE
-          
+
           r_sp_heat_c = sp_heat_l
-          
+
        END IF
-       
+
        ! specific heaf of the mixutre: mass average of sp. heat pf phases
        r_sp_heat_mix = DOT_PRODUCT( r_xs(1:n_solid) , sp_heat_s(1:n_solid) )    &
             + r_xc * r_sp_heat_c
@@ -466,7 +466,7 @@ CONTAINS
        READ(*,*)
 
     END IF
-    
+
     IF ( gas_flag ) THEN
 
        ! carrier phase is gas
@@ -477,7 +477,7 @@ CONTAINS
        r_inv_rho_c = r_sp_gas_const_c * r_T * inv_pres
 
        r_inv_rho_g(1:n_add_gas) = sp_gas_const_g(1:n_add_gas) * r_T * inv_pres
-       
+
     ELSE
 
        r_rho_c = rho_l
@@ -510,7 +510,7 @@ CONTAINS
 
     ! convert from mass fraction to volume fraction
     r_alphag(1:n_solid) = r_xg(1:n_solid) * r_rho_m * r_inv_rho_g(1:n_solid)
-    
+
     ! convert from mass fraction to volume fraction
     r_alphac = r_xc * r_rho_m * r_inv_rho_c
 
@@ -523,14 +523,14 @@ CONTAINS
 
        rhos_alfas_tot_u = r_xs_tot * r_qj(2) / r_h  
        rhos_alfas_tot_v = r_xs_tot * r_qj(3) / r_h  
-      
+
        rhos_alfas(1:n_solid) = r_alphas(1:n_solid) * rho_s(1:n_solid)
 
        ! Viscosity read from input file [m2 s-1]
        inv_kin_visc = 1.0_wp / kin_visc_c
-       
+
        DO i_solid=1,n_solid
-          
+
           settling_vel(i_solid) = settling_velocity( diam_s(i_solid) ,          &
                rho_s(i_solid) , r_rho_c , inv_kin_visc )
 
@@ -589,10 +589,10 @@ CONTAINS
 
        ! loop to compute the average velocity from average rho*alpha and average 
        ! uRho ( = 1/h*int( u*rhog*alphag + sum[u*rhos(i)*alphas(i)] ) ) 
- 
-       rel_tol = 1.e-10
-       abs_tol = 1.e-12
-      
+
+       rel_tol = 1.e-8
+       abs_tol = 1.e-8
+
        aitken_loop:DO i_aitken=1,10
 
           x0 = u_avg_guess
@@ -610,7 +610,7 @@ CONTAINS
                uRho_avg_new )
 
           u_avg_new = u_avg_new * uRho_avg / ( uRho_avg_new)
-     
+
           x2 = u_avg_new
 
           IF (x1 .NE.  x0) THEN
@@ -643,33 +643,33 @@ CONTAINS
 
        !IF ( r_h .GT. 0.0_wp ) THEN
 
-          !WRITE(*,*) 'h0',h0
-          !WRITE(*,*) 'r_rho_m', r_rho_m
-          !WRITE(*,*) 'rhom_avg',rhom_avg
-          !WRITE(*,*) 'uRho_avg',uRho_avg
-          !WRITE(*,*) 'uRho_avg_new',uRho_avg_new
-          !WRITE(*,*) 'r_u profile',r_u
-          !READ(*,*)
+       !WRITE(*,*) 'h0',h0
+       !WRITE(*,*) 'r_rho_m', r_rho_m
+       !WRITE(*,*) 'rhom_avg',rhom_avg
+       !WRITE(*,*) 'uRho_avg',uRho_avg
+       !WRITE(*,*) 'uRho_avg_new',uRho_avg_new
+       !WRITE(*,*) 'r_u profile',r_u
+       !READ(*,*)
 
        !END IF
 
     ELSE
-    
+
        ! velocity components
        IF ( r_qj(1) .GT. eps_sing ) THEN
-          
+
           r_u = r_qj(2) * inv_qj1
           r_v = r_qj(3) * inv_qj1
-          
+
        ELSE
-          
+
           r_u = SQRT(2.0_wp) * r_qj(1) * r_qj(2) / SQRT( r_qj(1)**4 + eps_sing4 )
           r_v = SQRT(2.0_wp) * r_qj(1) * r_qj(3) / SQRT( r_qj(1)**4 + eps_sing4 )
-          
+
        END IF
 
     END IF
-       
+
     ! Richardson number
     IF ( ( r_u**2 + r_v**2 ) .GT. 0.0_wp ) THEN
 
@@ -684,19 +684,19 @@ CONTAINS
     RETURN
 
   END SUBROUTINE r_phys_var
- 
- 
+
+
   SUBROUTINE avg_profiles_mix( h , settling_vel , rho_alphas_avg , u_guess ,    &
        h0 , b , u_coeff , u_rel0 , rho_c , rhom_avg , uRho_avg_new )
 
     USE geometry_2d, ONLY : calcei , gaulegf
-    
+
     IMPLICIT NONE
 
     REAL(wp), INTENT(IN) :: h
     REAL(wp), INTENT(IN) :: settling_vel(n_solid)
     REAL(wp), INTENT(IN) :: rho_alphas_avg(n_solid)
-    
+
     REAL(wp), INTENT(IN) :: u_guess
     REAL(wp), INTENT(IN) :: h0
     REAL(wp), INTENT(IN) :: b
@@ -729,10 +729,10 @@ CONTAINS
     INTEGER ( kind = 4 ) :: i
     ! REAL(wp) :: x,ei
 
-    REAL(wp) :: x(20)
-    REAL(wp) :: w(20)
+    REAL(wp) :: x(n_quad)
+    REAL(wp) :: w(n_quad)
     REAL(wp) :: int_quad
-    
+
     ! Shear velocity computed from u_guess
     shear_vel = u_guess * SQRT(friction_factor)
 
@@ -740,8 +740,8 @@ CONTAINS
     Pn(1:n_solid) = settling_vel(1:n_solid) / ( vonK * shear_vel )
 
     ! Compute the abscissas and weights for the quadrature formula
-    CALL gaulegf(0.0_wp, h0, x, w, 20)
-   
+    CALL gaulegf(0.0_wp, h0, x, w, n_quad)
+
     DO i_solid=1,n_solid
 
        a = -( 6.0_wp * Pn(i_solid) * Sc ) / h
@@ -764,8 +764,8 @@ CONTAINS
        ! u_tilde is defined as u(z)/(u_guess*u_coeff*sqrt(friction_factor))
        int_quad = SUM( w * ( EXP(a*x) * LOG( b*x + 1.0_wp ) ) )
        int_def = u_coeff * SQRT(friction_factor) / vonK * alphas_rel_max *      &
-           int_quad
-       
+            int_quad
+
        ! we add the contribution of the integral of the constant region, we
        ! average by dividing by h and we multiply by the density of solid and
        ! average concentration and by u_guess.
@@ -786,8 +786,8 @@ CONTAINS
   END SUBROUTINE avg_profiles_mix
 
 
-  
-  
+
+
   !******************************************************************************
   !> \brief Physical variables
   !
@@ -836,7 +836,7 @@ CONTAINS
     COMPLEX(wp) :: inv_cqj1                !< reciprocal of 1st cons. variable
     COMPLEX(wp) :: inv_rho_c               !< carrier phase density reciprocal
     COMPLEX(wp) :: inv_rho_g(n_add_gas)    !< add. gas density reciprocal
-    
+
     ! compute solid mass fractions
     IF ( REAL(c_qj(1)) .GT.  EPSILON(1.0_wp) ) THEN
 
@@ -844,7 +844,7 @@ CONTAINS
        xs(1:n_solid) = c_qj(5:4+n_solid) * inv_cqj1
 
        xg(1:n_add_gas) = c_qj(4+n_solid+1:4+n_solid+n_add_gas) * inv_cqj1
-       
+
     ELSE
 
        h = CMPLX(0.0_wp,0.0_wp,wp)
@@ -868,10 +868,10 @@ CONTAINS
 
        ! compute carrier phase (gas) mass fraction
        xc = 1.0_wp - xs_tot - xl
-       
+
        sp_heat_c = ( ( xc - SUM( xg(1:n_add_gas) ) ) * sp_heat_a +              &
             DOT_PRODUCT( xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / xc
-       
+
        ! specific heat of the mixutre: mass average of sp. heat pf phases
        sp_heat_mix = DOT_PRODUCT( xs(1:n_solid) , sp_heat_s(1:n_solid) )        &
             + xl * sp_heat_l + xc * sp_heat_c
@@ -882,21 +882,21 @@ CONTAINS
        xc = 1.0_wp - xs_tot
 
        IF ( gas_flag ) THEN
-          
+
           sp_heat_c = ( ( xc - SUM( xg(1:n_add_gas) ) ) * sp_heat_a +           &
                DOT_PRODUCT( xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / xc
-          
+
        ELSE
-          
+
           sp_heat_c = CMPLX(sp_heat_l,0.0_wp,wp)
-          
+
        END IF
-       
+
        ! specific heaf of the mixutre: mass average of sp. heat pf phases
        sp_heat_mix = DOT_PRODUCT( xs(1:n_solid) , sp_heat_s(1:n_solid) )        &
             + xc * sp_heat_c
 
-    END IF    
+    END IF
 
     ! compute temperature from energy
     IF ( REAL(c_qj(1)) .GT. eps_sing ) THEN
@@ -909,7 +909,7 @@ CONTAINS
        ELSE
 
           T = c_qj(4) / ( c_qj(1) * sp_heat_mix ) 
-          
+
        END IF
 
        IF ( REAL(T) .LE. 0.0_wp ) T = CMPLX(T_ambient,0.0_wp,wp)
@@ -934,7 +934,7 @@ CONTAINS
     ELSE
 
        inv_rho_c = CMPLX(inv_rho_l,0.0_wp,wp)
-    
+
     END IF
 
     inv_rhom = DOT_PRODUCT( xs(1:n_solid) , c_inv_rho_s(1:n_solid) )            &
@@ -949,7 +949,7 @@ CONTAINS
 
     ! convert from mass fraction to volume fraction
     alphag(1:n_add_gas) = rho_m * xg(1:n_solid) * inv_rho_g(1:n_add_gas)
-    
+
     h = c_qj(1) * inv_rhom
 
     ! velocity components
@@ -1012,7 +1012,7 @@ CONTAINS
     REAL(wp) :: r_T                       !< real-value temperature [K]
     REAL(wp) :: r_alphal                  !< real-value liquid volume fraction
     REAL(wp) :: r_alphac
-    
+
     REAL(wp) :: alphas_tot                !< total solid fraction
 
     REAL(wp) :: r_inv_rhom
@@ -1037,7 +1037,7 @@ CONTAINS
 
 
        END IF
-          
+
        RETURN
 
     END IF
@@ -1057,11 +1057,11 @@ CONTAINS
        r_alphag(1:n_add_gas) = qpj(4+n_solid+1:4+n_solid+n_add_gas) / qpj(1)
 
     END IF
-    
+
     alphas_tot = SUM(r_alphas)
 
     r_alphal = 0.0_wp
-    
+
     IF ( gas_flag .AND. liquid_flag ) THEN
 
        IF ( alpha_flag ) THEN
@@ -1111,7 +1111,7 @@ CONTAINS
     END IF
 
     r_inv_rhom = 1.0_wp / r_rho_m
-    
+
     ! reduced gravity
     r_red_grav = ( r_rho_m - rho_a_amb ) / r_rho_m * grav
 
@@ -1127,7 +1127,7 @@ CONTAINS
     END IF
 
     IF ( sp_heat_flag ) THEN
-       
+
        CALL eval_sp_heat( r_alphal , r_alphas , r_alphag, r_rho_g , r_inv_rhom ,&
             r_sp_heat_c , r_sp_heat_mix )
 
@@ -1196,7 +1196,7 @@ CONTAINS
        ! specific heat of gas (mass. avg. of sp.heat of gas components)
        r_sp_heat_c = ( ( r_xc - SUM( r_xg(1:n_add_gas) ) ) * sp_heat_a +        &
             DOT_PRODUCT( r_xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / r_xc
-       
+
        ! mass averaged mixture specific heat
        r_sp_heat_mix =  DOT_PRODUCT( r_xs , sp_heat_s ) + r_xl * sp_heat_l      &
             + r_xc * r_sp_heat_c
@@ -1214,9 +1214,9 @@ CONTAINS
        r_xc = 1.0_wp - SUM( r_xs(1:n_solid) )
 
        r_sp_heat_c = 0.0_wp
-              
+
        IF ( gas_flag ) THEN
-          
+
           r_sp_heat_c = ( ( r_xc - SUM( r_xg(1:n_add_gas) ) ) * sp_heat_a +     &
                DOT_PRODUCT( r_xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / r_xc
 
@@ -1228,11 +1228,11 @@ CONTAINS
 
        ! mass averaged mixture specific heat
        r_sp_heat_mix =  DOT_PRODUCT( r_xs , sp_heat_s ) + r_xc * r_sp_heat_c
-       
+
     END IF
 
     RETURN
-    
+
   END SUBROUTINE eval_sp_heat
 
   !******************************************************************************
@@ -1280,15 +1280,15 @@ CONTAINS
     REAL(wp) :: r_alphal          !< real-value liquid volume fraction
     REAL(wp) :: r_alphag(n_add_gas) !< real-value add. gas volume fractions
     REAL(wp) :: r_red_grav
-    
+
     CALL r_phys_var( qc , r_h , r_u , r_v , r_alphas , r_rho_m , r_T ,          &
          r_alphal , r_alphag , r_red_grav )
 
     qp(1) = r_h
-    
+
     qp(2) = r_h*r_u
     qp(3) = r_h*r_v
-    
+
     qp(4) = r_T
 
     IF ( alpha_flag ) THEN
@@ -1296,7 +1296,7 @@ CONTAINS
        qp(5:4+n_solid) = r_alphas(1:n_solid)
        qp(4+n_solid+1:4+n_solid+n_add_gas) = r_alphag(1:n_add_gas)
        IF ( gas_flag .AND. liquid_flag ) qp(n_vars) = r_alphal
-     
+
     ELSE
 
        qp(5:4+n_solid) = r_alphas(1:n_solid) * r_h
@@ -1309,7 +1309,7 @@ CONTAINS
     qp(n_vars+2) = r_v
 
     p_dyn = 0.5_wp * r_rho_m * ( r_u**2 + r_v**2 )
-    
+
     RETURN
 
   END SUBROUTINE qc_to_qp
@@ -1345,7 +1345,7 @@ CONTAINS
     USE parameters_2d, ONLY : vertical_profiles_flag
     USE geometry_2d, ONLY : gaulegf
     USE geometry_2d, ONLY : lambertw,lambertw0,lambertwm1
-    
+
     IMPLICIT none
 
     REAL(wp), INTENT(IN) :: qp(n_vars+2)
@@ -1372,7 +1372,7 @@ CONTAINS
     REAL(wp) :: r_rho_g(n_add_gas)!< real-value add.gas densities [kg/m3]
     REAL(wp) :: r_xs(n_solid)     !< real-value solid mass fractions
     REAL(wp) :: r_xg(n_add_gas)   !< real-value add.gas mass fractions
- 
+
     REAL(wp) :: r_alphas_rhos(n_solid)
     REAL(wp) :: r_alphag_rhog(n_add_gas)
     REAL(wp) :: alphas_tot
@@ -1390,7 +1390,7 @@ CONTAINS
 
     REAL(wp) :: a , b , c , d
 
-    REAL(wp) :: x(20) , w(20)
+    REAL(wp) :: x(n_quad) , w(n_quad)
 
     REAL(wp) :: inv_kin_visc
     REAL(wp) :: settling_vel
@@ -1414,7 +1414,7 @@ CONTAINS
     REAL(wp) :: b_term
     REAL(wp) :: exp_a_h0
 
-    
+
     r_h = qp(1)
 
     IF ( r_h .GT. EPSILON(1.0_wp) ) THEN
@@ -1438,7 +1438,7 @@ CONTAINS
 
        r_alphas(1:n_solid) = qp(5:4+n_solid)
        r_alphag(1:n_add_gas) = qp(4+n_solid+1:4+n_solid+n_add_gas)
-   
+
     ELSE
 
        r_alphas(1:n_solid) = qp(5:4+n_solid) / qp(1)
@@ -1451,7 +1451,7 @@ CONTAINS
     r_alphas_rhos(1:n_solid) = r_alphas(1:n_solid) * rho_s(1:n_solid)
 
     r_alphal = 0.0_wp
-    
+
     IF ( gas_flag .AND. liquid_flag ) THEN
 
        IF ( alpha_flag ) THEN
@@ -1465,7 +1465,7 @@ CONTAINS
        END IF
 
     END IF
-     
+
     IF ( gas_flag ) THEN
 
        ! continuous phase is air
@@ -1524,7 +1524,7 @@ CONTAINS
        ! specific heat of gas (mass. avg. of sp.heat of gas components)
        r_sp_heat_c = ( ( r_xc - SUM( r_xg(1:n_add_gas) ) ) * sp_heat_a +        &
             DOT_PRODUCT( r_xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / r_xc
-       
+
        ! mass averaged mixture specific heat
        r_sp_heat_mix =  DOT_PRODUCT( r_xs , sp_heat_s ) + r_xl * sp_heat_l      &
             + r_xc * r_sp_heat_c
@@ -1562,7 +1562,7 @@ CONTAINS
        r_xc = r_alphac * r_rho_c * r_inv_rhom
 
        IF ( gas_flag ) THEN
-          
+
           r_sp_heat_c = ( ( r_xc - SUM( r_xg(1:n_add_gas) ) ) * sp_heat_a +     &
                DOT_PRODUCT( r_xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / r_xc
 
@@ -1658,7 +1658,7 @@ CONTAINS
 
        a_coeff = - 6.0_wp * Sc / r_h
 
-       CALL gaulegf(0.0_wp, h0, x, w, 20)
+       CALL gaulegf(0.0_wp, h0, x, w, n_quad)
 
        DO i_solid = 1,n_solid
 
@@ -1694,14 +1694,14 @@ CONTAINS
 
        qc(2) = r_h * uRho_avg * r_u / mod_vel
        qc(3) = r_h * uRho_avg * r_v / mod_vel
-       
+
     ELSE
-       
+
        qc(2) = r_rho_m * r_hu
        qc(3) = r_rho_m * r_hv
 
     END IF
-       
+
     IF ( energy_flag ) THEN
 
        IF ( r_h .GT. 0.0_wp ) THEN
@@ -1723,7 +1723,7 @@ CONTAINS
 
     END IF
 
-        qc(5:4+n_solid) = r_xs * qc(1)
+    qc(5:4+n_solid) = r_xs * qc(1)
     qc(4+n_solid+1:4+n_solid+n_add_gas) = r_xg * qc(1)
 
     IF ( gas_flag .AND. liquid_flag ) qc(n_vars) = r_xl * qc(1)
@@ -1910,7 +1910,7 @@ CONTAINS
   SUBROUTINE eval_fluxes(qcj,qpj,B_prime_x,B_prime_y,grav_coeff,dir,flux)
 
     USE parameters_2d, ONLY : vertical_profiles_flag
-    
+
     IMPLICIT none
 
     REAL(wp), INTENT(IN) :: qcj(n_vars)
@@ -1934,10 +1934,10 @@ CONTAINS
     REAL(wp) :: r_sp_heat_mix
 
     REAL(wp) :: shape_coeff(n_eqns)
-    
+
     REAL(wp) :: r_w
     REAL(wp) :: mod_vel2 , mod_vel
-    
+
     REAL(wp) :: shear_stress
     REAL(wp) :: shear_vel    !< shear velocity
 
@@ -1947,11 +1947,11 @@ CONTAINS
     REAL(wp) :: Rouse_no(n_solid)
 
     INTEGER :: i_solid
-    
+
     sp_heat_flag = .FALSE.
 
     shape_coeff(1:n_eqns) = 1.0_wp
-    
+
     pos_thick:IF ( qpj(1) .GT. EPSILON(1.0_wp) ) THEN
 
        r_h = qpj(1)
@@ -1963,12 +1963,12 @@ CONTAINS
 
        IF ( vertical_profiles_flag ) CALL eval_flux_coeffs( qpj , B_prime_x ,   &
             B_prime_y , r_rho_c , r_rho_m , shape_coeff )
-       
+
        IF ( dir .EQ. 1 ) THEN
 
           ! Mass flux in x-direction: u * ( rhom * h )
           flux(1) = r_u * qcj(1) * shape_coeff(1)
-          
+
           ! x-momentum flux in x-direction + hydrostatic pressure term
           flux(2) = r_u * qcj(2) * shape_coeff(2) + 0.5_wp * r_rho_m *          &
                grav_coeff * r_red_grav * r_h**2
@@ -2005,7 +2005,7 @@ CONTAINS
           flux(4+n_solid+1:4+n_solid+n_add_gas) = r_u *                         &
                qcj(4+n_solid+1:4+n_solid+n_add_gas) *                           &
                shape_coeff(4+n_solid+1:4+n_solid+n_add_gas)
-                    
+
           ! Mass flux of liquid in x-direction: u * ( h * alphal * rhol )
           IF ( gas_flag .AND. liquid_flag ) flux(n_vars) = r_u * qcj(n_vars) *  &
                shape_coeff(n_vars)
@@ -2049,7 +2049,7 @@ CONTAINS
           flux(4+n_solid+1:4+n_solid+n_add_gas) = r_v *                         &
                qcj(4+n_solid+1:4+n_solid+n_add_gas) *                           &
                shape_coeff(4+n_solid+1:4+n_solid+n_add_gas)
-                    
+
           ! Mass flux of liquid in x-direction: u * ( h * alphal * rhol )
           IF ( gas_flag .AND. liquid_flag ) flux(n_vars) = r_v * qcj(n_vars) *  &
                shape_coeff(n_vars)
@@ -2067,12 +2067,32 @@ CONTAINS
   END SUBROUTINE eval_fluxes
 
 
+  !******************************************************************************
+  !> \brief flux coefficients
+  !
+  !> This subroutine evaluates the coefficients for the fluxes accouting for the
+  !> ratio between fluxes computed from the integral of the profiles and fluxes
+  !> computed from the average values of the physical variables.
+  !> particles.
+  !> \date 2022/03/09
+  !> \param[in]     qpj                physical variables
+  !> \param[in]     B_prime_x          topography slope in the x-direction
+  !> \param[in]     B_prime_y          topography slope in the y-direction
+  !> \param[in]     r_rho_c            density of carrier phase
+  !> \param[in]     r_rho_m            density of the mixture
+  !> \param[out]    shape_coeff          coefficients
+  !
+  !> @author 
+  !> Mattia de' Michieli Vitturi
+  !
+  !******************************************************************************
+
   SUBROUTINE eval_flux_coeffs(qpj,B_prime_x,B_prime_y,r_rho_c,r_rho_m,shape_coeff)
 
     USE geometry_2d, ONLY : lambertw,lambertw0,lambertwm1
     USE geometry_2d, ONLY : calcei
     USE geometry_2d, ONLY : gaulegf
-    
+
     IMPLICIT none
 
     REAL(wp), INTENT(IN) :: qpj(n_vars+2)
@@ -2082,7 +2102,7 @@ CONTAINS
     REAL(wp), INTENT(IN) :: r_rho_c !< real-value carrier phase density [kg m-3]
 
     REAL(wp), INTENT(OUT) :: shape_coeff(n_vars)
-    
+
     REAL(wp) :: Rouse_no(n_solid)
 
     REAL(wp) :: r_h          !< real-value flow thickness [m]
@@ -2099,7 +2119,7 @@ CONTAINS
 
     REAL(wp) :: mod_vel
     REAL(wp) :: mod_vel2
-    
+
     REAL(wp) :: shear_stress
     REAL(wp) :: shear_vel    !< shear velocity
 
@@ -2109,7 +2129,7 @@ CONTAINS
     REAL(wp) :: rhom_mod_vel2
 
     REAL(wp) :: h_rel
-    
+
     REAL(wp) :: a , b, c, d
 
     REAL(wp) :: h0_rel
@@ -2121,7 +2141,7 @@ CONTAINS
     REAL(wp) :: h0
 
     REAL(wp) :: u_rel0
-    
+
     INTEGER :: i_solid
 
     REAL(wp) :: x(20)
@@ -2265,13 +2285,13 @@ CONTAINS
     w_log_term_x = w * log_term_x
 
     DO i_solid = 1,n_solid
-       
+
        a = a_coeff * Rouse_no(i_solid)
 
        exp_a_h0 = EXP(a*h0)
-       
+
        int = ( ( exp_a_h0 -1.0_wp ) / a + exp_a_h0 * ( r_h-h0 ) ) / r_h
-       
+
        alphas_rel_max = 1.0_wp / int
 
        ! relative concentration alphas_rel at depth h0 (from the bottom)
@@ -2328,52 +2348,57 @@ CONTAINS
     !WRITE(*,*) 'uRho_avg',uRho_avg
     !WRITE(*,*) 'shape_coeff',shape_coeff
     !READ(*,*)
-    
+
     RETURN
 
-    
+
   END SUBROUTINE eval_flux_coeffs
 
 
+  !******************************************************************************
+  !> \brief deposition coefficients
+  !
+  !> This subroutine evaluates the coefficients for the deposition terms 
+  !> accounting for the ratio between bottom and average volume fraction of solid
+  !> particles.
+  !> \date 2022/03/09
+  !> \param[in]     qpj                physical variables
+  !> \param[in]     mod_vel            velocity magnitude
+  !> \param[in]     r_rho_c            density of carrier phase
+  !> \param[in]     r_rho_m            density of the mixture
+  !> \param[out]    dep_coeff          coefficients
+  !
+  !> @author 
+  !> Mattia de' Michieli Vitturi
+  !
+  !******************************************************************************
 
-
-
-  SUBROUTINE eval_dep_coeffs(qpj,B_prime_x,B_prime_y,r_rho_c,r_rho_m,dep_coeff)
+  SUBROUTINE eval_dep_coeffs( qpj , mod_vel , r_rho_c , r_rho_m , dep_coeff )
 
     USE geometry_2d, ONLY : lambertw,lambertw0,lambertwm1
     USE geometry_2d, ONLY : calcei
     USE geometry_2d, ONLY : gaulegf
-    
+
     IMPLICIT none
 
     REAL(wp), INTENT(IN) :: qpj(n_vars+2)
-    REAL(wp), INTENT(IN) :: B_prime_x
-    REAL(wp), INTENT(IN) :: B_prime_y
-    REAL(wp), INTENT(INOUT) :: r_rho_m !< real-value mixture density [kg m-3]
-    REAL(wp), INTENT(INOUT) :: r_rho_c !< real-value carrier phase density [kg m-3]
+    REAL(wp), INTENT(IN) :: mod_vel
+    REAL(wp), INTENT(IN) :: r_rho_m !< real-value mixture density [kg m-3]
+    REAL(wp), INTENT(IN) :: r_rho_c !< real-value carrier phase density [kg m-3]
 
     REAL(wp), INTENT(OUT) :: dep_coeff(n_solid)
-    
+
     REAL(wp) :: Rouse_no(n_solid)
 
     REAL(wp) :: r_h          !< real-value flow thickness [m]
 
-    REAL(wp) :: r_u          !< real-value x-velocity [m s-1]
-    REAL(wp) :: r_v          !< real-value y-velocity [m s-1]
-    REAL(wp) :: r_w          !< real-value z-velocity [m s-1]
-
-    REAL(wp) :: mod_vel
-    REAL(wp) :: mod_vel2
-    
     REAL(wp) :: shear_vel    !< shear velocity
 
     REAL(wp) :: inv_kin_visc
     REAL(wp) :: settling_vel
 
-    REAL(wp) :: rhom_mod_vel2
-
     REAL(wp) :: h_rel
-    
+
     REAL(wp) :: a , b, c, d
 
     REAL(wp) :: h0_rel
@@ -2393,21 +2418,6 @@ CONTAINS
     dep_coeff(1:n_eqns) = 1.0_wp
 
     r_h = qpj(1)
-    r_u = qpj(n_vars+1)
-    r_v = qpj(n_vars+2)
-
-    IF ( slope_correction_flag ) THEN
-
-       r_w = r_u * B_prime_x + r_v * B_prime_y
-
-    ELSE
-
-       r_w = 0.0_wp
-
-    END IF
-
-    mod_vel2 = r_u**2 + r_v**2 + r_w**2
-    mod_vel = SQRT( mod_vel2 )
 
     shear_vel = SQRT( friction_factor ) * mod_vel
 
@@ -2470,23 +2480,23 @@ CONTAINS
     a_coeff = - 6.0_wp * Sc / r_h
 
     DO i_solid = 1,n_solid
-       
+
        a = a_coeff * Rouse_no(i_solid)
 
        exp_a_h0 = EXP(a*h0)
 
        int = ( ( exp_a_h0 - 1.0_wp ) / a + exp_a_h0 * ( r_h-h0 ) ) / r_h
-       
+
        dep_coeff(i_solid) = 1.0_wp / int
 
     END DO
 
     RETURN
 
-    
+
   END SUBROUTINE eval_dep_coeffs
 
-    
+
   !******************************************************************************
   !> \brief Explicit source term
   !
@@ -2520,7 +2530,7 @@ CONTAINS
     USE parameters_2d, ONLY : vel_source , T_source , alphas_source ,           &
          alphal_source , time_param , bottom_radial_source_flag , alphag_source
 
-    
+
     IMPLICIT NONE
 
     REAL(wp), INTENT(IN) :: Bprimej_x
@@ -2531,7 +2541,7 @@ CONTAINS
     REAL(wp), INTENT(IN) :: grav_coeff
     REAL(wp), INTENT(IN) :: d_grav_coeff_dx
     REAL(wp), INTENT(IN) :: d_grav_coeff_dy
-    
+
     REAL(wp), INTENT(IN) :: source_xy
 
     REAL(wp), INTENT(IN) :: qpj(n_vars+2)      !< local physical variables 
@@ -2539,7 +2549,7 @@ CONTAINS
 
     REAL(wp), INTENT(IN) :: time
     REAL(wp), INTENT(IN) :: cell_fract_jk
-    
+
     REAL(wp) :: r_h          !< real-value flow thickness
     REAL(wp) :: r_u          !< real-value x-velocity
     REAL(wp) :: r_v          !< real-value y-velocity
@@ -2551,7 +2561,7 @@ CONTAINS
 
     REAL(wp) :: r_sp_heat_mix !< real_value mixture specific heat
     REAL(wp) :: r_sp_heat_c
-    
+
     REAL(wp) :: t_rem
     REAL(wp) :: t_coeff
     REAL(wp) :: h_dot
@@ -2562,7 +2572,7 @@ CONTAINS
     LOGICAL :: sp_heat_flag
 
     sp_heat_flag = .TRUE.
-    
+
     expl_term(1:n_eqns) = 0.0_wp
 
     IF ( ( qpj(1) .LE. EPSILON(1.0_wp) ) .AND. ( cell_fract_jk .EQ. 0.0_wp ) )  &
@@ -2585,13 +2595,13 @@ CONTAINS
        centr_force_term = 0.0_wp
 
     END IF
-    
+
     r_tilde_grav = r_red_grav + centr_force_term
 
     ! units of dqc(2)/dt [kg m-1 s-2]
     expl_term(2) = - grav_coeff * r_rho_m * r_tilde_grav * r_h * Bprimej_x      &
          + 0.5_wp * r_rho_m * r_red_grav * r_h**2 * d_grav_coeff_dx 
-    
+
     ! units of dqc(3)/dt [kg m-1 s-2]
     expl_term(3) = - grav_coeff * r_rho_m * r_tilde_grav * r_h * Bprimej_y      &
          + 0.5_wp * r_rho_m * r_red_grav * r_h**2 * d_grav_coeff_dy
@@ -2605,7 +2615,7 @@ CONTAINS
        expl_term(4) = 0.0_wp
 
     END IF
-    
+
     ! ----------- ADDITIONAL EXPLICIT TERMS FOR BOTTOM RADIAL SOURCE ------------ 
 
     IF ( ( .NOT.bottom_radial_source_flag ) .OR.                                &
@@ -2624,7 +2634,7 @@ CONTAINS
           t_coeff = 0.0_wp
 
        END IF
-          
+
     ELSE
 
        IF ( t_rem .LE. time_param(3) ) THEN
@@ -2634,22 +2644,22 @@ CONTAINS
        ELSEIF ( t_rem .LE. time_param(2) - time_param(3) ) THEN
 
           t_coeff = 1.0_wp
-          
+
        ELSEIF ( t_rem .LE. time_param(2) ) THEN
-          
+
           t_coeff = 1.0_wp - ( t_rem - time_param(2) + time_param(3) ) /        &
                time_param(3)
-          
+
        ELSE
-          
+
           t_coeff = 0.0_wp
-          
+
        END IF
 
     END IF
 
     h_dot = cell_fract_jk * vel_source
-    
+
     expl_term(1) = expl_term(1) + t_coeff * h_dot * r_rho_m
     expl_term(2) = expl_term(2) + 0.0_wp
     expl_term(3) = expl_term(3) + 0.0_wp
@@ -2665,28 +2675,28 @@ CONTAINS
             * t_source
 
     END IF
-       
+
     expl_term(5:4+n_solid) = expl_term(5:4+n_solid) + t_coeff                   &
          * h_dot * alphas_source(1:n_solid) * rho_s(1:n_solid)
 
     r_rho_g(1:n_add_gas) = pres / ( sp_gas_const_g(1:n_add_gas) * t_source )
-    
+
     expl_term(4+n_solid+1:4+n_solid+n_add_gas) =                                &
          expl_term(4+n_solid+1:4+n_solid+n_add_gas) + t_coeff                   &
          * h_dot * alphag_source(1:n_add_gas) * r_rho_g(1:n_add_gas)
-    
+
     IF ( gas_flag .AND. liquid_flag ) THEN
 
        expl_term(n_vars) = expl_term(n_vars) + t_coeff * h_dot * alphal_source  &
             * rho_l
 
     END IF
-  
+
     RETURN
 
   END SUBROUTINE eval_expl_terms
 
-  
+
   !******************************************************************************
   !> \brief Analytic integration of friction terms
   !
@@ -2707,26 +2717,26 @@ CONTAINS
 
     REAL(wp), INTENT(INOUT) :: r_qj(n_vars)
     REAL(wp), INTENT(IN) :: dt 
-    
+
 
     REAL(wp) :: r_qp(n_vars)
     REAL(wp) :: p_dyn
     REAL(wp) :: r_h
     REAL(wp) :: r_u
     REAL(wp) :: r_v
-    
+
     REAL(wp) :: mod_vel0
     REAL(wp) :: mod_vel
 
     IF ( r_qj(1) .EQ. 0.0_wp ) RETURN
-    
+
     CALL qc_to_qp(r_qj , r_qp , p_dyn )
 
     r_h = r_qp(1)
-    
+
     r_u = r_qp(n_vars+1)
     r_v = r_qp(n_vars+2)
-    
+
     mod_vel0 = SQRT( r_u**2 + r_v**2 )
 
     mod_vel = 1.0_wp / ( 1.0_wp  / mod_vel0 + friction_factor / r_h * dt )
@@ -2736,17 +2746,17 @@ CONTAINS
 
     r_qp(2) = r_h*r_u
     r_qp(3) = r_h*r_v
-    
+
     r_qp(n_vars+1) = r_u
     r_qp(n_vars+2) = r_v
 
     CALL qp_to_qc(r_qp,r_qj)
 
     RETURN
-        
+
   END SUBROUTINE integrate_friction_term
 
-  
+
   !******************************************************************************
   !> \brief Implicit source terms
   !
@@ -2792,7 +2802,7 @@ CONTAINS
     COMPLEX(wp) :: alphas(n_solid)         !< sediment volume fractions
     COMPLEX(wp) :: alphag(n_solid)         !< add. gas volume fractions
     COMPLEX(wp) :: inv_rho_m               !< 1/mixture density [kg-1 m3]
- 
+
     COMPLEX(wp) :: qj(n_vars)
     COMPLEX(wp) :: nh_term(n_eqns)
     COMPLEX(wp) :: source_term(n_eqns)
@@ -2813,7 +2823,7 @@ CONTAINS
 
     !> 1st param for fluid viscosity empirical relationship (O'Brian et al, 1993)
     COMPLEX(wp) :: alpha1    ! (units: kg m-1 s-1 )
-    
+
     !> Fluid dynamic viscosity (units: kg m-1 s-1 )
     COMPLEX(wp) :: fluid_visc
 
@@ -2923,11 +2933,11 @@ CONTAINS
              source_term(3) = source_term(3) - rho_m * gamma * v
 
           ENDIF
-          
+
           source_term(4) = source_term(4) - radiative_term_coeff * ( T**4 -     &
                T_env**4 ) - convective_term_coeff * ( T - T_env )
 
-          
+
        ELSEIF ( rheology_model .EQ. 4 ) THEN
 
           ! Lahars rheology (O'Brien 1993, FLO2D)
@@ -2945,7 +2955,7 @@ CONTAINS
              h_threshold = 1.0E-20_wp
 
           END IF
-          
+
           ! convert from Kelvin to Celsius
           Tc = T - 273.15_wp
 
@@ -3113,7 +3123,7 @@ CONTAINS
     REAL(wp) :: r_red_grav
     REAL(wp) :: r_rho_c
     REAL(wp) :: r_Ri
-    
+
     REAL(wp) :: temp_term
     REAL(wp) :: centr_force_term
 
@@ -3123,7 +3133,7 @@ CONTAINS
 
     sp_heat_flag = .FALSE.
 
-    
+
     ! initialize and evaluate the forces terms
     source_term(1:n_eqns) = 0.0_wp
 
@@ -3134,41 +3144,41 @@ CONTAINS
        r_v = qpj(n_vars+2)
 
        IF ( alpha_flag ) THEN
-          
+
           r_alphas(1:n_solid) = qpj(5:4+n_solid)
           r_alphag(1:n_add_gas) = qpj(4+n_solid+1:4+n_solid+n_add_gas)
-          
+
        ELSE
 
           r_alphas(1:n_solid) = qpj(5:4+n_solid) / qpj(1)
           r_alphag(1:n_add_gas) = qpj(4+n_solid+1:4+n_solid+n_add_gas) / qpj(1)
-          
+
        END IF
 
        r_alphal = 0.0_wp
-       
+
        IF ( gas_flag .AND. liquid_flag ) THEN
-          
+
           IF ( alpha_flag ) THEN
-             
+
              r_alphal = qpj(n_vars)
-             
+
           ELSE
-             
+
              r_alphal = qpj(n_vars) / qpj(1)
-             
+
           END IF
-          
+
        END IF
 
        r_T = qpj(4)
 
        CALL mixt_var(qpj, r_Ri, r_rho_m, r_rho_c, r_red_grav, sp_heat_flag,     &
             r_sp_heat_c, r_sp_heat_mix)
-       
+
        ! Voellmy Salm rheology
        IF ( rheology_model .EQ. 1 ) THEN
-          
+
           IF ( slope_correction_flag ) THEN
 
              r_w = r_u * Bprimej_x + r_v * Bprimej_y
@@ -3180,7 +3190,7 @@ CONTAINS
           END IF
 
           mod_vel = SQRT( r_u**2 + r_v**2 + r_w**2 )
-          
+
           IF ( mod_vel .GT. 0.0_wp ) THEN
 
              IF ( curvature_term_flag ) THEN
@@ -3197,7 +3207,7 @@ CONTAINS
 
              temp_term = r_rho_m *  mu * r_h * grav_coeff * ( r_red_grav +      &
                   centr_force_term ) / mod_vel
-             
+
              ! units of dqc(2)/dt=d(rho h v)/dt (kg m-1 s-2)
              source_term(2) = source_term(2) - temp_term * r_u
 
@@ -3214,7 +3224,7 @@ CONTAINS
        ELSEIF ( rheology_model .EQ. 3 ) THEN
 
           mod_vel = SQRT( r_u**2 + r_v**2 )
-          
+
           IF ( mod_vel .GT. 0.0_wp ) THEN
 
              ! units of dqc(2)/dt [kg m-1 s-2]
@@ -3224,7 +3234,7 @@ CONTAINS
              source_term(3) = source_term(3) - tau0 * r_v / mod_vel
 
           END IF
-          
+
           ! Lahars rheology (O'Brien 1993, FLO2D)
        ELSEIF ( rheology_model .EQ. 4 ) THEN
 
@@ -3246,7 +3256,7 @@ CONTAINS
           END IF
 
           mod_vel = SQRT( r_u**2 + r_v**2 )
-          
+
           IF ( mod_vel .GT. 0.0_wp ) THEN
 
              temp_term = grav * r_rho_m * r_h * s_y / mod_vel
@@ -3271,413 +3281,46 @@ CONTAINS
 
   END SUBROUTINE eval_nh_semi_impl_terms
 
-
   !******************************************************************************
-  !> \brief Erosion/Deposition term
+  !> \brief Mass exchange terms
   !
-  !> This subroutine evaluates the erosion and deposition terms. Addition and
-  !> loss of continuous phase are associated with these terms. We can have an
-  !> additional loss of continuous phase defined in the input file.
-  !> \date 03/010/2018
-  !> \param[in]     qpj                         local physical variables 
-  !> \param[in]     dt                          time step
-  !> \param[out]    erosion_term                ers. term for each solid phase
-  !> \param[out]    deposition_term             dep. term for each solid phase
-  !> \param[out]    continuous_phase_loss_term  additional loss of cont. phase
+  !> This subroutine evaluates all the terms related to mass exhange between the
+  !> flow and the environment: air entrainment, deposition, erosion, entrainment
+  !> of water vapour. 
+  !> \date 20/01/2018
+  !> \param[in]     qpj                real physical variables
+  !> \param[in]     B_zone             integer defining topo type (ground,water)
+  !> \param[in]     B_prime_x          local topography x-slope
+  !> \param[in]     B_prime_y          local topography y-slope
+  !> \param[in]     erodible           erodible thickness of solid phases
+  !> \param[in]     dt                 time step
+  !> \param[out]    erosion_term       erosion rate of solid phases
+  !> \param[out]    deposition_term    deposition rate of solid phases
+  !> \param[out]    continuous_phase_erosion_term  
+  !> \param[out]    continuous_phase_loss_term  
+  !> \param[out]    eqns_term          terms associated with mass exchange
+  !> \param[out]    topo_term          rate of change of topography
   !
   !> @author 
   !> Mattia de' Michieli Vitturi
   !
   !******************************************************************************
 
-  SUBROUTINE eval_erosion_dep_term( qpj , dt , erosion_term , deposition_term , &
-       continuous_phase_erosion_term , continuous_phase_loss_term )
 
-    IMPLICIT NONE
-
-    REAL(wp), INTENT(IN) :: qpj(n_vars+2)              !< physical variables 
-    REAL(wp), INTENT(IN) :: dt
-
-    REAL(wp), INTENT(OUT) :: erosion_term(n_solid)     !< erosion term
-    REAL(wp), INTENT(OUT) :: deposition_term(n_solid)  !< deposition term
-    REAL(wp), INTENT(OUT) :: continuous_phase_erosion_term
-    REAL(wp), INTENT(OUT) :: continuous_phase_loss_term
-
-    REAL(wp) :: mod_vel
-
-    REAL(wp) :: hind_exp
-    REAL(wp) :: alpha_max
-
-    INTEGER :: i_solid
-
-    REAL(wp) :: r_h          !< real-value flow thickness
-    REAL(wp) :: r_u          !< real-value x-velocity
-    REAL(wp) :: r_v          !< real-value y-velocity
-    REAL(wp) :: r_alphas(n_solid) !< real-value solid volume fractions
-    REAL(wp) :: r_alphag(n_add_gas) !< real-value add.gas volume fractions
-    REAL(wp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
-    REAL(wp) :: r_T          !< real-value mixture temperature [K]
-    REAL(wp) :: r_rho_m      !< real-value mixture density [kg/m3]
-    REAL(wp) :: tot_erosion  !< total erosion rate [m/s]
-    REAL(wp) :: tot_solid_erosion !< total solid erosion rate [m/s]
-
-    REAL(wp) :: alphas_tot   !< total solid volume fraction
-    
-    REAL(wp) :: Tc           !< temperature of carrier pphase [K]
-    
-    REAL(wp) :: alpha1       !< viscosity of continuous phase [kg m-1 s-1]
-    REAL(wp) :: fluid_visc   
-    REAL(wp) :: inv_kin_visc
-    REAL(wp) :: rhoc
-    REAL(wp) :: expA , expB
-    REAL(wp) :: r_Ri
-    REAL(wp) :: r_red_grav
- 
-    !> Hindered settling velocity (units: m s-1 )
-    REAL(wp) :: settling_vel
-
-    LOGICAL :: sp_heat_flag
-    REAL(wp) :: r_sp_heat_c
-    REAL(wp) :: r_sp_heat_mix
-
-    sp_heat_flag = .FALSE.
-
-   
-    ! parameters for Michaels and Bolger (1962) sedimentation correction
-    alpha_max = 0.6_wp
-    hind_exp = 4.65_wp
-
-    deposition_term(1:n_solid) = 0.0_wp
-    erosion_term(1:n_solid) = 0.0_wp
-    continuous_phase_loss_term = 0.0_wp
-
-    IF ( qpj(1) .LE. EPSILON(1.0_wp) ) RETURN
-    
-    r_h = qpj(1)
-    r_u = qpj(n_vars+1)
-    r_v = qpj(n_vars+2)
-    
-    IF ( alpha_flag ) THEN
-
-       r_alphas(1:n_solid) = qpj(5:4+n_solid)
-       r_alphag(1:n_add_gas) = qpj(4+n_solid+1:4+n_solid+n_add_gas)
-
-    ELSE
-
-       r_alphas(1:n_solid) = qpj(5:4+n_solid) / qpj(1)
-       r_alphag(1:n_add_gas) = qpj(4+n_solid+1:4+n_solid+n_add_gas) / qpj(1)
-
-    END IF
-
-    alphas_tot = SUM(r_alphas)
-
-    IF ( erosion_coeff .GT. 0.0_wp ) THEN
-
-       mod_vel = SQRT( r_u**2 + r_v**2 )
-       ! empirical formulation (see Fagents & Baloga 2006, Eq. 5)
-       ! here we use the solid volume fraction instead of relative density
-       ! This term has units: m s-1    
-       tot_erosion = erosion_coeff * mod_vel * r_h * ( 1.0_wp-alphas_tot )
-
-       tot_solid_erosion = tot_erosion * ( 1.0_wp - erodible_porosity )
-       
-       erosion_term(1:n_solid) = erodible_fract(1:n_solid)  * tot_solid_erosion
-
-    ELSE
-
-       tot_solid_erosion = 0.0_wp
-       
-       erosion_term(1:n_solid) = 0.0_wp
-       
-    END IF
-
-    continuous_phase_erosion_term = tot_solid_erosion * erodible_porosity
-
-    IF ( alphas_tot .LE. alphastot_min ) RETURN
-    
-    r_T = qpj(4)
-
-    CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav,sp_heat_flag,r_sp_heat_c, &
-         r_sp_heat_mix)
-    
-    IF ( rheology_model .EQ. 4 ) THEN
-       
-       ! alpha1 here has units: kg m-1 s-1
-       ! in Table 2 from O'Brien 1988, the values reported have different
-       ! units ( poises). 1poises = 0.1 kg m-1 s-1
-       
-       ! convert from Kelvin to Celsius
-       Tc = r_T - 273.15_wp
-       
-       ! the dependance of viscosity on temperature is modeled with the
-       ! equation presented at:
-       ! https://onlinelibrary.wiley.com/doi/pdf/10.1002/9781118131473.app3
-       !
-       ! In addition, we use a reference value provided in input at a 
-       ! reference temperature. This value is used to scale the equation
-       IF ( REAL(Tc) .LT. 20.0_wp ) THEN
-          
-          expA = 1301.0_wp / ( 998.333_wp + 8.1855_wp * ( Tc - 20.0_wp )        &
-               + 0.00585_wp * ( Tc - 20.0_wp )**2 ) - 1.30223_wp
-          
-          alpha1 = alpha1_coeff * 1.0E-3_wp * 10.0_wp**expA
-          
-       ELSE
-          
-          expB = ( 1.3272_wp * ( 20.0_wp - Tc ) - 0.001053_wp *                 &
-               ( Tc - 20.0_wp )**2 ) / ( Tc + 105.0_wp )
-          
-          alpha1 = alpha1_coeff * 1.002E-3_wp * 10.0_wp**expB 
-          
-       END IF
-       
-       ! Fluid dynamic viscosity [kg m-1 s-1]
-       fluid_visc = alpha1 * EXP( beta1 * alphas_tot )
-       ! Kinematic viscosity [m2 s-1]
-       inv_kin_visc = r_rho_m / fluid_visc
-       rhoc = r_rho_m
-
-    ELSE
-
-       ! Viscosity read from input file [m2 s-1]
-       inv_kin_visc = 1.0_wp / kin_visc_c
-       rhoc = r_rho_c
-       
-    END IF
-
-    DO i_solid=1,n_solid
-
-       IF ( ( r_alphas(i_solid) .GT. 0.0_wp ) .AND. ( settling_flag ) ) THEN
-
-          settling_vel = settling_velocity( diam_s(i_solid) , rho_s(i_solid) ,  &
-               rhoc , inv_kin_visc )
-
-          deposition_term(i_solid) = r_alphas(i_solid) * settling_vel
-
-          IF ( rheology_model .NE. 4 ) THEN
-
-             ! Michaels and Bolger (1962) sedimentation correction accounting 
-             ! for hindered settling due to the presence of particles
-             deposition_term(i_solid) = deposition_term(i_solid) *              &
-               ( 1.0_wp - MIN( 1.0_wp , alphas_tot / alpha_max ) )**hind_exp
-
-          END IF
-
-          ! limit the deposition (cannot remove more than particles present
-          ! in the flow)
-          deposition_term(i_solid) = MIN( deposition_term(i_solid) ,            &
-               r_h * r_alphas(i_solid) / dt )
-
-          IF ( deposition_term(i_solid) .LT. 0.0_wp ) THEN
-
-             WRITE(*,*) 'eval_erosion_dep_term'
-             WRITE(*,*) 'deposition_term(i_solid)',deposition_term(i_solid)
-             READ(*,*)
-
-          END IF
-
-       END IF
-
-    END DO
-   
-    IF ( liquid_flag ) THEN
-
-       ! set the rate of loss of continuous phase 
-       continuous_phase_loss_term = loss_rate
-
-    ELSE
-
-       continuous_phase_loss_term = 0.0_wp
-
-    END IF
- 
-    ! add the loss associated with solid deposition
-    continuous_phase_loss_term =  continuous_phase_loss_term +                  &
-         coeff_porosity * SUM( deposition_term(1:n_solid) )
-
-
-    ! limit the loss accountaing for available continuous phase
-    continuous_phase_loss_term = MIN( continuous_phase_loss_term ,              &
-         r_h * MAX( 0.0_wp , ( 1.0_wp - SUM(r_alphas) ) ) / dt )
-    
-    ! loss of continuous phase cannot 
-    continuous_phase_loss_term = MIN( continuous_phase_loss_term ,              &
-         ( r_h *  ( 1.0_wp - SUM(r_alphas) ) - coeff_porosity * ( r_h *         &
-         SUM(r_alphas) - dt * SUM( deposition_term(1:n_solid) ) ) ) / dt )
-
-
-    RETURN
-
-  END SUBROUTINE eval_erosion_dep_term
-
-
-  !******************************************************************************
-  !> \brief Topography modification related term
-  !
-  !> This subroutine evaluates the terms that goes in the govering equations,
-  !> associated with erosion, deposition, entrainment and loss of carrier phase.
-  !> \date 2019/11/08
-  !> \param[in]     qpj                   physical variables 
-  !> \param[in]     deposition_term       deposition terms 
-  !> \param[in]     erosion_term          deposition terms
-  !> \param[in]     continuous_phase_loss_term  loss of carrier phase
-  !> \param[out]    eqns_term             source terms for cons equations
-  !> \param[out]    topo_term             rate of change for topography 
-  !
-  !> @author 
-  !> Mattia de' Michieli Vitturi
-  !
-  !******************************************************************************
-
-  SUBROUTINE eval_bulk_debulk_term( qpj, deposition_term, erosion_term,         &
+  SUBROUTINE eval_mass_exchange_terms( qpj , B_zone , B_prime_x , B_prime_y ,   &
+       erodible , dt , erosion_term , deposition_term ,                         &
        continuous_phase_erosion_term , continuous_phase_loss_term , eqns_term , &
-       topo_term )
+       topo_term  )
 
-    USE parameters_2d, ONLY : erodible_deposit_flag
-    
-    IMPLICIT NONE
+    USE parameters_2d, ONLY : erodible_deposit_flag , liquid_vaporization_flag ,&
+         vertical_profiles_flag , bottom_conc_flag
 
-    REAL(wp), INTENT(IN) :: qpj(n_vars+2)                !< physical variables 
-    REAL(wp), INTENT(IN) :: deposition_term(n_solid)     !< deposition term
-    REAL(wp), INTENT(IN) :: erosion_term(n_solid)        !< erosion term
-    REAL(wp), INTENT(IN) :: continuous_phase_erosion_term
-    REAL(wp), INTENT(IN) :: continuous_phase_loss_term
-
-    REAL(wp), INTENT(OUT):: eqns_term(n_eqns)
-    REAL(wp), INTENT(OUT):: topo_term
-
-    REAL(wp) :: entr_coeff
-    REAL(wp) :: air_entr
-    REAL(wp) :: mag_vel2 
-
-    REAL(wp) :: r_h          !< real-value flow thickness
-    REAL(wp) :: r_u          !< real-value x-velocity
-    REAL(wp) :: r_v          !< real-value y-velocity
-    REAL(wp) :: r_T          !< real-value temperature [K]
-    REAL(wp) :: r_Ri         !< real-value Richardson number
-    REAL(wp) :: r_rho_m      !< real-value mixture density [kg/m3]
-    REAL(wp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
-    REAL(wp) :: r_red_grav   !< real-value reduced gravity
-
-    LOGICAL :: sp_heat_flag
-    REAL(wp) :: r_sp_heat_c
-    REAL(wp) :: r_sp_heat_mix
-    
-    REAL(wp) :: dep_tot
-    REAL(wp) :: ers_tot
-    REAL(wp) :: rho_dep_tot
-    REAL(wp) :: rho_ers_tot
-
-    
-    IF ( qpj(1) .LE. 0.0_wp ) THEN
-
-       eqns_term(1:n_eqns) = 0.0_wp
-       topo_term = 0.0_wp
-
-       RETURN
-
-    END IF
-
-    sp_heat_flag = .TRUE.
-    CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav,sp_heat_flag,r_sp_heat_c, &
-         r_sp_heat_mix)
-
-    r_h = qpj(1)
-    r_u = qpj(n_vars+1)
-    r_v = qpj(n_vars+2)
-    r_T = qpj(4)
-
-    IF ( erodible_deposit_flag ) T_erodible = r_T
-    
-    mag_vel2 = r_u**2 + r_v**2
-
-    IF ( entrainment_flag .AND.  ( r_h .GT. 0.0_wp ) .AND.                      &
-         ( r_Ri .GT. 0.0_wp ) ) THEN
-
-       entr_coeff = 0.075_wp / SQRT( 1.0_wp + 718.0_wp * r_Ri**2.4_wp )
-
-       air_entr = entr_coeff * SQRT(mag_vel2)
-
-    ELSE
-
-       air_entr = 0.0_wp
-
-    END IF
-
-    eqns_term(1:n_eqns) = 0.0_wp
-
-    
-    ! solid total volume deposition rate [m s-1]
-    dep_tot = SUM( deposition_term )
-    ! solid total volume deposition rate [m s-1]
-    ers_tot = SUM( erosion_term )
-
-    ! solid total mass deposition rate [kg m-2 s-1]
-    rho_dep_tot = DOT_PRODUCT( rho_s , deposition_term )
-    ! solid total mass erosion rate [kg m-2 s-1]
-    rho_ers_tot = DOT_PRODUCT( rho_s , erosion_term )
-
-    ! total mass equation source term [kg m-2 s-1]:
-    ! deposition, erosion and entrainment are considered
-    eqns_term(1) = rho_a_amb * air_entr + rho_ers_tot - rho_dep_tot             &
-         + rho_c_sub * continuous_phase_erosion_term                            &
-         - r_rho_c * continuous_phase_loss_term
-         
-    ! x-momenutm equation source term [kg m-1 s-2]:
-    ! only deposition contribute to change in momentum, erosion does not carry
-    ! any momentum inside the flow
-    eqns_term(2) = - r_u * ( rho_dep_tot + r_rho_c * continuous_phase_loss_term )
-
-    ! y-momentum equation source term [kg m-1 s-2]:
-    ! only deposition contribute to change in momentum, erosion does not carry
-    ! any momentum inside the flow
-    eqns_term(3) = - r_v * ( rho_dep_tot + r_rho_c * continuous_phase_loss_term )
-
-    ! Temperature/Energy equation source term [kg s-3]:
-    ! deposition, erosion and entrainment are considered    
-    IF ( energy_flag ) THEN
-       
-       eqns_term(4) = - r_T * ( SUM( rho_s * sp_heat_s * deposition_term )      &
-            + r_rho_c * r_sp_heat_c * continuous_phase_loss_term )              &
-            - 0.5_wp * mag_vel2 * ( rho_dep_tot + r_rho_c *                     &
-            continuous_phase_loss_term )                                        &
-            + T_erodible * ( SUM( rho_s * sp_heat_s * erosion_term )            &
-            + rho_c_sub * r_sp_heat_c * continuous_phase_erosion_term )         &
-            + T_ambient * sp_heat_a * rho_a_amb * air_entr
-       
-    ELSE
-       
-       eqns_term(4) = - r_T * ( SUM( rho_s * sp_heat_s * deposition_term )      &
-            + r_rho_c * r_sp_heat_c * continuous_phase_loss_term )              &
-            + T_erodible * ( SUM( rho_s * sp_heat_s * erosion_term )            &
-            + rho_c_sub * r_sp_heat_c * continuous_phase_erosion_term )         &
-            + T_ambient * sp_heat_a * rho_a_amb * air_entr
-
-    END IF
-
-    ! solid phase mass equation source term [kg m-2 s-1]:
-    ! due to solid erosion and deposition
-    eqns_term(5:4+n_solid) = rho_s(1:n_solid) * ( erosion_term(1:n_solid)       &
-         - deposition_term(1:n_solid) )
-    
-    ! erodible layer thickness source terms [m s-1]:
-    ! due to erosion and deposition of solid+continuous phase
-    topo_term = ( dep_tot - ers_tot ) / ( 1.0_wp - erodible_porosity ) 
-
-    RETURN
-
-  END SUBROUTINE eval_bulk_debulk_term
-
-  SUBROUTINE eval_mass_exchange_terms( qpj , B_zone , erodible , dt ,           &
-       erosion_term , deposition_term , continuous_phase_erosion_term ,         &
-       continuous_phase_loss_term , eqns_term , topo_term  )
-
-    USE parameters_2d, ONLY : erodible_deposit_flag , liquid_vaporization_flag
-    
     IMPLICIT NONE
 
     REAL(wp), INTENT(IN) :: qpj(n_vars+2)              !< physical variables
     INTEGER, INTENT(IN) :: B_zone
+    REAL(wp), INTENT(IN) :: B_prime_x
+    REAL(wp), INTENT(IN) :: B_prime_y
     REAL(wp), INTENT(IN) :: erodible(n_solid)          !< erodible thickness
     REAL(wp), INTENT(IN) :: dt
 
@@ -3688,8 +3331,9 @@ CONTAINS
     REAL(wp), INTENT(OUT) :: eqns_term(n_eqns)
     REAL(wp), INTENT(OUT) :: topo_term
 
-    
+
     REAL(wp) :: mod_vel
+    REAL(wp) :: mod_vel2 
 
     REAL(wp) :: hind_exp
     REAL(wp) :: alpha_max
@@ -3699,6 +3343,7 @@ CONTAINS
     REAL(wp) :: r_h          !< real-value flow thickness
     REAL(wp) :: r_u          !< real-value x-velocity
     REAL(wp) :: r_v          !< real-value y-velocity
+    REAL(wp) :: r_W          !< real-value z-velocity
     REAL(wp) :: r_alphas(n_solid) !< real-value solid volume fractions
     REAL(wp) :: r_alphag(n_add_gas) !< real-value add.gas volume fractions
     REAL(wp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
@@ -3708,9 +3353,9 @@ CONTAINS
     REAL(wp) :: tot_solid_erosion !< total solid erosion rate [m/s]
 
     REAL(wp) :: alphas_tot   !< total solid volume fraction
-    
+
     REAL(wp) :: Tc           !< temperature of carrier pphase [K]
-    
+
     REAL(wp) :: alpha1       !< viscosity of continuous phase [kg m-1 s-1]
     REAL(wp) :: fluid_visc   
     REAL(wp) :: inv_kin_visc
@@ -3718,7 +3363,7 @@ CONTAINS
     REAL(wp) :: expA , expB
     REAL(wp) :: r_Ri
     REAL(wp) :: r_red_grav
- 
+
     !> Hindered settling velocity (units: m s-1 )
     REAL(wp) :: settling_vel
 
@@ -3728,8 +3373,7 @@ CONTAINS
 
     REAL(wp) :: entr_coeff
     REAL(wp) :: air_entr
-    REAL(wp) :: mag_vel2 
-    
+
     REAL(wp) :: dep_tot
     REAL(wp) :: ers_tot
     REAL(wp) :: rho_dep_tot
@@ -3741,29 +3385,32 @@ CONTAINS
     REAL(wp) :: sp_heat_liq_water
     REAL(wp) :: mass_vap_rate
 
+    REAL(wp) :: dep_coeff(n_solid)
+
+
     erosion_term(1:n_solid) = 0.0_wp
     deposition_term(1:n_solid) = 0.0_wp
     continuous_phase_erosion_term = 0.0_wp
     continuous_phase_loss_term = 0.0_wp
     eqns_term(1:n_eqns) = 0.0_wp
     topo_term = 0.0_wp
-    
+
     IF ( qpj(1) .LE. epsilon(1.0_wp) ) THEN
 
        RETURN
 
     END IF
-       
+
     ! parameters for Michaels and Bolger (1962) sedimentation correction
     alpha_max = 0.6_wp
     hind_exp = 4.65_wp
 
     IF ( qpj(1) .LE. EPSILON(1.0_wp) ) RETURN
-    
+
     r_h = qpj(1)
     r_u = qpj(n_vars+1)
     r_v = qpj(n_vars+2)
-    
+
     IF ( alpha_flag ) THEN
 
        r_alphas(1:n_solid) = qpj(5:4+n_solid)
@@ -3778,50 +3425,63 @@ CONTAINS
 
     alphas_tot = SUM(r_alphas)
 
+
+    IF ( slope_correction_flag ) THEN
+
+       r_w = r_u * B_prime_x + r_v * B_prime_y
+
+    ELSE
+
+       r_w = 0.0_wp
+
+    END IF
+
+    mod_vel2 = r_u**2 + r_v**2 + r_w**2
+    mod_vel = SQRT( mod_vel2 )
+
     IF ( erosion_coeff .GT. 0.0_wp ) THEN
 
-       mod_vel = SQRT( r_u**2 + r_v**2 )
        ! empirical formulation (see Fagents & Baloga 2006, Eq. 5)
        ! here we use the solid volume fraction instead of relative density
        ! This term has units: m s-1    
        tot_erosion = erosion_coeff * mod_vel * r_h * ( 1.0_wp-alphas_tot )
 
        tot_solid_erosion = tot_erosion * ( 1.0_wp - erodible_porosity )
-       
+
        erosion_term(1:n_solid) = erodible_fract(1:n_solid)  * tot_solid_erosion
 
     ELSE
 
        tot_solid_erosion = 0.0_wp
-       
+
        erosion_term(1:n_solid) = 0.0_wp
-       
+
     END IF
-    
+
     ! Limit the deposition during a single time step
     erosion_term(1:n_solid) = MAX(0.0_wp,MIN( erosion_term(1:n_solid),          &
          erodible(1:n_solid) / dt ) )
-        
+
     continuous_phase_erosion_term = tot_solid_erosion * erodible_porosity
 
     IF ( alphas_tot .LE. alphastot_min ) RETURN
-    
+
     r_T = qpj(4)
 
     sp_heat_flag = .TRUE.
 
     CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav,sp_heat_flag,r_sp_heat_c, &
          r_sp_heat_mix)
-    
+
     IF ( rheology_model .EQ. 4 ) THEN
-       
+
        ! alpha1 here has units: kg m-1 s-1
        ! in Table 2 from O'Brien 1988, the values reported have different
        ! units ( poises). 1poises = 0.1 kg m-1 s-1
-       
+
        ! convert from Kelvin to Celsius
        Tc = r_T - 273.15_wp
-       
+
        ! the dependance of viscosity on temperature is modeled with the
        ! equation presented at:
        ! https://onlinelibrary.wiley.com/doi/pdf/10.1002/9781118131473.app3
@@ -3829,21 +3489,21 @@ CONTAINS
        ! In addition, we use a reference value provided in input at a 
        ! reference temperature. This value is used to scale the equation
        IF ( REAL(Tc) .LT. 20.0_wp ) THEN
-          
+
           expA = 1301.0_wp / ( 998.333_wp + 8.1855_wp * ( Tc - 20.0_wp )        &
                + 0.00585_wp * ( Tc - 20.0_wp )**2 ) - 1.30223_wp
-          
+
           alpha1 = alpha1_coeff * 1.0E-3_wp * 10.0_wp**expA
-          
+
        ELSE
-          
+
           expB = ( 1.3272_wp * ( 20.0_wp - Tc ) - 0.001053_wp *                 &
                ( Tc - 20.0_wp )**2 ) / ( Tc + 105.0_wp )
-          
+
           alpha1 = alpha1_coeff * 1.002E-3_wp * 10.0_wp**expB 
-          
+
        END IF
-       
+
        ! Fluid dynamic viscosity [kg m-1 s-1]
        fluid_visc = alpha1 * EXP( beta1 * alphas_tot )
        ! Kinematic viscosity [m2 s-1]
@@ -3857,7 +3517,17 @@ CONTAINS
        inv_kin_visc = 1.0_wp / kin_visc_c
        ! Continuous phase density used for the settling velocity
        rhoc = r_rho_c
-       
+
+    END IF
+
+    IF ( ( vertical_profiles_flag ) .AND. ( bottom_conc_flag ) ) THEN
+
+       CALL eval_dep_coeffs( qpj , mod_vel , r_rho_c , r_rho_m , dep_coeff )
+
+    ELSE
+
+       dep_coeff(1:n_solid) = 1.0_wp
+
     END IF
 
     DO i_solid=1,n_solid
@@ -3867,14 +3537,15 @@ CONTAINS
           settling_vel = settling_velocity( diam_s(i_solid) , rho_s(i_solid) ,  &
                rhoc , inv_kin_visc )
 
-          deposition_term(i_solid) = r_alphas(i_solid) * settling_vel
+          deposition_term(i_solid) = r_alphas(i_solid) * settling_vel *         &
+               dep_coeff(i_solid)
 
           IF ( rheology_model .NE. 4 ) THEN
 
              ! Michaels and Bolger (1962) sedimentation correction accounting 
              ! for hindered settling due to the presence of particles
              deposition_term(i_solid) = deposition_term(i_solid) *              &
-               ( 1.0_wp - MIN( 1.0_wp , alphas_tot / alpha_max ) )**hind_exp
+                  ( 1.0_wp - MIN( 1.0_wp , alphas_tot / alpha_max ) )**hind_exp
 
           END IF
 
@@ -3894,7 +3565,7 @@ CONTAINS
        END IF
 
     END DO
-   
+
     IF ( liquid_flag ) THEN
 
        ! set the rate of loss of continuous phase 
@@ -3905,7 +3576,7 @@ CONTAINS
        continuous_phase_loss_term = 0.0_wp
 
     END IF
- 
+
     ! add the loss associated with solid deposition
     continuous_phase_loss_term =  continuous_phase_loss_term +                  &
          coeff_porosity * SUM( deposition_term(1:n_solid) )
@@ -3914,7 +3585,7 @@ CONTAINS
     ! limit the loss accountaing for available continuous phase
     continuous_phase_loss_term = MIN( continuous_phase_loss_term ,              &
          r_h * MAX( 0.0_wp , ( 1.0_wp - SUM(r_alphas) ) ) / dt )
-    
+
     ! loss of continuous phase cannot 
     continuous_phase_loss_term = MIN( continuous_phase_loss_term ,              &
          ( r_h *  ( 1.0_wp - SUM(r_alphas) ) - coeff_porosity * ( r_h *         &
@@ -3922,24 +3593,22 @@ CONTAINS
 
 
     IF ( erodible_deposit_flag ) T_erodible = r_T
-    
-    mag_vel2 = r_u**2 + r_v**2
 
     IF ( entrainment_flag .AND.  ( r_h .GT. 0.0_wp ) .AND.                      &
          ( r_Ri .GT. 0.0_wp ) ) THEN
 
        entr_coeff = 0.075_wp / SQRT( 1.0_wp + 718.0_wp * r_Ri**2.4_wp )
 
-       air_entr = entr_coeff * SQRT(mag_vel2)
+       air_entr = entr_coeff * SQRT(mod_vel2)
 
     ELSE
 
        air_entr = 0.0_wp
 
     END IF
-        
+
     eqns_term(1:n_eqns) = 0.0_wp
-    
+
     ! solid total volume deposition rate [m s-1]
     dep_tot = SUM( deposition_term )
     ! solid total volume deposition rate [m s-1]
@@ -3949,13 +3618,13 @@ CONTAINS
     rho_dep_tot = DOT_PRODUCT( rho_s , deposition_term )
     ! solid total mass erosion rate [kg m-2 s-1]
     rho_ers_tot = DOT_PRODUCT( rho_s , erosion_term )
-    
+
     ! total mass equation source term [kg m-2 s-1]:
     ! deposition, erosion and entrainment are considered
     eqns_term(1) = rho_a_amb * air_entr + rho_ers_tot - rho_dep_tot             &
          + rho_c_sub * continuous_phase_erosion_term                            &
          - r_rho_c * continuous_phase_loss_term
-         
+
     ! x-momenutm equation source term [kg m-1 s-2]:
     ! only deposition contribute to change in momentum, erosion does not carry
     ! any momentum inside the flow
@@ -3969,17 +3638,17 @@ CONTAINS
     ! Temperature/Energy equation source term [kg s-3]:
     ! deposition, erosion and entrainment are considered    
     IF ( energy_flag ) THEN
-       
+
        eqns_term(4) = - r_T * ( SUM( rho_s * sp_heat_s * deposition_term )      &
             + r_rho_c * r_sp_heat_c * continuous_phase_loss_term )              &
-            - 0.5_wp * mag_vel2 * ( rho_dep_tot + r_rho_c *                     &
+            - 0.5_wp * mod_vel2 * ( rho_dep_tot + r_rho_c *                     &
             continuous_phase_loss_term )                                        &
             + T_erodible * ( SUM( rho_s * sp_heat_s * erosion_term )            &
             + rho_c_sub * r_sp_heat_c * continuous_phase_erosion_term )         &
             + T_ambient * sp_heat_a * rho_a_amb * air_entr
-       
+
     ELSE
-       
+
        eqns_term(4) = - r_T * ( SUM( rho_s * sp_heat_s * deposition_term )      &
             + r_rho_c * r_sp_heat_c * continuous_phase_loss_term )              &
             + T_erodible * ( SUM( rho_s * sp_heat_s * erosion_term )            &
@@ -4010,7 +3679,7 @@ CONTAINS
        eqns_term(5+n_solid) = eqns_term(5+n_solid) + mass_vap_rate
 
     END IF
-    
+
     ! erodible layer thickness source terms [m s-1]:
     ! due to erosion and deposition of solid+continuous phase
     topo_term = ( dep_tot - ers_tot ) / ( 1.0_wp - erodible_porosity ) 
@@ -4019,7 +3688,7 @@ CONTAINS
 
   END SUBROUTINE eval_mass_exchange_terms
 
-  
+
   !******************************************************************************
   !> \brief Internal boundary source fluxes
   !
@@ -4111,12 +3780,12 @@ CONTAINS
     source_bdry(4) = T_source
 
     IF ( alpha_flag ) THEN
-    
+
        source_bdry(5:4+n_solid) = alphas_source(1:n_solid)
        source_bdry(4+n_solid+1:4+n_solid+n_add_gas) = alphag_source(1:n_add_gas)
 
        IF ( gas_flag .AND. liquid_flag ) THEN
-          
+
           source_bdry(n_vars) = alphal_source
 
        END IF
@@ -4128,7 +3797,7 @@ CONTAINS
             alphag_source(1:n_add_gas)
 
        IF ( gas_flag .AND. liquid_flag ) THEN
-          
+
           source_bdry(n_vars) = t_coeff * h_source * alphal_source
 
        END IF

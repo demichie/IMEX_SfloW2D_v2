@@ -118,14 +118,8 @@ MODULE parameters_2d
   !> - F      => constant vertical profiles
   !> .  
   LOGICAL :: vertical_profiles_flag
+
   
-  !> Flag for deposition computed from vertical concentration profiles
-  !> - T      => we use bottom value
-  !> - F      => we use depthaverage value
-  !> .  
-  LOGICAL :: bottom_conc_flag
-
-
   !> Elevation of the water level in the DEM file
   REAL(wp) :: water_level
   
@@ -275,8 +269,5 @@ MODULE parameters_2d
   !> - gradient of the variable for Neumann boundary condition (bcN%flag=1).
   !> .
   TYPE(bc), ALLOCATABLE :: bcN(:)
-
-  !> quadrature points for integration of vertical profiles
-  INTEGER :: n_quad
 
 END MODULE parameters_2d

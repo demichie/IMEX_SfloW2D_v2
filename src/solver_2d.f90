@@ -2201,8 +2201,6 @@ CONTAINS
     USE geometry_2d, ONLY : deposit , erosion , erodible
     USE geometry_2d, ONLY : B_zone
 
-    ! USE constitutive_2d, ONLY : eval_erosion_dep_term
-    ! USE constitutive_2d, ONLY : eval_bulk_debulk_term
     USE constitutive_2d, ONLY : eval_mass_exchange_terms
 
     USE constitutive_2d, ONLY : qc_to_qp , mixt_var
@@ -2260,28 +2258,10 @@ CONTAINS
 
        END IF
 
-!!$       CALL eval_erosion_dep_term( qp(1:n_vars+2,j,k) ,  dt ,                   &
-!!$            erosion_term(1:n_solid) , deposition_term(1:n_solid) ,              &
-!!$            continuous_phase_erosion_term , continuous_phase_loss_term )
-!!$
-!!$       ! Limit the deposition during a single time step
-!!$       deposition_term(1:n_solid) = MAX(0.0_wp,MIN( deposition_term(1:n_solid), &
-!!$            q(5:4+n_solid,j,k) / ( rho_s(1:n_solid) * dt ) ))
-!!$       
-!!$       ! Limit the deposition during a single time step
-!!$       erosion_term(1:n_solid) = MAX(0.0_wp,MIN( erosion_term(1:n_solid),       &
-!!$            erodible(j,k,1:n_solid) / dt ) )
-!!$       
-!!$       ! Compute the source terms for the equations
-!!$       CALL eval_bulk_debulk_term( qp(1:n_vars+2,j,k) , deposition_term ,       &
-!!$            erosion_term ,  continuous_phase_erosion_term ,                     &
-!!$            continuous_phase_loss_term , eqns_term , topo_term )
-
-
        CALL eval_mass_exchange_terms( qp(1:n_vars+2,j,k) , B_zone(j,k) ,           &
-            erodible(j,k,1:n_solid) , dt , erosion_term , deposition_term ,        &
-            continuous_phase_erosion_term , continuous_phase_loss_term ,           &
-            eqns_term , topo_term  )
+            B_prime_x(j,k) , B_prime_y(j,k) , erodible(j,k,1:n_solid) , dt ,       &
+            erosion_term , deposition_term , continuous_phase_erosion_term ,       &
+            continuous_phase_loss_term , eqns_term , topo_term  )
           
        IF ( bottom_radial_source_flag ) THEN
 

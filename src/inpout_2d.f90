@@ -27,7 +27,7 @@ MODULE inpout_2d
   USE parameters_2d, ONLY : rheology_flag , energy_flag , alpha_flag ,          &
        topo_change_flag , radial_source_flag , collapsing_volume_flag ,         &
        liquid_flag , gas_flag , subtract_init_flag , bottom_radial_source_flag ,&
-       vertical_profiles_flag
+       vertical_profiles_flag 
 
   USE parameters_2d, ONLY : slope_correction_flag , curvature_term_flag 
 
@@ -89,6 +89,7 @@ MODULE inpout_2d
 
   ! --- Variables for the namelist VERTICAL_PROFILES_PARAMETERS
   USE constitutive_2d, ONLY : vonK , k_s , Sc
+  USE parameters_2d, ONLY : bottom_conc_flag , n_quad
 
   IMPLICIT NONE
 
@@ -264,7 +265,8 @@ MODULE inpout_2d
 
   NAMELIST / vulnerability_table_parameters / thickness_levels0 , dyn_pres_levels0
 
-  NAMELIST / vertical_profiles_parameters / vonK , k_s  , Sc
+  NAMELIST / vertical_profiles_parameters / vonK , k_s  , Sc , bottom_conc_flag,&
+       n_quad
   
 CONTAINS
 
@@ -605,7 +607,9 @@ CONTAINS
     vonK = -1
     k_s = -1
     Sc = -1
-    
+    bottom_conc_flag = .FALSE.
+    n_quad = -1
+
   END SUBROUTINE init_param
 
   !******************************************************************************
@@ -3364,6 +3368,16 @@ CONTAINS
              STOP
              
           END IF
+          
+          IF ( N_quad .LE. 0 ) THEN
+             
+             WRITE(*,*) 'ERROR: problem with namelist VERTICAL_PROFILES_PARAMETERS'
+             WRITE(*,*) 'N_QUAD =' , n_quad
+             WRITE(*,*) 'Please check the input file'
+             STOP
+             
+          END IF
+
           
           IF ( Sc .LE. 0.0_wp ) THEN
              
