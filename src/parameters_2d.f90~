@@ -147,11 +147,6 @@ MODULE parameters_2d
   REAL(wp) :: alphas_source(100)
   REAL(wp) :: alphag_source(100)
   REAL(wp) :: alphal_source
-
-  REAL(wp) :: xs_source(100)
-  REAL(wp) :: xg_source(100)
-  REAL(wp) :: xl_source
-
   REAL(wp) :: time_param(4)
   
 

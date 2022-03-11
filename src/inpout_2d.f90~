@@ -50,7 +50,7 @@ MODULE inpout_2d
   ! -- Variables for the namelist RADIAL_SOURCE_PARAMETERS
   USE parameters_2d, ONLY : x_source , y_source , r_source , vel_source ,       &
        T_source , h_source , alphas_source , alphal_source , alphag_source ,    &
-       time_param , Ri_source , mfr_source , xs_source , xl_source , xg_source
+       time_param , Ri_source , mfr_source
 
   ! -- Variables for the namelist COLLAPSING_VOLUME_PARAMETERS
   USE parameters_2d, ONLY : x_collapse , y_collapse , r_collapse , T_collapse , &
@@ -244,8 +244,7 @@ MODULE inpout_2d
  
   NAMELIST / radial_source_parameters / x_source , y_source , r_source ,        &
        vel_source , T_source , h_source , alphas_source , alphal_source ,       &
-       alphag_source , time_param , Ri_source , mfr_source , xs_source ,        &
-       xl_source , xg_source
+       alphag_source , time_param , Ri_source , mfr_source
   
   NAMELIST / collapsing_volume_parameters / x_collapse , y_collapse ,           &
        r_collapse , T_collapse , h_collapse , alphas_collapse , alphag_collapse
@@ -592,9 +591,6 @@ CONTAINS
     alphas_source = -1.0_wp
     alphag_source = -1.0_wp
     alphal_source = -1.0_wp
-    xs_source = -1.0_wp
-    xg_source = -1.0_wp
-    xl_source = -1.0_wp
 
     !- Variables for the namelist COLLAPSING_VOLUME_PARAMETERS
     T_collapse = -1.0_wp
@@ -717,12 +713,6 @@ CONTAINS
 
     REAL(wp) :: a_crit_rel
 
-    REAL(wp), ALLOCATABLE :: inv_rho_g(:)
-    REAL(wp) :: inv_rho_c
-    REAL(wp) :: inv_rhom
-    REAL(wp) :: sp_gas_const_c
-    REAL(wp) :: xc
-    REAL(wp) :: xs_tot
     
     OPEN(input_unit,FILE=input_file,STATUS='old')
 
@@ -874,7 +864,7 @@ CONTAINS
     IF ( ANY(sp_gas_const_g(1:n_add_gas) .EQ. -1.0_wp ) ) THEN
        
        WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
-       WRITE(*,*) 'SP_GAS_CONST_G =' , sp_gas_const_g(1:n_add_gas)
+       WRITE(*,*) 'SP_GAS_CONST_G =' , sp_gas_const_g(1:n_solid)
        WRITE(*,*) 'Please check the input file'
        STOP
        
@@ -2270,8 +2260,7 @@ CONTAINS
 
     ! ------- READ radial_source_parameters NAMELIST ----------------------------
 
-    source_flag:IF ( ( radial_source_flag ) .OR. ( bottom_radial_source_flag ) )&
-         THEN
+    source_flag:IF ( ( radial_source_flag ) .OR. ( bottom_radial_source_flag ) ) THEN
 
        alphal_source = -1.0_wp
 
@@ -2337,8 +2326,7 @@ CONTAINS
 
           END IF
 
-          IF ( ( vel_source .EQ. -1.0_wp ) .AND. ( bottom_radial_source_flag ) )&
-               THEN
+          IF ( ( vel_source .EQ. -1.0_wp ) .AND. ( bottom_radial_source_flag ) ) THEN
 
              WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
              WRITE(*,*) 'PLEASE CHECK VALUE OF VEL_SOURCE',vel_source
@@ -2346,8 +2334,7 @@ CONTAINS
 
           END IF
 
-          IF ( ( Ri_source .NE. -1.0_wp ) .AND. ( bottom_radial_source_flag ) ) &
-               THEN
+          IF ( ( Ri_source .NE. -1.0_wp ) .AND. ( bottom_radial_source_flag ) ) THEN
 
              WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
              WRITE(*,*) 'PLEASE REMOVE VALUE OF RI_SOURCE',Ri_source
@@ -2357,17 +2344,15 @@ CONTAINS
          
           IF ( radial_source_flag ) THEN
 
-             IF ( ( vel_source .EQ. -1.0_wp ) .AND. ( Ri_source .EQ. -1.0_wp ) )&
-                  THEN
+             IF ( ( vel_source .EQ. -1.0_wp ) .AND. ( Ri_source .EQ. -1.0_wp ) ) THEN
 
-                WRITE(*,*) 'ERROR:problem with namelist RADIAL_SOURCE_PARAMETERS'
+                WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
                 WRITE(*,*) 'PLEASE ASSIGN VALUE TO VEL_SOURCE OR RI_SOURCE'
                 STOP
 
-             ELSEIF (( vel_source .NE. -1.0_wp ).AND.( Ri_source .NE. -1.0_wp ))&
-                  THEN
+             ELSEIF ( ( vel_source .NE. -1.0_wp ) .AND. ( Ri_source .NE. -1.0_wp ) ) THEN
 
-                WRITE(*,*) 'ERROR:problem with namelist RADIAL_SOURCE_PARAMETERS'
+                WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
                 WRITE(*,*) 'PLEASE ASSIGN ONLY VEL_SOURCE OR RI_SOURCE'
                 WRITE(*,*) 'VEL_SOURCE:',vel_source
                 WRITE(*,*) 'RI_SOURCE:',Ri_source
@@ -2413,147 +2398,39 @@ CONTAINS
 
           END IF
 
-          IF ( ( ANY(alphas_source(1:n_solid) .EQ. -1.0_wp ) ) .AND.           &
-               ( ANY(xs_source(1:n_solid) .EQ. -1.0_wp ) ) )  THEN
-
-             WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
-             WRITE(*,*) 'alphas_source =' , alphas_source(1:n_solid)
-             WRITE(*,*) 'xs_source =' , xs_source(1:n_solid)
-             WRITE(*,*) 'Please check the input file'
-             STOP
-
-          END IF
-
-          IF ( ( ANY(alphas_source(1:n_solid) .GT. -1.0_wp ) ) .AND.           &
-               ( ANY(xs_source(1:n_solid) .GT. -1.0_wp ) ) )  THEN
-
-             WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
-             WRITE(*,*) 'DEFINE ONLY solid volume fract. or solid mass fract.'
-             WRITE(*,*) 'alphas_source =' , alphas_source(1:n_solid)
-             WRITE(*,*) 'xs_source =' , xs_source(1:n_solid)
-             WRITE(*,*) 'Please check the input file'
-             STOP
-
-          END IF
-
-          IF ( ( ANY(alphag_source(1:n_add_gas) .EQ. -1.0_wp ) ) .AND.         &
-               ( ANY(xg_source(1:n_add_gas) .EQ. -1.0_wp ) ) )  THEN
-
-             WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
-             WRITE(*,*) 'alphag_source =' , alphag_source(1:n_add_gas)
-             WRITE(*,*) 'xg_source =' , xg_source(1:n_add_gas)
-             WRITE(*,*) 'Please check the input file'
-             STOP
-
-          END IF
-
-          IF ( ( ANY(alphag_source(1:n_add_gas) .GT. -1.0_wp ) ) .AND.         &
-               ( ANY(xg_source(1:n_add_gas) .GT. -1.0_wp ) ) )  THEN
-
-             WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
-             WRITE(*,*) 'DEFINE ONLY add.gas volume fract. or mass fract.'
-             WRITE(*,*) 'alphag_source =' , alphag_source(1:n_add_gas)
-             WRITE(*,*) 'xg_source =' , xg_source(1:n_add_gas)
-             WRITE(*,*) 'Please check the input file'
-             STOP
-
-          END IF
-
-
-          IF ( ( ANY(alphas_source(1:n_solid) .GT. -1.0_wp ) ) .AND.         &
-               ( ANY(xg_source(1:n_add_gas) .GT. -1.0_wp ) ) )  THEN
-
-             WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
-             WRITE(*,*) 'DEFINE ONLY volume fractions or mass fractions'
-             WRITE(*,*) 'alphas_source =' , alphas_source(1:n_solid)
-             WRITE(*,*) 'xg_source =' , xg_source(1:n_add_gas)
-             WRITE(*,*) 'Please check the input file'
-             STOP
-
-          END IF
-
-          IF ( ( ANY(xs_source(1:n_solid) .GT. -1.0_wp ) ) .AND.         &
-               ( ANY(alphag_source(1:n_add_gas) .GT. -1.0_wp ) ) )  THEN
-
-             WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
-             WRITE(*,*) 'DEFINE ONLY volume fractions or mass fractions'
-             WRITE(*,*) 'xs_source =' , xs_source(1:n_solid)
-             WRITE(*,*) 'alphag_source =' , alphag_source(1:n_add_gas)
-             WRITE(*,*) 'Please check the input file'
-             STOP
-
-          END IF
-
-
           IF ( gas_flag .AND. liquid_flag ) THEN
 
-             IF ( ( ANY(alphag_source(1:n_add_gas) .GT. -1.0_wp ) ) .AND.         &
-                  ( xl_source .GT. -1.0_wp ) )  THEN
-                
-                
-                WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
-                WRITE(*,*) 'DEFINE ONLY volume fractions or mass fractions'
-                WRITE(*,*) 'alphag_source =' , alphag_source(1:n_add_gas)
-                WRITE(*,*) 'xl_source =' , xl_source
-                WRITE(*,*) 'Please check the input file'
-                STOP
-                
-             END IF
+             IF ( alphal_source .LT. 0.0_wp ) THEN
 
-             IF ( ( ANY(alphas_source(1:n_solid) .GT. -1.0_wp ) ) .AND.         &
-                  ( xl_source .GT. -1.0_wp ) )  THEN
-                                
-                WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
-                WRITE(*,*) 'DEFINE ONLY volume fractions or mass fractions'
-                WRITE(*,*) 'alphas_source =' , alphas_source(1:n_solid)
-                WRITE(*,*) 'xl_source =' , xl_source
-                WRITE(*,*) 'Please check the input file'
+                WRITE(*,*) 'ERROR: problem with namelist ',                     &
+                     'RADIAL_SOURCE_PARAMETERS'
+                WRITE(*,*) 'PLEASE CHECK VALUE OF ALPHAL_SOURCE',alphal_source
                 STOP
-                
-             END IF
 
-             IF ( ( ANY(xg_source(1:n_add_gas) .GT. -1.0_wp ) ) .AND.         &
-                  ( alphal_source .GT. -1.0_wp ) )  THEN
-                
-                
-                WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
-                WRITE(*,*) 'DEFINE ONLY volume fractions or mass fractions'
-                WRITE(*,*) 'xg_source =' , xg_source(1:n_add_gas)
-                WRITE(*,*) 'alphal_source =' , alphal_source
-                WRITE(*,*) 'Please check the input file'
-                STOP
-                
-             END IF
-
-             IF ( ( ANY(xs_source(1:n_solid) .GT. -1.0_wp ) ) .AND.         &
-                  ( alphal_source .GT. -1.0_wp ) )  THEN
-                                
-                WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
-                WRITE(*,*) 'DEFINE ONLY volume fractions or mass fractions'
-                WRITE(*,*) 'xs_source =' , xs_source(1:n_solid)
-                WRITE(*,*) 'alphal_source =' , alphal_source
-                WRITE(*,*) 'Please check the input file'
-                STOP
-                
-             END IF
-
-             IF ( ( alphal_source .GT. -1.0_wp ) .AND. ( xl_source .GT. -1.0_wp ) )  THEN
-                
-                WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
-                WRITE(*,*) 'DEFINE ONLY liquid volume fract. or liquid mass fract.'
-                WRITE(*,*) 'alphal_source =' , alphal_source
-                WRITE(*,*) 'xl_source =' , xl_source
-                WRITE(*,*) 'Please check the input file'
-                STOP
-                
              END IF
 
           END IF
-          
 
+          IF ( ANY(alphas_source(1:n_solid) .EQ. -1.0_wp ) ) THEN
+
+             WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
+             WRITE(*,*) 'alphas_source =' , alphas_source(1:n_solid)
+             WRITE(*,*) 'Please check the input file'
+             STOP
+
+          END IF
+
+          IF ( ANY(alphag_source(1:n_add_gas) .EQ. -1.0_wp ) ) THEN
+
+             WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
+             WRITE(*,*) 'alphag_source =' , alphag_source(1:n_add_gas)
+             WRITE(*,*) 'Please check the input file'
+             STOP
+
+          END IF
 
           IF ( ANY(time_param .LT. 0.0_wp ) ) THEN
-             
+
              WRITE(*,*)
              WRITE(*,*) 'WARNING: problem with namelist RADIAL_SOURCEPARAMETERS'
              WRITE(*,*) 'time_param =' , time_param
@@ -2564,9 +2441,9 @@ CONTAINS
              WRITE(*,*) 'CHANGED TO time_param =',time_param
              WRITE(*,*) 'Radial source now constant in time' 
              WRITE(*,*)
-             
+
           ELSE
-             
+
              IF ( time_param(2) .GT. time_param(1) ) THEN
 
                 WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCEPARAMETERS'
@@ -2607,101 +2484,21 @@ CONTAINS
     
              qp_source(4) = T_source
 
-             IF ( ANY(xs_source(1:n_solid) .GT. -1.0_wp ) ) THEN
-
-                ALLOCATE( inv_rho_g(n_add_gas) )
-
-                xs_tot = SUM(xs_source(1:n_solid))
-                
-                IF ( gas_flag .AND. liquid_flag ) THEN
-                   
-                   ! compute carrier phase (gas) mass fraction
-                   xc = 1.0_wp - xs_tot - xl_source
-                   
-                ELSE
-                   
-                   ! compute carrier phase (gas or liquid) mass fraction
-                   xc = 1.0_wp - xs_tot
-                   
-                END IF
-              
-                IF ( gas_flag ) THEN
-                   
-                   ! carrier phase is gas
-                   sp_gas_const_c = ( ( xc - SUM( xg_source(1:n_add_gas) ) ) * sp_gas_const_a      &
-                        + DOT_PRODUCT( xg_source(1:n_add_gas) , sp_gas_const_g(1:n_add_gas) ) )    &
-                        / xc
-                   
-                   inv_rho_c = sp_gas_const_c * T_source * inv_pres
-                   inv_rho_g(1:n_add_gas) = sp_gas_const_g(1:n_add_gas) * T_source * inv_pres
-                   
-                ELSE
-                   
-                   inv_rho_c = inv_rho_l
-                   
-                END IF
-                
-                inv_rhom = DOT_PRODUCT( xs_source(1:n_solid) , inv_rho_s(1:n_solid) )            &
-                     + xc * inv_rho_c
-                
-                IF ( gas_flag .AND. liquid_flag ) inv_rhom = inv_rhom + xl_source * inv_rho_l
-                
-                rho_m = 1.0_wp / inv_rhom
-                
-                ! convert from mass fraction to volume fraction
-                alphas_source(1:n_solid) = rho_m * xs_source(1:n_solid) * inv_rho_s(1:n_solid)
-                
-                ! convert from mass fraction to volume fraction
-                alphag_source(1:n_add_gas) = rho_m * xg_source(1:n_solid) * inv_rho_g(1:n_add_gas)
-
-                IF ( liquid_flag ) THEN
-
-                   ! convert from mass fraction to volume fraction
-                   alphal_source = rho_m * xl_source * inv_rho_l
-                   
-                END IF
-        
-             END IF
-
-             WRITE(*,*) 'Source solid volume fraction =',alphas_source(1:n_solid)
-
-             IF ( n_add_gas .GT. 0 ) THEN
-
-                WRITE(*,*) 'Source add.gas volue fraction =' ,                  &
-                     alphag_source(1:n_add_gas)
-
-             END IF
-
-             IF ( gas_flag .AND. liquid_flag ) THEN
-
-                WRITE(*,*) 'Source liquid volume fraction =',alphal_source
-
-             END IF
-
-             WRITE(*,*) 'Source density =',rho_m,'(kg/m3)'
-
-  
-             
              IF ( alpha_flag ) THEN
-                
+
                 qp_source(5:4+n_solid) = alphas_source(1:n_solid)
-                qp_source(4+n_solid+1:4+n_solid+n_add_gas) =                    &
-                     alphag_source(1:n_add_gas)
-                
-                IF ( gas_flag .AND. liquid_flag ) qp_source(n_vars) =           &
-                     alphal_source
+                qp_source(4+n_solid+1:4+n_solid+n_add_gas) = alphag_source(1:n_add_gas)
+
+                IF ( gas_flag .AND. liquid_flag ) qp_source(n_vars) = alphal_source
                 
              ELSE
                 
                 qp_source(5:4+n_solid) = alphas_source(1:n_solid) * h_source
-                qp_source(4+n_solid+1:4+n_solid+n_add_gas) =                    &
-                     alphag_source(1:n_add_gas) * h_source
-                
-                IF ( gas_flag .AND. liquid_flag ) qp_source(n_vars) =           &
-                     alphal_source * h_source
-                
+                qp_source(4+n_solid+1:4+n_solid+n_add_gas) = alphag_source(1:n_add_gas) * h_source
+
+                IF ( gas_flag .AND. liquid_flag ) qp_source(n_vars) = alphal_source * h_source
+
              END IF
-             
 
              qp_source(n_vars+1) = vel_source
              qp_source(n_vars+2) = 0.0_wp
@@ -2709,7 +2506,7 @@ CONTAINS
              sp_heat_flag = .FALSE.
 
              ! compute the Richardson number for vel = 1.0
-             CALL mixt_var( qp_source, Ri, rho_m, rho_c, red_grav, sp_heat_flag,&
+             CALL mixt_var( qp_source, Ri, rho_m, rho_c, red_grav, sp_heat_flag,         &
                   sp_heat_c, sp_heat_mix)
 
              pi_g = ATAN(1.0_wp)*4.0_wp
@@ -2719,8 +2516,7 @@ CONTAINS
                 IF ( Ri_source .GE. 0.0_wp ) THEN
                    ! mfr and Ri given as input
                    
-                   h_source = ( mfr_source/( r_source * 2.0_wp * pi_g * rho_m ) &
-                        * SQRT( Ri_source/red_grav ) )**(2.0_wp/3.0_wp)
+                   h_source = ( mfr_source / ( r_source * 2.0_wp * pi_g * rho_m ) * SQRT( Ri_source/red_grav ) )**(2.0_wp/3.0_wp)
 
              qp_source(1) = h_source
              qp_source(2) = h_source*vel_source
@@ -2731,20 +2527,16 @@ CONTAINS
              IF ( alpha_flag ) THEN
 
                 qp_source(5:4+n_solid) = alphas_source(1:n_solid)
-                qp_source(4+n_solid+1:4+n_solid+n_add_gas) =                    &
-                     alphag_source(1:n_add_gas)
+                qp_source(4+n_solid+1:4+n_solid+n_add_gas) = alphag_source(1:n_add_gas)
 
-                IF ( gas_flag .AND. liquid_flag ) qp_source(n_vars) =           &
-                     alphal_source
+                IF ( gas_flag .AND. liquid_flag ) qp_source(n_vars) = alphal_source
                 
              ELSE
                 
                 qp_source(5:4+n_solid) = alphas_source(1:n_solid) * h_source
-                qp_source(4+n_solid+1:4+n_solid+n_add_gas) =                    &
-                     alphag_source(1:n_add_gas) * h_source
+                qp_source(4+n_solid+1:4+n_solid+n_add_gas) = alphag_source(1:n_add_gas) * h_source
 
-                IF ( gas_flag .AND. liquid_flag ) qp_source(n_vars) =           &
-                     alphal_source * h_source
+                IF ( gas_flag .AND. liquid_flag ) qp_source(n_vars) = alphal_source * h_source
 
              END IF
 
@@ -2752,8 +2544,8 @@ CONTAINS
              qp_source(n_vars+2) = 0.0_wp
                    
                    ! compute the Richardson number for vel = 1.0
-                   CALL mixt_var( qp_source, Ri, rho_m, rho_c, red_grav,        &
-                        sp_heat_flag, sp_heat_c, sp_heat_mix)
+                   CALL mixt_var( qp_source, Ri, rho_m, rho_c, red_grav, sp_heat_flag,         &
+                        sp_heat_c, sp_heat_mix)
                    
                    ! compute the correct velocity for the desired Richardson number
                    vel_source = SQRT( Ri/Ri_source )
@@ -2762,11 +2554,10 @@ CONTAINS
                    
                    ! mfr and velocity
                    
-                   CALL mixt_var( qp_source, Ri, rho_m, rho_c, red_grav,        &
-                        sp_heat_flag, sp_heat_c, sp_heat_mix)
+                   CALL mixt_var( qp_source, Ri, rho_m, rho_c, red_grav, sp_heat_flag,         &
+                        sp_heat_c, sp_heat_mix)
                    
-                   h_source = mfr_source / ( r_source * 2.0_wp * pi_g * rho_m * &
-                        vel_source )
+                   h_source = mfr_source / ( r_source * 2.0_wp * pi_g * rho_m * vel_source )
                    
                 END IF
                 
@@ -2786,15 +2577,16 @@ CONTAINS
              qp_source(n_vars+1) = vel_source
              
              ! Check that the Richardson number is correct
-             CALL mixt_var( qp_source, Ri, rho_m, rho_c, red_grav, sp_heat_flag,&
+             CALL mixt_var( qp_source, Ri, rho_m, rho_c, red_grav, sp_heat_flag,         &
                   sp_heat_c, sp_heat_mix)
              
-             WRITE(*,*) 'Source Richardson number =',Ri
-             WRITE(*,*) 'Source velocity =',vel_source,' (m/s)'
-             WRITE(*,*) 'Source thickness =',h_source,'(m)'
+             WRITE(*,*) ''
+             WRITE(*,*) 'Source Richardson number',Ri
+             WRITE(*,*) 'Source velocity',vel_source
+             WRITE(*,*) 'Source thickness=',h_source,'(m)'
 
              mfr = rho_m*h_source*r_source*2.0*pi_g*vel_source
-             WRITE(*,*) 'Source mass flow rate =',mfr,'(kg/s)'
+             WRITE(*,*) 'Source mass flow rate',mfr,'(kg/s)'
              WRITE(*,*)
 
           END IF
