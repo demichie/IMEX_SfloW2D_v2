@@ -16,7 +16,7 @@ content = file.readlines()
 
 vars = content[1].split(',')[:]
 
-print('vars',vars)
+# print('vars',vars)
 
 # print("variable units line")
 
