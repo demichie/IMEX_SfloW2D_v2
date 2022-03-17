@@ -33,7 +33,8 @@ for i in range(len(vars)-1):
     plt.xlabel('Time (s)')
     plt.ylabel(vars[i+1]+' '+units[i+1])
     # print((vars[i+1].strip()).split(' ')[0]+'.png')
-    fig_name = prb_file.replace('.csv','_'+(vars[i+1].strip())+'.png')
+    fig_name = prb_file.replace('.csv','_'+(vars[i+1].strip().replace('.','_'))+'.png')
+    fig_name = fig_name.replace('_.','.')
     plt.savefig(fig_name)
 
 # plt.show()
