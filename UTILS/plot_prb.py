@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-prb_file = 'exampleKRAKATAU_prb_0005.csv'
+prb_file = 'example_SE2016_09_prb_0004.csv'
 
 data = np.genfromtxt(prb_file, delimiter=',', skip_header = 3)
 print(data.shape)
@@ -14,11 +14,13 @@ content = file.readlines()
 # read 10th line from the file
 # print("variable names line")
 
-vars = content[1].split(',')[:-1]
+vars = content[1].split(',')[:]
+
+print('vars',vars)
 
 # print("variable units line")
 
-units = content[2].split(',')[:-1]
+units = content[2].split(',')[:]
 
 
 for i in range(len(vars)-1):
