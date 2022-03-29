@@ -1239,7 +1239,7 @@ CONTAINS
 
              END IF
 
-             ! Eval gravity term and radial source terms
+             ! Eval gravity term and radial bottom source terms
              CALL eval_expl_terms( B_prime_x(j,k) , B_prime_y(j,k) ,            &
                   B_second_xx(j,k) , B_second_xy(j,k) , B_second_yy(j,k) ,      &
                   grav_coeff(j,k), d_grav_coeff_dx(j,k) , d_grav_coeff_dx(j,k) ,&
@@ -2954,6 +2954,38 @@ CONTAINS
        x_stencil(2) = x_comp(j)
        y_stencil(2) = y_comp(k)
 
+       ! correction for radial source inlet x-interfaces values 
+       ! used for the linear reconstruction
+       IF ( radial_source_flag .AND. ( source_cell(j,k).EQ.2 ) ) THEN
+          
+          IF ( sourceE(j,k) ) THEN
+             
+             CALL eval_source_bdry( t, sourceE_vect_x(j,k) ,           &
+                  sourceE_vect_y(j,k) , source_bdry )
+             
+          ELSEIF ( sourceW(j,k) ) THEN
+
+             CALL eval_source_bdry( t , sourceW_vect_x(j,k) ,          &
+                  sourceW_vect_y(j,k) , source_bdry )
+
+          ELSEIF ( sourceS(j,k) ) THEN
+             
+             !WRITE(*,*) 'sourceS',j,k
+             !READ(*,*)
+             
+             CALL eval_source_bdry( t, sourceS_vect_x(j,k) ,           &
+                  sourceS_vect_y(j,k) , source_bdry )
+             
+          ELSEIF ( sourceN(j,k) ) THEN
+             
+             CALL eval_source_bdry( t, sourceN_vect_x(j,k) ,           &
+                  sourceN_vect_y(j,k) , source_bdry )
+             
+          END IF
+          
+       END IF
+       
+       
        vars_loop:DO i=1,n_vars
 
           qrec_stencil(2) = qp_expl(i,j,k)
@@ -3031,16 +3063,10 @@ CONTAINS
 
                    IF ( sourceE(j,k) ) THEN
 
-                      CALL eval_source_bdry( t, sourceE_vect_x(j,k) ,           &
-                           sourceE_vect_y(j,k) , source_bdry )
-
                       x_stencil(3) = x_stag(j+1)
                       qrec_stencil(3) = source_bdry(i)
 
                    ELSEIF ( sourceW(j,k) ) THEN
-
-                      CALL eval_source_bdry( t , sourceW_vect_x(j,k) ,          &
-                           sourceW_vect_y(j,k) , source_bdry )
 
                       x_stencil(1) = x_stag(j)
                       qrec_stencil(1) = source_bdry(i)
@@ -3052,12 +3078,6 @@ CONTAINS
                 CALL limit( qrec_stencil , x_stencil , limiter(i) ,             &
                      qrec_prime_x(i) )
 
-!!$                IF ( (j.EQ.223).AND.(k.EQ.117).AND.((i.EQ.5).OR.(i.EQ.1)) ) THEN
-!!$
-!!$                   WRITE(*,*) 'qrec_stencil',i,qrec_stencil,qrec_prime_x(i)
-!!$
-!!$                END IF
-
              ENDIF check_x_boundary
 
              dq = reconstr_coeff* dx2 * qrec_prime_x(i) 
@@ -3065,14 +3085,8 @@ CONTAINS
              qrecW(i) = qrec_stencil(2) - dq
              qrecE(i) = qrec_stencil(2) + dq
 
-!!$             IF ( (j.EQ.223).AND.(k.EQ.117).AND.((i.EQ.5).OR.(i.EQ.1)) ) THEN
-!!$
-!!$                WRITE(*,*) 'qrecW',i,qrecW(i)
-!!$
-!!$             END IF
-
              
-             IF ( j.EQ.1 ) THEN
+             IF ( j .EQ. 1 ) THEN
 
                 ! Dirichelet boundary condition at the west of the domain
                 IF ( bcW(i)%flag .EQ. 0 ) THEN
@@ -3087,7 +3101,7 @@ CONTAINS
                    
              END IF
 
-             IF ( j.EQ.comp_cells_x ) THEN
+             IF ( j .EQ. comp_cells_x ) THEN
 
                 ! Dirichelet boundary condition at the east of the domain
                 IF ( bcE(i)%flag .EQ. 0 ) THEN
@@ -3108,7 +3122,7 @@ CONTAINS
           check_comp_cells_y:IF ( comp_cells_y .GT. 1 ) THEN
 
              ! South boundary
-             check_y_boundary:IF (k.EQ.1) THEN
+             check_y_boundary:IF ( k .EQ. 1 ) THEN
 
                 y_stencil(1) = y_stag(1)
                 y_stencil(3) = y_comp(k+1)
@@ -3177,16 +3191,10 @@ CONTAINS
 
                    IF ( sourceS(j,k) ) THEN
 
-                      CALL eval_source_bdry( t, sourceS_vect_x(j,k) ,           &
-                           sourceS_vect_y(j,k) , source_bdry )
-
                       y_stencil(1) = y_stag(k)
                       qrec_stencil(1) = source_bdry(i)
 
                    ELSEIF ( sourceN(j,k) ) THEN
-
-                      CALL eval_source_bdry( t, sourceN_vect_x(j,k) ,           &
-                           sourceN_vect_y(j,k) , source_bdry )
 
                       y_stencil(3) = y_stag(k+1)
                       qrec_stencil(3) = source_bdry(i)
@@ -3200,7 +3208,7 @@ CONTAINS
 
              ENDIF check_y_boundary
 
-             dq = reconstr_coeff* dy2 * qrec_prime_y(i)
+             dq = reconstr_coeff * dy2 * qrec_prime_y(i)
 
              qrecS(i) = qrec_stencil(2) - dq
              qrecN(i) = qrec_stencil(2) + dq
@@ -3282,16 +3290,10 @@ CONTAINS
 
                    IF ( sourceE(j,k) ) THEN
 
-                      CALL eval_source_bdry( t, sourceE_vect_x(j,k) ,           &
-                           sourceE_vect_y(j,k) , source_bdry )
-
                       x_stencil(3) = x_stag(j+1)
                       qrec_stencil(3) = source_bdry(i)
 
                    ELSEIF ( sourceW(j,k) ) THEN
-
-                      CALL eval_source_bdry( t , sourceW_vect_x(j,k) ,          &
-                           sourceW_vect_y(j,k) , source_bdry )
 
                       x_stencil(1) = x_stag(j)
                       qrec_stencil(1) = source_bdry(i)
@@ -3371,16 +3373,10 @@ CONTAINS
 
                    IF ( sourceS(j,k) ) THEN
 
-                      CALL eval_source_bdry( t, sourceS_vect_x(j,k) ,           &
-                           sourceS_vect_y(j,k) , source_bdry )
-
                       y_stencil(1) = y_stag(k)
                       qrec_stencil(1) = source_bdry(i)
 
                    ELSEIF ( sourceN(j,k) ) THEN
-
-                      CALL eval_source_bdry( t, sourceN_vect_x(j,k) ,           &
-                           sourceN_vect_y(j,k) , source_bdry )
 
                       x_stencil(3) = y_stag(k+1)
                       qrec_stencil(3) = source_bdry(i)
