@@ -689,6 +689,8 @@ CONTAINS
   SUBROUTINE avg_profiles_mix( h , settling_vel , rho_alphas_avg , u_guess ,    &
        h0 , b , u_coeff , u_rel0 , rho_c , rhom_avg , uRho_avg_new )
 
+    USE geometry_2d, ONLY : x_quad , w_quad
+    
     USE geometry_2d, ONLY : calcei , gaulegf
 
     IMPLICIT NONE
@@ -739,9 +741,11 @@ CONTAINS
     ! Rouse numbers for the particle classes
     Pn(1:n_solid) = settling_vel(1:n_solid) / ( vonK * shear_vel )
 
-    ! Compute the abscissas and weights for the quadrature formula
-    CALL gaulegf(0.0_wp, h0, x, w, n_quad)
+    x = 0.5*h0*(x_quad+1.0_wp)
+    w = 0.5*h0*w_quad
 
+    ! CALL gaulegf(0.0_wp, h0, x, w, n_quad)
+    
     DO i_solid=1,n_solid
 
        a = -( 6.0_wp * Pn(i_solid) * Sc ) / h
@@ -1342,6 +1346,8 @@ CONTAINS
 
   SUBROUTINE qp_to_qc(qp,qc)
 
+    USE geometry_2d, ONLY : x_quad, w_quad
+    
     USE parameters_2d, ONLY : vertical_profiles_flag
     USE geometry_2d, ONLY : gaulegf
     USE geometry_2d, ONLY : lambertw,lambertw0,lambertwm1
@@ -1658,7 +1664,10 @@ CONTAINS
 
        a_coeff = - 6.0_wp * Sc / r_h
 
-       CALL gaulegf(0.0_wp, h0, x, w, n_quad)
+       x = 0.5*h0*(x_quad+1.0_wp)
+       w = 0.5*h0*w_quad
+
+       ! CALL gaulegf(0.0_wp, h0, x, w, n_quad)
 
        DO i_solid = 1,n_solid
 
@@ -2089,6 +2098,8 @@ CONTAINS
 
   SUBROUTINE eval_flux_coeffs(qpj,B_prime_x,B_prime_y,r_rho_c,r_rho_m,shape_coeff)
 
+    USE geometry_2d, ONLY : x_quad, w_quad
+    
     USE geometry_2d, ONLY : lambertw,lambertw0,lambertwm1
     USE geometry_2d, ONLY : calcei
     USE geometry_2d, ONLY : gaulegf
@@ -2278,7 +2289,10 @@ CONTAINS
 
     a_coeff = - 6.0_wp * Sc / r_h
 
-    CALL gaulegf(0.0_wp, h0, x, w, 20)
+    x = 0.5*h0*(x_quad+1.0_wp)
+    w = 0.5*h0*w_quad
+
+    ! CALL gaulegf(0.0_wp, h0, x, w, 20)
 
     log_term_x = log( b*x + 1.0_wp )**2
 
@@ -2375,9 +2389,12 @@ CONTAINS
 
   SUBROUTINE eval_dep_coeffs( qpj , mod_vel , r_rho_c , r_rho_m , dep_coeff )
 
+    USE geometry_2d, ONLY : x_quad , w_quad
+    
     USE geometry_2d, ONLY : lambertw,lambertw0,lambertwm1
     USE geometry_2d, ONLY : calcei
     USE geometry_2d, ONLY : gaulegf
+    
 
     IMPLICIT none
 

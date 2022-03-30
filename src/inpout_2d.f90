@@ -637,7 +637,7 @@ CONTAINS
     USE parameters_2d, ONLY : bcW , bcE , bcS , bcN
 
     USE geometry_2d, ONLY : deposit , deposit_tot , erosion , erodible ,        &
-         erosion_tot
+         erosion_tot , x_quad , w_quad
 
     USE constitutive_2d, ONLY : rho_a_amb
     USE constitutive_2d, ONLY : rho_c_sub
@@ -655,7 +655,8 @@ CONTAINS
     ! External procedures
     USE constitutive_2d, ONLY : mixt_var
 
-    USE geometry_2d, ONLY : lambertw0
+    USE geometry_2d, ONLY : lambertw0 , gaulegf
+    
     
     IMPLICIT none
 
@@ -3583,6 +3584,13 @@ CONTAINS
              WRITE(*,*) 'N_QUAD =' , n_quad
              WRITE(*,*) 'Please check the input file'
              STOP
+
+          ELSE
+
+             WRITE(*,*) 'qui'
+             ALLOCATE( x_quad(N_quad) , w_quad(N_quad) )
+             CALL gaulegf(-1.0_wp, 1.0_wp, x_quad, w_quad, n_quad)
+             WRITE(*,*) 'qui'
              
           END IF
 

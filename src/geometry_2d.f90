@@ -140,6 +140,9 @@ MODULE geometry_2d
   REAL(wp) :: cell_size
   INTEGER :: comp_cells_xy
 
+  REAL(wp), ALLOCATABLE :: x_quad(:)
+  REAL(wp), ALLOCATABLE :: w_quad(:)
+  
 CONTAINS
 
   !******************************************************************************
@@ -2128,7 +2131,11 @@ CONTAINS
     m = (n+1)/2
     xm = 0.5_wp*(x2+x1)
     xl = 0.5_wp*(x2-x1)
+
+    pi_g = 4.0_wp*ATAN(1.0_wp)
     do i=1,m
+
+      
        z = cos(pi_g*(i-0.25_wp)/(n+0.5_wp))
        z1 = 0.0_wp
        do while(abs(z-z1) .gt. eps)
@@ -2142,6 +2149,7 @@ CONTAINS
           pp = n*(z*p1-p2)/(z*z-1.0_wp)
           z1 = z
           z = z1 - p1/pp
+         
        end do
        x(i) = xm - xl*z
        x(n+1-i) = xm + xl*z
