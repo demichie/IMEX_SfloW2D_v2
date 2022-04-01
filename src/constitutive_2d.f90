@@ -345,7 +345,7 @@ CONTAINS
     REAL(wp) :: u_coeff
 
     REAL(wp) :: h0
-    REAL(wp) :: u_rel0
+    REAL(wp) :: u0
 
     REAL(wp) :: uRho_avg
     REAL(wp) :: uRho_avg_new
@@ -580,7 +580,8 @@ CONTAINS
 
        b = 30.0_wp / k_s
 
-       u_rel0 = u_coeff * SQRT(friction_factor) / vonK * LOG( b*h0 + 1.0_wp )
+       ! velocity at h0
+       u0 = u_coeff * SQRT(friction_factor) / vonK * LOG( b*h0 + 1.0_wp )
 
        uRho_avg = SQRT( r_qj(2)**2 + r_qj(3)**2 ) / r_h 
 
@@ -598,7 +599,7 @@ CONTAINS
           x0 = u_avg_guess
 
           CALL avg_profiles_mix( r_h , settling_vel , rhos_alfas(1:n_solid) ,   &
-               u_avg_guess , h0 , b , u_coeff , u_rel0 , r_rho_c , rhom_avg ,   &
+               u_avg_guess , h0 , b , u_coeff , u0 , r_rho_c , rhom_avg ,       &
                uRho_avg_new )
 
           u_avg_new = u_avg_guess * uRho_avg / ( uRho_avg_new)
@@ -606,7 +607,7 @@ CONTAINS
           x1 = u_avg_new
 
           CALL avg_profiles_mix( r_h , settling_vel , rhos_alfas(1:n_solid) ,   &
-               u_avg_new , h0 , b , u_coeff , u_rel0 , r_rho_c , rhom_avg ,     &
+               u_avg_new , h0 , b , u_coeff , u0 , r_rho_c , rhom_avg ,         &
                uRho_avg_new )
 
           u_avg_new = u_avg_new * uRho_avg / ( uRho_avg_new)
@@ -627,8 +628,8 @@ CONTAINS
 
           u_avg_new = aitkenX
 
-          IF ( ( abs(u_avg_guess-u_avg_new)/u_avg_guess < rel_tol ) .OR.        &
-               ( abs(u_avg_guess-u_avg_new) < abs_tol ) ) THEN
+          IF ( ( ABS(u_avg_guess-u_avg_new)/u_avg_guess < rel_tol ) .OR.        &
+               ( ABS(u_avg_guess-u_avg_new) < abs_tol ) ) THEN
 
              EXIT aitken_loop
 
@@ -687,7 +688,7 @@ CONTAINS
 
 
   SUBROUTINE avg_profiles_mix( h , settling_vel , rho_alphas_avg , u_guess ,    &
-       h0 , b , u_coeff , u_rel0 , rho_c , rhom_avg , uRho_avg_new )
+       h0 , b , u_coeff , u0 , rho_c , rhom_avg , uRho_avg_new )
 
     USE geometry_2d, ONLY : x_quad , w_quad
     
@@ -703,7 +704,7 @@ CONTAINS
     REAL(wp), INTENT(IN) :: h0
     REAL(wp), INTENT(IN) :: b
     REAL(wp), INTENT(IN) :: u_coeff
-    REAL(wp), INTENT(IN) :: u_rel0
+    REAL(wp), INTENT(IN) :: u0
     REAL(wp), INTENT(IN) :: rho_c
     REAL(wp), INTENT(OUT) :: rhom_avg
     REAL(wp), INTENT(OUT) :: uRho_avg_new
@@ -741,8 +742,8 @@ CONTAINS
     ! Rouse numbers for the particle classes
     Pn(1:n_solid) = settling_vel(1:n_solid) / ( vonK * shear_vel )
 
-    x = 0.5*h0*(x_quad+1.0_wp)
-    w = 0.5*h0*w_quad
+    x = 0.5_wp * h0 * ( x_quad + 1.0_wp )
+    w = 0.5_wp * h0 * w_quad
 
     ! CALL gaulegf(0.0_wp, h0, x, w, n_quad)
     
@@ -774,7 +775,7 @@ CONTAINS
        ! average by dividing by h and we multiply by the density of solid and
        ! average concentration and by u_guess.
        rho_u_alphas(i_solid) = rho_alphas_avg(i_solid) * u_guess *              &
-            ( int_def + ( h - h0 ) * alphas_rel0 * u_rel0 ) / h
+            ( int_def + ( h - h0 ) * alphas_rel0 * u0 ) / h
 
     END DO
 
@@ -788,9 +789,6 @@ CONTAINS
     uRho_avg_new = ( u_guess*rho_c + SUM((rho_s-rho_c) / rho_s * rho_u_alphas) )
 
   END SUBROUTINE avg_profiles_mix
-
-
-
 
   !******************************************************************************
   !> \brief Physical variables
@@ -1390,7 +1388,7 @@ CONTAINS
     REAL(wp) :: rho_u_alphas(n_solid)
     REAL(wp) :: uRho_avg
 
-    REAL(wp) :: u_rel0
+    REAL(wp) :: u0
     REAL(wp) :: u_coeff
     REAL(wp) :: shear_vel
 
@@ -1639,7 +1637,7 @@ CONTAINS
 
           u_coeff = 1.0_wp
 
-       else
+       ELSE
 
           ! when h_rel <= H_crit_rel we have only the log profile and we have to
           ! rescale it in order to have the integral between o and h_rel equal to
@@ -1650,22 +1648,23 @@ CONTAINS
           u_coeff = vonK / SQRT(friction_factor)/( ( 1.0_wp + 1.0_wp /          &
                ( 30.0_wp*h_rel ) ) * LOG( 30.0_wp*h_rel + 1.0_wp )-1.0_wp)
 
-       end if
+       END IF
 
        h0 = h0_rel * k_s
 
        b = 30.0_wp / k_s
 
-       u_rel0 = u_coeff * SQRT(friction_factor) / vonK * LOG( b*h0 + 1.0_wp )
+       ! velocty at h0
+       u0 = u_coeff * SQRT(friction_factor) / vonK * LOG( b*h0 + 1.0_wp )
 
        b_term = b*h0 + 1.0_wp
 
-       log_term_h0 = log( b_term )**2
+       log_term_h0 = LOG( b_term )**2
 
        a_coeff = - 6.0_wp * Sc / r_h
 
-       x = 0.5*h0*(x_quad+1.0_wp)
-       w = 0.5*h0*w_quad
+       x = 0.5_wp * h0 * ( x_quad + 1.0_wp )
+       w = 0.5_wp * h0 * w_quad
 
        ! CALL gaulegf(0.0_wp, h0, x, w, n_quad)
 
@@ -1692,7 +1691,7 @@ CONTAINS
           ! average by dividing by h and we multiply by the density of solid and
           ! average concentration and by u_guess.
           rho_u_alphas(i_solid) = rho_s(i_solid)*r_alphas(i_solid) * mod_vel *  &
-               ( int_def + ( r_h - h0 ) * alphas_rel0 * u_rel0 ) / r_h
+               ( int_def + ( r_h - h0 ) * alphas_rel0 * u0 ) / r_h
 
        END DO
 
@@ -2151,19 +2150,19 @@ CONTAINS
 
     REAL(wp) :: h0
 
-    REAL(wp) :: u_rel0
+    REAL(wp) :: u0
 
     INTEGER :: i_solid
 
-    REAL(wp) :: x(20)
-    REAL(wp) :: w(20)
+    REAL(wp) :: x(n_quad)
+    REAL(wp) :: w(n_quad)
 
     REAL(wp) :: a_coeff
     REAL(wp) :: b_term
     REAL(wp) :: log_term_h0
 
-    REAL(wp) :: log_term_x(20)
-    REAL(wp) :: w_log_term_x(20)
+    REAL(wp) :: log_term_x(n_quad)
+    REAL(wp) :: w_log_term_x(n_quad)
     REAL(wp) :: int
     REAL(wp) :: exp_a_h0
     REAL(wp) :: alphas_rel_max
@@ -2271,7 +2270,7 @@ CONTAINS
 
        h0_rel = h_rel
        u_coeff = vonK / SQRT(friction_factor)/( ( 1.0_wp + 1.0_wp /             &
-            ( 30.0_wp*h_rel ) ) * LOG( 30.0_wp*h_rel + 1.0_wp )-1.0_wp)
+            ( 30.0_wp*h_rel ) ) * LOG( 30.0_wp*h_rel + 1.0_wp ) - 1.0_wp )
 
     END IF
 
@@ -2279,7 +2278,8 @@ CONTAINS
 
     b = 30.0_wp / k_s
 
-    u_rel0 = u_coeff * SQRT(friction_factor) / vonK * LOG( b*h0 + 1.0_wp )
+    ! velocity at top of log profile layer
+    u0 = u_coeff * SQRT(friction_factor) / vonK * LOG( b*h0 + 1.0_wp )
 
     rhom_hvel_vel = 0.0_wp
 
@@ -2320,8 +2320,8 @@ CONTAINS
        ! we add the contribution of the integral of the constant region, we
        ! average by dividing by h and we multiply by the density of solid and
        ! average concentration and by u_guess.
-       rho_u_alphas(i_solid) = rho_s(i_solid)*r_alphas(i_solid) * mod_vel *     &
-            ( int_def + ( r_h - h0 ) * alphas_rel0 * u_rel0 ) / r_h
+       rho_u_alphas(i_solid) = rho_s(i_solid) * r_alphas(i_solid) * mod_vel *   &
+            ( int_def + ( r_h - h0 ) * alphas_rel0 * u0 ) / r_h
 
        ! integral of u_rel(z)^2*alphas_rel(z) in the log region (0<=z<=h0)
        ! here u_rel(z) = u(z)/u_avg
@@ -2356,12 +2356,17 @@ CONTAINS
 
     shape_coeff(5:4+n_solid) = rho_u_alphas / ( rho_s * r_alphas * mod_vel )
 
-    shape_coeff = 1.0_wp
+    ! shape_coeff = 1.0_wp
 
-    !WRITE(*,*) 'r_h,mod_vel',r_h,mod_vel
-    !WRITE(*,*) 'uRho_avg',uRho_avg
-    !WRITE(*,*) 'shape_coeff',shape_coeff
-    !READ(*,*)
+!!$    WRITE(*,*) 'h0',h0
+!!$    WRITE(*,*) 'r_h,mod_vel',r_h,mod_vel
+!!$    WRITE(*,*) 'uRho_avg',uRho_avg
+!!$    WRITE(*,*) 'int_quad',int_quad
+!!$    WRITE(*,*) 'x_quad',x_quad
+!!$    WRITE(*,*) 'w_quad',w_quad
+!!$    WRITE(*,*) ' rho_u_alphas', rho_u_alphas
+!!$    WRITE(*,*) 'shape_coeff',shape_coeff
+!!$    READ(*,*)
 
     RETURN
 

@@ -209,6 +209,10 @@ shear_vel = ncfile.createVariable('shear_vel',np.float64,('time','y','x'),zlib=T
 shear_vel.standard_name = 'shear velocity' # 
 shear_vel.units = 'meters/second' # 
 
+Ri = ncfile.createVariable('Ri',np.float64,('time','y','x'),zlib=True) 
+Ri.standard_name = 'Richardson number' # 
+Ri.units = '' # 
+
 for i in range(nsolid):
     globals()['dep'+'_{0:04}'.format(i)] = ncfile.createVariable('dep'+'_{0:04}'.format(i),np.float64,('time','y','x'),zlib=True) 
     globals()['dep'+'_{0:04}'.format(i)].standard_name = 'deposit' # 
@@ -317,9 +321,11 @@ for i_output in range(output_first,output_last):
 
             shear_vel[nc_output,:,:] = np.tile(data[:,12+3*nsolid+naddgas],2).reshape((ny2,nx2))
 
+            Ri[nc_output,:,:] = np.tile(data[:,13+3*nsolid+naddgas],2).reshape((ny2,nx2))
+
             for i in range(nsolid):
             
-                globals()['Rouse_no'+'_{0:04}'.format(i)][nc_output,:,:] = np.tile(data[:,13+3*nsolid+naddgas+i],2).reshape((ny2,nx2))
+                globals()['Rouse_no'+'_{0:04}'.format(i)][nc_output,:,:] = np.tile(data[:,14+3*nsolid+naddgas+i],2).reshape((ny2,nx2))
                 
 
         else:
@@ -359,10 +365,12 @@ for i_output in range(output_first,output_last):
                     alphal[nc_output,:,:] = data[:,10+naddgas].reshape((ny,nx))
 
             shear_vel[nc_output,:,:] = data[:,12+3*nsolid+naddgas].reshape((ny,nx))
+
+            Ri[nc_output,:,:] = data[:,13+3*nsolid+naddgas].reshape((ny,nx))
             
             for i in range(nsolid):
             
-                globals()['Rouse_no'+'_{0:04}'.format(i)][nc_output,:,:] = data[:,13+3*nsolid+naddgas+i].reshape((ny,nx))
+                globals()['Rouse_no'+'_{0:04}'.format(i)][nc_output,:,:] = data[:,14+3*nsolid+naddgas+i].reshape((ny,nx))
 
 
         nc_output +=1

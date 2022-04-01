@@ -2717,6 +2717,18 @@ CONTAINS
 
           END IF
 
+!!$          IF ( j.EQ.1) THEN
+!!$
+!!$             WRITE(*,*) 'j,k',j,k
+!!$             WRITE(*,*) a_interface_xNeg(1,j,k), a_interface_xPos(1,j,k)
+!!$             WRITE(*,*) fluxL
+!!$             WRITE(*,*) q_interfaceL(:,j,k)
+!!$             WRITE(*,*) H_interface_x(:,j,k)
+!!$             READ(*,*) 
+!!$
+!!$
+!!$          END IF
+
 !!$          IF ( ( j.EQ.224 ) .AND. ( k.EQ.117 ) ) THEN
 !!$
 !!$             WRITE(*,*) 'fluxes'
@@ -3483,6 +3495,10 @@ CONTAINS
              ! Interface value at the left of first x-interface (external)
              q_interfaceL(:,j,k) = q_interfaceR(:,j,k)
              qp_interfaceL(:,j,k) = qp_interfaceR(:,j,k)
+
+             !WRITE(*,*) 'j,k',j,k
+             !WRITE(*,*) 'qp_interfaceL(:,j,k)',qp_interfaceL(:,j,k)
+             !READ(*,*)
 
              diverg_interfaceR(j,k) = diverg_interfaceL(j,k)
 

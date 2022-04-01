@@ -655,7 +655,7 @@ CONTAINS
     ! External procedures
     USE constitutive_2d, ONLY : mixt_var
 
-    USE geometry_2d, ONLY : lambertw0 , gaulegf
+    USE geometry_2d, ONLY : lambertw0 , lambertwm1 , gaulegf
     
     
     IMPLICIT none
@@ -1516,7 +1516,7 @@ CONTAINS
     limiter(n_vars+1) = limiter(2)
     limiter(n_vars+2) = limiter(3)
 
-    IF ( ( MAXVAL(limiter(1:n_vars)) .GT. 3 ) .OR.                              &
+    IF ( ( MAXVAL(limiter(1:n_vars)) .GT. 7 ) .OR.                              &
          ( MINVAL(limiter(1:n_vars)) .LT. 0 ) ) THEN
 
        WRITE(*,*) 'WARNING: wrong limiter ',limiter(1:n_vars)
@@ -3587,10 +3587,8 @@ CONTAINS
 
           ELSE
 
-             WRITE(*,*) 'qui'
              ALLOCATE( x_quad(N_quad) , w_quad(N_quad) )
              CALL gaulegf(-1.0_wp, 1.0_wp, x_quad, w_quad, n_quad)
-             WRITE(*,*) 'qui'
              
           END IF
 
@@ -3608,7 +3606,18 @@ CONTAINS
           H_crit_rel = 1.0_wp / 30.0_wp * ( -a_crit_rel /                       &
                lambertw0(-a_crit_rel *  EXP(-a_crit_rel) ) - 1.0_wp )
 
-          WRITE(*,*) 'H_crit_rel',H_crit_rel
+          !WRITE(*,*) 'a_crit_rel',a_crit_rel 
+          !WRITE(*,*) 'Arg lambertW',-a_crit_rel *  EXP(-a_crit_rel)
+          !WRITE(*,*) 'LambertW0', lambertw0(-a_crit_rel *  EXP(-a_crit_rel) )
+          WRITE(*,*) 'H_crit',H_crit_rel*k_s
+
+          !H_crit_rel = 1.0_wp / 30.0_wp * ( -a_crit_rel /                       &
+          !     lambertwm1(-a_crit_rel *  EXP(-a_crit_rel) ) - 1.0_wp )
+
+          !WRITE(*,*) 'LambertWm1', lambertwm1(-a_crit_rel *  EXP(-a_crit_rel) )
+          !WRITE(*,*) 'H_crit',H_crit_rel*k_s
+          !READ(*,*) 
+
 
        END IF
           
@@ -4754,7 +4763,7 @@ CONTAINS
                   B_out , r_h + B_out , r_alphas , r_alphag , r_T , r_rho_m ,   &
                   r_red_grav , DEPOSIT(j,k,:) , EROSION(j,k,:) ,                &
                   SUM(ERODIBLE(j,k,1:n_solid)) / ( 1.0_wp - erodible_porosity ),&
-                  r_alphal , shear_vel , Rouse_no(1:n_solid)
+                  r_alphal , shear_vel , r_Ri , Rouse_no(1:n_solid)
 
 
           END DO
