@@ -3668,7 +3668,6 @@ CONTAINS
                 CALL eval_flux_coeffs( qp_source , 0.0_wp , 0.0_wp , rho_c ,    &
                      rho_m , shape_coeff )
 
-                !WRITE(*,*) 'qp',qp_source
                 WRITE(*,*) 'Mass flux coeff.',shape_coeff(1)
 
              ELSE
@@ -3684,7 +3683,7 @@ CONTAINS
              mfr = rho_m*h_source*r_source*2.0*pi_g*vel_source*shape_coeff(1)
              WRITE(*,*) 'Source mass flow rate =',mfr,'(kg/s)'
              WRITE(*,*)
-             READ(*,*)
+             ! READ(*,*)
 
           END IF
 
