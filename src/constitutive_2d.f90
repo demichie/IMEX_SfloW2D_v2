@@ -2280,7 +2280,7 @@ CONTAINS
 
     ! velocity at top of log profile layer
     u0 = u_coeff * SQRT(friction_factor) / vonK * LOG( b*h0 + 1.0_wp )
-
+    
     rhom_hvel_vel = 0.0_wp
 
     b_term = b*h0 + 1.0_wp
@@ -2291,9 +2291,7 @@ CONTAINS
 
     x = 0.5*h0*(x_quad+1.0_wp)
     w = 0.5*h0*w_quad
-
-    ! CALL gaulegf(0.0_wp, h0, x, w, 20)
-
+    
     log_term_x = log( b*x + 1.0_wp )**2
 
     w_log_term_x = w * log_term_x

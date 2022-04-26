@@ -3062,7 +3062,6 @@ CONTAINS
 
           END IF
 
-
           IF ( Sc .LE. 0.0_wp ) THEN
 
              WRITE(*,*) 'ERROR: problem with namelist VERTICAL_PROFILES_PARAMETERS'
