@@ -37,7 +37,8 @@ PROGRAM SW_VAR_DENS_MODEL
   ! USE geometry_2d, ONLY : comp_cells_x,comp_cells_y
 
   USE init_2d, ONLY : collapsing_volume
-
+  USE init_2d, ONLY : init_empty
+  
   USE inpout_2d, ONLY : init_param
   USE inpout_2d, ONLY : read_param
   USE inpout_2d, ONLY : update_param
@@ -183,6 +184,10 @@ PROGRAM SW_VAR_DENS_MODEL
 
         CALL collapsing_volume
 
+     ELSE
+
+        CALL init_empty
+        
      END IF
 
   END IF
