@@ -423,8 +423,8 @@ PROGRAM SW_VAR_DENS_MODEL
 
         END IF
 
-     END IF
-
+      END IF
+     
      IF ( n_probes .GT. 0 ) THEN
 
         IF ( t .GE. t_probes ) CALL output_probes(t)

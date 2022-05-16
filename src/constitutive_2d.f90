@@ -2629,7 +2629,7 @@ CONTAINS
     IF ( energy_flag ) THEN
 
        expl_term(4) = expl_term(2) * r_u + expl_term(3) * r_v
-
+       
     ELSE
 
        expl_term(4) = 0.0_wp
