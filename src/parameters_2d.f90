@@ -188,6 +188,13 @@ MODULE parameters_2d
 
   !> Initial temperature of the pile of material
   REAL(wp) :: T_init
+
+  !> Initial W-E velocity of the pile of material
+  REAL(wp) :: u_init
+
+
+  !> Initial W-E velocity of the pile of material
+  REAL(wp) :: v_init
   
   !> Initial sediment concentration in the pile of material
   REAL(wp), ALLOCATABLE :: alphas_init(:)

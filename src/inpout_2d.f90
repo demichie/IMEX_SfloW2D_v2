@@ -36,6 +36,8 @@ MODULE inpout_2d
   USE parameters_2d, ONLY : velocity_mod_release , velocity_ang_release
   USE parameters_2d, ONLY : alphas_init
   USE parameters_2d, ONLY : T_init
+  USE parameters_2d, ONLY : u_init
+  USE parameters_2d, ONLY : v_init
 
   ! -- Variables for the namelists LEFT/RIGHT_BOUNDARY_CONDITIONS
   USE parameters_2d, ONLY : bc
@@ -225,7 +227,8 @@ MODULE inpout_2d
   NAMELIST / run_parameters / run_name , restart , t_start , t_end , dt_output ,&
        output_cons_flag , output_esri_flag , output_phys_flag ,                 &
        output_runout_flag , verbose_level
-  NAMELIST / restart_parameters / restart_file, T_init, T_ambient , sed_vol_perc
+  NAMELIST / restart_parameters / restart_file, T_init, T_ambient , u_init ,    &
+        v_init , sed_vol_perc
 
   NAMELIST / newrun_parameters / n_solid , topography_file , x0 , y0 ,          &
        comp_cells_x , comp_cells_y , cell_size , rheology_flag , alpha_flag ,   &
@@ -311,6 +314,8 @@ CONTAINS
     restart_file = ''
     T_init = 0.0_wp
     T_ambient = 0.0_wp
+    u_init = 0.0_wp
+    v_init = 0.0_wp
 
     !-- Inizialization of the Variables for the namelist newrun_parameters
     topography_file = 'topography_dem.asc'
@@ -1454,7 +1459,7 @@ CONTAINS
                 STOP
 
              END IF
-
+             
           END IF
 
        END IF
@@ -4241,9 +4246,9 @@ CONTAINS
 
        END IF
        ! rhom*h*u
-       q(2,:,:) = 0.0_wp
+       q(2,:,:) = q(1,:,:) * u_init
        ! rhom*h*v
-       q(3,:,:) = 0.0_wp
+       q(3,:,:) = q(1,:,:) * v_init
 
        ! energy (total or internal)
        q(4,:,:) = 0.0_wp
