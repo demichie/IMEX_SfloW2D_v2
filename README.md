@@ -59,7 +59,7 @@ WINDOWS POWERSHELL
 
 Create a folder for your simulation with all the input files and then run the container with:
 
-> docker run -v ${PWD}%:/home/user_sw/SW_RUNS -i -t demichie/sw_var_dens_model_alpine run
+> docker run -v ${PWD}:/home/user_sw/SW_RUNS -i -t demichie/sw_var_dens_model_alpine run
 
 If your simulation produced .asc output files, you can post-process those files to have .png files with:
 
