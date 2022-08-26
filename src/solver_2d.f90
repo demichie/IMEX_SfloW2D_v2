@@ -2236,7 +2236,7 @@ CONTAINS
        END IF
 
        CALL eval_mass_exchange_terms( qp(1:n_vars+2,j,k) , B_zone(j,k) ,           &
-            B_prime_x(j,k) , B_prime_y(j,k) , erodible(j,k,1:n_solid) , dt ,       &
+            B_prime_x(j,k) , B_prime_y(j,k) , erodible(1:n_solid,j,k) , dt ,       &
             erosion_term , deposition_term , continuous_phase_erosion_term ,       &
             continuous_phase_loss_term , eqns_term , topo_term  )
           
@@ -2268,12 +2268,12 @@ CONTAINS
        erosion(j,k,1:n_solid) = erosion(j,k,1:n_solid)                          &
             + dt * erosion_term(1:n_solid)
 
-       erodible(j,k,1:n_solid) = erodible(j,k,1:n_solid)                        &
+       erodible(1:n_solid,j,k) = erodible(1:n_solid,j,k)                        &
             - dt * erosion_term(1:n_solid)
 
        IF ( erodible_deposit_flag ) THEN
 
-          erodible(j,k,1:n_solid) = erodible(j,k,1:n_solid)                     &
+          erodible(1:n_solid,j,k) = erodible(1:n_solid,j,k)                     &
                + dt * deposition_term(1:n_solid)
 
        END IF

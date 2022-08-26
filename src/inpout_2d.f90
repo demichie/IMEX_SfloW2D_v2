@@ -1121,6 +1121,10 @@ CONTAINS
 
     ! ------- READ solid_transport_parameters NAMELIST --------------------------
 
+    ALLOCATE( erodible( n_solid , comp_cells_x , comp_cells_y ) )
+    erodible(1:n_solid,1:comp_cells_x,1:comp_cells_y) = 0.0_wp
+
+    
     IF ( n_solid .GE. 1 ) THEN
 
        READ(input_unit, solid_transport_parameters,IOSTAT=ios)
@@ -1249,9 +1253,6 @@ CONTAINS
 
        END IF
 
-       ALLOCATE( erodible( comp_cells_x , comp_cells_y , n_solid ) )
-       erodible(1:comp_cells_x,1:comp_cells_y,1:n_solid ) = 0.0_wp
-
        IF ( erodible_deposit_flag ) THEN
 
           IF ( t_erodible .GT. 0.0_wp ) THEN
@@ -1274,13 +1275,13 @@ CONTAINS
                 WRITE(*,*) 'WARNING: erodible_file not used'
                 WRITE(*,*) 'erosion_coeff = ', erosion_coeff
 
-                erodible(:,:,1:n_solid) = 0.0E+0_wp
+                erodible(1:n_solid,:,:) = 0.0E+0_wp
 
              ELSE
 
                 DO i_solid=1,n_solid
 
-                   erodible(:,:,i_solid) = erodible_fract(i_solid) *            &
+                   erodible(i_solid,:,:) = erodible_fract(i_solid) *            &
                         initial_erodible_thickness
 
                 END DO
@@ -1292,7 +1293,7 @@ CONTAINS
 
           ELSE
 
-             erodible(:,:,1:n_solid) = 0.0E+0_wp
+             erodible(1:n_solid,:,:) = 0.0E+0_wp
 
              IF ( verbose_level .GE. 0.0_wp ) THEN
 
@@ -1319,7 +1320,7 @@ CONTAINS
              WRITE(*,*) 'WARNING: erodible_file not used'
              WRITE(*,*) 'erosion_coeff = ', erosion_coeff
 
-             erodible(:,:,1:n_solid) = 0.0E+0_wp
+             erodible(1:n_solid,:,:) = 0.0E+0_wp
 
           ELSE
 
@@ -4197,7 +4198,7 @@ CONTAINS
                 DO i_solid=1,n_solid
 
                    WRITE(*,*) erodible_fract(i_solid) * ( 1.0_wp-erodible_porosity )
-                   erodible(:,:,i_solid) = erodible_fract(i_solid) *               &
+                   erodible(i_solid,:,:) = erodible_fract(i_solid) *               &
                         ( 1.0_wp - erodible_porosity ) * erodible_init(:,:)
 
                 END DO
@@ -4417,7 +4418,7 @@ CONTAINS
 
        DO i_solid=1,n_solid
 
-          erodible(:,:,i_solid) = 1.0E+5_wp
+          erodible(i_solid,:,:) = 1.0E+5_wp
 
        END DO
 
@@ -4566,7 +4567,7 @@ CONTAINS
 
        DO i_solid=1,n_solid
 
-          erodible(:,:,i_solid) = erodible_fract(i_solid) * erodible_init(:,:)
+          erodible(i_solid,:,:) = erodible_fract(i_solid) * erodible_init(:,:)
 
        END DO
 
@@ -4833,7 +4834,7 @@ CONTAINS
              WRITE(output_unit_2d,1010) x_comp(j), y_comp(k), r_h , r_u , r_v , &
                   B_out , r_h + B_out , r_alphas , r_alphag , r_T , r_rho_m ,   &
                   r_red_grav , DEPOSIT(j,k,:) , EROSION(j,k,:) ,                &
-                  SUM(ERODIBLE(j,k,1:n_solid)) / ( 1.0_wp - erodible_porosity ),&
+                  SUM(ERODIBLE(1:n_solid,j,k)) / ( 1.0_wp - erodible_porosity ),&
                   r_alphal , shear_vel , r_Ri , Rouse_no(1:n_solid)
 
 

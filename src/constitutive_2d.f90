@@ -3740,7 +3740,7 @@ CONTAINS
     REAL(wp), INTENT(IN) :: time
     REAL(wp), INTENT(IN) :: vect_x
     REAL(wp), INTENT(IN) :: vect_y
-    REAL(wp), INTENT(OUT) :: source_bdry(n_vars)
+    REAL(wp), INTENT(OUT) :: source_bdry(n_vars+2)
 
     REAL(wp) :: t_rem
     REAL(wp) :: t_coeff
