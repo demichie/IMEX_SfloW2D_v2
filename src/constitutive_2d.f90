@@ -509,7 +509,8 @@ CONTAINS
     r_alphas(1:n_solid) = r_xs(1:n_solid) * r_rho_m * inv_rho_s(1:n_solid)
 
     ! convert from mass fraction to volume fraction
-    r_alphag(1:n_solid) = r_xg(1:n_solid) * r_rho_m * r_inv_rho_g(1:n_solid)
+    r_alphag(1:n_add_gas) = r_xg(1:n_add_gas) * r_rho_m                         &
+         * r_inv_rho_g(1:n_add_gas)
 
     ! convert from mass fraction to volume fraction
     r_alphac = r_xc * r_rho_m * r_inv_rho_c
@@ -950,7 +951,7 @@ CONTAINS
     alphas(1:n_solid) = rho_m * xs(1:n_solid) * c_inv_rho_s(1:n_solid)
 
     ! convert from mass fraction to volume fraction
-    alphag(1:n_add_gas) = rho_m * xg(1:n_solid) * inv_rho_g(1:n_add_gas)
+    alphag(1:n_add_gas) = rho_m * xg(1:n_add_gas) * inv_rho_g(1:n_add_gas)
 
     h = c_qj(1) * inv_rhom
 
@@ -3116,7 +3117,7 @@ CONTAINS
     REAL(wp), INTENT(IN) :: grav_coeff
 
     REAL(wp), INTENT(IN) :: qcj(n_vars)
-    REAL(wp), INTENT(IN) :: qpj(n_vars)
+    REAL(wp), INTENT(IN) :: qpj(n_vars+2)
     REAL(wp), INTENT(OUT) :: nh_semi_impl_term(n_eqns)
 
     REAL(wp) :: source_term(n_eqns)

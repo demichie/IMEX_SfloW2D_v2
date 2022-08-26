@@ -6,7 +6,7 @@
 !*********************************************************************
 MODULE geometry_2d
 
-  USE parameters_2d, ONLY : wp , sp
+  USE parameters_2d, ONLY : wp , sp, xinf
   USE parameters_2d, ONLY : verbose_level
 
   IMPLICIT NONE
@@ -525,18 +525,21 @@ CONTAINS
 
     B_cent_extended(2:comp_cells_x+1,2:comp_cells_y+1) = B_cent
 
-    B_cent_extended(1,1) = 3.0_wp * B_cent(1,1) - B_cent(2,1) - B_cent(1,2)
+    B_cent_extended(1,1) = 3.0_wp * B_cent(1,1) - B_cent(MIN(comp_cells_x,2),1) &
+         - B_cent(1,MIN(comp_cells_y,2))
 
     B_cent_extended(1,comp_cells_y+2) = 3.0_wp * B_cent(1,comp_cells_y)         &
-         - B_cent(2,comp_cells_y) - B_cent(1,comp_cells_y-1)
+         - B_cent(MIN(comp_cells_x,2),comp_cells_y)                             &
+         - B_cent(1,MAX(comp_cells_y-1,1))
 
     B_cent_extended(comp_cells_x+2,1) = 3.0_wp * B_cent(comp_cells_x,1)         &
-         - B_cent(comp_cells_x,2) - B_cent(comp_cells_x-1,1)
+         - B_cent(comp_cells_x,MIN(comp_cells_y,2))                             &
+         - B_cent(MAX(comp_cells_x-1,1),1)
 
     B_cent_extended(comp_cells_x+2,comp_cells_y+2) =                            &
          3.0_wp * B_cent_extended(comp_cells_x,comp_cells_y)                    &
-         - B_cent_extended(comp_cells_x-1,comp_cells_y)                         &
-         - B_cent_extended(comp_cells_x,comp_cells_y-1)
+         - B_cent_extended(MAX(comp_cells_x-1,1),comp_cells_y)                  &
+         - B_cent_extended(comp_cells_x,MAX(comp_cells_y-1,1))
 
     y_loop:DO k = 1,comp_cells_y
 
@@ -1571,7 +1574,7 @@ CONTAINS
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  real*8 function lambertw0(z)
+  real(wp) function lambertw0(z)
     !
     !   Compute W_0(z), Lambert W-function of the branch 0
     !
@@ -1582,8 +1585,8 @@ CONTAINS
     !                without transcendental function evaluations"
     !
     integer n1,n,j,jmax,nh
-    real*8 z,p2,y,w,wj,yj,f0,f1,f00,f11,f0y
-    real*8 Em1,E1,ej,em(-1:64),g(0:64),a(12),b(12)
+    real(wp) z,p2,y,w,wj,yj,f0,f1,f00,f11,f0y
+    real(wp) Em1,E1,ej,em(-1:64),g(0:64),a(12),b(12)
     logical first/.TRUE./
     parameter (E1=2.718281828459045235d0,Em1=1.d0/E1)
     save first,em,g,a,b
@@ -1666,7 +1669,7 @@ CONTAINS
   end function lambertw0
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  real*8 function lambertwm1(z)
+  real(wp) function lambertwm1(z)
     !
     !   Compute W_{-1}(z), Lambert W-function of the branch -1
     !
@@ -1677,8 +1680,8 @@ CONTAINS
     !                without transcendental function evaluations"
     !
     integer n,j,jmax,nh
-    real*8 z,p2,y,w,wj,yj,f0,f1,f00,f11,f0y
-    real*8 E1,Em1,emj,e(64),g(64),a(12),b(12)
+    real(wp) z,p2,y,w,wj,yj,f0,f1,f00,f11,f0y
+    real(wp) E1,Em1,emj,e(64),g(64),a(12),b(12)
     logical first/.TRUE./
     parameter (E1=2.718281828459045235d0,Em1=1.d0/E1)
     save first,e,g,a,b
@@ -1865,7 +1868,7 @@ CONTAINS
     !
     !  Machine-dependent constants
     !
-    data xinf/1.79d+308/,xmax/716.351d0/,xbig/701.84d0/
+    data xmax/716.351d0/,xbig/701.84d0/
     !
     ! Coefficients  for -1.0 <= X < 0.0
     !

@@ -140,8 +140,6 @@ PROGRAM SW_VAR_DENS_MODEL
 
   END IF
 
-
-
   ! First initialize the system_clock
   CALL system_clock(count_rate=cr)
   CALL system_clock(count_max=cm)

@@ -12,8 +12,10 @@ MODULE parameters_2d
   INTEGER, PARAMETER :: dp = Selected_Real_Kind (P=15,R=307)
 
   !> working precision
-  INTEGER, PARAMETER :: wp = dp
+  INTEGER, PARAMETER :: wp = sp
 
+  REAL(wp), PARAMETER :: xinf = HUGE(0.0_wp)
+  
   REAL(wp), PARAMETER :: four_thirds = 1.0_wp / 3.0_wp
   REAL(wp), PARAMETER :: neg_four_thirds = -1.0_wp / 3.0_wp
 

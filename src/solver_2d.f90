@@ -959,7 +959,7 @@ CONTAINS
 
     REAL(wp) :: p_dyn
 
-    IF ( verbose_level .GE. 2 ) WRITE(*,*) 'solver, imex_RK_solver: beginning'
+    IF ( verbose_level .GE. 1 ) WRITE(*,*) 'solver, imex_RK_solver: beginning'
 
     !$OMP PARALLEL
  
@@ -972,7 +972,7 @@ CONTAINS
        IF ( verbose_level .GE. 2 ) THEN
 
           WRITE(*,*) 'solver, imex_RK_solver: j,k',j,k
-          READ(*,*)
+          !READ(*,*)
           
        END IF
 
@@ -996,7 +996,7 @@ CONTAINS
 
     runge_kutta:DO i_RK = 1,n_RK
 
-       IF ( verbose_level .GE. 2 ) WRITE(*,*) 'solver, imex_RK_solver: i_RK',i_RK
+       IF ( verbose_level .GE. 1 ) WRITE(*,*) 'solver, imex_RK_solver: i_RK',i_RK
 
        ! define the explicits coefficients for the i-th step of the Runge-Kutta
        a_tilde = 0.0_wp
@@ -1020,7 +1020,7 @@ CONTAINS
           IF ( verbose_level .GE. 2 ) THEN
 
              WRITE(*,*) 'solver, imex_RK_solver: j,k',j,k
-             READ(*,*)
+             ! READ(*,*)
 
           END IF
 
@@ -1047,30 +1047,6 @@ CONTAINS
 
           CALL qc_to_qp(q_fv(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
 
-!!$          IF ( ( j.EQ.-100) .AND. (k.EQ.100) ) THEN
-!!$
-!!$             WRITE(*,*) 'i_RK',i_RK
-!!$             WRITE(*,*) j,k,qp(1:n_vars+2,j,k)
-!!$             
-!!$             CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
-!!$             WRITE(*,*) j,k,qp(1:n_vars+2,j,k)
-!!$             
-!!$             WRITE(*,*) 'H_interface(1)'
-!!$             WRITE(*,*) H_interface_x(1,j+1,k)/dx*dt, H_interface_x(1,j,k)/dx*dt
-!!$             WRITE(*,*) H_interface_y(1,j,k+1)/dy*dt, H_interface_y(1,j,k)/dy*dt
-!!$
-!!$             WRITE(*,*) 'H_interface(4)'
-!!$             WRITE(*,*) H_interface_x(4,j+1,k)/dx*dt, H_interface_x(4,j,k)/dx*dt
-!!$             WRITE(*,*) H_interface_y(4,j,k+1)/dy*dt, H_interface_y(4,j,k)/dy*dt
-!!$
-!!$             WRITE(*,*) 'qp_interfaceB',qp_interfaceB(1:n_vars,j,k+1)
-!!$             WRITE(*,*) 'qp_interfaceT',qp_interfaceT(1:n_vars,j,k+1)
-!!$             
-!!$             READ(*,*)
-!!$             
-!!$          END IF
-          
-          
           IF ( verbose_level .GE. 2 ) THEN
 
              WRITE(*,*) 'q_guess',q_guess
@@ -1092,7 +1068,7 @@ CONTAINS
                 CALL eval_nh_semi_impl_terms( B_prime_x(j,k) , B_prime_y(j,k) , &
                      B_second_xx(j,k) , B_second_xy(j,k) , B_second_yy(j,k) ,   &
                      grav_coeff(j,k) , q_fv( 1:n_vars , j , k ) ,               &
-                      qp( 1:n_vars , j , k ) , SI_NH(1:n_eqns,j,k,i_RK) )
+                     qp( 1:n_vars , j , k ) , SI_NH(1:n_eqns,j,k,i_RK) )
 
                 ! Assemble the initial guess for the implicit solver
                 q_si(1:n_vars) = q_fv(1:n_vars,j,k ) + dt * a_diag *            &
@@ -1142,6 +1118,7 @@ CONTAINS
                       expl_terms( 1:n_eqns,j,k,1:n_RK ) ,                       &
                       NH( 1:n_eqns , j , k , 1:n_RK ) , B_prime_x(j,k) ,        &
                       B_prime_y(j,k) )
+
 
                 IF ( comp_cells_y .EQ. 1 ) THEN
 
@@ -1225,6 +1202,7 @@ CONTAINS
 
           END IF
 
+
           IF ( omega_tilde(i_RK) .GT. 0.0_wp ) THEN
           
              IF ( q_rk(1,j,k,i_RK) .GT. 0.0_wp ) THEN
@@ -1251,7 +1229,6 @@ CONTAINS
        END DO solve_cells_loop
 
        !$OMP END DO
-
        !$OMP END PARALLEL 
 
        IF ( omega_tilde(i_RK) .GT. 0.0_wp ) THEN
@@ -2680,12 +2657,16 @@ CONTAINS
           k = k_stag_x(l)
 
           CALL eval_fluxes( q_interfaceL(1:n_vars,j,k) ,                        &
-               qp_interfaceL(1:n_vars+2,j,k) , B_prime_x(j-1,k) ,               &
-               B_prime_y(j-1,k) , grav_coeff_stag_x(j,k) , 1 , fluxL )
+               qp_interfaceL(1:n_vars+2,j,k) ,                                  &
+               B_prime_x(MAX(1,j-1),MIN(k,comp_cells_y)) ,                      &
+               B_prime_y(MAX(1,j-1),MIN(k,comp_cells_y)) ,                      &
+               grav_coeff_stag_x(j,k) , 1 , fluxL )
 
           CALL eval_fluxes( q_interfaceR(1:n_vars,j,k) ,                        &
-               qp_interfaceR(1:n_vars+2,j,k) , B_prime_x(j,k) ,                 &
-               B_prime_y(j,k) , grav_coeff_stag_x(j,k) , 1 , fluxR )
+               qp_interfaceR(1:n_vars+2,j,k) ,                                  &
+               B_prime_x(MIN(j,comp_cells_x),MIN(k,comp_cells_y)) ,             &
+               B_prime_y(MIN(j,comp_cells_x),MIN(k,comp_cells_y)) ,             &
+               grav_coeff_stag_x(j,k) , 1 , fluxR )
           
           CALL average_KT( a_interface_xNeg(:,j,k), a_interface_xPos(:,j,k) ,   &
                fluxL , fluxR , flux_avg_x )
@@ -2717,28 +2698,6 @@ CONTAINS
 
           END IF
 
-!!$          IF ( j.EQ.1) THEN
-!!$
-!!$             WRITE(*,*) 'j,k',j,k
-!!$             WRITE(*,*) a_interface_xNeg(1,j,k), a_interface_xPos(1,j,k)
-!!$             WRITE(*,*) fluxL
-!!$             WRITE(*,*) q_interfaceL(:,j,k)
-!!$             WRITE(*,*) H_interface_x(:,j,k)
-!!$             READ(*,*) 
-!!$
-!!$
-!!$          END IF
-
-!!$          IF ( ( j.EQ.224 ) .AND. ( k.EQ.117 ) ) THEN
-!!$
-!!$             WRITE(*,*) 'fluxes'
-!!$             WRITE(*,*) q_interfaceL(1,j,k),q_interfaceL(5,j,k)/q_interfaceL(1,j,k)
-!!$             WRITE(*,*) qp_interfaceL(1,j,k),qp_interfaceL(5,j,k)/qp_interfaceL(1,j,k)
-!!$             WRITE(*,*) q_interfaceR(1,j,k),q_interfaceR(5,j,k)/q_interfaceR(1,j,k)
-!!$             WRITE(*,*) qp_interfaceL(1,j,k),qp_interfaceL(5,j,k)/qp_interfaceL(1,j,k)
-!!$
-!!$          END IF
-          
        END DO interfaces_x_loop
 
        !$OMP END DO NOWAIT
@@ -2757,12 +2716,16 @@ CONTAINS
           k = k_stag_y(l)
 
           CALL eval_fluxes( q_interfaceB(1:n_vars,j,k) ,                        &
-               qp_interfaceB(1:n_vars+2,j,k) , B_prime_x(j,k-1) ,               &
-               B_prime_y(j,k-1) , grav_coeff_stag_y(j,k) , 2 , fluxB )
+               qp_interfaceB(1:n_vars+2,j,k) ,                                  &
+               B_prime_x(MIN(j,comp_cells_x),MAX(1,k-1)) ,                      &
+               B_prime_y(MIN(j,comp_cells_x),MAX(1,k-1)) ,                      &
+               grav_coeff_stag_y(j,k) , 2 , fluxB )
 
           CALL eval_fluxes( q_interfaceT(1:n_vars,j,k) ,                        &
-               qp_interfaceT(1:n_vars+2,j,k) , B_prime_x(j,k) ,                 &
-               B_prime_y(j,k) , grav_coeff_stag_y(j,k) , 2 , fluxT )
+               qp_interfaceT(1:n_vars+2,j,k) ,                                  &
+               B_prime_x(MIN(j,comp_cells_x),MIN(k,comp_cells_y)) ,             &
+               B_prime_y(MIN(j,comp_cells_x),MIN(k,comp_cells_y)) ,             &
+               grav_coeff_stag_y(j,k) , 2 , fluxT )
           
           CALL average_KT( a_interface_yNeg(:,j,k) ,                            &
                a_interface_yPos(:,j,k) , fluxB , fluxT , flux_avg_y )
