@@ -459,13 +459,13 @@ CONTAINS
 
     END IF
 
-    IF ( r_T .LT. T_ambient ) THEN
-
-       WRITE(*,*) 'T',r_T
-       WRITE(*,*) 'r_qj',r_qj
-       READ(*,*)
-
-    END IF
+!!$    IF ( r_T .LT. T_ambient ) THEN
+!!$
+!!$       WRITE(*,*) 'T',r_T
+!!$       WRITE(*,*) 'r_qj',r_qj
+!!$       READ(*,*)
+!!$
+!!$    END IF
 
     IF ( gas_flag ) THEN
 
@@ -1121,11 +1121,11 @@ CONTAINS
     ! Richardson number
     IF ( ( r_u**2 + r_v**2 ) .GT. 0.0_wp ) THEN
 
-       r_Ri = MIN(1.D15,r_red_grav * r_h / ( r_u**2 + r_v**2 ))
+       r_Ri = MIN(1.E15_wp,r_red_grav * r_h / ( r_u**2 + r_v**2 ))
 
     ELSE
 
-       r_Ri = 1.D10
+       r_Ri = 1.E10_wp
 
     END IF
 
@@ -2281,7 +2281,7 @@ CONTAINS
 
     ! velocity at top of log profile layer
     u0 = u_coeff * SQRT(friction_factor) / vonK * LOG( b*h0 + 1.0_wp )
-
+    
     rhom_hvel_vel = 0.0_wp
 
     b_term = b*h0 + 1.0_wp
@@ -2292,9 +2292,7 @@ CONTAINS
 
     x = 0.5*h0*(x_quad+1.0_wp)
     w = 0.5*h0*w_quad
-
-    ! CALL gaulegf(0.0_wp, h0, x, w, 20)
-
+    
     log_term_x = log( b*x + 1.0_wp )**2
 
     w_log_term_x = w * log_term_x
@@ -2632,7 +2630,7 @@ CONTAINS
     IF ( energy_flag ) THEN
 
        expl_term(4) = expl_term(2) * r_u + expl_term(3) * r_v
-
+       
     ELSE
 
        expl_term(4) = 0.0_wp

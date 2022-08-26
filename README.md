@@ -27,15 +27,46 @@ It is possible also to use Docker container with the latest version of the model
 
 > docker pull demichie/sw_var_dens_model_alpine
 
+LINUX/MAC
+
 Create a folder for your simulation with all the input files and then run the container with:
 
-> docker run -v $PWD:/home/user_sw/SW_RUNS -i -t sw_var_dens_model run
+> docker run -v $PWD:/home/user_sw/SW_RUNS -i -t demichie/sw_var_dens_model_alpine run
 
 If your simulation produced .asc output files, you can post-process those files to have .png files with:
 
-> docker run -v $PWD:/home/user_sw/SW_RUNS -i -t sw_var_dens_model plot_overlay
+> docker run -v $PWD:/home/user_sw/SW_RUNS -i -t demichie/sw_var_dens_model_alpine plot_overlay
 
 If your simulation produced .p_2d output files, you can post-process those files to have a netCDF4 file with:
 
-> docker run -v $PWD:/home/user_sw/SW_RUNS -i -t sw_var_dens_model p2d_to_netcdf
+> docker run -v $PWD:/home/user_sw/SW_RUNS -i -t demichie/sw_var_dens_model_alpine p2d_to_netcdf
+
+WINDOWS COMMAND LINE
+
+Create a folder for your simulation with all the input files and then run the container with:
+
+> docker run -v %cd%:/home/user_sw/SW_RUNS -i -t demichie/sw_var_dens_model_alpine run
+
+If your simulation produced .asc output files, you can post-process those files to have .png files with:
+
+> docker run -v %cd%:/home/user_sw/SW_RUNS -i -t demichie/sw_var_dens_model_alpine plot_overlay
+
+If your simulation produced .p_2d output files, you can post-process those files to have a netCDF4 file with:
+
+> docker run -v %cd%:/home/user_sw/SW_RUNS -i -t demichie/sw_var_dens_model_alpine p2d_to_netcdf
+
+WINDOWS POWERSHELL
+
+Create a folder for your simulation with all the input files and then run the container with:
+
+> docker run -v ${PWD}:/home/user_sw/SW_RUNS -i -t demichie/sw_var_dens_model_alpine run
+
+If your simulation produced .asc output files, you can post-process those files to have .png files with:
+
+> docker run -v ${PWD}:/home/user_sw/SW_RUNS -i -t demichie/sw_var_dens_model_alpine plot_overlay
+
+If your simulation produced .p_2d output files, you can post-process those files to have a netCDF4 file with:
+
+> docker run -v ${PWD}:/home/user_sw/SW_RUNS -i -t demichie/sw_var_dens_model_alpine p2d_to_netcdf
+
 

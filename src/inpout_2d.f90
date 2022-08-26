@@ -36,6 +36,8 @@ MODULE inpout_2d
   USE parameters_2d, ONLY : velocity_mod_release , velocity_ang_release
   USE parameters_2d, ONLY : alphas_init
   USE parameters_2d, ONLY : T_init
+  USE parameters_2d, ONLY : u_init
+  USE parameters_2d, ONLY : v_init
 
   ! -- Variables for the namelists LEFT/RIGHT_BOUNDARY_CONDITIONS
   USE parameters_2d, ONLY : bc
@@ -55,18 +57,18 @@ MODULE inpout_2d
   ! -- Variables for the namelist COLLAPSING_VOLUME_PARAMETERS
   USE parameters_2d, ONLY : x_collapse , y_collapse , r_collapse , T_collapse , &
        h_collapse , alphas_collapse , alphag_collapse
-  
+
   ! -- Variables for the namelist TEMPERATURE_PARAMETERS
   USE constitutive_2d, ONLY : emissivity , exp_area_fract , enne , emme ,       &
        atm_heat_transf_coeff , thermal_conductivity , T_env , T_ground , c_p
-    
+
   ! -- Variables for the namelist RHEOLOGY_PARAMETERS
   USE parameters_2d, ONLY : rheology_model
   USE constitutive_2d, ONLY : mu , xi , tau , nu_ref , visc_par , T_ref
   USE constitutive_2d, ONLY : alpha2 , beta2 , alpha1_coeff , beta1 , Kappa ,n_td
   USE constitutive_2d, ONLY : friction_factor
   USE constitutive_2d, ONLY : tau0
-  
+
   ! --- Variables for the namelist SOLID_TRANSPORT_PARAMETERS
   USE constitutive_2d, ONLY : rho_s , diam_s , sp_heat_s
   USE constitutive_2d, ONLY : settling_flag , erosion_coeff , erodible_porosity
@@ -77,7 +79,7 @@ MODULE inpout_2d
   ! --- Variables for the namelist GAS_TRANSPORT_PARAMETERS
   USE constitutive_2d, ONLY : sp_heat_a , sp_gas_const_a , kin_visc_a , pres ,  &
        T_ambient , entrainment_flag , sp_heat_g , sp_gas_const_g , gamma_steam
-  
+
   USE parameters_2d, ONLY : liquid_vaporization_flag , water_level
 
   ! --- Variables for the namelist LIQUID_TRANSPORT_PARAMETERS
@@ -107,7 +109,7 @@ MODULE inpout_2d
   CHARACTER(LEN=40) :: erodible_file      !< Name of the esri DEM file
   CHARACTER(LEN=40) :: output_VT_file
   CHARACTER(LEN=40) :: mass_center_file
-  
+
   INTEGER, PARAMETER :: input_unit = 7       !< Input data unit
   INTEGER, PARAMETER :: backup_unit = 8      !< Backup input data unit
   INTEGER, PARAMETER :: output_unit = 9      !< Output data unit
@@ -122,7 +124,7 @@ MODULE inpout_2d
   INTEGER, PARAMETER :: erodible_unit = 18
   INTEGER, PARAMETER :: output_VT_unit = 19
   INTEGER, PARAMETER :: mass_center_unit = 20
-  
+
   !> Counter for the output files
   INTEGER :: output_idx 
 
@@ -214,18 +216,19 @@ MODULE inpout_2d
   REAL(wp), ALLOCATABLE :: sed_vol_perc(:)
 
   REAL(wp) :: initial_erodible_thickness
-  
+
   REAL(wp) :: alphas0_E(10) , alphas0_W(10)
-  
+
   REAL(wp) :: alpha1_ref
 
   REAL(wp) :: thickness_levels0(10)
   REAL(wp) :: dyn_pres_levels0(10)
-  
+
   NAMELIST / run_parameters / run_name , restart , t_start , t_end , dt_output ,&
        output_cons_flag , output_esri_flag , output_phys_flag ,                 &
        output_runout_flag , verbose_level
-  NAMELIST / restart_parameters / restart_file, T_init, T_ambient , sed_vol_perc
+  NAMELIST / restart_parameters / restart_file, T_init, T_ambient , u_init ,    &
+        v_init , sed_vol_perc
 
   NAMELIST / newrun_parameters / n_solid , topography_file , x0 , y0 ,          &
        comp_cells_x , comp_cells_y , cell_size , rheology_flag , alpha_flag ,   &
@@ -241,15 +244,15 @@ MODULE inpout_2d
        theta , reconstr_coeff , interfaces_relaxation , n_RK   
 
   NAMELIST / expl_terms_parameters / grav
- 
+
   NAMELIST / radial_source_parameters / x_source , y_source , r_source ,        &
        vel_source , T_source , h_source , alphas_source , alphal_source ,       &
        alphag_source , time_param , Ri_source , mfr_source , xs_source ,        &
        xl_source , xg_source
-  
+
   NAMELIST / collapsing_volume_parameters / x_collapse , y_collapse ,           &
        r_collapse , T_collapse , h_collapse , alphas_collapse , alphag_collapse
- 
+
   NAMELIST / temperature_parameters / emissivity ,  atm_heat_transf_coeff ,     &
        thermal_conductivity , exp_area_fract , c_p , enne , emme , T_env ,      &
        T_ground
@@ -268,7 +271,7 @@ MODULE inpout_2d
 
   NAMELIST / vertical_profiles_parameters / vonK , k_s  , Sc , bottom_conc_flag,&
        n_quad
-  
+
 CONTAINS
 
   !******************************************************************************
@@ -311,6 +314,8 @@ CONTAINS
     restart_file = ''
     T_init = 0.0_wp
     T_ambient = 0.0_wp
+    u_init = 0.0_wp
+    v_init = 0.0_wp
 
     !-- Inizialization of the Variables for the namelist newrun_parameters
     topography_file = 'topography_dem.asc'
@@ -428,7 +433,7 @@ CONTAINS
 
        ALLOCATE( sed_vol_perc(n_solid) )
        sed_vol_perc(1:n_solid) = -1.0_wp
-       
+
        ALLOCATE( rho_s(n_solid) )
        ALLOCATE( diam_s(n_solid) )
        ALLOCATE( sp_heat_s(n_solid) )
@@ -455,7 +460,7 @@ CONTAINS
 
        ALLOCATE ( sp_heat_g(n_add_gas) )
        ALLOCATE ( sp_gas_const_g(n_add_gas) )
-       
+
        CLOSE(input_unit)
 
     END IF
@@ -474,7 +479,7 @@ CONTAINS
     alphal_bcW%flag = -1 
     halphal_bcW%flag = -1 
     T_bcW%flag = -1
-    
+
 
     h_bcE%flag = -1 
     hu_bcE%flag = -1 
@@ -530,7 +535,7 @@ CONTAINS
     rho_s = -1.0_wp
     initial_erodible_thickness = -1.0_wp
     erodible_deposit_flag = .FALSE.
-    
+
     exp_area_fract = -1.0_wp
     emissivity = -1.0_wp             
     atm_heat_transf_coeff = -1.0_wp
@@ -562,7 +567,7 @@ CONTAINS
     !- Variables for the namelist RHEOLOGY_PARAMETERS
     xi = -1.0_wp
     mu = -1.0_wp
-    
+
     !- Variables for the namelist GAS_TRANSPORT_PARAMETERS
     sp_heat_a = -1.0_wp
     sp_gas_const_a = -1.0_wp
@@ -580,7 +585,7 @@ CONTAINS
     rho_l = -1.0_wp
     kin_visc_l = -1.0_wp
     loss_rate = -1.0_wp
-    
+
     !- Variables for the namelist RADIAL_SOURCE_PARAMETERS
     T_source = -1.0_wp
     h_source = -1.0_wp
@@ -653,11 +658,11 @@ CONTAINS
     USE constitutive_2d, ONLY : H_crit_rel
 
     ! External procedures
-    USE constitutive_2d, ONLY : mixt_var
+    USE constitutive_2d, ONLY : mixt_var , eval_flux_coeffs
 
     USE geometry_2d, ONLY : lambertw0 , lambertwm1 , gaulegf
-    
-    
+
+
     IMPLICIT none
 
     NAMELIST / west_boundary_conditions / h_bcW , hu_bcW , hv_bcW ,             &
@@ -724,7 +729,10 @@ CONTAINS
     REAL(wp) :: sp_gas_const_c
     REAL(wp) :: xc
     REAL(wp) :: xs_tot
-    
+    REAL(wp), ALLOCATABLE :: shape_coeff(:)
+
+    INTEGER :: iter_source , iter_max
+
     OPEN(input_unit,FILE=input_file,STATUS='old')
 
     ! ---------- READ run_parameters NAMELIST -----------------------------------
@@ -782,7 +790,7 @@ CONTAINS
        STOP
 
     END IF
-    
+
     IF ( ( comp_cells_x .EQ. 1 ) .OR. ( comp_cells_y .EQ. 1 ) ) THEN
 
        IF ( verbose_level .GE. 0 ) WRITE(*,*) '----- 1D SIMULATION -----' 
@@ -864,21 +872,21 @@ CONTAINS
     END IF
 
     IF ( ANY(sp_heat_g(1:n_add_gas) .EQ. -1.0_wp ) ) THEN
-       
+
        WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
        WRITE(*,*) 'SP_HEAT_G =' , sp_heat_g(1:n_solid)
        WRITE(*,*) 'Please check the input file'
        STOP
-       
+
     END IF
-    
+
     IF ( ANY(sp_gas_const_g(1:n_add_gas) .EQ. -1.0_wp ) ) THEN
-       
+
        WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
        WRITE(*,*) 'SP_GAS_CONST_G =' , sp_gas_const_g(1:n_add_gas)
        WRITE(*,*) 'Please check the input file'
        STOP
-       
+
     END IF
 
     alphag_bcW(1:n_add_gas)%flag = -1
@@ -931,29 +939,29 @@ CONTAINS
     END IF
 
     IF ( liquid_vaporization_flag ) THEN
-       
+
        IF ( .NOT. gas_flag ) THEN
-          
+
           WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
           WRITE(*,*) 'liquid_vaporization_flag =' , liquid_vaporization_flag
           WRITE(*,*) 'This flag can be set to .TRUE. only when gas_flag = T'
           WRITE(*,*) 'Please check the input file'
           STOP
-          
+
        END IF
-       
+
        IF ( n_add_gas .LT. 1 ) THEN
-          
+
           WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
           WRITE(*,*) 'liquid_vaporization_flag =' , liquid_vaporization_flag
           WRITE(*,*) 'This flag can be set to .TRUE. only when n_add_gas > 1 '
           WRITE(*,*) 'Please check the input file'
           STOP
-          
+
        END IF
 
        IF ( ( gamma_steam .LT. 0.0_wp ) .OR. ( gamma_steam .GT. 1.0_wp ) ) THEN
-          
+
           WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
           WRITE(*,*) 'gamma_steam =' , gamma_steam
           WRITE(*,*) 'Specify a value between 0 and 1'
@@ -961,9 +969,9 @@ CONTAINS
           STOP
 
        END IF
-              
+
        IF ( water_level .EQ. -1.0E7_wp ) THEN
-          
+
           WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
           WRITE(*,*) 'water_level =' , water_level
           WRITE(*,*) 'Specify a value when LIQUID_VAPORIZATION_FLAG = T'
@@ -982,13 +990,13 @@ CONTAINS
              STOP
 
           END IF
-          
+
        END IF
 
     ELSE
 
        IF ( gamma_steam .NE. -1.0_wp ) THEN
-          
+
           WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
           WRITE(*,*) 'gamma_steam =' , gamma_steam
           WRITE(*,*) 'Specify a value only when GAS_VAPORIZATION_FLAG = T'
@@ -996,15 +1004,15 @@ CONTAINS
           STOP
 
        END IF
-       
+
     END IF
-    
+
     ! ------- READ liquid_transport_parameters NAMELIST -------------------------
 
     n_vars = 4
 
     IF ( gas_flag ) n_vars = n_vars + n_add_gas
-    
+
     IF ( liquid_flag ) THEN
 
        IF ( gas_flag ) n_vars = n_vars + 1
@@ -1059,7 +1067,7 @@ CONTAINS
 
        READ(input_unit, rheology_parameters,IOSTAT=ios)
        REWIND(input_unit)
-       
+
        IF ( .NOT. gas_flag ) THEN
 
           IF ( kin_visc_l .EQ. -1.0_wp ) THEN
@@ -1252,11 +1260,11 @@ CONTAINS
              WRITE(*,*) 'Temperature of erodible layer is set equal to'
              WRITE(*,*) 'that of the flow'
 
-             
+
           END IF
 
        END IF
-       
+
        IF ( TRIM(erodible_file) .EQ. '' ) THEN
 
           IF ( initial_erodible_thickness .GE. 0.0_wp ) THEN
@@ -1265,37 +1273,37 @@ CONTAINS
 
                 WRITE(*,*) 'WARNING: erodible_file not used'
                 WRITE(*,*) 'erosion_coeff = ', erosion_coeff
-                
+
                 erodible(:,:,1:n_solid) = 0.0E+0_wp
 
              ELSE
-             
+
                 DO i_solid=1,n_solid
 
                    erodible(:,:,i_solid) = erodible_fract(i_solid) *            &
                         initial_erodible_thickness
-                
+
                 END DO
-             
+
                 WRITE(*,*) 'Initial thickness of erodible layer',               &
                      initial_erodible_thickness
 
              END IF
-                
+
           ELSE
-          
+
              erodible(:,:,1:n_solid) = 0.0E+0_wp
 
              IF ( verbose_level .GE. 0.0_wp ) THEN
-                
+
                 WRITE(*,*)
                 WRITE(*,*) 'WARNING: no file defined for erobile layer'
                 WRITE(*,*) 'WARNING: no initial thickness for erobile layer'
                 WRITE(*,*) 'Initial erodible thickness set to 0'
                 WRITE(*,*)
-                
+
              END IF
-             
+
           END IF
 
        ELSE
@@ -1305,7 +1313,7 @@ CONTAINS
              WRITE(*,*) 'WARNING: initial_erodible_thicknes not used'
 
           END IF
-          
+
           IF( erosion_coeff .EQ. 0.0_wp ) THEN
 
              WRITE(*,*) 'WARNING: erodible_file not used'
@@ -1451,7 +1459,7 @@ CONTAINS
                 STOP
 
              END IF
-
+             
           END IF
 
        END IF
@@ -1630,31 +1638,31 @@ CONTAINS
           END IF
 
           IF ( ANY(alphag_bcW(1:n_add_gas)%flag .EQ. -1 ) ) THEN 
-             
+
              WRITE(*,*) 'ERROR: problem with namelist WEST_BOUNDARY_CONDITIONS'
              WRITE(*,*) 'B.C. for additional gas components not set properly'
              WRITE(*,*) 'Please check the input file'
              WRITE(*,*) 'alphag_bcW'
              WRITE(*,*) alphag_bcW(1:n_add_gas)
              STOP
-          
+
           END IF
 
           IF ( gas_flag .AND. liquid_flag ) THEN
 
              IF ( alphal_bcW%flag .EQ. -1 ) THEN 
-                
+
                 WRITE(*,*) 'ERROR: problem with namelist WEST_BOUNDARY_CONDITIONS'
                 WRITE(*,*) 'B.C. for additional gas components not set properly'
                 WRITE(*,*) 'Please check the input file'
                 WRITE(*,*) 'alphal_bcW'
                 WRITE(*,*) alphal_bcW
                 STOP
-                
+
              END IF
-             
+
           END IF
-          
+
        ELSE
 
           IF ( ANY(halphas_bcW(1:n_solid)%flag .EQ. -1 ) ) THEN 
@@ -1669,32 +1677,32 @@ CONTAINS
           END IF
 
           IF ( ANY(halphag_bcW(1:n_add_gas)%flag .EQ. -1 ) ) THEN 
-             
+
              WRITE(*,*) 'ERROR: problem with namelist WEST_BOUNDARY_CONDITIONS'
              WRITE(*,*) 'B.C. for additional gas components not set properly'
              WRITE(*,*) 'Please check the input file'
              WRITE(*,*) 'halphag_bcW'
              WRITE(*,*) halphag_bcW(1:n_add_gas)
              STOP
-          
+
           END IF
 
           IF ( gas_flag .AND. liquid_flag ) THEN
 
              IF ( halphal_bcW%flag .EQ. -1 ) THEN 
-                
+
                 WRITE(*,*) 'ERROR: problem with namelist WEST_BOUNDARY_CONDITIONS'
                 WRITE(*,*) 'B.C. for additional gas components not set properly'
                 WRITE(*,*) 'Please check the input file'
                 WRITE(*,*) 'halphal_bcW'
                 WRITE(*,*) halphal_bcW
                 STOP
-                
+
              END IF
-             
+
           END IF
-          
-          
+
+
        END IF
 
        IF ( T_bcW%flag .EQ. -1 ) THEN 
@@ -1705,7 +1713,7 @@ CONTAINS
           STOP
 
        END IF
-       
+
        ! set the approriate boundary conditions
 
        bcW(1) = h_bcW
@@ -1790,31 +1798,31 @@ CONTAINS
           END IF
 
           IF ( ANY(alphag_bcE(1:n_add_gas)%flag .EQ. -1 ) ) THEN 
-             
+
              WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
              WRITE(*,*) 'B.C. for additional gas components not set properly'
              WRITE(*,*) 'Please check the input file'
              WRITE(*,*) 'alphag_bcE'
              WRITE(*,*) alphag_bcE(1:n_add_gas)
              STOP
-             
+
           END IF
 
           IF ( gas_flag .AND. liquid_flag ) THEN
 
              IF ( alphal_bcE%flag .EQ. -1 ) THEN 
-                
+
                 WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
                 WRITE(*,*) 'B.C. for additional gas components not set properly'
                 WRITE(*,*) 'Please check the input file'
                 WRITE(*,*) 'alphal_bcE'
                 WRITE(*,*) alphal_bcE
                 STOP
-                
+
              END IF
-             
+
           END IF
-          
+
        ELSE
 
           IF ( ANY(halphas_bcE(1:n_solid)%flag .EQ. -1 ) ) THEN 
@@ -1829,29 +1837,29 @@ CONTAINS
           END IF
 
           IF ( ANY(halphag_bcE(1:n_add_gas)%flag .EQ. -1 ) ) THEN 
-             
+
              WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
              WRITE(*,*) 'B.C. for additional gas components not set properly'
              WRITE(*,*) 'Please check the input file'
              WRITE(*,*) 'halphag_bcE'
              WRITE(*,*) halphag_bcE(1:n_add_gas)
              STOP
-             
+
           END IF
-          
+
           IF ( gas_flag .AND. liquid_flag ) THEN
 
              IF ( halphal_bcE%flag .EQ. -1 ) THEN 
-                
+
                 WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
                 WRITE(*,*) 'B.C. for additional gas components not set properly'
                 WRITE(*,*) 'Please check the input file'
                 WRITE(*,*) 'halphal_bcE'
                 WRITE(*,*) halphal_bcE
                 STOP
-                
+
              END IF
-             
+
           END IF
 
        END IF
@@ -1949,31 +1957,31 @@ CONTAINS
           END IF
 
           IF ( ANY(alphag_bcS(1:n_add_gas)%flag .EQ. -1 ) ) THEN 
-             
+
              WRITE(*,*) 'ERROR: problem with namelist SOUTH_BOUNDARY_CONDITIONS'
              WRITE(*,*) 'B.C. for additional gas components not set properly'
              WRITE(*,*) 'Please check the input file'
              WRITE(*,*) 'alphag_bcS'
              WRITE(*,*) alphag_bcS(1:n_add_gas)
              STOP
-             
+
           END IF
 
           IF ( gas_flag .AND. liquid_flag ) THEN
 
              IF ( alphal_bcS%flag .EQ. -1 ) THEN 
-                
+
                 WRITE(*,*) 'ERROR: problem with namelist SOUTH_BOUNDARY_CONDITIONS'
                 WRITE(*,*) 'B.C. for additional gas components not set properly'
                 WRITE(*,*) 'Please check the input file'
                 WRITE(*,*) 'alphal_bcS'
                 WRITE(*,*) alphal_bcS
                 STOP
-                
+
              END IF
-             
+
           END IF
-          
+
        ELSE
 
           IF ( ANY(halphas_bcS(1:n_solid)%flag .EQ. -1 ) ) THEN 
@@ -1989,31 +1997,31 @@ CONTAINS
 
 
           IF ( ANY(halphag_bcS(1:n_add_gas)%flag .EQ. -1 ) ) THEN 
-             
+
              WRITE(*,*) 'ERROR: problem with namelist SOUTH_BOUNDARY_CONDITIONS'
              WRITE(*,*) 'B.C. for additional gas components not set properly'
              WRITE(*,*) 'Please check the input file'
              WRITE(*,*) 'halphag_bcS'
              WRITE(*,*) halphag_bcS(1:n_add_gas)
              STOP
-             
+
           END IF
 
           IF ( gas_flag .AND. liquid_flag ) THEN
 
              IF ( halphal_bcS%flag .EQ. -1 ) THEN 
-                
+
                 WRITE(*,*) 'ERROR: problem with namelist SOUTH_BOUNDARY_CONDITIONS'
                 WRITE(*,*) 'B.C. for additional gas components not set properly'
                 WRITE(*,*) 'Please check the input file'
                 WRITE(*,*) 'halphal_bcS'
                 WRITE(*,*) halphal_bcS
                 STOP
-                
+
              END IF
-             
+
           END IF
-          
+
        END IF
 
        IF ( T_bcS%flag .EQ. -1 ) THEN 
@@ -2024,7 +2032,7 @@ CONTAINS
           STOP
 
        END IF
-       
+
        bcS(1) = h_bcS 
        bcS(2) = hu_bcS 
        bcS(3) = hv_bcS 
@@ -2107,31 +2115,31 @@ CONTAINS
           END IF
 
           IF ( ANY(alphag_bcN(1:n_add_gas)%flag .EQ. -1 ) ) THEN 
-             
+
              WRITE(*,*) 'ERROR: problem with namelist NORTH_BOUNDARY_CONDITIONS'
              WRITE(*,*) 'B.C. for additional gas components not set properly'
              WRITE(*,*) 'Please check the input file'
              WRITE(*,*) 'alphag_bcN'
              WRITE(*,*) alphag_bcN(1:n_add_gas)
              STOP
-             
+
           END IF
 
           IF ( gas_flag .AND. liquid_flag ) THEN
 
              IF ( alphal_bcN%flag .EQ. -1 ) THEN 
-                
+
                 WRITE(*,*) 'ERROR: problem with namelist NORTH_BOUNDARY_CONDITIONS'
                 WRITE(*,*) 'B.C. for additional gas components not set properly'
                 WRITE(*,*) 'Please check the input file'
                 WRITE(*,*) 'alphal_bcN'
                 WRITE(*,*) alphal_bcN
                 STOP
-                
+
              END IF
-             
+
           END IF
-          
+
        ELSE
 
           IF ( ANY(halphas_bcN(1:n_solid)%flag .EQ. -1 ) ) THEN 
@@ -2146,31 +2154,31 @@ CONTAINS
           END IF
 
           IF ( ANY(halphag_bcN(1:n_add_gas)%flag .EQ. -1 ) ) THEN 
-             
+
              WRITE(*,*) 'ERROR: problem with namelist NORTH_BOUNDARY_CONDITIONS'
              WRITE(*,*) 'B.C. for additional gas components not set properly'
              WRITE(*,*) 'Please check the input file'
              WRITE(*,*) 'halphag_bcN'
              WRITE(*,*) halphag_bcN(1:n_add_gas)
              STOP
-             
+
           END IF
-          
+
           IF ( gas_flag .AND. liquid_flag ) THEN
-             
+
              IF ( halphal_bcN%flag .EQ. -1 ) THEN 
-                
+
                 WRITE(*,*) 'ERROR: problem with namelist NORTH_BOUNDARY_CONDITIONS'
                 WRITE(*,*) 'B.C. for additional gas components not set properly'
                 WRITE(*,*) 'Please check the input file'
                 WRITE(*,*) 'halphal_bcN'
                 WRITE(*,*) halphal_bcN
                 STOP
-                
+
              END IF
-             
+
           END IF
-          
+
        END IF
 
        IF ( T_bcN%flag .EQ. -1 ) THEN 
@@ -2181,7 +2189,7 @@ CONTAINS
           STOP
 
        END IF
-       
+
        bcN(1) = h_bcN 
        bcN(2) = hu_bcN 
        bcN(3) = hv_bcN 
@@ -2204,7 +2212,7 @@ CONTAINS
        bcE(4+n_solid+1:4+n_solid+n_add_gas) = alphag_bcE(1:n_add_gas)
        bcS(4+n_solid+1:4+n_solid+n_add_gas) = alphag_bcS(1:n_add_gas)
        bcN(4+n_solid+1:4+n_solid+n_add_gas) = alphag_bcN(1:n_add_gas)
-       
+
     ELSE
 
        bcW(5:4+n_solid) = halphas_bcW(1:n_solid)
@@ -2216,7 +2224,7 @@ CONTAINS
        bcE(4+n_solid+1:4+n_solid+n_add_gas) = halphag_bcE(1:n_add_gas)
        bcS(4+n_solid+1:4+n_solid+n_add_gas) = halphag_bcS(1:n_add_gas)
        bcN(4+n_solid+1:4+n_solid+n_add_gas) = halphag_bcN(1:n_add_gas)
-       
+
     END IF
 
     IF ( gas_flag .AND. liquid_flag ) THEN
@@ -2229,15 +2237,15 @@ CONTAINS
           bcN(n_vars) = alphal_bcN
 
        ELSE
-          
+
           bcW(n_vars) = halphal_bcW
           bcE(n_vars) = halphal_bcE
           bcS(n_vars) = halphal_bcS
           bcN(n_vars) = halphal_bcN
 
        END IF
-          
-       END IF
+
+    END IF
 
     ! ------- READ expl_terms_parameters NAMELIST -------------------------------
 
@@ -2269,540 +2277,6 @@ CONTAINS
 
     END IF
 
-    ! ------- READ radial_source_parameters NAMELIST ----------------------------
-
-    source_flag:IF ( ( radial_source_flag ) .OR. ( bottom_radial_source_flag ) )&
-         THEN
-
-       alphal_source = -1.0_wp
-
-       READ(input_unit,radial_source_parameters,IOSTAT=ios)
-
-       IF ( ios .NE. 0 ) THEN
-
-          WRITE(*,*) 'IOSTAT=',ios
-          WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
-          WRITE(*,radial_source_parameters)
-          WRITE(*,*) 'Please check the input file'
-          STOP
-
-       ELSE
-
-          REWIND(input_unit)
-
-          IF ( t_source .EQ. -1.0_wp ) THEN
-
-             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
-             WRITE(*,*) 'PLEASE CHECK VALUE OF T_SOURCE',t_source
-             STOP
-
-          END IF
-
-          IF ( ( ( h_source .EQ. -1.0_wp ) .AND. ( mfr_source .EQ. -1 ) ) &
-               .AND. (.NOT. bottom_radial_source_flag) ) THEN
-
-             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
-             WRITE(*,*) 'PLEASE ASSIGN A VALUE TO H_SOURCE OR MFR_SOURCE'
-             STOP
-
-          ELSE
-
-             IF ( ( ( h_source .GE. 0.0_wp ) .OR. ( mfr_source .GE. 0.0_wp ) ) &
-                  .AND. ( bottom_radial_source_flag ) ) THEN
-
-                WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
-                WRITE(*,*) 'When BOTTOM_RADIAL_SOURCE_FLAG = TRUE'
-                WRITE(*,*) 'h_source should not be given',h_source
-                WRITE(*,*) 'mfr_source should not be given',mfr_source
-                STOP
-
-             END IF
-
-          END IF
-
-          IF ( ( h_source .GE. 0.0_wp ) .AND. ( mfr_source .GE. 0.0_wp ) ) THEN
-
-                WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
-                WRITE(*,*) 'PLEASE ASSIGN ONLY H_SOURCE OR MFR_SOURCE'
-                WRITE(*,*) 'h_source',h_source
-                WRITE(*,*) 'mfr_source',mfr_source
-                STOP             
-             
-          END IF
-          
-          IF ( r_source .EQ. -1.0_wp ) THEN
-
-             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
-             WRITE(*,*) 'PLEASE CHECK VALUE OF R_SOURCE',r_source
-             STOP
-
-          END IF
-
-          IF ( ( vel_source .EQ. -1.0_wp ) .AND. ( bottom_radial_source_flag ) )&
-               THEN
-
-             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
-             WRITE(*,*) 'PLEASE CHECK VALUE OF VEL_SOURCE',vel_source
-             STOP
-
-          END IF
-
-          IF ( ( Ri_source .NE. -1.0_wp ) .AND. ( bottom_radial_source_flag ) ) &
-               THEN
-
-             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
-             WRITE(*,*) 'PLEASE REMOVE VALUE OF RI_SOURCE',Ri_source
-             STOP
-
-          END IF
-         
-          IF ( radial_source_flag ) THEN
-
-             IF ( ( vel_source .EQ. -1.0_wp ) .AND. ( Ri_source .EQ. -1.0_wp ) )&
-                  THEN
-
-                WRITE(*,*) 'ERROR:problem with namelist RADIAL_SOURCE_PARAMETERS'
-                WRITE(*,*) 'PLEASE ASSIGN VALUE TO VEL_SOURCE OR RI_SOURCE'
-                STOP
-
-             ELSEIF (( vel_source .NE. -1.0_wp ).AND.( Ri_source .NE. -1.0_wp ))&
-                  THEN
-
-                WRITE(*,*) 'ERROR:problem with namelist RADIAL_SOURCE_PARAMETERS'
-                WRITE(*,*) 'PLEASE ASSIGN ONLY VEL_SOURCE OR RI_SOURCE'
-                WRITE(*,*) 'VEL_SOURCE:',vel_source
-                WRITE(*,*) 'RI_SOURCE:',Ri_source
-                STOP
-                
-             END IF
-
-          END IF
-          
-          IF ( ( x_source - r_source ) .LE. X0 + cell_size ) THEN
-
-             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
-             WRITE(*,*) 'SOURCE TOO LARGE'
-             WRITE(*,*) ' x_source - radius ',x_source-r_source
-             STOP
-
-          END IF
-
-          IF ( ( x_source + r_source ) .GE. X0+(comp_cells_x-1)*cell_size ) THEN
-
-             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
-             WRITE(*,*) 'SOURCE TOO LARGE'
-             WRITE(*,*) ' x_source + radius ',x_source+r_source
-             STOP
-
-          END IF
-
-          IF ( ( y_source - r_source ) .LE. Y0 + cell_size ) THEN
-
-             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
-             WRITE(*,*) 'SOURCE TOO LARGE'
-             WRITE(*,*) ' y_source - radius ',y_source-r_source
-             STOP
-
-          END IF
-
-          IF ( ( y_source + r_source ) .GE. Y0+(comp_cells_y-1)*cell_size ) THEN
-
-             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
-             WRITE(*,*) 'SOURCE TOO LARGE'
-             WRITE(*,*) ' y_source + radius ',y_source+r_source
-             STOP
-
-          END IF
-
-          IF ( ( ANY(alphas_source(1:n_solid) .EQ. -1.0_wp ) ) .AND.           &
-               ( ANY(xs_source(1:n_solid) .EQ. -1.0_wp ) ) )  THEN
-
-             WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
-             WRITE(*,*) 'alphas_source =' , alphas_source(1:n_solid)
-             WRITE(*,*) 'xs_source =' , xs_source(1:n_solid)
-             WRITE(*,*) 'Please check the input file'
-             STOP
-
-          END IF
-
-          IF ( ( ANY(alphas_source(1:n_solid) .GT. -1.0_wp ) ) .AND.           &
-               ( ANY(xs_source(1:n_solid) .GT. -1.0_wp ) ) )  THEN
-
-             WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
-             WRITE(*,*) 'DEFINE ONLY solid volume fract. or solid mass fract.'
-             WRITE(*,*) 'alphas_source =' , alphas_source(1:n_solid)
-             WRITE(*,*) 'xs_source =' , xs_source(1:n_solid)
-             WRITE(*,*) 'Please check the input file'
-             STOP
-
-          END IF
-
-          IF ( ( ANY(alphag_source(1:n_add_gas) .EQ. -1.0_wp ) ) .AND.         &
-               ( ANY(xg_source(1:n_add_gas) .EQ. -1.0_wp ) ) )  THEN
-
-             WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
-             WRITE(*,*) 'alphag_source =' , alphag_source(1:n_add_gas)
-             WRITE(*,*) 'xg_source =' , xg_source(1:n_add_gas)
-             WRITE(*,*) 'Please check the input file'
-             STOP
-
-          END IF
-
-          IF ( ( ANY(alphag_source(1:n_add_gas) .GT. -1.0_wp ) ) .AND.         &
-               ( ANY(xg_source(1:n_add_gas) .GT. -1.0_wp ) ) )  THEN
-
-             WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
-             WRITE(*,*) 'DEFINE ONLY add.gas volume fract. or mass fract.'
-             WRITE(*,*) 'alphag_source =' , alphag_source(1:n_add_gas)
-             WRITE(*,*) 'xg_source =' , xg_source(1:n_add_gas)
-             WRITE(*,*) 'Please check the input file'
-             STOP
-
-          END IF
-
-
-          IF ( ( ANY(alphas_source(1:n_solid) .GT. -1.0_wp ) ) .AND.         &
-               ( ANY(xg_source(1:n_add_gas) .GT. -1.0_wp ) ) )  THEN
-
-             WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
-             WRITE(*,*) 'DEFINE ONLY volume fractions or mass fractions'
-             WRITE(*,*) 'alphas_source =' , alphas_source(1:n_solid)
-             WRITE(*,*) 'xg_source =' , xg_source(1:n_add_gas)
-             WRITE(*,*) 'Please check the input file'
-             STOP
-
-          END IF
-
-          IF ( ( ANY(xs_source(1:n_solid) .GT. -1.0_wp ) ) .AND.         &
-               ( ANY(alphag_source(1:n_add_gas) .GT. -1.0_wp ) ) )  THEN
-
-             WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
-             WRITE(*,*) 'DEFINE ONLY volume fractions or mass fractions'
-             WRITE(*,*) 'xs_source =' , xs_source(1:n_solid)
-             WRITE(*,*) 'alphag_source =' , alphag_source(1:n_add_gas)
-             WRITE(*,*) 'Please check the input file'
-             STOP
-
-          END IF
-
-
-          IF ( gas_flag .AND. liquid_flag ) THEN
-
-             IF ( ( ANY(alphag_source(1:n_add_gas) .GT. -1.0_wp ) ) .AND.         &
-                  ( xl_source .GT. -1.0_wp ) )  THEN
-                
-                
-                WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
-                WRITE(*,*) 'DEFINE ONLY volume fractions or mass fractions'
-                WRITE(*,*) 'alphag_source =' , alphag_source(1:n_add_gas)
-                WRITE(*,*) 'xl_source =' , xl_source
-                WRITE(*,*) 'Please check the input file'
-                STOP
-                
-             END IF
-
-             IF ( ( ANY(alphas_source(1:n_solid) .GT. -1.0_wp ) ) .AND.         &
-                  ( xl_source .GT. -1.0_wp ) )  THEN
-                                
-                WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
-                WRITE(*,*) 'DEFINE ONLY volume fractions or mass fractions'
-                WRITE(*,*) 'alphas_source =' , alphas_source(1:n_solid)
-                WRITE(*,*) 'xl_source =' , xl_source
-                WRITE(*,*) 'Please check the input file'
-                STOP
-                
-             END IF
-
-             IF ( ( ANY(xg_source(1:n_add_gas) .GT. -1.0_wp ) ) .AND.         &
-                  ( alphal_source .GT. -1.0_wp ) )  THEN
-                
-                
-                WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
-                WRITE(*,*) 'DEFINE ONLY volume fractions or mass fractions'
-                WRITE(*,*) 'xg_source =' , xg_source(1:n_add_gas)
-                WRITE(*,*) 'alphal_source =' , alphal_source
-                WRITE(*,*) 'Please check the input file'
-                STOP
-                
-             END IF
-
-             IF ( ( ANY(xs_source(1:n_solid) .GT. -1.0_wp ) ) .AND.         &
-                  ( alphal_source .GT. -1.0_wp ) )  THEN
-                                
-                WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
-                WRITE(*,*) 'DEFINE ONLY volume fractions or mass fractions'
-                WRITE(*,*) 'xs_source =' , xs_source(1:n_solid)
-                WRITE(*,*) 'alphal_source =' , alphal_source
-                WRITE(*,*) 'Please check the input file'
-                STOP
-                
-             END IF
-
-             IF ( ( alphal_source .GT. -1.0_wp ) .AND. ( xl_source .GT. -1.0_wp ) )  THEN
-                
-                WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
-                WRITE(*,*) 'DEFINE ONLY liquid volume fract. or liquid mass fract.'
-                WRITE(*,*) 'alphal_source =' , alphal_source
-                WRITE(*,*) 'xl_source =' , xl_source
-                WRITE(*,*) 'Please check the input file'
-                STOP
-                
-             END IF
-
-          END IF
-          
-
-
-          IF ( ANY(time_param .LT. 0.0_wp ) ) THEN
-             
-             WRITE(*,*)
-             WRITE(*,*) 'WARNING: problem with namelist RADIAL_SOURCEPARAMETERS'
-             WRITE(*,*) 'time_param =' , time_param
-             time_param(1) = t_end
-             time_param(2) = t_end
-             time_param(3) = 0.0_wp
-             time_param(4) = t_end
-             WRITE(*,*) 'CHANGED TO time_param =',time_param
-             WRITE(*,*) 'Radial source now constant in time' 
-             WRITE(*,*)
-             
-          ELSE
-             
-             IF ( time_param(2) .GT. time_param(1) ) THEN
-
-                WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCEPARAMETERS'
-                WRITE(*,*) 'time_param(1),time_param(2) =' , time_param(1:2)
-                WRITE(*,*) 'time_param(1) must be larger than time_param(2)'
-                STOP         
-
-             END IF
-
-             IF ( time_param(3) .GT. ( 0.5_wp*time_param(2) ) ) THEN
-
-                WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
-                WRITE(*,*) 'time_param(3) =', time_param(3)
-                WRITE(*,*) 'time_param(3) must be smaller than 0.5*time_param(2)'
-                STOP
-
-             END IF
-
-
-          END IF
-
-          ALLOCATE( qp_source(n_vars+2) )
-          
-          IF ( radial_source_flag ) THEN
-
-             ! compute the velocity, given the Richardson number
-
-             ! fix an initial velocity 
-             IF ( Ri_source .NE. -1.0_wp ) vel_source = 1.0_wp
-
-             IF ( mfr_source .GE. 0.0_wp ) h_source = 1.0_wp
-
-             ! define the physical variable from the source values and the
-             ! initial velocity
-             qp_source(1) = h_source
-             qp_source(2) = h_source*vel_source
-             qp_source(3) = 0.0_wp
-    
-             qp_source(4) = T_source
-
-             IF ( ANY(xs_source(1:n_solid) .GT. -1.0_wp ) ) THEN
-
-                ALLOCATE( inv_rho_g(n_add_gas) )
-
-                xs_tot = SUM(xs_source(1:n_solid))
-                
-                IF ( gas_flag .AND. liquid_flag ) THEN
-                   
-                   ! compute carrier phase (gas) mass fraction
-                   xc = 1.0_wp - xs_tot - xl_source
-                   
-                ELSE
-                   
-                   ! compute carrier phase (gas or liquid) mass fraction
-                   xc = 1.0_wp - xs_tot
-                   
-                END IF
-              
-                IF ( gas_flag ) THEN
-                   
-                   ! carrier phase is gas
-                   sp_gas_const_c = ( ( xc - SUM( xg_source(1:n_add_gas) ) ) * sp_gas_const_a      &
-                        + DOT_PRODUCT( xg_source(1:n_add_gas) , sp_gas_const_g(1:n_add_gas) ) )    &
-                        / xc
-                   
-                   inv_rho_c = sp_gas_const_c * T_source * inv_pres
-                   inv_rho_g(1:n_add_gas) = sp_gas_const_g(1:n_add_gas) * T_source * inv_pres
-                   
-                ELSE
-                   
-                   inv_rho_c = inv_rho_l
-                   
-                END IF
-                
-                inv_rhom = DOT_PRODUCT( xs_source(1:n_solid) , inv_rho_s(1:n_solid) )            &
-                     + xc * inv_rho_c
-                
-                IF ( gas_flag .AND. liquid_flag ) inv_rhom = inv_rhom + xl_source * inv_rho_l
-                
-                rho_m = 1.0_wp / inv_rhom
-                
-                ! convert from mass fraction to volume fraction
-                alphas_source(1:n_solid) = rho_m * xs_source(1:n_solid) * inv_rho_s(1:n_solid)
-                
-                ! convert from mass fraction to volume fraction
-                alphag_source(1:n_add_gas) = rho_m * xg_source(1:n_solid) * inv_rho_g(1:n_add_gas)
-
-                IF ( liquid_flag ) THEN
-
-                   ! convert from mass fraction to volume fraction
-                   alphal_source = rho_m * xl_source * inv_rho_l
-                   
-                END IF
-        
-             END IF
-
-             WRITE(*,*) 'Source solid volume fraction =',alphas_source(1:n_solid)
-
-             IF ( n_add_gas .GT. 0 ) THEN
-
-                WRITE(*,*) 'Source add.gas volue fraction =' ,                  &
-                     alphag_source(1:n_add_gas)
-
-             END IF
-
-             IF ( gas_flag .AND. liquid_flag ) THEN
-
-                WRITE(*,*) 'Source liquid volume fraction =',alphal_source
-
-             END IF
-
-             WRITE(*,*) 'Source density =',rho_m,'(kg/m3)'
-
-  
-             
-             IF ( alpha_flag ) THEN
-                
-                qp_source(5:4+n_solid) = alphas_source(1:n_solid)
-                qp_source(4+n_solid+1:4+n_solid+n_add_gas) =                    &
-                     alphag_source(1:n_add_gas)
-                
-                IF ( gas_flag .AND. liquid_flag ) qp_source(n_vars) =           &
-                     alphal_source
-                
-             ELSE
-                
-                qp_source(5:4+n_solid) = alphas_source(1:n_solid) * h_source
-                qp_source(4+n_solid+1:4+n_solid+n_add_gas) =                    &
-                     alphag_source(1:n_add_gas) * h_source
-                
-                IF ( gas_flag .AND. liquid_flag ) qp_source(n_vars) =           &
-                     alphal_source * h_source
-                
-             END IF
-             
-
-             qp_source(n_vars+1) = vel_source
-             qp_source(n_vars+2) = 0.0_wp
-
-             sp_heat_flag = .FALSE.
-
-             ! compute the Richardson number for vel = 1.0
-             CALL mixt_var( qp_source, Ri, rho_m, rho_c, red_grav, sp_heat_flag,&
-                  sp_heat_c, sp_heat_mix)
-
-             pi_g = ATAN(1.0_wp)*4.0_wp
-
-             IF ( mfr_source .GE. 0.0_wp ) THEN
-                
-                IF ( Ri_source .GE. 0.0_wp ) THEN
-                   ! mfr and Ri given as input
-                   
-                   h_source = ( mfr_source/( r_source * 2.0_wp * pi_g * rho_m ) &
-                        * SQRT( Ri_source/red_grav ) )**(2.0_wp/3.0_wp)
-
-             qp_source(1) = h_source
-             qp_source(2) = h_source*vel_source
-             qp_source(3) = 0.0_wp
-    
-             qp_source(4) = T_source
-
-             IF ( alpha_flag ) THEN
-
-                qp_source(5:4+n_solid) = alphas_source(1:n_solid)
-                qp_source(4+n_solid+1:4+n_solid+n_add_gas) =                    &
-                     alphag_source(1:n_add_gas)
-
-                IF ( gas_flag .AND. liquid_flag ) qp_source(n_vars) =           &
-                     alphal_source
-                
-             ELSE
-                
-                qp_source(5:4+n_solid) = alphas_source(1:n_solid) * h_source
-                qp_source(4+n_solid+1:4+n_solid+n_add_gas) =                    &
-                     alphag_source(1:n_add_gas) * h_source
-
-                IF ( gas_flag .AND. liquid_flag ) qp_source(n_vars) =           &
-                     alphal_source * h_source
-
-             END IF
-
-             qp_source(n_vars+1) = vel_source
-             qp_source(n_vars+2) = 0.0_wp
-                   
-                   ! compute the Richardson number for vel = 1.0
-                   CALL mixt_var( qp_source, Ri, rho_m, rho_c, red_grav,        &
-                        sp_heat_flag, sp_heat_c, sp_heat_mix)
-                   
-                   ! compute the correct velocity for the desired Richardson number
-                   vel_source = SQRT( Ri/Ri_source )
-                   
-                ELSE
-                   
-                   ! mfr and velocity
-                   
-                   CALL mixt_var( qp_source, Ri, rho_m, rho_c, red_grav,        &
-                        sp_heat_flag, sp_heat_c, sp_heat_mix)
-                   
-                   h_source = mfr_source / ( r_source * 2.0_wp * pi_g * rho_m * &
-                        vel_source )
-                   
-                END IF
-                
-             ELSE
-                
-                IF ( Ri_source .GE. 0.0_wp ) THEN
-                   
-                   ! compute the correct velocity for the desired Richardson number
-                   vel_source = SQRT( Ri/Ri_source )
-                   
-                END IF
-
-             END IF
-                
-             qp_source(1) = h_source
-             qp_source(2) = h_source*vel_source
-             qp_source(n_vars+1) = vel_source
-             
-             ! Check that the Richardson number is correct
-             CALL mixt_var( qp_source, Ri, rho_m, rho_c, red_grav, sp_heat_flag,&
-                  sp_heat_c, sp_heat_mix)
-             
-             WRITE(*,*) 'Source Richardson number =',Ri
-             WRITE(*,*) 'Source velocity =',vel_source,' (m/s)'
-             WRITE(*,*) 'Source thickness =',h_source,'(m)'
-
-             mfr = rho_m*h_source*r_source*2.0*pi_g*vel_source
-             WRITE(*,*) 'Source mass flow rate =',mfr,'(kg/s)'
-             WRITE(*,*)
-
-          END IF
-          
-       END IF
-
-    END IF source_flag
 
     ! ------- READ collapsing_volume_parameters NAMELIST ------------------------
 
@@ -2909,7 +2383,7 @@ CONTAINS
           END IF
 
        END IF
-       
+
     END IF
 
     ! ------- READ rheology_parameters NAMELIST ---------------------------------
@@ -3448,7 +2922,8 @@ CONTAINS
 
           WRITE(*,*) 'IOSTAT=',ios
           WRITE(*,*) 'WARNING: namelist VULNERABILITY_TABLE_PARAMETERS not found'
-
+          REWIND(input_unit)
+          
        END IF
 
     ELSE
@@ -3543,11 +3018,11 @@ CONTAINS
           WRITE(*,*) 'Vertical profiles can be used only with ENERGY_FLAG = F'
           STOP
 
-       END IF          
+       END IF
 
        REWIND(input_unit)    
        READ(input_unit, vertical_profiles_parameters,IOSTAT=ios)
-      
+
        IF ( ios .NE. 0 ) THEN
 
           WRITE(*,*) 'IOSTAT=',ios
@@ -3561,25 +3036,25 @@ CONTAINS
           REWIND(input_unit)
 
           IF ( vonK .LE. 0.0_wp ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist VERTICAL_PROFILES_PARAMETERS'
              WRITE(*,*) 'vonK =' , vonK 
              WRITE(*,*) 'Please check the input file'
              STOP
-             
+
           END IF
-          
+
           IF ( k_s .LE. 0.0_wp ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist VERTICAL_PROFILES_PARAMETERS'
              WRITE(*,*) 'k_s =' , k_s 
              WRITE(*,*) 'Please check the input file'
              STOP
-             
+
           END IF
-          
+
           IF ( N_quad .LE. 0 ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist VERTICAL_PROFILES_PARAMETERS'
              WRITE(*,*) 'N_QUAD =' , n_quad
              WRITE(*,*) 'Please check the input file'
@@ -3589,17 +3064,16 @@ CONTAINS
 
              ALLOCATE( x_quad(N_quad) , w_quad(N_quad) )
              CALL gaulegf(-1.0_wp, 1.0_wp, x_quad, w_quad, n_quad)
-             
+
           END IF
 
-          
           IF ( Sc .LE. 0.0_wp ) THEN
-             
+
              WRITE(*,*) 'ERROR: problem with namelist VERTICAL_PROFILES_PARAMETERS'
              WRITE(*,*) 'Sc =' , Sc 
              WRITE(*,*) 'Please check the input file'
              STOP
-             
+
           END IF
 
           a_crit_rel = vonK / SQRT( friction_factor) + 1.0_wp
@@ -3620,11 +3094,608 @@ CONTAINS
 
 
        END IF
-          
-    END IF
-       
 
-    
+    END IF
+
+    ! ------- READ radial_source_parameters NAMELIST ----------------------------
+
+    source_flag:IF ( ( radial_source_flag ) .OR. ( bottom_radial_source_flag ) )&
+         THEN
+
+       alphal_source = -1.0_wp
+
+       READ(input_unit,radial_source_parameters,IOSTAT=ios)
+
+       IF ( ios .NE. 0 ) THEN
+
+          WRITE(*,*) 'IOSTAT=',ios
+          WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+          WRITE(*,radial_source_parameters)
+          WRITE(*,*) 'Please check the input file'
+          STOP
+
+       ELSE
+
+          REWIND(input_unit)
+
+          IF ( t_source .EQ. -1.0_wp ) THEN
+
+             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+             WRITE(*,*) 'PLEASE CHECK VALUE OF T_SOURCE',t_source
+             STOP
+
+          END IF
+
+          IF ( ( ( h_source .EQ. -1.0_wp ) .AND. ( mfr_source .EQ. -1 ) ) &
+               .AND. (.NOT. bottom_radial_source_flag) ) THEN
+
+             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+             WRITE(*,*) 'PLEASE ASSIGN A VALUE TO H_SOURCE OR MFR_SOURCE'
+             STOP
+
+          ELSE
+
+             IF ( ( ( h_source .GE. 0.0_wp ) .OR. ( mfr_source .GE. 0.0_wp ) ) &
+                  .AND. ( bottom_radial_source_flag ) ) THEN
+
+                WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+                WRITE(*,*) 'When BOTTOM_RADIAL_SOURCE_FLAG = TRUE'
+                WRITE(*,*) 'h_source should not be given',h_source
+                WRITE(*,*) 'mfr_source should not be given',mfr_source
+                STOP
+
+             END IF
+
+          END IF
+
+          IF ( ( h_source .GE. 0.0_wp ) .AND. ( mfr_source .GE. 0.0_wp ) ) THEN
+
+             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+             WRITE(*,*) 'PLEASE ASSIGN ONLY H_SOURCE OR MFR_SOURCE'
+             WRITE(*,*) 'h_source',h_source
+             WRITE(*,*) 'mfr_source',mfr_source
+             STOP             
+
+          END IF
+
+          IF ( r_source .EQ. -1.0_wp ) THEN
+
+             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+             WRITE(*,*) 'PLEASE CHECK VALUE OF R_SOURCE',r_source
+             STOP
+
+          END IF
+
+          IF ( ( vel_source .EQ. -1.0_wp ) .AND. ( bottom_radial_source_flag ) )&
+               THEN
+
+             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+             WRITE(*,*) 'PLEASE CHECK VALUE OF VEL_SOURCE',vel_source
+             STOP
+
+          END IF
+
+          IF ( ( Ri_source .NE. -1.0_wp ) .AND. ( bottom_radial_source_flag ) ) &
+               THEN
+
+             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+             WRITE(*,*) 'PLEASE REMOVE VALUE OF RI_SOURCE',Ri_source
+             STOP
+
+          END IF
+
+          IF ( radial_source_flag ) THEN
+
+             IF ( ( vel_source .EQ. -1.0_wp ) .AND. ( Ri_source .EQ. -1.0_wp ) )&
+                  THEN
+
+                WRITE(*,*) 'ERROR:problem with namelist RADIAL_SOURCE_PARAMETERS'
+                WRITE(*,*) 'PLEASE ASSIGN VALUE TO VEL_SOURCE OR RI_SOURCE'
+                STOP
+
+             ELSEIF (( vel_source .NE. -1.0_wp ).AND.( Ri_source .NE. -1.0_wp ))&
+                  THEN
+
+                WRITE(*,*) 'ERROR:problem with namelist RADIAL_SOURCE_PARAMETERS'
+                WRITE(*,*) 'PLEASE ASSIGN ONLY VEL_SOURCE OR RI_SOURCE'
+                WRITE(*,*) 'VEL_SOURCE:',vel_source
+                WRITE(*,*) 'RI_SOURCE:',Ri_source
+                STOP
+
+             END IF
+
+          END IF
+
+          IF ( ( x_source - r_source ) .LE. X0 + cell_size ) THEN
+
+             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+             WRITE(*,*) 'SOURCE TOO LARGE'
+             WRITE(*,*) ' x_source - radius ',x_source-r_source
+             STOP
+
+          END IF
+
+          IF ( ( x_source + r_source ) .GE. X0+(comp_cells_x-1)*cell_size ) THEN
+
+             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+             WRITE(*,*) 'SOURCE TOO LARGE'
+             WRITE(*,*) ' x_source + radius ',x_source+r_source
+             STOP
+
+          END IF
+
+          IF ( ( y_source - r_source ) .LE. Y0 + cell_size ) THEN
+
+             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+             WRITE(*,*) 'SOURCE TOO LARGE'
+             WRITE(*,*) ' y_source - radius ',y_source-r_source
+             STOP
+
+          END IF
+
+          IF ( ( y_source + r_source ) .GE. Y0+(comp_cells_y-1)*cell_size ) THEN
+
+             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+             WRITE(*,*) 'SOURCE TOO LARGE'
+             WRITE(*,*) ' y_source + radius ',y_source+r_source
+             STOP
+
+          END IF
+
+          IF ( ( ANY(alphas_source(1:n_solid) .EQ. -1.0_wp ) ) .AND.           &
+               ( ANY(xs_source(1:n_solid) .EQ. -1.0_wp ) ) )  THEN
+
+             WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
+             WRITE(*,*) 'alphas_source =' , alphas_source(1:n_solid)
+             WRITE(*,*) 'xs_source =' , xs_source(1:n_solid)
+             WRITE(*,*) 'Please check the input file'
+             STOP
+
+          END IF
+
+          IF ( ( ANY(alphas_source(1:n_solid) .GT. -1.0_wp ) ) .AND.           &
+               ( ANY(xs_source(1:n_solid) .GT. -1.0_wp ) ) )  THEN
+
+             WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
+             WRITE(*,*) 'DEFINE ONLY solid volume fract. or solid mass fract.'
+             WRITE(*,*) 'alphas_source =' , alphas_source(1:n_solid)
+             WRITE(*,*) 'xs_source =' , xs_source(1:n_solid)
+             WRITE(*,*) 'Please check the input file'
+             STOP
+
+          END IF
+
+          IF ( ( ANY(alphag_source(1:n_add_gas) .EQ. -1.0_wp ) ) .AND.         &
+               ( ANY(xg_source(1:n_add_gas) .EQ. -1.0_wp ) ) )  THEN
+
+             WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
+             WRITE(*,*) 'alphag_source =' , alphag_source(1:n_add_gas)
+             WRITE(*,*) 'xg_source =' , xg_source(1:n_add_gas)
+             WRITE(*,*) 'Please check the input file'
+             STOP
+
+          END IF
+
+          IF ( ( ANY(alphag_source(1:n_add_gas) .GT. -1.0_wp ) ) .AND.         &
+               ( ANY(xg_source(1:n_add_gas) .GT. -1.0_wp ) ) )  THEN
+
+             WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
+             WRITE(*,*) 'DEFINE ONLY add.gas volume fract. or mass fract.'
+             WRITE(*,*) 'alphag_source =' , alphag_source(1:n_add_gas)
+             WRITE(*,*) 'xg_source =' , xg_source(1:n_add_gas)
+             WRITE(*,*) 'Please check the input file'
+             STOP
+
+          END IF
+
+
+          IF ( ( ANY(alphas_source(1:n_solid) .GT. -1.0_wp ) ) .AND.         &
+               ( ANY(xg_source(1:n_add_gas) .GT. -1.0_wp ) ) )  THEN
+
+             WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
+             WRITE(*,*) 'DEFINE ONLY volume fractions or mass fractions'
+             WRITE(*,*) 'alphas_source =' , alphas_source(1:n_solid)
+             WRITE(*,*) 'xg_source =' , xg_source(1:n_add_gas)
+             WRITE(*,*) 'Please check the input file'
+             STOP
+
+          END IF
+
+          IF ( ( ANY(xs_source(1:n_solid) .GT. -1.0_wp ) ) .AND.         &
+               ( ANY(alphag_source(1:n_add_gas) .GT. -1.0_wp ) ) )  THEN
+
+             WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
+             WRITE(*,*) 'DEFINE ONLY volume fractions or mass fractions'
+             WRITE(*,*) 'xs_source =' , xs_source(1:n_solid)
+             WRITE(*,*) 'alphag_source =' , alphag_source(1:n_add_gas)
+             WRITE(*,*) 'Please check the input file'
+             STOP
+
+          END IF
+
+
+          IF ( gas_flag .AND. liquid_flag ) THEN
+
+             IF ( ( ANY(alphag_source(1:n_add_gas) .GT. -1.0_wp ) ) .AND.         &
+                  ( xl_source .GT. -1.0_wp ) )  THEN
+
+
+                WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
+                WRITE(*,*) 'DEFINE ONLY volume fractions or mass fractions'
+                WRITE(*,*) 'alphag_source =' , alphag_source(1:n_add_gas)
+                WRITE(*,*) 'xl_source =' , xl_source
+                WRITE(*,*) 'Please check the input file'
+                STOP
+
+             END IF
+
+             IF ( ( ANY(alphas_source(1:n_solid) .GT. -1.0_wp ) ) .AND.         &
+                  ( xl_source .GT. -1.0_wp ) )  THEN
+
+                WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
+                WRITE(*,*) 'DEFINE ONLY volume fractions or mass fractions'
+                WRITE(*,*) 'alphas_source =' , alphas_source(1:n_solid)
+                WRITE(*,*) 'xl_source =' , xl_source
+                WRITE(*,*) 'Please check the input file'
+                STOP
+
+             END IF
+
+             IF ( ( ANY(xg_source(1:n_add_gas) .GT. -1.0_wp ) ) .AND.         &
+                  ( alphal_source .GT. -1.0_wp ) )  THEN
+
+
+                WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
+                WRITE(*,*) 'DEFINE ONLY volume fractions or mass fractions'
+                WRITE(*,*) 'xg_source =' , xg_source(1:n_add_gas)
+                WRITE(*,*) 'alphal_source =' , alphal_source
+                WRITE(*,*) 'Please check the input file'
+                STOP
+
+             END IF
+
+             IF ( ( ANY(xs_source(1:n_solid) .GT. -1.0_wp ) ) .AND.         &
+                  ( alphal_source .GT. -1.0_wp ) )  THEN
+
+                WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
+                WRITE(*,*) 'DEFINE ONLY volume fractions or mass fractions'
+                WRITE(*,*) 'xs_source =' , xs_source(1:n_solid)
+                WRITE(*,*) 'alphal_source =' , alphal_source
+                WRITE(*,*) 'Please check the input file'
+                STOP
+
+             END IF
+
+             IF ( ( alphal_source .GT. -1.0_wp ) .AND. ( xl_source .GT. -1.0_wp ) )  THEN
+
+                WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
+                WRITE(*,*) 'DEFINE ONLY liquid volume fract. or liquid mass fract.'
+                WRITE(*,*) 'alphal_source =' , alphal_source
+                WRITE(*,*) 'xl_source =' , xl_source
+                WRITE(*,*) 'Please check the input file'
+                STOP
+
+             END IF
+
+          END IF
+
+
+
+          IF ( ANY(time_param .LT. 0.0_wp ) ) THEN
+
+             WRITE(*,*)
+             WRITE(*,*) 'WARNING: problem with namelist RADIAL_SOURCEPARAMETERS'
+             WRITE(*,*) 'time_param =' , time_param
+             time_param(1) = t_end
+             time_param(2) = t_end
+             time_param(3) = 0.0_wp
+             time_param(4) = t_end
+             WRITE(*,*) 'CHANGED TO time_param =',time_param
+             WRITE(*,*) 'Radial source now constant in time' 
+             WRITE(*,*)
+
+          ELSE
+
+             IF ( time_param(2) .GT. time_param(1) ) THEN
+
+                WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCEPARAMETERS'
+                WRITE(*,*) 'time_param(1),time_param(2) =' , time_param(1:2)
+                WRITE(*,*) 'time_param(1) must be larger than time_param(2)'
+                STOP         
+
+             END IF
+
+             IF ( time_param(3) .GT. ( 0.5_wp*time_param(2) ) ) THEN
+
+                WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+                WRITE(*,*) 'time_param(3) =', time_param(3)
+                WRITE(*,*) 'time_param(3) must be smaller than 0.5*time_param(2)'
+                STOP
+
+             END IF
+
+
+          END IF
+
+          ALLOCATE( qp_source(n_vars+2) )
+
+          IF ( radial_source_flag ) THEN
+
+             ! compute the velocity, given the Richardson number
+
+             ! fix an initial velocity 
+             IF ( Ri_source .NE. -1.0_wp ) vel_source = 1.0_wp
+
+             IF ( mfr_source .GE. 0.0_wp ) h_source = 1.0_wp
+
+             ! define the physical variable from the source values and the
+             ! initial velocity
+             qp_source(1) = h_source
+             qp_source(2) = h_source*vel_source
+             qp_source(3) = 0.0_wp
+
+             qp_source(4) = T_source
+
+             IF ( ANY(xs_source(1:n_solid) .GT. -1.0_wp ) ) THEN
+
+                ALLOCATE( inv_rho_g(n_add_gas) )
+
+                xs_tot = SUM(xs_source(1:n_solid))
+
+                IF ( gas_flag .AND. liquid_flag ) THEN
+
+                   ! compute carrier phase (gas) mass fraction
+                   xc = 1.0_wp - xs_tot - xl_source
+
+                ELSE
+
+                   ! compute carrier phase (gas or liquid) mass fraction
+                   xc = 1.0_wp - xs_tot
+
+                END IF
+
+                IF ( gas_flag ) THEN
+
+                   ! carrier phase is gas
+                   sp_gas_const_c = ( ( xc - SUM( xg_source(1:n_add_gas) ) ) * sp_gas_const_a      &
+                        + DOT_PRODUCT( xg_source(1:n_add_gas) , sp_gas_const_g(1:n_add_gas) ) )    &
+                        / xc
+
+                   inv_rho_c = sp_gas_const_c * T_source * inv_pres
+                   inv_rho_g(1:n_add_gas) = sp_gas_const_g(1:n_add_gas) * T_source * inv_pres
+
+                ELSE
+
+                   inv_rho_c = inv_rho_l
+
+                END IF
+
+                inv_rhom = DOT_PRODUCT( xs_source(1:n_solid) , inv_rho_s(1:n_solid) )            &
+                     + xc * inv_rho_c
+
+                IF ( gas_flag .AND. liquid_flag ) inv_rhom = inv_rhom + xl_source * inv_rho_l
+
+                rho_m = 1.0_wp / inv_rhom
+
+                ! convert from mass fraction to volume fraction
+                alphas_source(1:n_solid) = rho_m * xs_source(1:n_solid) * inv_rho_s(1:n_solid)
+
+                ! convert from mass fraction to volume fraction
+                alphag_source(1:n_add_gas) = rho_m * xg_source(1:n_solid) * inv_rho_g(1:n_add_gas)
+
+                IF ( liquid_flag ) THEN
+
+                   ! convert from mass fraction to volume fraction
+                   alphal_source = rho_m * xl_source * inv_rho_l
+
+                END IF
+
+             END IF
+             
+             WRITE(*,*) 'Source solid volume fraction =',alphas_source(1:n_solid)
+
+             IF ( n_add_gas .GT. 0 ) THEN
+
+                WRITE(*,*) 'Source add.gas volue fraction =' ,                  &
+                     alphag_source(1:n_add_gas)
+
+             END IF
+
+             IF ( gas_flag .AND. liquid_flag ) THEN
+
+                WRITE(*,*) 'Source liquid volume fraction =',alphal_source
+
+             END IF
+
+             WRITE(*,*) 'Source density =',rho_m,'(kg/m3)'
+
+             IF ( alpha_flag ) THEN
+
+                qp_source(5:4+n_solid) = alphas_source(1:n_solid)
+                qp_source(4+n_solid+1:4+n_solid+n_add_gas) =                    &
+                     alphag_source(1:n_add_gas)
+
+                IF ( gas_flag .AND. liquid_flag ) qp_source(n_vars) =           &
+                     alphal_source
+
+             ELSE
+
+                qp_source(5:4+n_solid) = alphas_source(1:n_solid) * h_source
+                qp_source(4+n_solid+1:4+n_solid+n_add_gas) =                    &
+                     alphag_source(1:n_add_gas) * h_source
+
+                IF ( gas_flag .AND. liquid_flag ) qp_source(n_vars) =           &
+                     alphal_source * h_source
+
+             END IF
+
+
+             qp_source(n_vars+1) = vel_source
+             qp_source(n_vars+2) = 0.0_wp
+
+             sp_heat_flag = .FALSE.
+
+             ! compute the Richardson number for vel = 1.0 (or vel from input)
+             CALL mixt_var( qp_source, Ri, rho_m, rho_c, red_grav, sp_heat_flag,&
+                  sp_heat_c, sp_heat_mix)
+
+             pi_g = ATAN(1.0_wp)*4.0_wp
+
+             ALLOCATE( shape_coeff(n_vars) )
+             
+             IF ( mfr_source .GE. 0.0_wp ) THEN
+
+                IF ( Ri_source .GE. 0.0_wp ) THEN
+                   ! mfr and Ri given as input
+
+                   shape_coeff(1:n_vars) = 1.0_wp
+                   
+                   IF ( vertical_profiles_flag ) THEN
+                      
+                      iter_max = 500 
+
+                   ELSE
+
+                      iter_max = 1
+                      
+                   END IF
+                                      
+                   search_Ri_loop:DO iter_source = 1,iter_max
+
+                      ! WRITE(*,*) 'iter_source',iter_source
+                      
+                      h_source = ( mfr_source/( r_source * 2.0_wp * pi_g * rho_m * shape_coeff(1) ) &
+                           * SQRT( Ri_source/red_grav ) )**(2.0_wp/3.0_wp)
+                      
+                      qp_source(1) = h_source
+                      qp_source(2) = h_source*vel_source
+                      qp_source(3) = 0.0_wp
+                      
+                      qp_source(4) = T_source
+                      
+                      IF ( alpha_flag ) THEN
+                         
+                         qp_source(5:4+n_solid) = alphas_source(1:n_solid)
+                         qp_source(4+n_solid+1:4+n_solid+n_add_gas) =                    &
+                              alphag_source(1:n_add_gas)
+                         
+                         IF ( gas_flag .AND. liquid_flag ) qp_source(n_vars) =           &
+                              alphal_source
+                         
+                      ELSE
+                         
+                         qp_source(5:4+n_solid) = alphas_source(1:n_solid) * h_source
+                         qp_source(4+n_solid+1:4+n_solid+n_add_gas) =                    &
+                              alphag_source(1:n_add_gas) * h_source
+                         
+                         IF ( gas_flag .AND. liquid_flag ) qp_source(n_vars) =           &
+                              alphal_source * h_source
+                         
+                      END IF
+                      
+                      qp_source(n_vars+1) = vel_source
+                      qp_source(n_vars+2) = 0.0_wp
+                      
+                      ! compute the Richardson number for vel = 1.0
+                      CALL mixt_var( qp_source, Ri, rho_m, rho_c, red_grav,        &
+                           sp_heat_flag, sp_heat_c, sp_heat_mix)
+                      
+                      ! compute the correct velocity for the desired Richardson number
+                      vel_source = SQRT( red_grav * h_source /Ri_source )
+                      
+                      IF ( ABS( Ri-Ri_source ) < 1.0E-15_wp ) EXIT search_Ri_loop
+
+                      ! READ(*,*)
+                                            
+                      IF ( vertical_profiles_flag ) THEN
+                         
+                         CALL eval_flux_coeffs( qp_source , 0.0_wp , 0.0_wp , rho_c ,    &
+                              rho_m , shape_coeff )
+                         
+                         ! WRITE(*,*) 'Mass flux coeff.',shape_coeff(1)
+                         
+                      ELSE
+                         
+                         shape_coeff(1:n_vars) = 1.0_wp
+                         
+                      END IF
+                      
+                   END DO search_Ri_loop
+
+                ELSE
+
+                   ! mfr and velocity
+
+                   CALL mixt_var( qp_source, Ri, rho_m, rho_c, red_grav,        &
+                        sp_heat_flag, sp_heat_c, sp_heat_mix)
+
+                   IF ( vertical_profiles_flag ) THEN
+                      
+                      CALL eval_flux_coeffs( qp_source , 0.0_wp , 0.0_wp , rho_c ,    &
+                           rho_m , shape_coeff )
+                      
+                      WRITE(*,*) 'qp',qp_source
+                      WRITE(*,*) 'Mass flux coeff.',shape_coeff(1)
+                      
+                   ELSE
+                      
+                      shape_coeff(1:n_vars) = 1.0_wp
+                      
+                   END IF
+                   
+                   h_source = mfr_source / ( r_source * 2.0_wp * pi_g * rho_m * &
+                        vel_source * shape_coeff(1) )
+
+                END IF
+
+             ELSE
+
+                IF ( Ri_source .GE. 0.0_wp ) THEN
+
+                   ! compute the correct velocity for the desired Richardson number
+                   vel_source = SQRT( Ri/Ri_source )
+
+                END IF
+
+             END IF
+
+             qp_source(1) = h_source
+             qp_source(2) = h_source*vel_source
+             qp_source(n_vars+1) = vel_source
+
+             ! Check that the Richardson number is correct
+             CALL mixt_var( qp_source, Ri, rho_m, rho_c, red_grav, sp_heat_flag,&
+                  sp_heat_c, sp_heat_mix)
+             
+             IF ( vertical_profiles_flag ) THEN
+
+                CALL eval_flux_coeffs( qp_source , 0.0_wp , 0.0_wp , rho_c ,    &
+                     rho_m , shape_coeff )
+
+                WRITE(*,*) 'Mass flux coeff.',shape_coeff(1)
+
+             ELSE
+
+                shape_coeff(1:n_vars) = 1.0_wp
+
+             END IF
+                
+             WRITE(*,*) 'Source Richardson number =',Ri
+             WRITE(*,*) 'Source velocity =',vel_source,' (m/s)'
+             WRITE(*,*) 'Source thickness =',h_source,'(m)'
+
+             mfr = rho_m*h_source*r_source*2.0*pi_g*vel_source*shape_coeff(1)
+             WRITE(*,*) 'Source mass flow rate =',mfr,'(kg/s)'
+             WRITE(*,*)
+             ! READ(*,*)
+
+          END IF
+
+       END IF
+
+    END IF source_flag
+
+
     !------ search for check points --------------------------------------------
 
     REWIND(input_unit)
@@ -3742,7 +3813,7 @@ CONTAINS
     END IF
 
     IF ( vertical_profiles_flag ) WRITE(backup_unit, vertical_profiles_parameters)
-    
+
     IF ( n_probes .GT. 0 ) THEN
 
        WRITE(backup_unit,*) '''PROBES_COORDS'''
@@ -3792,7 +3863,7 @@ CONTAINS
     LOGICAL :: output_phys_flag_org
     LOGICAL :: output_esri_flag_org
     INTEGER :: verbose_level_org
-    
+
     run_name_org = run_name
     restart_org = restart
     t_start_org = t_start
@@ -3805,7 +3876,7 @@ CONTAINS
 
 
     OPEN(input_unit,FILE=input_file,STATUS='old')
-  
+
     ! ------- READ run_parameters NAMELIST -----------------------------------
     READ(input_unit, run_parameters,IOSTAT=ios )
 
@@ -3842,7 +3913,7 @@ CONTAINS
           WRITE(*,*) 'Modified input file: dt_output =',dt_output
 
        END IF
-       
+
     END IF
 
     IF ( output_cons_flag_org .NEQV. output_cons_flag ) THEN
@@ -3929,7 +4000,7 @@ CONTAINS
     REAL(wp), ALLOCATABLE :: x1(:) , y1(:)
 
     REAL(wp) :: xl , xr , yl , yr 
-    
+
     REAL(wp) :: rho_c , rho_m , mass_fract(n_solid)
 
     REAL(wp) :: sp_heat_c
@@ -3951,7 +4022,7 @@ CONTAINS
     ELSE
 
        OPEN(restart_unit,FILE=restart_file,STATUS='old')
-       
+
        IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Restart: ',TRIM(restart_file),   &
             ' found'
 
@@ -3988,57 +4059,57 @@ CONTAINS
        ELSEIF ( gas_flag ) THEN
 
           IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Carrier phase: gas'
-          
+
        ELSEIF ( liquid_flag ) THEN
 
           IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Carrier phase: liquid'
-          
+
        END IF
-       
+
        READ(restart_unit,*) chara, ncols
        READ(restart_unit,*) chara, nrows
        READ(restart_unit,*) chara, xllcorner
        READ(restart_unit,*) chara, yllcorner
        READ(restart_unit,*) chara, cellsize
        READ(restart_unit,*) chara, nodata_value
-       
+
        ALLOCATE( thickness_init(comp_cells_x,comp_cells_y) )
        ALLOCATE( thickness_input(ncols,nrows) )
 
        IF ( ( xllcorner - x0 ) .GT. 1.E-5_wp*cellsize ) THEN
-          
+
           WRITE(*,*)
           WRITE(*,*) 'WARNING: initial solution and domain extent'
           WRITE(*,*) 'xllcorner greater than x0', xllcorner , x0
-          
+
        END IF
-       
+
        IF ( ( yllcorner - y0 ) .GT. 1.E-5_wp*cellsize ) THEN
-          
+
           WRITE(*,*)
           WRITE(*,*) 'WARNING: initial solution and domain extent'
           WRITE(*,*) 'yllcorner greater then y0', yllcorner , y0
-          
+
        END IF
 
        IF ( x0+cell_size*(comp_cells_x+1) - ( xllcorner+cellsize*(ncols+1) )    &
             .GT. 1.E-5_wp*cellsize ) THEN
-          
+
           WRITE(*,*)
           WRITE(*,*) 'WARNING: initial solution and domain extent'
           WRITE(*,*) 'xrrcorner greater than ', xllcorner , x0
-          
+
        END IF
-       
+
        IF ( x0+cell_size*(comp_cells_x+1) - ( xllcorner+cellsize*(ncols+1) )    &
             .GT. 1.E-5_wp*cellsize ) THEN
 
           WRITE(*,*)
           WRITE(*,*) 'WARNING: initial solution and domain extent'
           WRITE(*,*) 'yllcorner greater then y0', yllcorner , y0
-          
+
        END IF
-  
+
        IF ( cellsize .NE. cell_size ) THEN
 
           WRITE(*,*)
@@ -4052,9 +4123,9 @@ CONTAINS
 
           WRITE(*,FMT="(A1,A,t21,F6.2,A)",ADVANCE="NO") ACHAR(13),              &
                & " Percent Complete: ",( REAL(k) / REAL(nrows))*100.0, "%"
-          
+
           READ(restart_unit,*) thickness_input(1:ncols,nrows-k+1)
-          
+
        ENDDO
 
        WRITE(*,*) 
@@ -4064,18 +4135,18 @@ CONTAINS
        WHERE ( thickness_input .EQ. nodata_value )
 
           thickness_input = 0.0_wp
-          
+
        END WHERE
-              
+
        !----- NEW INITIALIZATION OF THICKNESS FROM RESTART
        ALLOCATE( x1(ncols+1) , y1(nrows+1) )
-       
+
        DO j=1,ncols+1
 
           x1(j) = xllcorner + (j-1)*cellsize
 
        END DO
-       
+
        DO k=1,nrows+1
 
           y1(k) = yllcorner + (k-1)*cellsize
@@ -4083,20 +4154,20 @@ CONTAINS
        END DO
 
        DO j=1,comp_cells_x
-          
+
           xl = x0 + (j-1)*cell_size
           xr = x0 + (j)*cell_size
-          
+
           DO k=1,comp_cells_y
-             
+
              yl = y0 + (k-1)*cell_size
              yr = y0 + (k)*cell_size
-             
+
              CALL regrid_scalar( x1 , y1 , thickness_input , xl , xr , yl ,     &
                   yr , thickness_init(j,k) )
 
           END DO
-          
+
        END DO
 
        IF ( subtract_init_flag ) THEN
@@ -4139,16 +4210,16 @@ CONTAINS
 
              WRITE(*,*) 'Subtricting initial thickness from DEM'
              B_cent(:,:) = B_cent(:,:) - thickness_init(:,:)
-             
+
           END IF
 
        END IF
-       
-       
+
+
        !----- END NEW INITIALIZATION OF THICKNESS FROM RESTART
 
        IF ( gas_flag ) THEN
-       
+
           rho_c = pres / ( sp_gas_const_a * T_init )
           sp_heat_c = sp_heat_a
 
@@ -4158,7 +4229,7 @@ CONTAINS
           sp_heat_c = sp_heat_l
 
        END IF
-          
+
        rho_m = SUM( rho_s(1:n_solid)*alphas_init(1:n_solid) ) + ( 1.0_wp -      &
             SUM( alphas_init(1:n_solid) ) ) * rho_c 
 
@@ -4167,7 +4238,7 @@ CONTAINS
        q(1,:,:) = thickness_init(:,:) * rho_m
 
        IF ( VERBOSE_LEVEL .GE. 0 ) THEN
-          
+
           WRITE(*,*) 'Total volume on computational grid =',cell_size**2 *      &
                SUM( thickness_init(:,:) )
           WRITE(*,*) 'Total mass on computational grid =',cell_size**2 *        &
@@ -4175,13 +4246,13 @@ CONTAINS
 
        END IF
        ! rhom*h*u
-       q(2,:,:) = 0.0_wp
+       q(2,:,:) = q(1,:,:) * u_init
        ! rhom*h*v
-       q(3,:,:) = 0.0_wp
+       q(3,:,:) = q(1,:,:) * v_init
 
        ! energy (total or internal)
        q(4,:,:) = 0.0_wp
-       
+
        WHERE ( thickness_init .GT. 0.0_wp )
 
           q(4,:,:) = q(1,:,:) * T_init *  ( SUM( mass_fract(1:n_solid) *        &
@@ -4207,7 +4278,7 @@ CONTAINS
        WRITE(*,*) 'MAXVAL(q(5,:,:))',MAXVAL(q(5:4+n_solid,:,:))
 
        IF ( VERBOSE_LEVEL .GE. 0 ) THEN
-          
+
           WRITE(*,*) 'Total sediment volume =',cell_size**2*SUM( thickness_init*&
                SUM(alphas_init) )
 
@@ -4236,11 +4307,11 @@ CONTAINS
        DEALLOCATE( thickness_input )
 
        WRITE(*,*) 'n_vars',n_vars
-       
+
     ELSEIF ( check_file .EQ. 'q_2' ) THEN
-    
+
        DO k=1,comp_cells_y
-          
+
           DO j=1,comp_cells_x
 
              READ(restart_unit,'(2e20.12,100(e20.12))') xj , yk ,               &
@@ -4253,11 +4324,11 @@ CONTAINS
                 IF ( q(solid_idx,j,k) .LE. 0.0_wp ) q(solid_idx,j,k) = 0.0_wp
 
              END DO
-                
+
           ENDDO
-          
+
           READ(restart_unit,*)  
-          
+
        END DO
 
        IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Total mass =',dx*dy*SUM(q(1,:,:))
@@ -4270,28 +4341,28 @@ CONTAINS
        END DO
 
        j = SCAN(restart_file, '.' , .TRUE. )
-       
+
        string = TRIM(restart_file(j-4:j-1))
        READ( string,* ) output_idx
 
        IF ( VERBOSE_LEVEL .GE. 0 ) THEN
-          
+
           WRITE(*,*) 
           WRITE(*,*) 'Starting from output index ',output_idx
 
        END IF
-          
+
        ! Set this flag to 0 to not overwrite the initial condition
-    
+
     ELSE
-   
+
        WRITE(*,*) 'Restart file not in the right format (*.asc or *)'
        STOP
 
     END IF
- 
+
     CLOSE(restart_unit)
-      
+
   END SUBROUTINE read_solution
 
   !******************************************************************************
@@ -4334,14 +4405,14 @@ CONTAINS
     REAL(wp) :: xllcorner , yllcorner , cellsize
 
     REAL(wp), ALLOCATABLE :: erodible_input(:,:)
-    
+
     REAL(wp), ALLOCATABLE :: x1(:) , y1(:)
 
     REAL(wp) :: xl , xr , yl , yr 
-    
+
     INTEGER :: i_solid
 
-    
+
     IF ( TRIM(erodible_file) .EQ. '' ) THEN
 
        DO i_solid=1,n_solid
@@ -4349,7 +4420,7 @@ CONTAINS
           erodible(:,:,i_solid) = 1.0E+5_wp
 
        END DO
-       
+
     ELSE
 
        INQUIRE (FILE=erodible_file,exist=lexist)
@@ -4357,14 +4428,14 @@ CONTAINS
        WRITE(*,*)
 
        IF ( lexist .EQV. .FALSE.) THEN
-          
+
           WRITE(*,*) 'Erodible file: ',TRIM(erodible_file) , ' not found'
           STOP
-          
+
        END IF
-       
+
        OPEN(erodible_unit,FILE=erodible_file,STATUS='old')
-       
+
        IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Erodible file: ',                &
             TRIM(erodible_file),' found'
 
@@ -4376,54 +4447,54 @@ CONTAINS
 
           WRITE(*,*) 'Erodible file not in the right format (*.asc)'
           STOP
-          
+
        END IF
-                    
+
        READ(erodible_unit,*) chara, ncols
        READ(erodible_unit,*) chara, nrows
        READ(erodible_unit,*) chara, xllcorner
        READ(erodible_unit,*) chara, yllcorner
        READ(erodible_unit,*) chara, cellsize
        READ(erodible_unit,*) chara, nodata_value
-       
+
        ALLOCATE( erodible_init(comp_cells_x,comp_cells_y) )
        ALLOCATE( erodible_input(ncols,nrows) )
 
        IF ( ( xllcorner - x0 ) .GT. 1.E-5_wp*cellsize ) THEN
-          
+
           WRITE(*,*)
           WRITE(*,*) 'WARNING: initial solution and domain extent'
           WRITE(*,*) 'xllcorner greater than x0', xllcorner , x0
-          
+
        END IF
-       
+
        IF ( ( yllcorner - y0 ) .GT. 1.E-5_wp*cellsize ) THEN
-          
+
           WRITE(*,*)
           WRITE(*,*) 'WARNING: initial solution and domain extent'
           WRITE(*,*) 'yllcorner greater then y0', yllcorner , y0
-          
+
        END IF
 
        IF ( x0+cell_size*(comp_cells_x+1) - ( xllcorner+cellsize*(ncols+1) )    &
             .GT. 1.E-5_wp*cellsize ) THEN
-          
+
           WRITE(*,*)
           WRITE(*,*) 'WARNING: initial solution and domain extent'
           WRITE(*,*) 'xrrcorner greater than ', xllcorner , x0
-          
+
        END IF
-       
+
        IF ( x0+cell_size*(comp_cells_x+1) - ( xllcorner+cellsize*(ncols+1) )    &
             .GT. 1.E-5_wp*cellsize ) THEN
 
           WRITE(*,*)
           WRITE(*,*) 'WARNING: initial solution and domain extent'
           WRITE(*,*) 'yllcorner greater then y0', yllcorner , y0
-          
+
        END IF
 
-       
+
        IF ( cellsize .NE. cell_size ) THEN
 
           WRITE(*,*)
@@ -4437,9 +4508,9 @@ CONTAINS
 
           WRITE(*,FMT="(A1,A,t21,F6.2,A)",ADVANCE="NO") ACHAR(13),              &
                & " Percent Complete: ",( REAL(k) / REAL(nrows))*100.0, "%"
-          
+
           READ(erodible_unit,*) erodible_input(1:ncols,nrows-k+1)
-          
+
        ENDDO
 
        CLOSE(erodible_unit)
@@ -4451,18 +4522,18 @@ CONTAINS
        WHERE ( erodible_input .EQ. nodata_value )
 
           erodible_input = 0.0_wp
-          
+
        END WHERE
-              
+
        !----- NEW INITIALIZATION OF THICKNESS FROM RESTART
        ALLOCATE( x1(ncols+1) , y1(nrows+1) )
-       
+
        DO j=1,ncols+1
 
           x1(j) = xllcorner + (j-1)*cellsize
 
        END DO
-       
+
        DO k=1,nrows+1
 
           y1(k) = yllcorner + (k-1)*cellsize
@@ -4470,24 +4541,24 @@ CONTAINS
        END DO
 
        DO j=1,comp_cells_x
-          
+
           xl = x0 + (j-1)*cell_size
           xr = x0 + (j)*cell_size
-          
+
           DO k=1,comp_cells_y
-             
+
              yl = y0 + (k-1)*cell_size
              yr = y0 + (k)*cell_size
-             
+
              CALL regrid_scalar( x1 , y1 , erodible_input , xl , xr , yl ,     &
                   yr , erodible_init(j,k) )
-             
+
           END DO
 
        END DO
 
        IF ( VERBOSE_LEVEL .GE. 0 ) THEN
-          
+
           WRITE(*,*) 'Total erodible volume on computational grid =' ,          &
                cell_size**2 * SUM( erodible_init(:,:) )
 
@@ -4498,13 +4569,13 @@ CONTAINS
           erodible(:,:,i_solid) = erodible_fract(i_solid) * erodible_init(:,:)
 
        END DO
-              
+
     END IF
 
-      
+
   END SUBROUTINE read_erodible
 
-  
+
   !******************************************************************************
   !> \brief Write the solution on the output unit
   !
@@ -4578,64 +4649,64 @@ CONTAINS
 
     REAL(wp) :: Rouse_no(n_solid)
 
- 
+
     sp_flag = .FALSE.
 
-    
+
     output_idx = output_idx + 1
 
     idx_string = lettera(output_idx-1)
 
     IF ( output_cons_flag ) THEN
-       
+
        output_file_2d = TRIM(run_name)//'_'//idx_string//'.q_2d'
-       
+
        IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'WRITING ',output_file_2d
-       
+
        OPEN(output_unit_2d,FILE=output_file_2d,status='unknown',form='formatted')
-       
+
        !WRITE(output_unit_2d,1002) x0,dx,comp_cells_x,y0,dy,comp_cells_y,t
-       
+
        DO k = 1,comp_cells_y
-          
+
           DO j = 1,comp_cells_x
-             
+
              DO i = 1,n_vars
-                
+
                 ! Exponents with more than 2 digits cause problems reading
                 ! into matlab... reset tiny values to zero:
                 IF ( abs(q(i,j,k)) .LT. 1.0E-20_wp ) q(i,j,k) = 0.0_wp
-                
+
              ENDDO
 
              WRITE(output_unit_2d,'(2e20.12,100(e20.12))') x_comp(j), y_comp(k),&
                   (q(i_vars,j,k),i_vars=1,n_vars) 
-    
+
           ENDDO
-          
+
           WRITE(output_unit_2d,*) ' ' 
-          
+
        END DO
-       
+
        WRITE(output_unit_2d,*) ' '
        WRITE(output_unit_2d,*) ' '
-       
+
        CLOSE(output_unit_2d)
-       
+
     END IF
-    
+
     IF ( output_phys_flag ) THEN
-       
+
        output_file_2d = TRIM(run_name)//'_'//idx_string//'.p_2d'
-       
+
        IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'WRITING ',output_file_2d
-       
+
        OPEN(output_unit_2d,FILE=output_file_2d,status='unknown',form='formatted')
 
        r_alphal = 0.0_wp
-       
+
        DO k = 1,comp_cells_y
-          
+
           DO j = 1,comp_cells_x
 
              CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2) , p_dyn )
@@ -4649,15 +4720,15 @@ CONTAINS
              r_T = qp(4)
 
              IF ( slope_correction_flag ) THEN
-                
+
                 r_w = r_u * B_prime_x(j,k) + r_v * B_prime_y(j,k)
-                
+
              ELSE
-                
+
                 r_w = 0.0_wp
-                
+
              END IF
-             
+
              mod_vel2 = r_u**2 + r_v**2 + r_w**2
              mod_vel = SQRT( mod_vel2 )
 
@@ -4669,29 +4740,29 @@ CONTAINS
 
                 ! Viscosity read from input file [m2 s-1]
                 inv_kin_visc = 1.0_wp / kin_visc_c
-      
+
                 DO i_solid=1,n_solid
 
                    settling_vel = settling_velocity( diam_s(i_solid) ,          &
                         rho_s(i_solid) , r_rho_c , inv_kin_visc )
- 
+
                    IF ( shear_vel .GT. 0.0_wp ) THEN
-                      
+
                       Rouse_no(i_solid) = settling_vel / ( vonK * shear_vel )
-                      
+
                    ELSE
-                      
+
                       Rouse_no(i_solid) = 0.0_wp
-                      
+
                    END IF
-                   
+
                 END DO
-                
+
              ELSE
-                
+
                 Rouse_no(1:n_solid) = 0.0_wp
                 shear_vel = 0.0_wp
-                
+
              END IF
 
              IF ( r_h .GT. 0.0_wp ) THEN
@@ -4702,7 +4773,7 @@ CONTAINS
                    r_alphag(1:n_add_gas) = qp(4+n_solid+1:4+n_solid+n_add_gas)
 
                    IF ( gas_flag .AND. liquid_flag ) THEN
-                      
+
                       r_alphal = qp(n_vars)
 
                    END IF
@@ -4712,11 +4783,11 @@ CONTAINS
                    r_alphas(1:n_solid) = qp(5:4+n_solid) / r_h
                    r_alphag(1:n_add_gas) = qp(4+n_solid+1:4+n_solid+n_add_gas)  &
                         / r_h
-                   
+
                    IF ( gas_flag .AND. liquid_flag ) THEN
-                      
+
                       r_alphal = qp(n_vars) / r_h
-                      
+
                    END IF
 
 
@@ -4736,7 +4807,7 @@ CONTAINS
              IF ( ABS(B_cent(j,k)) .LT. 1.0E-20_wp ) THEN 
 
                 B_out = 0.0_wp
-                
+
              ELSE
 
                 B_out = B_cent(j,k)
@@ -4767,14 +4838,14 @@ CONTAINS
 
 
           END DO
-          
+
           WRITE(output_unit_2d,*) ' ' 
-          
+
        ENDDO
-       
+
        WRITE(output_unit_2d,*) ' '
        WRITE(output_unit_2d,*) ' '
-       
+
        CLOSE(output_unit_2d)
 
     END IF
@@ -4790,14 +4861,14 @@ CONTAINS
        IF ( ( time .GE. t_end ) .OR. ( time .GE. t_steady ) ) THEN
 
           CALL output_max
-          
+
        END IF
 
     END IF
-    
+
   END SUBROUTINE output_solution
 
-  
+
   !******************************************************************************
   !> \brief Write the maximum thickness in ESRI format
   !
@@ -4809,7 +4880,7 @@ CONTAINS
   !> \date 08/12/2018
   !
   !******************************************************************************
-  
+
   SUBROUTINE output_max
 
     USE geometry_2d, ONLY : grid_output , grid_output_int
@@ -4868,7 +4939,7 @@ CONTAINS
           DO i_pdyn_lev=1,n_dyn_pres_levels
 
              i_table = i_table + 1
-             
+
              idx_string = lettera(i_table)
 
              WRITE(output_VT_unit,*) idx_string ,'      ',                      &
@@ -4906,7 +4977,7 @@ CONTAINS
     RETURN
 
   END SUBROUTINE output_max
-  
+
   !******************************************************************************
   !> \brief Write the thickness in ESRI format
   !
@@ -4936,28 +5007,28 @@ CONTAINS
     CHARACTER(LEN=4) :: isolid_string
     INTEGER :: j
     INTEGER :: i_solid
-    
+
     IF ( output_idx .EQ. 1 ) THEN
-       
+
        OPEN(dem_esri_unit,FILE='dem_esri.asc',status='unknown',form='formatted')
-       
+
        WRITE(dem_esri_unit,'(A,I5)') 'ncols ', comp_cells_x
        WRITE(dem_esri_unit,'(A,I5)') 'nrows ', comp_cells_y
        WRITE(dem_esri_unit,'(A,F15.3)') 'xllcorner ', x0
        WRITE(dem_esri_unit,'(A,F15.3)') 'yllcorner ', y0
        WRITE(dem_esri_unit,'(A,F15.3)') 'cellsize ', cell_size
        WRITE(dem_esri_unit,'(A,I5)') 'NODATA_value ', -9999
-        
+
        DO j = comp_cells_y,1,-1
-          
+
           WRITE(dem_esri_unit,*) B_cent(1:comp_cells_x,j)
-          
+
        ENDDO
-       
+
        CLOSE(dem_esri_unit)
 
        OPEN(dem_esri_unit,FILE='dem_esri_nodata.asc',status='unknown',form='formatted')
-       
+
        WRITE(dem_esri_unit,'(A,I5)') 'ncols ', comp_cells_x
        WRITE(dem_esri_unit,'(A,I5)') 'nrows ', comp_cells_y
        WRITE(dem_esri_unit,'(A,F15.3)') 'xllcorner ', x0
@@ -4966,38 +5037,38 @@ CONTAINS
        WRITE(dem_esri_unit,'(A,I5)') 'NODATA_value ', -9999
 
        DO j = comp_cells_y,1,-1
-          
+
           WRITE(dem_esri_unit,*) MERGE(1,0,B_nodata(1:comp_cells_x,j))
-          
+
        ENDDO
-       
+
        CLOSE(dem_esri_unit)
 
        IF ( liquid_vaporization_flag ) THEN
-       
+
           OPEN(dem_esri_unit,FILE='dem_esri_water.asc',status='unknown',form='formatted')
-          
+
           IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'WRITING dem_esri_water.asc'
-          
+
           WRITE(dem_esri_unit,'(A,I5)') 'ncols ', comp_cells_x
           WRITE(dem_esri_unit,'(A,I5)') 'nrows ', comp_cells_y
           WRITE(dem_esri_unit,'(A,F15.3)') 'xllcorner ', x0
           WRITE(dem_esri_unit,'(A,F15.3)') 'yllcorner ', y0
           WRITE(dem_esri_unit,'(A,F15.3)') 'cellsize ', cell_size
           WRITE(dem_esri_unit,'(A,I5)') 'NODATA_value ', -9999
-          
+
           DO j = comp_cells_y,1,-1
-             
+
              WRITE(dem_esri_unit,*) B_zone(1:comp_cells_x,j)
-             
+
           ENDDO
-          
+
           CLOSE(dem_esri_unit)
-          
+
        END IF
-          
+
     END IF
-    
+
     idx_string = lettera(output_idx-1)
 
     !Save thickness
@@ -5021,45 +5092,45 @@ CONTAINS
     WRITE(output_esri_unit,'(A,F15.3)') 'yllcorner ', y0
     WRITE(output_esri_unit,'(A,F15.3)') 'cellsize ', cell_size
     WRITE(output_esri_unit,'(A,I5)') 'NODATA_value ', -9999
-        
+
     DO j = comp_cells_y,1,-1
 
        WRITE(output_esri_unit,'(2000ES12.3E3)') grid_output(1:comp_cells_x,j)
 
     ENDDO
-    
+
     CLOSE(output_esri_unit)
 
     !Save temperature
     output_esri_file = TRIM(run_name)//'_T_'//idx_string//'.asc'
-    
+
     IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'WRITING ',output_esri_file
-    
+
     OPEN(output_esri_unit,FILE=output_esri_file,status='unknown',form='formatted')
-    
+
     grid_output = -9999 
-    
+
     WHERE ( qp(1,:,:) .GE. 1.0E-5_wp )
-       
+
        grid_output = qp(4,:,:)
-       
+
     END WHERE
-    
+
     WRITE(output_esri_unit,'(A,I5)') 'ncols ', comp_cells_x
     WRITE(output_esri_unit,'(A,I5)') 'nrows ', comp_cells_y
     WRITE(output_esri_unit,'(A,F15.3)') 'xllcorner ', x0
     WRITE(output_esri_unit,'(A,F15.3)') 'yllcorner ', y0
     WRITE(output_esri_unit,'(A,F15.3)') 'cellsize ', cell_size
     WRITE(output_esri_unit,'(A,I5)') 'NODATA_value ', -9999
-    
+
     DO j = comp_cells_y,1,-1
-       
+
        WRITE(output_esri_unit,'(2000ES12.3E3)') grid_output(1:comp_cells_x,j)
-       
+
     ENDDO
-    
+
     CLOSE(output_esri_unit)
-    
+
     IF ( settling_flag ) THEN
 
        !Save solid classes deposit
@@ -5225,9 +5296,9 @@ CONTAINS
        CLOSE(output_esri_unit)
 
     END IF
-   
+
     RETURN
-       
+
   END SUBROUTINE output_esri
 
   SUBROUTINE close_units
@@ -5305,7 +5376,7 @@ CONTAINS
     REAL(wp), INTENT(IN) :: time
 
     CHARACTER(LEN=4) :: idx_string
-    
+
     REAL(wp) :: h_prb
     REAL(wp) :: hrhom_prb
     REAL(wp) :: rhom_prb
@@ -5319,9 +5390,9 @@ CONTAINS
     REAL(wp) :: dep_probe(n_solid)
 
     INTEGER :: k
-    
+
     INTEGER :: i_solid , i_gas
-    
+
     DO k=1,n_probes
 
        idx_string = lettera(k)
@@ -5338,35 +5409,35 @@ CONTAINS
           WRITE(probes_unit,'(A15)',ADVANCE='no') 'T,'
           WRITE(probes_unit,'(A15)',ADVANCE='no') 'u,'
           WRITE(probes_unit,'(A15)',ADVANCE='no') 'v,'
-          
+
 
           DO i_solid=1,n_solid
 
              WRITE(idx_string,'(I2.2)') i_solid
              WRITE(probes_unit,'(A15)',ADVANCE='no') 'alfa_s('//TRIM(idx_string)//'),'
-             
+
           END DO
 
           DO i_gas=1,n_add_gas
 
              WRITE(idx_string,'(I2.2)') i_gas
              WRITE(probes_unit,'(A15)',ADVANCE='no') 'alfa_g('//TRIM(idx_string)//'),'
-             
+
           END DO
 
           IF ( settling_flag ) THEN
-       
+
              DO i_solid=1,n_solid
 
                 WRITE(idx_string,'(I2.2)') i_solid
                 WRITE(probes_unit,'(A15)',ADVANCE='no') 'dep_s('//TRIM(idx_string)//'),'
-                
+
              END DO
 
           END IF
 
           WRITE(probes_unit,'(A15)') 'Dyn.pres.'
-          
+
           ! Write a line with units
           WRITE(probes_unit,'(A15)',ADVANCE='no') '(s),'
           WRITE(probes_unit,'(A15)',ADVANCE='no') '(m),'
@@ -5374,33 +5445,33 @@ CONTAINS
           WRITE(probes_unit,'(A15)',ADVANCE='no') '(K),'
           WRITE(probes_unit,'(A15)',ADVANCE='no') '(m/s),'
           WRITE(probes_unit,'(A15)',ADVANCE='no') '(m/s),'
-          
+
 
           DO i_solid=1,n_solid
 
              WRITE(probes_unit,'(A15)',ADVANCE='no') '(),'
-             
+
           END DO
 
           DO i_gas=1,n_add_gas
 
              WRITE(probes_unit,'(A15)',ADVANCE='no') '(),'
-             
+
           END DO
 
           IF ( settling_flag ) THEN
-       
+
              DO i_solid=1,n_solid
 
                 WRITE(probes_unit,'(A15)',ADVANCE='no') '(m),'
-                
+
              END DO
 
           END IF
 
           WRITE(probes_unit,'(A15)') '(Pa)'
-          
-          
+
+
        ELSE
 
           OPEN(probes_unit,FILE=probes_file,status='old',position='append',     &
@@ -5409,68 +5480,68 @@ CONTAINS
        END IF
 
        WRITE(probes_unit,1710,ADVANCE='no') time,','
-       
+
        CALL interp_2d_scalarB( x_comp , y_comp , qp(1,:,:)  ,                   &
             probes_coords(1,k) , probes_coords(2,k) , h_prb )
 
        WRITE(probes_unit,1710,ADVANCE='no') h_prb,',' 
 
        IF ( h_prb .GT. 1.0E-5_wp ) THEN
-       
+
           CALL interp_2d_scalarB( x_comp , y_comp , q(1,:,:) ,                  &
                probes_coords(1,k) , probes_coords(2,k) , hrhom_prb )
 
           rhom_prb = hrhom_prb/h_prb
-          
+
           WRITE(probes_unit,1710,ADVANCE='no') rhom_prb,','
 
           CALL interp_2d_scalarB( x_comp , y_comp , qp(4,:,:)  ,                &
                probes_coords(1,k) , probes_coords(2,k) , T_prb )
-          
+
           WRITE(probes_unit,1710,ADVANCE='no') T_prb,','
-          
+
           CALL interp_2d_scalarB( x_comp , y_comp , qp(n_vars+1,:,:)  ,         &
                probes_coords(1,k) , probes_coords(2,k) , u_prb )
-          
+
           WRITE(probes_unit,1710,ADVANCE='no') u_prb,','
-          
+
           CALL interp_2d_scalarB( x_comp , y_comp , qp(n_vars+2,:,:)  ,         &
                probes_coords(1,k) , probes_coords(2,k) , v_prb )
-          
+
           WRITE(probes_unit,1710,ADVANCE='no') v_prb,','
 
           DO i_solid=1,n_solid
-             
+
              CALL interp_2d_scalarB( x_comp , y_comp ,  qp(4+i_solid,:,:)  ,    &
                   probes_coords(1,k) , probes_coords(2,k) , alphas_prb(i_solid) )
-             
+
              IF ( alpha_flag ) THEN
-                
+
                 WRITE(probes_unit,1710,ADVANCE='no') alphas_prb(i_solid),','
-                
+
              ELSE
-                
+
                 WRITE(probes_unit,1710,ADVANCE='no') alphas_prb(i_solid)/h_prb,','
-                
+
              END IF
-             
+
           END DO
-          
+
           DO i_gas=1,n_add_gas
-             
+
              CALL interp_2d_scalarB( x_comp , y_comp , qp(4+n_solid+i_gas,:,:)  ,   &
                   probes_coords(1,k) , probes_coords(2,k) , alphag_prb(i_gas) )
-             
+
              IF ( alpha_flag ) THEN
-                
+
                 WRITE(probes_unit,1710,ADVANCE='no') alphag_prb(i_gas),','
-                
+
              ELSE
-                
+
                 WRITE(probes_unit,1710,ADVANCE='no') alphag_prb(i_gas)/h_prb,','
 
              END IF
-             
+
           END DO
 
           pDyn_prb = 0.5 * rhom_prb * ( u_prb**2 + v_prb**2 ) 
@@ -5480,48 +5551,48 @@ CONTAINS
           WRITE(probes_unit,1710,ADVANCE='no') 0.0_wp,','
 
           WRITE(probes_unit,1710,ADVANCE='no') T_ambient,','
-          
+
           WRITE(probes_unit,1710,ADVANCE='no') 0.0_wp,','
-          
+
           WRITE(probes_unit,1710,ADVANCE='no') 0.0_wp,','
-          
+
           DO i_solid=1,n_solid
-             
+
              WRITE(probes_unit,1710,ADVANCE='no') 0.0_wp,','
-              
+
           END DO
-          
+
           DO i_gas=1,n_add_gas
-             
+
              WRITE(probes_unit,1710,ADVANCE='no') 0.0_wp,','
-             
+
           END DO
 
           pDyn_prb = 0.0_wp
-          
+
        END IF
-          
+
        IF ( settling_flag ) THEN
-       
+
           DO i_solid=1,n_solid
-             
+
              CALL interp_2d_scalarB( x_comp , y_comp , DEPOSIT(:,:,i_solid)  ,   &
                   probes_coords(1,k) , probes_coords(2,k) , dep_probe(i_solid) )
 
              WRITE(probes_unit,1710,ADVANCE='no') dep_probe(i_solid),','
-             
+
           END DO
-          
+
        END IF
 
        WRITE(probes_unit,1710) pDyn_prb
-        
+
        CLOSE(probes_unit)
 
     END DO
 
 1710 FORMAT(ES14.7E2,A1)
-    
+
     t_probes = time + dt_probes
 
   END SUBROUTINE output_probes
@@ -5575,7 +5646,7 @@ CONTAINS
     ! This work with large 
     !X(:,:) = SPREAD( x_comp, 2, sY )
     !Y(:,:) = SPREAD( y_comp, 1, sX )
-    
+
     !$OMP PARALLEL 
     !$OMP DO 
     DO k=1,sY
@@ -5603,7 +5674,7 @@ CONTAINS
        WRITE(mass_center_unit,'(A18,A18,A18,A18,A18)')  'Time (s),',            &
             'Barycenter-x (m),' , 'Barycenter-y (m),' , 'Baricenter-dx (m),' ,  &
             'Baricenter-dy (m)'
-       
+
        CALL flush(runout_unit)
 
        IF ( MAXVAL( qp(1,:,:) ) .EQ. 0.0_wp ) THEN
@@ -5627,19 +5698,19 @@ CONTAINS
           x_mass_center = SUM( X*q(1,:,:) ) / SUM( q(1,:,:) )
           y_mass_center = SUM( Y*q(1,:,:) ) / SUM( q(1,:,:) )
           hpos = ( qp(1,:,:) .GT. 1.0E-5_wp )
- 
+
        END IF
 
        hpos_old = ( qp(1,:,:) .GT. 1.0E-5_wp )
 
        x_mass_center_old = x_mass_center
        y_mass_center_old = y_mass_center
-      
+
        IF ( ( x0_runout .EQ. -1 ) .AND. ( y0_runout .EQ. -1 ) ) THEN
-          
+
           WHERE( qp(1,:,:) > 1.0E-5_wp ) dist = B_cent
           imin = MAXLOC( dist )
-          
+
           x0_runout = X(imin(1),imin(2))
           y0_runout = Y(imin(1),imin(2))
 
@@ -5647,35 +5718,35 @@ CONTAINS
                x0_runout ,',',y0_runout,')'
 
           dist(:,:) = 0.0_wp
-          
+
           WHERE( hpos ) dist = SQRT( (X-x0_runout)**2 + ( Y - y0_runout )**2 )
 
           imax = MAXLOC( dist )
-          
+
           init_runout = dist(imax(1),imax(2))
 
           dist_x(:,:) = 0.0_wp
-          
+
           WHERE( hpos ) dist_x = SQRT( (X-x0_runout)**2 )
 
           imax_x = MAXLOC( dist_x )
-          
+
           init_runout_x = dist(imax_x(1),imax_x(2))
 
           dist_y(:,:) = 0.0_wp
-          
+
           WHERE( hpos ) dist_y = SQRT( (Y-y0_runout)**2 )
 
           imax_y = MAXLOC( dist_y )
-          
+
           init_runout_y = dist(imax_y(1),imax_y(2))
 
        ELSE
- 
+
           init_runout = 0.0_wp
           init_runout_x = 0.0_wp
           init_runout_y = 0.0_wp
-          
+
        END IF
 
     ELSE
@@ -5715,7 +5786,7 @@ CONTAINS
     imax_y = MAXLOC( dist_y )
 
     IF ( time .GT. t_start ) THEN
-       
+
        OPEN(dakota_unit,FILE='runout.txt',status='old',form='formatted')
        READ(dakota_unit,'(A18,F12.3)') txt_string,old_runout
        CLOSE(dakota_unit)
@@ -5725,41 +5796,41 @@ CONTAINS
        old_runout = 0.0_wp
 
     END IF
-       
+
     OPEN(dakota_unit,FILE='runout.txt',status='replace',form='formatted')
     WRITE(dakota_unit,'(A18,F12.3)') 'maximum runout =', MAX(old_runout,dist(imax(1),imax(2)) - init_runout)
     WRITE(dakota_unit,'(A18,F12.3)') 'final runout =', dist(imax(1),imax(2)) - init_runout
-    
+
     CLOSE(dakota_unit)
 
     area_old = dx*dy*COUNT(hpos_old)
     area = dx*dy*COUNT(hpos)
-    
+
     WRITE(runout_unit,'(F12.3,A,F12.3,A,F14.3)') time ,',',                     &
          dist(imax(1),imax(2)) - init_runout,',',area
-    
+
     CALL flush(runout_unit)
 
     WRITE(mass_center_unit,'(F17.3,A,F17.3,A,F17.3,A,F17.3,A,F17.3)') time ,    &
          ',' , x_mass_center , ',' , y_mass_center , ',' ,                      &
          dist_x(imax_x(1),imax_x(2)) - init_runout_x , ',' ,                    &
          dist_y(imax_y(1),imax_y(2)) - init_runout_y  
-    
+
     CALL flush(mass_center_unit)
 
     IF ( time .GT. t_start ) THEN
 
        vel_mass_center = SQRT( ( x_mass_center_old - x_mass_center )**2 +       &
             ( y_mass_center_old - y_mass_center )**2 ) / dt_runout
-       
+
        vel_radial_growth = ABS( SQRT( area ) - SQRT( area_old ) ) / dt_runout
-       
+
        area_new_rel = dx*dy*COUNT( hpos .AND. ( .NOT.hpos_old ) ) / COUNT( hpos )
 
        x_mass_center_old = x_mass_center
        y_mass_center_old = y_mass_center
        hpos_old = hpos
-  
+
        IF ( ( MAX( vel_mass_center , area_new_rel /dt_runout ) .LT. eps_stop )  &
             .AND. (.NOT.stop_flag) ) THEN
 

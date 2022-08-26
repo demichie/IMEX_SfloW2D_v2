@@ -21,6 +21,44 @@ MODULE init_2d
 
 CONTAINS
 
+  SUBROUTINE init_empty
+
+    USE constitutive_2d, ONLY : T_ambient
+
+    USE constitutive_2d, ONLY : qp_to_qc
+
+    USE geometry_2d, ONLY : comp_cells_x , comp_cells_y
+
+    USE parameters_2d, ONLY : n_vars
+
+    USE solver_2d, ONLY : q
+
+    IMPLICIT NONE
+
+    INTEGER :: j,k
+
+    REAL(wp) :: qp_init(n_vars+2)
+
+    WRITE(*,*) 'Initialization with zero thickness flow'
+    
+    qp_init(1:n_vars+2) = 0.0_wp
+    qp_init(4) = T_ambient
+
+    DO j = 1,comp_cells_x
+
+       DO k = 1,comp_cells_y
+
+          CALL qp_to_qc( qp_init(1:n_vars+2) , q(1:n_vars,j,k) )
+
+
+       END DO
+
+    END DO
+
+    RETURN
+
+  END SUBROUTINE init_empty
+  
   !******************************************************************************
   !> \brief Collapsing volume initialization
   !
