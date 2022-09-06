@@ -83,8 +83,8 @@ h_right = 0.66
 u_left = 0.0
 u_right = 0.0
 
-w_left = 0.3
-w_right = 0.3
+w_left = 0.33
+w_right = 0.33
 
 
 init_sol_disc = -10.0
