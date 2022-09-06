@@ -40,8 +40,8 @@
  T_BCW%VALUE=  300.0D0     ,
  /
 &EAST_BOUNDARY_CONDITIONS
- H_BCE%FLAG=          1,
- H_BCE%VALUE=  0.0D0     ,
+ H_BCE%FLAG=          0,
+ H_BCE%VALUE=  0.33D0     ,
  HU_BCE%FLAG=          1,
  HU_BCE%VALUE=  0.0D0     ,
  HV_BCE%FLAG=          0,
