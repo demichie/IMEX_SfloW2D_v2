@@ -44,9 +44,9 @@ def linear_continuous_1D_sampling(val_min, val_max, n_samples):
 def associate_sector_to_coords(sect_asc_file,coor_x,coor_y):
 
     # Read .asc file into a numpy array
-    print('Reading .asc file: ' + asc_file)
+    print('Reading .asc file: ' + sect_asc_file)
 
-    hdr = [getline(asc_file, i) for i in range(1, 7)]
+    hdr = [getline(sect_asc_file, i) for i in range(1, 7)]
     values = [float(h.split(" ")[-1].strip())
               for h in hdr]
 
@@ -54,7 +54,7 @@ def associate_sector_to_coords(sect_asc_file,coor_x,coor_y):
     cols = int(cols)
     rows = int(rows)
 
-    val = pd.read_table(asc_file,
+    val = pd.read_table(sect_asc_file,
                         delim_whitespace=True,
                         header=None,
                         skiprows=6,
@@ -75,7 +75,7 @@ def associate_sector_to_coords(sect_asc_file,coor_x,coor_y):
         ix = int(np.floor((xp - lx) / cell))
         iy = int(np.floor((yp - ly) / cell))
         
-        sector_list.append(val[iy,ix])
+        sector_list.append(int(val[iy,ix]))
       
     return sector_list
     
@@ -297,7 +297,7 @@ def main():
     ###
     
     """
-    sector_list = associate_sector_to_coords(sect_asc_file,coor_x,coor_y)
+    sector_list = associate_sector_to_coords('aree.asc',coor_x,coor_y)
 
     list_values.append(sector_list)
     list_names.append('Sector')
