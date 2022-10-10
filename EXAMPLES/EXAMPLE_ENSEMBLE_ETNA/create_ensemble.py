@@ -104,6 +104,8 @@ def nonuniform_continuous_grid_sampling(asc_file, n_samples, discrete_flag):
                         skiprows=6,
                         dtype='unicode').astype(float).values
     val = np.flipud(val)
+    
+    val[val==nd] = 0.0
 
     # normalize the values
     val = val / np.sum(val)
@@ -116,9 +118,11 @@ def nonuniform_continuous_grid_sampling(asc_file, n_samples, discrete_flag):
 
     x_min = lx
     x_max = lx + cols * cell
+    print('xmin,xmax',x_min,x_max)
 
-    y_min = lx
+    y_min = ly
     y_max = ly + rows * cell
+    print('ymin,ymax',y_min,y_max)
 
     # initialize the list for the two sample arrays
     x_list = []
@@ -221,7 +225,7 @@ def main():
     list_values = []
     list_names = []
 
-    n_samples = 25
+    n_samples = 100
 
     ###
     """
@@ -267,19 +271,21 @@ def main():
     ###
 
     """
-    asc_file = 'test.asc'
-    x_list, y_list = nonuniform_continuous_grid_sampling(asc_file,
+    asc_file = 'aree.asc'
+    coor_x,coor_y = nonuniform_continuous_grid_sampling(asc_file,
                                                          n_samples,
                                                          discrete_flag=False)
 
-    list_values.append(x_list)
-    list_names.append('x')
+    list_values.append(coor_x)
+    list_names.append('Coor_x')
 
-    list_values.append(y_list)
-    list_names.append('y')
+    list_values.append(coor_y)
+    list_names.append('Coor_y')
     """
 
     ###
+    
+    
     # list of 2D points
     points = [[500360, 4177600], [500650, 4177913]]
     # weight of 2D points
@@ -295,7 +301,8 @@ def main():
     coor_y = [param[1] for param in param_list]
     list_values.append(coor_y)
     list_names.append('Coor_y')
-
+    
+    
     ###
     
     """
@@ -304,6 +311,7 @@ def main():
     list_values.append(sector_list)
     list_names.append('Sector')
     """
+    
         
     ###
 
