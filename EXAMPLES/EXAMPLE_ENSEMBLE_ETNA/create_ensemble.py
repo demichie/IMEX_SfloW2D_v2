@@ -73,7 +73,9 @@ def associate_sector_to_coords(sect_asc_file,coor_x,coor_y):
     
         # get the index of the cell from x and y
         ix = int(np.floor((xp - lx) / cell))
+        ix = max(0,min(ix,cols-1))
         iy = int(np.floor((yp - ly) / cell))
+        iy = max(0,min(iy,rows-1))
         
         sector_list.append(int(val[iy,ix]))
       
