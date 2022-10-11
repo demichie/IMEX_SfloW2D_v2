@@ -60,10 +60,17 @@ def compute_vol_new(DEM,dist,XS,YS,x1,y1,semi_axis,aspect_ratio,cell_topo,n):
     indexes = np.where( ( dist>semi_axis-cell_topo )*( dist<semi_axis+cell_topo ) )
     indexes_np = np.asarray(indexes)
 
+    """
     idx_max = np.argmax(DEM[indexes])
 
     ix = indexes_np[1,idx_max]
     iy = indexes_np[0,idx_max]
+    """
+    
+    idx_min = np.argmin(DEM[indexes])
+
+    ix = indexes_np[1,idx_min]
+    iy = indexes_np[0,idx_min]
 
     dist_real = np.sqrt( (XS[iy,ix]-x1)**2 + (YS[iy,ix]-y1)**2 )
 
