@@ -55,7 +55,7 @@ def isfloat(string):
   except ValueError:  # String is not a number
     return False
 
-def compute_vol_new(DEM,dist,XS,YS,x1,y1,semi_axis,cell_topo,n):
+def compute_vol_new(DEM,dist,XS,YS,x1,y1,semi_axis,aspect_ratio,cell_topo,n):
 
     indexes = np.where( ( dist>semi_axis-cell_topo )*( dist<semi_axis+cell_topo ) )
     indexes_np = np.asarray(indexes)
@@ -115,15 +115,15 @@ def compute_vol_new(DEM,dist,XS,YS,x1,y1,semi_axis,cell_topo,n):
 
     # define the other semi-axis of the ellipsoid
     a = np.sqrt((y1-y2)**2+(x1-x2)**2)
-    b = semi_width 
+    b = semi_width / aspect_ratio
 
     print('Ellipsoid semi-axis: ',a,b,c)
 
     # compute the horizontal angle between the original x,y, coordinate system
     # and the coordinate system defined by the horizonal semi-axis a,b
-    alpha = 90.0-np.arctan2(yh-yc,xh-xc)/np.pi*180.0
+    alpha_deg = -np.arctan2(yh-yc,xh-xc)/np.pi*180.0
 
-    print('Rotation angle: ',alpha)
+    print('Rotation angle: ',alpha_deg)
 
     # translate the coordinate of the centers of the cells
     X,Y = np.meshgrid(xs_topo-xc,ys_topo-yc)
@@ -131,8 +131,10 @@ def compute_vol_new(DEM,dist,XS,YS,x1,y1,semi_axis,cell_topo,n):
     # rotation to find the coordinates of the centers of the cells
     # in the new coordinate system, centered in the center of the
     # ellispoid and with the axis parallel to its semi-axis
-    X_new = X*np.cos(alpha) + Y*np.sin(alpha)
-    Y_new = -X*np.sin(alpha) + Y*np.cos(alpha)
+    alpha_rad = alpha_deg/180.0*np.pi
+
+    X_new = X*np.cos(alpha_rad) - Y*np.sin(alpha_rad)
+    Y_new = X*np.sin(alpha_rad) + Y*np.cos(alpha_rad)
 
     Z_new,Z_ell,vol = compute_vol(X_new,Y_new,DEM,zc,a,b,c,n)
     
@@ -319,7 +321,7 @@ print('')
 semi_axis0 = 0.5*( 3.0/4.0*np.pi * vol)**(1.0/3.0)
 print('semi_axis0',semi_axis0)
         
-Z_new_temp,Z_ell_temp,vol0,zc = compute_vol_new(DEM,dist,XS,YS,x1,y1,semi_axis0,cell_topo,2.0)
+Z_new_temp,Z_ell_temp,vol0,zc = compute_vol_new(DEM,dist,XS,YS,x1,y1,semi_axis0,aspect_ratio,cell_topo,2.0)
 
 if vol0 > vol:
 
@@ -328,10 +330,10 @@ if vol0 > vol:
 
 else:
 
-    semi_axis2 = 2.0*( 3.0/4.0*np.pi * vol)**(1.0/3.0)
+    semi_axis2 = 4.0*( 3.0/4.0*np.pi * vol)**(1.0/3.0)
     print('semi_axis2',semi_axis2)
         
-    Z_new_temp,Z_ell_temp,vol2,zc = compute_vol_new(DEM,dist,XS,YS,x1,y1,semi_axis2,cell_topo,2.0)
+    Z_new_temp,Z_ell_temp,vol2,zc = compute_vol_new(DEM,dist,XS,YS,x1,y1,semi_axis2,aspect_ratio,cell_topo,2.0)
 
 
     
@@ -342,12 +344,12 @@ if vol2 < vol:
 
 elif vol0<vol:
 
-    for i in range(10):
+    for i in range(20):
             
         semi_axis1 = semi_axis0+((vol-vol0)/(vol2-vol0))**(1.0/3.0)*(semi_axis2-semi_axis0)
         print('semi_axis1',semi_axis1)
         
-        Z_new,Z_ell,vol1,zc = compute_vol_new(DEM,dist,XS,YS,x1,y1,semi_axis1,cell_topo,2.0)
+        Z_new,Z_ell,vol1,zc = compute_vol_new(DEM,dist,XS,YS,x1,y1,semi_axis1,aspect_ratio,cell_topo,2.0)
         
         if ( vol1 < vol ):
         
