@@ -4,4 +4,6 @@ DEM_file = 'Etna2014_crop.asc'
 x1 = ENSEMBLE_Coor_x 
 y1 = ENSEMBLE_Coor_y
 
+aspect_ratio = 2.0
+
 vol = ENSEMBLE_Volume
