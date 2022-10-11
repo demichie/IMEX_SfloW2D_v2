@@ -10,8 +10,9 @@
 % obtaining by subtracting from the original den an ellipsoidal niche.
 % The following input parameters are required:
 % - DEM files (ESRII ascii format)
-% - x,y, coordinates of highest point P1(UTM coordinates)
-% - x,y, coordinates of highest point P2 (UTM coordinates)
+% - x,y, coordinates of highest point (UTM coordinates)
+% - aspect ratio (ratio between horizontal semiaxis)
+% - volume (m3)
 % - horizontal semiaxis of the ellipsoid orthogonal to the direction from P1 to P2 
 % The following output files are saved:
 % - modified DEM
