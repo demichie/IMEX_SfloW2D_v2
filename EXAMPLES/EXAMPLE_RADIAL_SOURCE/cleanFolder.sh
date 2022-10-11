@@ -1,6 +1,6 @@
 #!/bin/bash
 clear
-echo "Cleaning folder form output of previous runs of SW_VAR_DENS_MODEL"
+echo "Cleaning folder form output of previous runs of IMEX_SfloW2D"
 
 file="exampleRS*"
 
@@ -13,7 +13,7 @@ if [ -f $file ] ; then
 fi
 
 
-file="SW_VAR_DENS_MODEL.inp"
+file="IMEX_SfloW2D.inp"
 
 if [ -f $file ] ; then
     rm $file

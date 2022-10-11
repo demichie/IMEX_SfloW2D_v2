@@ -93,7 +93,7 @@ def main():
     current_dir = os.getcwd()
     os.chdir('./templatedir/')
 
-    with open('SW_VAR_DENS_MODEL.template') as fp:
+    with open('IMEX_SfloW2D.template') as fp:
 
         thick_levels = []
         dyn_pres_levels = []

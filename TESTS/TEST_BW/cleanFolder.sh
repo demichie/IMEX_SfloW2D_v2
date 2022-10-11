@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Cleaning folder form output of previous runs of SW_VAR_DENS_MODEL"
+echo "Cleaning folder form output of previous runs of IMEX_SfloW2D"
 
 file="TEST_BW*"
 

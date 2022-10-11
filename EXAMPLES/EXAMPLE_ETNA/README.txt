@@ -27,7 +27,7 @@ To create the initial files, first unzip the file in the DEM folder, and then ru
 
 To run the example, launch (this assumes that the example is in the original folder):
 
->> ../../bin/SW_VAR_DENS_MODEL
+>> ../../bin/IMEX_SfloW2D
 
 A script to convert the output of the model in NetCDF4 format is provided in the UTILS folder.
 First create a simbolic link of the script in this folder:

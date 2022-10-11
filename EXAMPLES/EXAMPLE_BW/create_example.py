@@ -171,7 +171,7 @@ with open('exampleBW_0000.q_2d','a') as file:
     file.write('\n')
 
 # Read in the file
-with open('SW_VAR_DENS_MODEL.template', 'r') as file :
+with open('IMEX_SfloW2D.template', 'r') as file :
   filedata = file.read()
 
 runname= 'exampleBW_'+str(n_cells)
@@ -186,7 +186,7 @@ filedata = filedata.replace('halphas', str(400.0*alfas))
 filedata = filedata.replace('temp', str(T))
 
 # Write the file out again
-with open('SW_VAR_DENS_MODEL.inp', 'w') as file:
+with open('IMEX_SfloW2D.inp', 'w') as file:
   file.write(filedata)
 
 

@@ -160,7 +160,7 @@ with open(init_file,'a') as file:
     file.write('\n')
 
 # Read in the file
-with open('SW_VAR_DENS_MODEL.template', 'r') as file :
+with open('IMEX_SfloW2D.template', 'r') as file :
   filedata = file.read()
 
 runname= 'exampleSub_'+str(n_cells)
@@ -173,7 +173,7 @@ filedata = filedata.replace('n_cells', str(n_cells))
 filedata = filedata.replace('dx', str(dx))
 
 # Write the file out again
-with open('SW_VAR_DENS_MODEL.inp', 'w') as file:
+with open('IMEX_SfloW2D.inp', 'w') as file:
   file.write(filedata)
 
 

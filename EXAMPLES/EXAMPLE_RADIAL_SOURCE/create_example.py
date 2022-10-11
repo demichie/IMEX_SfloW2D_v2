@@ -205,7 +205,7 @@ for i in range(ny_cells):
 
 
 # Read in the file
-with open('SW_VAR_DENS_MODEL.template', 'r') as file :
+with open('IMEX_SfloW2D.template', 'r') as file :
   filedata = file.read()
 
 # Replace the target string
@@ -226,7 +226,7 @@ filedata = filedata.replace('source_alphas', str(alfas_init))
 
 
 # Write the file out again
-with open('SW_VAR_DENS_MODEL.inp', 'w') as file:
+with open('IMEX_SfloW2D.inp', 'w') as file:
   file.write(filedata)
 
 

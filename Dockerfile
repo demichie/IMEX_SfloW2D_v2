@@ -24,13 +24,13 @@ RUN adduser --disabled-password user_sw
 USER user_sw
 WORKDIR /home/user_sw
 
-RUN curl -LOk https://github.com/demichie/SW_VAR_DENS_MODEL/archive/master.zip \
+RUN curl -LOk https://github.com/demichie/IMEX_SfloW2D/archive/master.zip \
     && unzip *.zip \
-    && cp /home/user_sw/SW_VAR_DENS_MODEL-master/TESTS/run_tests.sh . \
-    && echo 'cd /home/user_sw/SW_VAR_DENS_MODEL-master/TESTS/' | cat - run_tests.sh > temp \
+    && cp /home/user_sw/IMEX_SfloW2D-master/TESTS/run_tests.sh . \
+    && echo 'cd /home/user_sw/IMEX_SfloW2D-master/TESTS/' | cat - run_tests.sh > temp \
     && mv temp run_tests.sh \
     && chmod +x run_tests.sh \
-    && cd /home/user_sw/SW_VAR_DENS_MODEL-master \
+    && cd /home/user_sw/IMEX_SfloW2D-master \
     && touch README \
     && autoreconf \
     && ./configure \
@@ -40,7 +40,7 @@ RUN curl -LOk https://github.com/demichie/SW_VAR_DENS_MODEL/archive/master.zip \
     && rm *.zip \
     && echo 'alias python=python3' >> .bash_aliases \
     && mkdir /home/user_sw/scripts \
-    && mv /home/user_sw/SW_VAR_DENS_MODEL-master/commands.sh /home/user_sw/scripts/commands.sh \
+    && mv /home/user_sw/IMEX_SfloW2D-master/commands.sh /home/user_sw/scripts/commands.sh \
     && chmod +x /home/user_sw/scripts/commands.sh
 
 ENTRYPOINT ["/home/user_sw/scripts/commands.sh"]

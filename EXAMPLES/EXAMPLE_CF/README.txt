@@ -6,7 +6,7 @@ To run the example, unzip first the topography file.
 
 Once the topography file is unzipped, launch the solver:
 
->> ../../bin/SW_VAR_DENS_MODEL
+>> ../../bin/IMEX_SfloW2D
 
 Several output files are created as ESRI ascii files (*.asc) and they can be plotted with a GIS.
 

@@ -15,7 +15,7 @@ The topography file should be in the top DEM folder, and a symbolic link should 
 STEP 1: create a symbolic link to the executable in the template folder
 
 > cd templatedir
-> ln -s ../../../bin/SW_VAR_DENS_MODEL .
+> ln -s ../../../bin/IMEX_SfloW2D .
 > cd ..
 
 STEP 2: unzip the DEM file and create a symbolic link in the templatedir/DEM folder 

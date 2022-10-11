@@ -19,7 +19,7 @@ Usage example of the script:
 
 Run the solver:
 
->> ../../bin/SW_VAR_DENS_MODEL
+>> ../../bin/IMEX_SfloW2D
 
 Two Python scripts to plot the results are provided. The first one works better with small simulations.
 Usage example:

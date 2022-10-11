@@ -2,7 +2,7 @@
 cd TEST_2D
 echo ""
 ./cleanFolder.sh
-../../bin/SW_VAR_DENS_MODEL
+../../bin/IMEX_SfloW2D
 FILE=TEST_2D_0001.p_2d
 if test -f "$FILE"; then
     ./cleanFolder.sh
@@ -18,7 +18,7 @@ cd ..
 cd TEST_BOX
 echo ""
 ./cleanFolder.sh
-../../bin/SW_VAR_DENS_MODEL
+../../bin/IMEX_SfloW2D
 FILE=TEST_BOX_400_0001.p_2d
 if test -f "$FILE"; then
     ./cleanFolder.sh
@@ -34,7 +34,7 @@ cd ..
 cd TEST_BW
 echo ""
 ./cleanFolder.sh
-../../bin/SW_VAR_DENS_MODEL
+../../bin/IMEX_SfloW2D
 FILE=TEST_BW_400_0001.p_2d
 if test -f "$FILE"; then
     ./cleanFolder.sh
@@ -53,7 +53,7 @@ echo ""
 ./cleanFolder.sh
 cp ../../EXAMPLES/EXAMPLE_CF/topo.zip .
 unzip topo.zip
-../../bin/SW_VAR_DENS_MODEL
+../../bin/IMEX_SfloW2D
 FILE=TEST_CF_0001.p_2d
 if test -f "$FILE"; then
     ./cleanFolder.sh
@@ -70,7 +70,7 @@ cd TEST_TAAL
 echo ""
 ./cleanFolder.sh
 ln -s ../../EXAMPLES/EXAMPLE_TAAL/topography_dem.asc .
-../../bin/SW_VAR_DENS_MODEL
+../../bin/IMEX_SfloW2D
 FILE=TEST_TAAL_0001.p_2d
 if test -f "$FILE"; then
     ./cleanFolder.sh

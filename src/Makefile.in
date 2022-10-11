@@ -76,7 +76,7 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-bin_PROGRAMS = SW_VAR_DENS_MODEL$(EXEEXT)
+bin_PROGRAMS = IMEX_SfloW2D$(EXEEXT)
 subdir = src
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -88,12 +88,12 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_SW_VAR_DENS_MODEL_OBJECTS = parameters_2d.$(OBJEXT) complexify.$(OBJEXT) \
+am_IMEX_SfloW2D_OBJECTS = parameters_2d.$(OBJEXT) complexify.$(OBJEXT) \
 	geometry_2d.$(OBJEXT) constitutive_2d.$(OBJEXT) \
 	solver_2d.$(OBJEXT) init_2d.$(OBJEXT) inpout_2d.$(OBJEXT) \
-	SW_VAR_DENS_MODEL.$(OBJEXT)
-SW_VAR_DENS_MODEL_OBJECTS = $(am_SW_VAR_DENS_MODEL_OBJECTS)
-SW_VAR_DENS_MODEL_LDADD = $(LDADD)
+	IMEX_SfloW2D.$(OBJEXT)
+IMEX_SfloW2D_OBJECTS = $(am_IMEX_SfloW2D_OBJECTS)
+IMEX_SfloW2D_LDADD = $(LDADD)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -119,8 +119,8 @@ AM_V_FCLD = $(am__v_FCLD_@AM_V@)
 am__v_FCLD_ = $(am__v_FCLD_@AM_DEFAULT_V@)
 am__v_FCLD_0 = @echo "  FCLD    " $@;
 am__v_FCLD_1 = 
-SOURCES = $(SW_VAR_DENS_MODEL_SOURCES)
-DIST_SOURCES = $(SW_VAR_DENS_MODEL_SOURCES)
+SOURCES = $(IMEX_SfloW2D_SOURCES)
+DIST_SOURCES = $(IMEX_SfloW2D_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -228,7 +228,7 @@ top_srcdir = @top_srcdir@
 AUTOMAKE_OPTIONS = foreign
 
 # list of sources for the binary
-SW_VAR_DENS_MODEL_SOURCES = \
+IMEX_SfloW2D_SOURCES = \
                 parameters_2d.f90 \
                 complexify.f90 \
                 geometry_2d.f90 \
@@ -236,7 +236,7 @@ SW_VAR_DENS_MODEL_SOURCES = \
                 solver_2d.f90 \
                 init_2d.f90 \
                 inpout_2d.f90 \
-                SW_VAR_DENS_MODEL.f90
+                IMEX_SfloW2D.f90
 
 FCDEBUGFLAGS = -Wall -g
 MPFC = gfortran
@@ -318,9 +318,9 @@ uninstall-binPROGRAMS:
 clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
 
-SW_VAR_DENS_MODEL$(EXEEXT): $(SW_VAR_DENS_MODEL_OBJECTS) $(SW_VAR_DENS_MODEL_DEPENDENCIES) $(EXTRA_SW_VAR_DENS_MODEL_DEPENDENCIES) 
-	@rm -f SW_VAR_DENS_MODEL$(EXEEXT)
-	$(AM_V_FCLD)$(FCLINK) $(SW_VAR_DENS_MODEL_OBJECTS) $(SW_VAR_DENS_MODEL_LDADD) $(LIBS)
+IMEX_SfloW2D$(EXEEXT): $(IMEX_SfloW2D_OBJECTS) $(IMEX_SfloW2D_DEPENDENCIES) $(EXTRA_IMEX_SfloW2D_DEPENDENCIES) 
+	@rm -f IMEX_SfloW2D$(EXEEXT)
+	$(AM_V_FCLD)$(FCLINK) $(IMEX_SfloW2D_OBJECTS) $(IMEX_SfloW2D_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)

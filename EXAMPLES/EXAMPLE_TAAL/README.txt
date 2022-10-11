@@ -27,11 +27,11 @@ In this case, we have a single 20 seconds pulse.
 
 To run the example, first create a simbolic link of the executable in this folder:
 
->> ln -s ../../bin/SW_VAR_DENS_MODEL .
+>> ln -s ../../bin/IMEX_SfloW2D .
 
 Finally, launch the solver:
 
->> ./SW_VAR_DENS_MODEL
+>> ./IMEX_SfloW2D
 
 A script to convert the output of the model in NetCDF4 format is provided in the UTILS folder.
 First create a simbolic link of the script in this folder:

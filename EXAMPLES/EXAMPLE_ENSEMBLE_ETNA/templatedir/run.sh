@@ -5,7 +5,7 @@ mv input_ellipsoid.inp input_ellipsoid.py
 python create_input_ellipsoid.py > preprocessing.log
 
 export OMP_NUM_THREADS=1
-./SW_VAR_DENS_MODEL > run.log
+./IMEX_SfloW2D > run.log
 
 #python plot_overlay.py > postprocessing1.log
 #zip raster.zip *.asc

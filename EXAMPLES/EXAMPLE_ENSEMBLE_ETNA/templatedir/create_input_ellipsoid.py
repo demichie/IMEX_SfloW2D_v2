@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 %
-% Pre-processing tool for SW_VAR_DENS_MODEL simulations
+% Pre-processing tool for IMEX_SfloW2D simulations
 %
 % by M. de' Michieli Vitturi (2021-10-14)
 %

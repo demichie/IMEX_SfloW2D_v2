@@ -28,9 +28,9 @@ Usage example of the script:
 
 >> python create_example.py 150 20 0.08 300 2.5 0.99
 
-Once the input file (SW_VAR_DENS_MODEL.inp) is created, run the solver (this assumes that the example is in the original folder):
+Once the input file (IMEX_SfloW2D.inp) is created, run the solver (this assumes that the example is in the original folder):
 
->> ../../bin/SW_VAR_DENS_MODEL
+>> ../../bin/IMEX_SfloW2D
 
 Two Python scripts to plot the results are provided. The first one works better with small simulations.
 Usage example:

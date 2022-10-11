@@ -59,7 +59,7 @@ The last four parameters define the temporal changes in the inflow:
 
 Finally, launch the solver:
 
->> ../../bin/SW_VAR_DENS_MODEL
+>> ../../bin/IMEX_SfloW2D
 
 A script to convert the output of the model in NetCDF4 format is provided in the UTILS folder.
 First create a simbolic link of the script in this folder:

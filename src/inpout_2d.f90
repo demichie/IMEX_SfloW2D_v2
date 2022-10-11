@@ -383,13 +383,13 @@ CONTAINS
     eps_stop = 0.0_wp
 
     !-------------- Check if input file exists ----------------------------------
-    input_file = 'SW_VAR_DENS_MODEL.inp'
+    input_file = 'IMEX_SfloW2D.inp'
 
     INQUIRE (FILE=input_file,exist=lexist)
 
     IF (lexist .EQV. .FALSE.) THEN
 
-       WRITE(*,*) 'Input file SW_VAR_DENS_MODEL.inp not found'
+       WRITE(*,*) 'Input file IMEX_SfloW2D.inp not found'
        STOP
 
     ELSE

@@ -30,9 +30,9 @@ Usage example of the script:
 
 >> python create_example.py 200 2000 2000 900 0.9 0.8
 
-Once the input file (SW_VAR_DENS_MODEL.inp) is created, launch the solver:
+Once the input file (IMEX_SfloW2D.inp) is created, launch the solver:
 
->> ../../bin/SW_VAR_DENS_MODEL
+>> ../../bin/IMEX_SfloW2D
 
 A script to convert the output of the model in NetCDF4 format is provided in the UTILS folder.
 First create a simbolic link of the script in this folder:

@@ -1,6 +1,6 @@
 !********************************************************************************
-!> \mainpage SW_VAR_DENS_MODEL - Shallow Water Finite volume solver
-!> SW_VAR_DENS_MODEL is a FORTRAN90 code designed to solve an hyperbolic 
+!> \mainpage IMEX_SfloW2D - Shallow Water Finite volume solver
+!> IMEX_SfloW2D is a FORTRAN90 code designed to solve an hyperbolic 
 !> system of partial differential equations with relaxation and source
 !> terms.\n 
 !> The model is discretized in time with an explicit-implicit Runge-Kutta
@@ -14,7 +14,7 @@
 !> numerically with a complex step derivative technique.\n
 !> Version 1.0:\n
 !> \n 
-!> Github project page: http://demichie.github.io/SW_VAR_DENS_MODEL/
+!> Github project page: http://demichie.github.io/IMEX_SfloW2D/
 !> \n
 !> \authors Mattia de' Michieli Vitturi (*)
 !> (*) Istituto Nazionale di Geofisica e vulcanologia, sezione di Pisa\n
@@ -24,7 +24,7 @@
 !********************************************************************************
 
 !> \brief Main Program 
-PROGRAM SW_VAR_DENS_MODEL
+PROGRAM IMEX_SfloW2D
 
   USE constitutive_2d, ONLY : init_problem_param , T_ambient
 
@@ -123,7 +123,7 @@ PROGRAM SW_VAR_DENS_MODEL
 
 
   WRITE(*,*) '---------------------'
-  WRITE(*,*) 'SW_VAR_DENS_MODEL 1.0'
+  WRITE(*,*) 'IMEX_SfloW2D 1.0'
   WRITE(*,*) '---------------------'
 
   !$ use_openmp = .true.
@@ -458,5 +458,5 @@ PROGRAM SW_VAR_DENS_MODEL
   WRITE(*,*) 'Total time taken by the code is',t3-t1,'seconds'
   WRITE(*,*) 'Total elapsed real time is', DBLE( st3 - st1 ) / rate,'seconds'
 
-END PROGRAM SW_VAR_DENS_MODEL
+END PROGRAM IMEX_SfloW2D
 

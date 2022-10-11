@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Animate the 1D output of SW_VAR_DENS_MODEL
+Animate the 1D output of IMEX_SfloW2D
 
 """
 

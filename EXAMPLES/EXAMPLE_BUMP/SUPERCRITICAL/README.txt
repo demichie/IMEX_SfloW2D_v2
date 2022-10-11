@@ -18,7 +18,7 @@ Usage example of the script:
 
 Run the solver (this assumes that the example is in the original folder):
 
->> ../../../bin/SW_VAR_DENS_MODEL
+>> ../../../bin/IMEX_SfloW2D
 
 A Python script to plot the results is provided. With this script you can choose the output and the variable to plot (h,hB,B,u,v)
 Usage example:

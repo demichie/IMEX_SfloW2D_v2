@@ -6,11 +6,11 @@ AUTOMAKE_OPTIONS = foreign
 ###############################################################################
 
 # the program to build (the names of the final binaries)
-bin_PROGRAMS = SW_VAR_DENS_MODEL
+bin_PROGRAMS = IMEX_SfloW2D
 bindir=@bindir@
 
 # list of sources for the binary
-SW_VAR_DENS_MODEL_SOURCES = \
+IMEX_SfloW2D_SOURCES = \
                 parameters_2d.f90 \
                 complexify.f90 \
                 geometry_2d.f90 \
@@ -18,7 +18,7 @@ SW_VAR_DENS_MODEL_SOURCES = \
                 solver_2d.f90 \
                 init_2d.f90 \
                 inpout_2d.f90 \
-                SW_VAR_DENS_MODEL.f90
+                IMEX_SfloW2D.f90
 
 FCFLAGS         = -fopenmp -Ofast -funroll-all-loops
 FCDEBUGFLAGS    = -Wall -g
