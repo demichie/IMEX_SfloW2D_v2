@@ -4,6 +4,17 @@ import numpy as np
 import random
 from linecache import getline
 
+##########################################
+def uniform_discrete_1D_sampling(seq_1, n_samples):
+
+    # Sample from arrays
+
+    list_indx = random.choices(range(len(seq_1)), k=n_samples)
+
+    list_1 = [seq_1[i] for i in list_indx]
+    
+    return list_1
+
 
 ##########################################
 def uniform_discrete_2D_sampling(seq_1, seq_2, n_samples):
@@ -225,7 +236,7 @@ def main():
     list_values = []
     list_names = []
 
-    n_samples = 100
+    n_samples = 20
 
     ###
     """
@@ -306,7 +317,7 @@ def main():
     ###
     
     """
-    sector_list = associate_sector_to_coords('aree.asc',coor_x,coor_y)
+    sector_list = associate_sector_to_coords('sectors.asc',coor_x,coor_y)
 
     list_values.append(sector_list)
     list_names.append('Sector')
@@ -314,6 +325,12 @@ def main():
     
         
     ###
+    
+    velocity = [0.0, 30.0, 60.0, 90.0]
+    list_vel = uniform_discrete_1D_sampling(velocity,n_samples)
+
+    list_values.append(list_vel)
+    list_names.append('Velocity')
 
 
     df = pd.DataFrame(list(map(list, zip(*list_values))), columns=list_names)

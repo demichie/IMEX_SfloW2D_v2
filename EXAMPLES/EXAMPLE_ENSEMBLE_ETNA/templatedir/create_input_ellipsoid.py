@@ -10,9 +10,8 @@
 % obtaining by subtracting from the original den an ellipsoidal niche.
 % The following input parameters are required:
 % - DEM files (ESRII ascii format)
-% - x,y, coordinates of highest point (UTM coordinates)
-% - aspect ratio (ratio between horizontal semiaxis)
-% - volume (m3)
+% - x,y, coordinates of highest point P1(UTM coordinates)
+% - x,y, coordinates of highest point P2 (UTM coordinates)
 % - horizontal semiaxis of the ellipsoid orthogonal to the direction from P1 to P2 
 % The following output files are saved:
 % - modified DEM
@@ -146,7 +145,7 @@ def compute_vol_new(DEM,dist,XS,YS,x1,y1,semi_axis,aspect_ratio,cell_topo,n):
 
     Z_new,Z_ell,vol = compute_vol(X_new,Y_new,DEM,zc,a,b,c,n)
     
-    return Z_new,Z_ell,vol,zc
+    return Z_new,Z_ell,vol,zc,alpha_rad
 
 
 def compute_vol(X_new,Y_new,DEM,zc,a,b,c,n):
@@ -329,7 +328,7 @@ print('')
 semi_axis0 = 0.5*( 3.0/4.0*np.pi * vol)**(1.0/3.0)
 print('semi_axis0',semi_axis0)
         
-Z_new_temp,Z_ell_temp,vol0,zc = compute_vol_new(DEM,dist,XS,YS,x1,y1,semi_axis0,aspect_ratio,cell_topo,2.0)
+Z_new_temp,Z_ell_temp,vol0,zc,alpha_rad = compute_vol_new(DEM,dist,XS,YS,x1,y1,semi_axis0,aspect_ratio,cell_topo,2.0)
 
 if vol0 > vol:
 
@@ -341,7 +340,7 @@ else:
     semi_axis2 = 4.0*( 3.0/4.0*np.pi * vol)**(1.0/3.0)
     print('semi_axis2',semi_axis2)
         
-    Z_new_temp,Z_ell_temp,vol2,zc = compute_vol_new(DEM,dist,XS,YS,x1,y1,semi_axis2,aspect_ratio,cell_topo,2.0)
+    Z_new_temp,Z_ell_temp,vol2,zc,alpha_rad = compute_vol_new(DEM,dist,XS,YS,x1,y1,semi_axis2,aspect_ratio,cell_topo,2.0)
 
 
     
@@ -357,7 +356,7 @@ elif vol0<vol:
         semi_axis1 = semi_axis0+((vol-vol0)/(vol2-vol0))**(1.0/3.0)*(semi_axis2-semi_axis0)
         print('semi_axis1',semi_axis1)
         
-        Z_new,Z_ell,vol1,zc = compute_vol_new(DEM,dist,XS,YS,x1,y1,semi_axis1,aspect_ratio,cell_topo,2.0)
+        Z_new,Z_ell,vol1,zc,alpha_rad = compute_vol_new(DEM,dist,XS,YS,x1,y1,semi_axis1,aspect_ratio,cell_topo,2.0)
         
         if ( vol1 < vol ):
         
@@ -403,4 +402,32 @@ header += "NODATA_value " + "{:1.5f}".format(zc)
 
 np.savetxt(DEM_folder+'ellipsoid.asc', np.flipud(Z_ell), header=header, fmt='%1.5f',comments='')
 
+vx = -mod_vel*np.cos(alpha_rad)
+vy = mod_vel*np.sin(alpha_rad)
 
+print('vx,vy',vx,vy)
+  
+# Opening our text file in read only
+# mode using the open() function
+with open(r'IMEX_sfloW2D.inp', 'r') as file:
+  
+    # Reading the content of the file
+    # using the read() function and storing
+    # them in a new variable
+    data = file.read()
+  
+    # Searching and replacing the text
+    # using the replace() function
+    data = data.replace('ENSEMBLE_vx', str(vx))
+    data = data.replace('ENSEMBLE_vy', str(vy))
+  
+# Opening our text file in write only
+# mode to write the replaced content
+with open(r'IMEX_sfloW2D.inp', 'w') as file:
+  
+    # Writing the replaced data in our
+    # text file
+    file.write(data)
+  
+# Printing Text replaced
+print("Text replaced")
