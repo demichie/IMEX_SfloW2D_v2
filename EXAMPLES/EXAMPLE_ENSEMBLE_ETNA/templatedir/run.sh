@@ -1,7 +1,6 @@
 #!/bin/bash
 echo $PWD
 
-mv input_ellipsoid.inp input_ellipsoid.py
 python create_input_ellipsoid.py > preprocessing.log
 
 export OMP_NUM_THREADS=1

@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import os
 import shutil as st
-
+from stat import S_ISREG
 
 def replace_strings(working_dir, df , header , i_row):
 
@@ -11,34 +11,43 @@ def replace_strings(working_dir, df , header , i_row):
     directory = os.getcwd()
 
     for fname in os.listdir(directory):
+    
+        path = os.path.join(directory,fname)
+        
+        try:
+            st = os.lstat(path)
+        except EnvironmentError:
+            continue
+        else:
+        
+            if S_ISREG(st.st_mode):  
 
-        if os.path.isfile(fname) and "template" in fname:
-            # print(fname)
-            # Full path
-            f = open(fname, 'r')
-            filedata = f.read()
+#        if os.path.isfile(fname) and "template" in fname:
 
-            for name in header:
+                f = open(fname, 'r')
+                filedata = f.read()
 
-                searchstring = 'ENSEMBLE_' + name
-                # print(searchstring)
-                f.seek(0)
+                for name in header:
 
-                if searchstring in filedata:
-
-                    print('found string in file %s' % fname)
-                    print(searchstring)
+                    searchstring = 'ENSEMBLE_' + name
+                    # print(searchstring)
                     f.seek(0)
 
-                    for line in f:
-                        # replacing the string and write to output file
-                        filedata = filedata.replace(searchstring,
+                    if searchstring in filedata:
+
+                        print('found string in file %s' % fname)
+                        print(searchstring)
+                        f.seek(0)
+
+                        for line in f:
+                            # replacing the string and write to output file
+                            filedata = filedata.replace(searchstring,
                                                     str(df.at[i_row, name]))
 
-            f.close()
-            f_out = open(fname.replace('template', 'inp'), 'w')
-            f_out.write(filedata)
-            f_out.close()
+                f.close()
+                f_out = open(fname, 'w')
+                f_out.write(filedata)
+                f_out.close()
 
     os.chdir(main_dir)
 

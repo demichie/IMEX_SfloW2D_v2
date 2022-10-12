@@ -39,8 +39,18 @@ STEP 4: create the folders for the ensemble
 > python create_inputfiles.py
 
 This script create the folders by making a copy of the folder "templatedir". The values of the uncertain parameters
-in the template input files must be replaced by the strings "ENSAMBLE_xyz", where "xyz" is the keyword assigned in create_ensamble.py. For example, if "var1" is defined as unknown in create_ensemble.py, we must have in an input file the string "ENSEMBLE_var1".   
-For example, in this simulation we have:
+in the input files must be replaced by the strings "ENSAMBLE_xyz", where "xyz" is the keyword assigned in create_ensamble.py. For example, if "var1" is defined as unknown in create_ensemble.py, we must have in an input file the string "ENSEMBLE_var1".   
+
+In the is simulation we have, for the file IMEX_SfloW2D.inp:
+
+&RESTART_PARAMETERS
+ RESTART_FILE ="./DEM/init_volume.asc" ,
+ T_INIT = 373.D0 ,
+ T_AMBIENT = 300.D0 ,
+ SED_VOL_PERC = 50.0  ,
+ u_init = ENSEMBLE_vx,
+ v_init = ENSEMBLE_vy,
+/ 
 
 &RHEOLOGY_PARAMETERS
  RHEOLOGY_MODEL = 1,
