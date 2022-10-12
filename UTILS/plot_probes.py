@@ -1,54 +1,50 @@
-#!/usr/bin/env python
-"""
-% This function 
-
-"""
-import numpy as np                      
+import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-import time
 import sys
 import os.path
 
-print 
-
 if len(sys.argv)==2: 
  
-    filename = sys.argv[1]
+    prb_file = sys.argv[1]
 
-    os.path.isfile(filename) 
+    os.path.isfile(prb_file) 
 
 
 else:
 
-    print('Please provide file name (*.prb)\n')
+    print('Please provide file name (*_prb_xxxx.csv)\n')
     sys.exit()
 
-time =[]
-thickness = []
 
-with open(filename) as f:
-    lines=f.readlines()
-    for line in lines:
-        strings = line.split()
-        time.append(np.float(strings[0]))
-        thickness.append(np.float(strings[1]))
-# create a figure for the plot
+# Using readline()
+file_prb = open(prb_file, 'r')
 
-fig, ax1 = plt.subplots()
+line1 = file_prb.readline()
+print('line1',line1)
+coors = line1.split()
+print('coors',coors)
+line = file_prb.readline()
+vars = line.split(',')
+nvars = len(vars)
+line = file_prb.readline()
+units = line.split(',')
 
-plt.xlim([np.amin(time[1:]),np.amax(time[1:])])
+file_prb.close()
 
-ax1.plot(time[1:], thickness[1:], 'b-')
+data = np.genfromtxt(prb_file, delimiter=',', skip_header = 3)
+print(data.shape)
 
-ax1.set_xlabel('time [s]')
-ax1.set_ylabel('thickness [m]', color='b')
+for i in range(nvars-1):
 
-plt.show()
+    fig = plt.subplots()
 
-#plt.show()
+    plt.plot(data[:,0],data[:,i+1])
+    plt.xlim([np.amin(data[:,0]),np.amax(data[:,0])])
+    plt.xlabel(vars[0].strip()+' '+units[0].strip())
+    plt.ylabel(vars[i+1].strip()+' '+units[i+1].strip())
+    plt.title('(' + coors[0].strip() + ',' + coors[1].strip() + ')' )
+    figfile = prb_file.replace('.csv','_'+str(i+1)+'.pdf')
+    plt.savefig(figfile)
 
-
-
-
+# plt.show()
 
