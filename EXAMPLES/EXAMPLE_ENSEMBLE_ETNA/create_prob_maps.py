@@ -60,6 +60,8 @@ def calculate_map(asc_file, row_list, group_index):
 
     array_inv_tot = array_inv_tot / (n_rows - c)  # array_inv_tot normalization
 
+    array_inv_tot[array_inv_tot==0.0]=nd
+
     # dir containing new asc files
     result_dir = "result." + "{:03d}".format(group_index)
     result_dir = os.path.join(os.getcwd(), result_dir)
