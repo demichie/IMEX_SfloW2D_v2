@@ -5403,7 +5403,7 @@ CONTAINS
        IF ( time .EQ. t_start ) THEN
 
           OPEN(probes_unit,FILE=probes_file,status='unknown',form='formatted')
-          WRITE(probes_unit,'(100ES15.7E2)') probes_coords(1,k) , probes_coords(2,k)
+          WRITE(probes_unit,'(F14.3, A, F14.3)') probes_coords(1,k) ,',', probes_coords(2,k)
           WRITE(probes_unit,'(A15)',ADVANCE='no') 'time,'
           WRITE(probes_unit,'(A15)',ADVANCE='no') 'h,'
           WRITE(probes_unit,'(A15)',ADVANCE='no') 'rho,'
