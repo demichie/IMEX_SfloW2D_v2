@@ -3893,6 +3893,10 @@ CONTAINS
 
           WRITE(backup_unit,radial_source_parameters)
 
+       ELSEIF ( lateral_source_flag ) THEN
+
+          WRITE(backup_unit,lateral_source_parameters)
+          
        ELSE
 
           WRITE(backup_unit,initial_conditions)

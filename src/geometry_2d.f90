@@ -837,7 +837,6 @@ CONTAINS
        END IF
 
        WRITE(*,*) 'Total source length (m) = ',total_source
-       READ(*,*)
        
        RETURN
        
