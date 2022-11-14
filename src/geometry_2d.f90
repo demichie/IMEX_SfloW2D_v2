@@ -703,21 +703,21 @@ CONTAINS
   SUBROUTINE init_source
 
     USE parameters_2d, ONLY : x_source , y_source , r_source
+    USE parameters_2d, ONLY : radial_source_flag
 
+    USE parameters_2d, ONLY : source_side
+    USE parameters_2d, ONLY : x1_source , x2_source
+    USE parameters_2d, ONLY : y1_source , y2_source
+    USE parameters_2d, ONLY : lateral_source_flag
+    
     IMPLICIT NONE
 
     INTEGER :: j,k
 
+    REAL(wp) :: side_fract
     REAL(wp) :: total_source
 
-    IF ( verbose_level .GE. 0 ) THEN
-
-       WRITE(*,*) 'r_source',r_source
-       WRITE(*,*) 'dx,dy',dx,dy
-
-    END IF
-
-    ! cell where are equations are solved
+    ! cells where are equations are solved
     source_cell(1:comp_cells_x,1:comp_cells_y) = 0
 
     sourceE(1:comp_cells_x,1:comp_cells_y) = .FALSE.
@@ -732,6 +732,117 @@ CONTAINS
 
     total_source = 0.0_wp
 
+    IF ( lateral_source_flag ) THEN
+
+       IF ( source_side .EQ. 'W' ) THEN
+          
+          DO k = 2,comp_cells_y-1
+
+             !WRITE(*,*)  k,y_stag(k),y_stag(k+1),y1_source,y2_source
+             !WRITE(*,*) 
+             !READ(*,*)
+             
+             IF ( ( y_stag(k) .LE. y2_source ) .AND. ( y_stag(k+1) .GE.         &
+                  y1_source ) ) THEN
+                
+                source_cell(1,k) = 2
+                sourceW(1,k) = .TRUE.
+                
+                side_fract = MIN ( MIN( (y_stag(k+1) - y1_source) , ( y2_source -     &
+                     y_stag(k) ) ) , ( y2_source - y1_source ) , dy ) / dy
+
+                WRITE(*,*) 'side_fract',side_fract
+                
+                sourceW_vect_x(1,k) = side_fract
+                sourceW_vect_y(1,k) = 0.0_wp
+                
+                total_source = total_source + dy * side_fract
+                
+             END IF
+             
+          END DO
+          
+       END IF
+          
+       IF ( source_side .EQ. 'E' ) THEN
+
+          DO k = 2,comp_cells_y-1
+
+             IF ( ( y_stag(k) .LE. y2_source ) .AND. ( y_stag(k+1) .GE.         &
+                  y1_source ) ) THEN
+
+                source_cell(comp_cells_x,k) = 2
+                sourceE(comp_cells_x,k) = .TRUE.
+
+                side_fract = MIN ( MIN( (y_stag(k+1) - y1_source) , ( y2_source -     &
+                     y_stag(k) ) ) , ( y2_source - y1_source ) , dy ) / dy
+                                
+                sourceE_vect_x(comp_cells_x,k) = -side_fract
+                sourceE_vect_y(comp_cells_x,k) = 0.0_wp
+
+                total_source = total_source + dy * side_fract
+
+             END IF
+
+          END DO
+
+       END IF
+
+       IF ( source_side .EQ. 'S' ) THEN
+
+          DO j = 2,comp_cells_x-1
+
+             IF ( ( x_stag(j) .GE. x1_source ) .AND. ( x_stag(j+1) .LE.         &
+                  x2_source ) ) THEN
+
+                source_cell(j,1) = 2
+                sourceS(j,1) = .TRUE.
+
+                side_fract = MAX( (x_stag(j+1) - x1_source) , ( x2_source -     &
+                     x_stag(j) ) , ( x2_source - x1_source ) ) / dx
+                
+                sourceS_vect_x(j,1) = 0.0_wp
+                sourceS_vect_y(j,1) = side_fract
+
+                total_source = total_source + dx * side_fract
+
+             END IF
+
+          END DO
+
+       END IF
+
+       IF ( source_side .EQ. 'N' ) THEN
+
+          DO j = 2,comp_cells_x-1
+
+             IF ( ( x_stag(j) .GE. x1_source ) .AND. ( x_stag(j+1) .LE.         &
+                  x2_source ) ) THEN
+
+                source_cell(j,comp_cells_y) = 2
+                sourceS(j,comp_cells_y) = .TRUE.
+
+                side_fract = MAX( (x_stag(j+1) - x1_source) , ( x2_source -     &
+                     x_stag(j) ) , ( x2_source - x1_source ) ) / dx
+                
+                sourceS_vect_x(j,comp_cells_y) = 0.0_wp
+                sourceS_vect_y(j,comp_cells_y) = -side_fract
+
+                total_source = total_source + dx * side_fract
+
+             END IF
+
+          END DO
+
+       END IF
+
+       WRITE(*,*) 'Total source length (m) = ',total_source
+       READ(*,*)
+       
+       RETURN
+       
+    END IF
+    
     DO k = 2,comp_cells_y-1
 
        DO j = 2,comp_cells_x-1

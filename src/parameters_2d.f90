@@ -79,6 +79,8 @@ MODULE parameters_2d
 
   LOGICAL :: radial_source_flag
 
+  LOGICAL :: lateral_source_flag
+  
   !> Flag to choose if initial volume is subtracted from topography or erodible layer
   !> - T      => change initial topography or erodible layer by subtracting initial volume 
   !> - F      => keep initial topography or erodible layer
@@ -155,8 +157,26 @@ MODULE parameters_2d
   REAL(wp) :: xl_source
 
   REAL(wp) :: time_param(4)
-  
 
+  !> Lateral source side:\n
+  !> - 'E'       => East (requires x1_source and x2_source);
+  !> - 'W'       => West (requires x1_source and x2_source);
+  !> - 'S'       => South (requires y1_source and y2_source);
+  !> - 'N'       => North (requires y1_source and y2_source);
+  !> .
+  CHARACTER(LEN=20) :: source_side     
+
+  
+  !> 1st coordinate for lateral source (E or W)
+  REAL(wp) :: x1_source
+  !> 2nd coordinate for lateral source (E or W)
+  REAL(wp) :: x2_source
+
+  !> 1st coordinate for lateral source (S or N)
+  REAL(wp) :: y1_source
+  !> 2nd coordinate for lateral source (S or N)
+  REAL(wp) :: y2_source
+  
   LOGICAL :: collapsing_volume_flag
 
   REAL(wp) :: x_collapse

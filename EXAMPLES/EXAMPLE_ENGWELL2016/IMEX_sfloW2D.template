@@ -98,9 +98,9 @@
  Y_SOURCE = source_y ,
  H_SOURCE = source_h ,
  R_SOURCE = source_r ,
- VEL_SOURCE = source_vel ,
+ RI_SOURCE = source_Ri ,
  T_SOURCE = source_T ,
- ALPHAS_SOURCE = source_alphas , 
+ XS_SOURCE = source_xs , 
  /
 &RHEOLOGY_PARAMETERS
  RHEOLOGY_MODEL = 6,

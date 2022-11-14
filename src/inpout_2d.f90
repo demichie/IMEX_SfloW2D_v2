@@ -27,7 +27,7 @@ MODULE inpout_2d
   USE parameters_2d, ONLY : rheology_flag , energy_flag , alpha_flag ,          &
        topo_change_flag , radial_source_flag , collapsing_volume_flag ,         &
        liquid_flag , gas_flag , subtract_init_flag , bottom_radial_source_flag ,&
-       vertical_profiles_flag 
+       vertical_profiles_flag , lateral_source_flag
 
   USE parameters_2d, ONLY : slope_correction_flag , curvature_term_flag 
 
@@ -54,6 +54,10 @@ MODULE inpout_2d
        T_source , h_source , alphas_source , alphal_source , alphag_source ,    &
        time_param , Ri_source , mfr_source , xs_source , xl_source , xg_source
 
+  ! -- Additional variables for the namelist LATERAL_SOURCE_PARAMETERS
+  USE parameters_2d, ONLY : source_side , x1_source , x2_source , y1_source ,   &
+       y2_source
+  
   ! -- Variables for the namelist COLLAPSING_VOLUME_PARAMETERS
   USE parameters_2d, ONLY : x_collapse , y_collapse , r_collapse , T_collapse , &
        h_collapse , alphas_collapse , alphag_collapse
@@ -235,7 +239,7 @@ MODULE inpout_2d
        energy_flag , liquid_flag , radial_source_flag , collapsing_volume_flag ,&
        topo_change_flag , gas_flag , subtract_init_flag , n_add_gas ,           &
        bottom_radial_source_flag , slope_correction_flag , curvature_term_flag ,&
-       vertical_profiles_flag
+       vertical_profiles_flag , lateral_source_flag
 
   NAMELIST / initial_conditions /  released_volume , x_release , y_release ,    &
        velocity_mod_release , velocity_ang_release , T_init , T_ambient
@@ -249,6 +253,11 @@ MODULE inpout_2d
        vel_source , T_source , h_source , alphas_source , alphal_source ,       &
        alphag_source , time_param , Ri_source , mfr_source , xs_source ,        &
        xl_source , xg_source
+
+  NAMELIST / lateral_source_parameters / source_side , x1_source , x2_source ,  &
+       y1_source , y2_source , vel_source , T_source , h_source , alphas_source,&
+       alphal_source , alphag_source , time_param , Ri_source , mfr_source ,    &
+       xs_source , xl_source , xg_source
 
   NAMELIST / collapsing_volume_parameters / x_collapse , y_collapse ,           &
        r_collapse , T_collapse , h_collapse , alphas_collapse , alphag_collapse
@@ -331,6 +340,7 @@ CONTAINS
     energy_flag = .FALSE.
     topo_change_flag = .FALSE.
     radial_source_flag = .FALSE.
+    lateral_source_flag = .FALSE.
     collapsing_volume_flag = .FALSE.
     bottom_radial_source_flag = .FALSE.
     liquid_flag = .FALSE.
@@ -601,6 +611,13 @@ CONTAINS
     xg_source = -1.0_wp
     xl_source = -1.0_wp
 
+    !- Variable for the namelist LATERAL_SOURCE_PARAMETERS
+    source_side = ''
+    x1_source = -1.0_wp
+    x2_source = -1.0_wp
+    y1_source = -1.0_wp
+    y2_source = -1.0_wp    
+    
     !- Variables for the namelist COLLAPSING_VOLUME_PARAMETERS
     T_collapse = -1.0_wp
     h_collapse = -1.0_wp
@@ -710,6 +727,9 @@ CONTAINS
 
     REAL(wp) :: expA , expB , Tc
 
+    CHARACTER(LEN=20) :: source_name
+    REAL(wp) :: source_length
+    
     REAL(wp), ALLOCATABLE :: qp_source(:)
     REAL(wp) :: red_grav
     REAL(wp) :: rho_c
@@ -2818,101 +2838,6 @@ CONTAINS
 
     CLOSE(2001)
 
-
-    ! ------- READ runout_parameters NAMELIST -----------------------------------
-
-    IF ( output_runout_flag ) THEN
-
-       READ(input_unit, runout_parameters,IOSTAT=ios)
-
-       IF ( ios .NE. 0 ) THEN
-
-          WRITE(*,*) 'IOSTAT=',ios
-          WRITE(*,*) 'ERROR: problem with namelist RUNOUT_PARAMETERS'
-          WRITE(*,*) 'Please check the input file'
-          WRITE(*,runout_parameters) 
-          STOP
-
-       ELSE
-
-          REWIND(input_unit)
-
-       END IF
-
-       IF ( ( x0_runout .EQ. -1.0_wp ) .AND. ( y0_runout .EQ. -1.0_wp ) ) THEN
-
-          WRITE(*,*) 'Runout reference location not defined'
-
-          IF ( collapsing_volume_flag ) THEN
-
-             x0_runout = x_collapse
-             y0_runout = y_collapse
-             WRITE(*,*) 'New reference location defined from collapse (x,y)'
-             WRITE(*,*) 'x0_runout =',x0_runout
-             WRITE(*,*) 'y0_runout =',y0_runout
-
-          END IF
-
-          IF ( radial_source_flag .OR. bottom_radial_source_flag ) THEN
-
-             x0_runout = x_source
-             y0_runout = y_source
-             WRITE(*,*) 'New reference location defined from source'
-             WRITE(*,*) 'x0_runout =',x0_runout
-             WRITE(*,*) 'y0_runout =',y0_runout
-
-          END IF
-
-       ELSE
-
-          IF ( x0_runout .LT. x0 ) THEN
-
-             WRITE(*,*) 'Computational domain problem'
-             WRITE(*,*) 'x0_runout < x0',x0,x0_runout
-             STOP
-
-          END IF
-
-          IF ( x0 .GT. x0+comp_cells_x*cell_size ) THEN
-
-             WRITE(*,*) 'Computational domain problem'
-             WRITE(*,*) 'x0_runout > x0+comp_cells_x*cell_size' , x0 ,          &
-                  x0_runout+comp_cells_x*cell_size
-             STOP
-
-          END IF
-
-          IF ( y0_runout .LT. y0 ) THEN
-
-             WRITE(*,*) 'Computational domain problem'
-             WRITE(*,*) 'y0_runout < y0',y0,y0_runout
-             STOP
-
-          END IF
-
-          IF ( y0 .GT. y0+comp_cells_y*cell_size ) THEN
-
-             WRITE(*,*) 'Computational domain problem'
-             WRITE(*,*) 'y0_runout > y0+comp_cells_y*cell_size' , y0 ,          &
-                  y0_runout+comp_cells_y*cell_size
-             STOP
-
-          END IF
-
-       END IF
-
-       runout_file = TRIM(run_name)//'_runout'//'.csv'
-
-       OPEN(runout_unit,FILE=runout_file,STATUS='unknown',form='formatted')
-
-       mass_center_file = TRIM(run_name)//'_mass_center'//'.csv'
-
-       OPEN(mass_center_unit,FILE=mass_center_file,STATUS='unknown',form='formatted')
-
-
-
-    END IF
-
     ! ----------- READ vulnerability_table_parameters NAMELIST ------------------
 
     READ(input_unit, vulnerability_table_parameters,IOSTAT=ios)
@@ -3100,18 +3025,38 @@ CONTAINS
 
     ! ------- READ radial_source_parameters NAMELIST ----------------------------
 
-    source_flag:IF ( ( radial_source_flag ) .OR. ( bottom_radial_source_flag ) )&
-         THEN
+    source_flag:IF ( ( radial_source_flag ) .OR. ( bottom_radial_source_flag )  &
+         .OR. ( lateral_source_flag ) ) THEN
 
        alphal_source = -1.0_wp
 
-       READ(input_unit,radial_source_parameters,IOSTAT=ios)
+       IF ( lateral_source_flag ) THEN
 
+          WRITE(*,*) 'Searching for namelist LATERAL_SOURCE_PARAMETERS'
+          READ(input_unit,lateral_source_parameters,IOSTAT=ios)
+          source_name = 'LATERAL_SOURCE_PARAMETERS'
+          
+       ELSE
+          
+          READ(input_unit,radial_source_parameters,IOSTAT=ios)
+          source_name = 'RADIAL_SOURCE_PARAMETERS'
+
+       END IF
+          
        IF ( ios .NE. 0 ) THEN
 
           WRITE(*,*) 'IOSTAT=',ios
-          WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
-          WRITE(*,radial_source_parameters)
+          WRITE(*,*) 'ERROR: problem with namelist ',TRIM(source_name)
+
+          IF ( lateral_source_flag ) THEN
+
+             WRITE(*,lateral_source_parameters)
+
+          ELSE
+
+             WRITE(*,radial_source_parameters)
+
+          END IF
           WRITE(*,*) 'Please check the input file'
           STOP
 
@@ -3121,7 +3066,7 @@ CONTAINS
 
           IF ( t_source .EQ. -1.0_wp ) THEN
 
-             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+             WRITE(*,*) 'ERROR: problem with namelist ',TRIM(source_name)
              WRITE(*,*) 'PLEASE CHECK VALUE OF T_SOURCE',t_source
              STOP
 
@@ -3130,7 +3075,7 @@ CONTAINS
           IF ( ( ( h_source .EQ. -1.0_wp ) .AND. ( mfr_source .EQ. -1 ) ) &
                .AND. (.NOT. bottom_radial_source_flag) ) THEN
 
-             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+             WRITE(*,*) 'ERROR: problem with namelist ',TRIM(source_name)
              WRITE(*,*) 'PLEASE ASSIGN A VALUE TO H_SOURCE OR MFR_SOURCE'
              STOP
 
@@ -3151,7 +3096,7 @@ CONTAINS
 
           IF ( ( h_source .GE. 0.0_wp ) .AND. ( mfr_source .GE. 0.0_wp ) ) THEN
 
-             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+             WRITE(*,*) 'ERROR: problem with namelist ',TRIM(source_name)
              WRITE(*,*) 'PLEASE ASSIGN ONLY H_SOURCE OR MFR_SOURCE'
              WRITE(*,*) 'h_source',h_source
              WRITE(*,*) 'mfr_source',mfr_source
@@ -3159,9 +3104,9 @@ CONTAINS
 
           END IF
 
-          IF ( r_source .EQ. -1.0_wp ) THEN
+          IF ( ( radial_source_flag ) .AND. ( r_source .EQ. -1.0_wp ) ) THEN
 
-             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+             WRITE(*,*) 'ERROR: problem with namelist ',TRIM(source_name)
              WRITE(*,*) 'PLEASE CHECK VALUE OF R_SOURCE',r_source
              STOP
 
@@ -3185,19 +3130,19 @@ CONTAINS
 
           END IF
 
-          IF ( radial_source_flag ) THEN
+          IF ( ( lateral_source_flag ) .OR. ( radial_source_flag ) ) THEN
 
              IF ( ( vel_source .EQ. -1.0_wp ) .AND. ( Ri_source .EQ. -1.0_wp ) )&
                   THEN
 
-                WRITE(*,*) 'ERROR:problem with namelist RADIAL_SOURCE_PARAMETERS'
+                WRITE(*,*) 'ERROR: problem with namelist ',TRIM(source_name)
                 WRITE(*,*) 'PLEASE ASSIGN VALUE TO VEL_SOURCE OR RI_SOURCE'
                 STOP
 
              ELSEIF (( vel_source .NE. -1.0_wp ).AND.( Ri_source .NE. -1.0_wp ))&
                   THEN
 
-                WRITE(*,*) 'ERROR:problem with namelist RADIAL_SOURCE_PARAMETERS'
+                WRITE(*,*) 'ERROR: problem with namelist ',TRIM(source_name)
                 WRITE(*,*) 'PLEASE ASSIGN ONLY VEL_SOURCE OR RI_SOURCE'
                 WRITE(*,*) 'VEL_SOURCE:',vel_source
                 WRITE(*,*) 'RI_SOURCE:',Ri_source
@@ -3207,51 +3152,140 @@ CONTAINS
 
           END IF
 
-          IF ( ( x_source - r_source ) .LE. X0 + cell_size ) THEN
+          IF ( radial_source_flag ) THEN
 
-             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
-             WRITE(*,*) 'SOURCE TOO LARGE'
-             WRITE(*,*) ' x_source - radius ',x_source-r_source
-             STOP
+             pi_g = ATAN(1.0_wp)*4.0_wp
+             source_length = 2.0 * pi_g * r_source
+          
+             IF ( ( x_source - r_source ) .LE. X0 + cell_size ) THEN
+
+                WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+                WRITE(*,*) 'SOURCE TOO LARGE'
+                WRITE(*,*) ' x_source - radius ',x_source-r_source
+                STOP
+                
+             END IF
+             
+             IF ( ( x_source + r_source ) .GE. X0+(comp_cells_x-1)*cell_size ) THEN
+                
+                WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+                WRITE(*,*) 'SOURCE TOO LARGE'
+                WRITE(*,*) ' x_source + radius ',x_source+r_source
+                STOP
+                
+             END IF
+             
+             IF ( ( y_source - r_source ) .LE. Y0 + cell_size ) THEN
+                
+                WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+                WRITE(*,*) 'SOURCE TOO LARGE'
+                WRITE(*,*) ' y_source - radius ',y_source-r_source
+                STOP
+                
+             END IF
+             
+             IF ( ( y_source + r_source ) .GE. Y0+(comp_cells_y-1)*cell_size ) THEN
+                
+                WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
+                WRITE(*,*) 'SOURCE TOO LARGE'
+                WRITE(*,*) ' y_source + radius ',y_source+r_source
+                STOP
+                
+             END IF
 
           END IF
 
-          IF ( ( x_source + r_source ) .GE. X0+(comp_cells_x-1)*cell_size ) THEN
+          IF ( lateral_source_flag ) THEN
 
-             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
-             WRITE(*,*) 'SOURCE TOO LARGE'
-             WRITE(*,*) ' x_source + radius ',x_source+r_source
-             STOP
+             IF ( ( source_side .NE. 'E' ) .AND. ( source_side .NE. 'W' ) .AND. &
+                  ( source_side .NE. 'S' ) .AND. ( source_side .NE. 'N' ) ) THEN
+                
+                WRITE(*,*) 'ERROR: problem with namelist ',TRIM(source_name)
+                WRITE(*,*) 'SOURCE_SIDE SHOULD BE: E, W, N or S'
+                WRITE(*,*) 'SOURCE_SIDE', source_side
+                STOP
+                
+             END IF
+                          
+             IF ( ( source_side .EQ. 'E' ) .OR. ( source_side .EQ. 'W' ) ) THEN
+
+                IF ( y1_source .GE. y2_source ) THEN
+                   
+                   WRITE(*,*) 'ERROR: problem with namelist ',TRIM(source_name)
+                   WRITE(*,*) 'Y1_SOURCE >= Y2_SOURCE'
+                   WRITE(*,*) y1_source,y2_source
+                   STOP
+
+                END IF
+
+                IF ( y1_source .LE. Y0 ) THEN
+                   
+                   WRITE(*,*) 'ERROR: problem with namelist ',TRIM(source_name)
+                   WRITE(*,*) 'Y1_SOURCE TOO SMALL'
+                   WRITE(*,*) ' y1_source',y1_source
+                   STOP
+
+                END IF
+
+                IF ( y2_source .GE. Y0+comp_cells_y*cell_size ) THEN
+                   
+                   WRITE(*,*) 'ERROR: problem with namelist ',TRIM(source_name)
+                   WRITE(*,*) 'Y2_SOURCE TOO LARGE'
+                   WRITE(*,*) ' y2_source',y2_source
+                   STOP
+
+                END IF
+
+                source_length = y2_source - y1_source
+                
+             END IF
+
+             IF ( ( source_side .EQ. 'S' ) .OR. ( source_side .EQ. 'N' ) ) THEN
+
+                IF ( x1_source .GE. x2_source ) THEN
+                   
+                   WRITE(*,*) 'ERROR: problem with namelist ',TRIM(source_name)
+                   WRITE(*,*) 'X1_SOURCE >= X2_SOURCE'
+                   WRITE(*,*) x1_source,x2_source
+                   STOP
+
+                END IF
+
+                IF ( x1_source .LE. X0 ) THEN
+                   
+                   WRITE(*,*) 'ERROR: problem with namelist ',TRIM(source_name)
+                   WRITE(*,*) 'X1_SOURCE TOO SMALL'
+                   WRITE(*,*) ' X1_source',X1_source
+                   WRITE(*,*) 'X0',X0
+                   STOP
+
+                END IF
+
+                IF ( x2_source .GE. X0+comp_cells_x*cell_size ) THEN
+                   
+                   WRITE(*,*) 'ERROR: problem with namelist ',TRIM(source_name)
+                   WRITE(*,*) 'X2_SOURCE TOO LARGE'
+                   WRITE(*,*) ' x2_source',x2_source
+                   STOP
+
+                END IF
+
+                source_length = x2_source - x1_source
+                
+             END IF
 
           END IF
 
-          IF ( ( y_source - r_source ) .LE. Y0 + cell_size ) THEN
-
-             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
-             WRITE(*,*) 'SOURCE TOO LARGE'
-             WRITE(*,*) ' y_source - radius ',y_source-r_source
-             STOP
-
-          END IF
-
-          IF ( ( y_source + r_source ) .GE. Y0+(comp_cells_y-1)*cell_size ) THEN
-
-             WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
-             WRITE(*,*) 'SOURCE TOO LARGE'
-             WRITE(*,*) ' y_source + radius ',y_source+r_source
-             STOP
-
-          END IF
 
           IF ( ( ANY(alphas_source(1:n_solid) .EQ. -1.0_wp ) ) .AND.           &
                ( ANY(xs_source(1:n_solid) .EQ. -1.0_wp ) ) )  THEN
-
+             
              WRITE(*,*) 'ERROR: problem with namelist RADIAL_VOLUME_PARAMETERS'
              WRITE(*,*) 'alphas_source =' , alphas_source(1:n_solid)
              WRITE(*,*) 'xs_source =' , xs_source(1:n_solid)
              WRITE(*,*) 'Please check the input file'
              STOP
-
+                
           END IF
 
           IF ( ( ANY(alphas_source(1:n_solid) .GT. -1.0_wp ) ) .AND.           &
@@ -3420,7 +3454,7 @@ CONTAINS
 
           ALLOCATE( qp_source(n_vars+2) )
 
-          IF ( radial_source_flag ) THEN
+          IF ( lateral_source_flag .OR. radial_source_flag ) THEN
 
              ! compute the velocity, given the Richardson number
 
@@ -3508,8 +3542,6 @@ CONTAINS
 
              END IF
 
-             WRITE(*,*) 'Source density =',rho_m,'(kg/m3)'
-
              IF ( alpha_flag ) THEN
 
                 qp_source(5:4+n_solid) = alphas_source(1:n_solid)
@@ -3540,8 +3572,9 @@ CONTAINS
              CALL mixt_var( qp_source, Ri, rho_m, rho_c, red_grav, sp_heat_flag,&
                   sp_heat_c, sp_heat_mix)
 
-             pi_g = ATAN(1.0_wp)*4.0_wp
-
+             WRITE(*,*) 'Source density =',rho_m,'(kg/m3)'
+             WRITE(*,*) 'Source reduced gravity =',red_grav,'(m/s2)'
+             
              ALLOCATE( shape_coeff(n_vars) )
              
              IF ( mfr_source .GE. 0.0_wp ) THEN
@@ -3565,7 +3598,7 @@ CONTAINS
 
                       ! WRITE(*,*) 'iter_source',iter_source
                       
-                      h_source = ( mfr_source/( r_source * 2.0_wp * pi_g * rho_m * shape_coeff(1) ) &
+                      h_source = ( mfr_source/( source_length * rho_m * shape_coeff(1) ) &
                            * SQRT( Ri_source/red_grav ) )**(2.0_wp/3.0_wp)
                       
                       qp_source(1) = h_source
@@ -3644,7 +3677,7 @@ CONTAINS
                       
                    END IF
                    
-                   h_source = mfr_source / ( r_source * 2.0_wp * pi_g * rho_m * &
+                   h_source = mfr_source / ( source_length * rho_m * &
                         vel_source * shape_coeff(1) )
 
                 END IF
@@ -3685,7 +3718,7 @@ CONTAINS
              WRITE(*,*) 'Source velocity =',vel_source,' (m/s)'
              WRITE(*,*) 'Source thickness =',h_source,'(m)'
 
-             mfr = rho_m*h_source*r_source*2.0*pi_g*vel_source*shape_coeff(1)
+             mfr = rho_m * h_source * source_length * vel_source * shape_coeff(1)
              WRITE(*,*) 'Source mass flow rate =',mfr,'(kg/s)'
              WRITE(*,*)
              ! READ(*,*)
@@ -3696,6 +3729,99 @@ CONTAINS
 
     END IF source_flag
 
+    ! ------- READ runout_parameters NAMELIST -----------------------------------
+
+    IF ( output_runout_flag ) THEN
+
+       READ(input_unit, runout_parameters,IOSTAT=ios)
+
+       IF ( ios .NE. 0 ) THEN
+
+          WRITE(*,*) 'IOSTAT=',ios
+          WRITE(*,*) 'ERROR: problem with namelist RUNOUT_PARAMETERS'
+          WRITE(*,*) 'Please check the input file'
+          WRITE(*,runout_parameters) 
+          STOP
+
+       ELSE
+
+          REWIND(input_unit)
+
+       END IF
+
+       IF ( ( x0_runout .EQ. -1.0_wp ) .AND. ( y0_runout .EQ. -1.0_wp ) ) THEN
+
+          WRITE(*,*) 'Runout reference location not defined'
+
+          IF ( collapsing_volume_flag ) THEN
+
+             x0_runout = x_collapse
+             y0_runout = y_collapse
+             WRITE(*,*) 'New reference location defined from collapse (x,y)'
+             WRITE(*,*) 'x0_runout =',x0_runout
+             WRITE(*,*) 'y0_runout =',y0_runout
+
+          END IF
+
+          IF ( radial_source_flag .OR. bottom_radial_source_flag ) THEN
+
+             x0_runout = x_source
+             y0_runout = y_source
+             WRITE(*,*) 'New reference location defined from source'
+             WRITE(*,*) 'x0_runout =',x0_runout
+             WRITE(*,*) 'y0_runout =',y0_runout
+
+          END IF
+
+       ELSE
+
+          IF ( x0_runout .LT. x0 ) THEN
+
+             WRITE(*,*) 'Computational domain problem'
+             WRITE(*,*) 'x0_runout < x0',x0,x0_runout
+             STOP
+
+          END IF
+
+          IF ( x0 .GT. x0+comp_cells_x*cell_size ) THEN
+
+             WRITE(*,*) 'Computational domain problem'
+             WRITE(*,*) 'x0_runout > x0+comp_cells_x*cell_size' , x0 ,          &
+                  x0_runout+comp_cells_x*cell_size
+             STOP
+
+          END IF
+
+          IF ( y0_runout .LT. y0 ) THEN
+
+             WRITE(*,*) 'Computational domain problem'
+             WRITE(*,*) 'y0_runout < y0',y0,y0_runout
+             STOP
+
+          END IF
+
+          IF ( y0 .GT. y0+comp_cells_y*cell_size ) THEN
+
+             WRITE(*,*) 'Computational domain problem'
+             WRITE(*,*) 'y0_runout > y0+comp_cells_y*cell_size' , y0 ,          &
+                  y0_runout+comp_cells_y*cell_size
+             STOP
+
+          END IF
+
+       END IF
+
+       runout_file = TRIM(run_name)//'_runout'//'.csv'
+
+       OPEN(runout_unit,FILE=runout_file,STATUS='unknown',form='formatted')
+
+       mass_center_file = TRIM(run_name)//'_mass_center'//'.csv'
+
+       OPEN(mass_center_unit,FILE=mass_center_file,STATUS='unknown',form='formatted')
+
+
+
+    END IF
 
     !------ search for check points --------------------------------------------
 

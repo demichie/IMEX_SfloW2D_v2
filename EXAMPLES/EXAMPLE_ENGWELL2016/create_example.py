@@ -62,30 +62,7 @@ else:
     sys.exit()
 
 
-n_solid = 1
-rho_s = 2000.0
-pres = 101300.0
-sp_gas_const = 287.051
-rho_g =  pres / ( sp_gas_const * T_init )
-xg_init = 1.0 - xs_init
-
-alfag_init = xg_init * rho_s / ( rho_g - xg_init * ( rho_g - rho_s ) )
-alfas_init = 1.0 - alfag_init
-
-rho_mix = 1.0/(xs_init/rho_s + (1.0-xs_init)/rho_g)
-
-print('alfas_init',alfas_init)
-print('rho_mix',alfas_init*rho_s + (1.0-alfas_init)*rho_g)
-print('rho_mix',rho_mix)
-
-T_ambient = 300.0
-rho_atm = pres / ( sp_gas_const * T_ambient )
-print('rho_atm',rho_atm)
-grav = 9.81
-
-vel_init = np.sqrt( grav * h_init * ( rho_mix - rho_atm ) / ( rho_mix * Ri_init ) )
-
-print('vel_init',vel_init)
+print('xs_init',xs_init)
 
 # Define the boundaries x_left and x_right of the spatial domain
 x_min = -10000.0
@@ -93,7 +70,6 @@ x_max = 10000.0
 
 y_min = -10000.0
 y_max = 10000.0
-
 
 # Define the number n_points of points of the grid
 nx_points  = nx_cells+1
@@ -195,6 +171,7 @@ np.savetxt(output_full, Z, header=header, fmt='%1.12f',comments='')
 # create intial solution file
 init_file = 'example_RS_0000.q_2d'
 
+n_solid = 1
 
 for i in range(ny_cells):
 
@@ -239,13 +216,13 @@ filedata = filedata.replace('y_min', str(y_min)+'D0')
 filedata = filedata.replace('nx_cells', str(nx_cells))
 filedata = filedata.replace('ny_cells', str(ny_cells))
 filedata = filedata.replace('dx', str(dx)+'D0')
+filedata = filedata.replace('source_xs', str(xs_init)+'D0')
 filedata = filedata.replace('source_x', str(x_half)+'D0')
 filedata = filedata.replace('source_y', str(y_half)+'D0')
 filedata = filedata.replace('source_h', str(h_init)+'D0')
 filedata = filedata.replace('source_r', str(r_init)+'D0')
 filedata = filedata.replace('source_T', str(T_init)+'D0')
-filedata = filedata.replace('source_vel', str(vel_init)+'D0')
-filedata = filedata.replace('source_alphas', str(alfas_init))
+filedata = filedata.replace('source_Ri', str(Ri_init)+'D0')
 
 
 # Write the file out again

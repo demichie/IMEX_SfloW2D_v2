@@ -35,6 +35,7 @@ MODULE solver_2d
   USE parameters_2d, ONLY : n_RK
   USE parameters_2d, ONLY : verbose_level
   USE parameters_2d, ONLY : radial_source_flag , bottom_radial_source_flag
+  USE parameters_2d, ONLY : lateral_source_flag
 
   USE parameters_2d, ONLY : bcW , bcE , bcS , bcN
 
@@ -2931,7 +2932,7 @@ CONTAINS
 
        ! correction for radial source inlet x-interfaces values 
        ! used for the linear reconstruction
-       IF ( radial_source_flag .AND. ( source_cell(j,k).EQ.2 ) ) THEN
+       IF ( ( lateral_source_flag .OR. radial_source_flag ) .AND. ( source_cell(j,k).EQ.2 ) ) THEN
           
           IF ( sourceE(j,k) ) THEN
              
@@ -2974,24 +2975,37 @@ CONTAINS
                 x_stencil(1) = x_stag(1)
                 x_stencil(3) = x_comp(j+1)
 
-                IF ( bcW(i)%flag .EQ. 0 ) THEN
+                IF ( source_cell(j,k).EQ.2 ) THEN
 
                    ! Dirichlet boundary condition 
-                   qrec_stencil(1) = bcW(i)%value
+                   qrec_stencil(1) = source_bdry(i)
                    qrec_stencil(3) = qp_expl(i,j+1,k)
 
                    CALL limit( qrec_stencil , x_stencil , limiter(i) ,          &
-                        qrec_prime_x(i) ) 
+                        qrec_prime_x(i) )
 
-                ELSEIF ( bcW(i)%flag .EQ. 1 ) THEN
+                ELSE
 
-                   ! Neumann boundary condition 
-                   qrec_prime_x(i) = bcW(i)%value
+                   IF ( bcW(i)%flag .EQ. 0 ) THEN
 
-                ELSEIF ( bcW(i)%flag .EQ. 2 ) THEN
+                      ! Dirichlet boundary condition 
+                      qrec_stencil(1) = bcW(i)%value
+                      qrec_stencil(3) = qp_expl(i,j+1,k)
 
-                   qrec_prime_x(i) = ( qp_expl(i,2,k) - qp_expl(i,1,k) )        &
-                        * one_by_dx
+                      CALL limit( qrec_stencil , x_stencil , limiter(i) ,          &
+                           qrec_prime_x(i) ) 
+                      
+                   ELSEIF ( bcW(i)%flag .EQ. 1 ) THEN
+                      
+                      ! Neumann boundary condition 
+                      qrec_prime_x(i) = bcW(i)%value
+                      
+                   ELSEIF ( bcW(i)%flag .EQ. 2 ) THEN
+                      
+                      qrec_prime_x(i) = ( qp_expl(i,2,k) - qp_expl(i,1,k) )        &
+                           * one_by_dx
+                      
+                   END IF
 
                 END IF
 
@@ -3063,14 +3077,22 @@ CONTAINS
              
              IF ( j .EQ. 1 ) THEN
 
-                ! Dirichelet boundary condition at the west of the domain
-                IF ( bcW(i)%flag .EQ. 0 ) THEN
-                   
-                   qrecW(i) = bcW(i)%value
-                   
-                ELSE
+                IF ( source_cell(j,k).EQ.2 ) THEN
 
-                   IF ( i .EQ. 2 ) qrecW(i) = MIN( qrecW(i) , 0.0_wp ) 
+                   qrecW(i) = source_bdry(i)
+
+                ELSE
+                
+                   ! Dirichelet boundary condition at the west of the domain
+                   IF ( bcW(i)%flag .EQ. 0 ) THEN
+                      
+                      qrecW(i) = bcW(i)%value
+                      
+                   ELSE
+                      
+                      IF ( i .EQ. 2 ) qrecW(i) = MIN( qrecW(i) , 0.0_wp ) 
+                      
+                   END IF
 
                 END IF
                    
