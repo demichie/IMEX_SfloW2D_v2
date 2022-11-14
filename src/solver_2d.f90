@@ -2946,9 +2946,6 @@ CONTAINS
 
           ELSEIF ( sourceS(j,k) ) THEN
              
-             !WRITE(*,*) 'sourceS',j,k
-             !READ(*,*)
-             
              CALL eval_source_bdry( t, sourceS_vect_x(j,k) ,           &
                   sourceS_vect_y(j,k) , source_bdry )
              
@@ -3015,24 +3012,37 @@ CONTAINS
                 x_stencil(3) = x_stag(comp_interfaces_x)
                 x_stencil(1) = x_comp(j-1)
 
-                IF ( bcE(i)%flag .EQ. 0 ) THEN
+                IF ( source_cell(j,k).EQ.2 ) THEN
 
                    ! Dirichlet boundary condition 
-                   qrec_stencil(3) = bcE(i)%value
+                   qrec_stencil(3) = source_bdry(i)
                    qrec_stencil(1)= qp_expl(i,j-1,k)
 
                    CALL limit( qrec_stencil , x_stencil , limiter(i) ,          &
-                        qrec_prime_x(i) ) 
+                        qrec_prime_x(i) )
 
-                ELSEIF ( bcE(i)%flag .EQ. 1 ) THEN
-
-                   ! Neumann boundary condition 
-                   qrec_prime_x(i) = bcE(i)%value
-
-                ELSEIF ( bcE(i)%flag .EQ. 2 ) THEN
-
-                   qrec_prime_x(i) = ( qp_expl(i,comp_cells_x,k) -              &
-                        qp_expl(i,comp_cells_x-1,k) ) * one_by_dx
+                ELSE
+                
+                   IF ( bcE(i)%flag .EQ. 0 ) THEN
+                      
+                      ! Dirichlet boundary condition 
+                      qrec_stencil(3) = bcE(i)%value
+                      qrec_stencil(1)= qp_expl(i,j-1,k)
+                      
+                      CALL limit( qrec_stencil , x_stencil , limiter(i) ,          &
+                           qrec_prime_x(i) ) 
+                      
+                   ELSEIF ( bcE(i)%flag .EQ. 1 ) THEN
+                      
+                      ! Neumann boundary condition 
+                      qrec_prime_x(i) = bcE(i)%value
+                      
+                   ELSEIF ( bcE(i)%flag .EQ. 2 ) THEN
+                      
+                      qrec_prime_x(i) = ( qp_expl(i,comp_cells_x,k) -              &
+                           qp_expl(i,comp_cells_x-1,k) ) * one_by_dx
+                      
+                   END IF
 
                 END IF
 
@@ -3100,14 +3110,22 @@ CONTAINS
 
              IF ( j .EQ. comp_cells_x ) THEN
 
-                ! Dirichelet boundary condition at the east of the domain
-                IF ( bcE(i)%flag .EQ. 0 ) THEN
-                      
-                   qrecE(i) = bcE(i)%value 
-                      
-                ELSE
+                IF ( source_cell(j,k).EQ.2 ) THEN
 
-                   IF ( i .EQ. 2 ) qrecE(i) = MAX( qrecE(i) , 0.0_wp ) 
+                   qrecE(i) = source_bdry(i)
+
+                ELSE
+                
+                   ! Dirichelet boundary condition at the east of the domain
+                   IF ( bcE(i)%flag .EQ. 0 ) THEN
+                      
+                      qrecE(i) = bcE(i)%value 
+                      
+                   ELSE
+                      
+                      IF ( i .EQ. 2 ) qrecE(i) = MAX( qrecE(i) , 0.0_wp ) 
+                      
+                   END IF
 
                 END IF
                 

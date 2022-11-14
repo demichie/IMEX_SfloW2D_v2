@@ -738,10 +738,6 @@ CONTAINS
           
           DO k = 2,comp_cells_y-1
 
-             !WRITE(*,*)  k,y_stag(k),y_stag(k+1),y1_source,y2_source
-             !WRITE(*,*) 
-             !READ(*,*)
-             
              IF ( ( y_stag(k) .LE. y2_source ) .AND. ( y_stag(k+1) .GE.         &
                   y1_source ) ) THEN
                 
@@ -792,19 +788,19 @@ CONTAINS
 
           DO j = 2,comp_cells_x-1
 
-             IF ( ( x_stag(j) .GE. x1_source ) .AND. ( x_stag(j+1) .LE.         &
-                  x2_source ) ) THEN
+             IF ( ( x_stag(j) .LE. x2_source ) .AND. ( x_stag(j+1) .GE.         &
+                  x1_source ) ) THEN
 
                 source_cell(j,1) = 2
                 sourceS(j,1) = .TRUE.
 
-                side_fract = MAX( (x_stag(j+1) - x1_source) , ( x2_source -     &
-                     x_stag(j) ) , ( x2_source - x1_source ) ) / dx
+                side_fract = MIN ( MIN( (x_stag(j+1) - x1_source) , ( x2_source -     &
+                     x_stag(j) ) ) , ( x2_source - x1_source ) , dx ) / dx
                 
                 sourceS_vect_x(j,1) = 0.0_wp
                 sourceS_vect_y(j,1) = side_fract
 
-                total_source = total_source + dx * side_fract
+                total_source = total_source + dy * side_fract
 
              END IF
 
@@ -816,19 +812,19 @@ CONTAINS
 
           DO j = 2,comp_cells_x-1
 
-             IF ( ( x_stag(j) .GE. x1_source ) .AND. ( x_stag(j+1) .LE.         &
-                  x2_source ) ) THEN
+             IF ( ( x_stag(j) .LE. x2_source ) .AND. ( x_stag(j+1) .GE.         &
+                  x1_source ) ) THEN
 
-                source_cell(j,comp_cells_y) = 2
-                sourceS(j,comp_cells_y) = .TRUE.
+                source_cell(j,1) = 2
+                sourceN(j,1) = .TRUE.
 
-                side_fract = MAX( (x_stag(j+1) - x1_source) , ( x2_source -     &
-                     x_stag(j) ) , ( x2_source - x1_source ) ) / dx
+                side_fract = MIN ( MIN( (x_stag(j+1) - x1_source) , ( x2_source -     &
+                     x_stag(j) ) ) , ( x2_source - x1_source ) , dx ) / dx
                 
-                sourceS_vect_x(j,comp_cells_y) = 0.0_wp
-                sourceS_vect_y(j,comp_cells_y) = -side_fract
+                sourceS_vect_x(j,1) = 0.0_wp
+                sourceS_vect_y(j,1) = - side_fract
 
-                total_source = total_source + dx * side_fract
+                total_source = total_source + dy * side_fract
 
              END IF
 
