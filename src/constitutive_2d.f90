@@ -3483,7 +3483,10 @@ CONTAINS
     erosion_term(1:n_solid) = MAX(0.0_wp,MIN( erosion_term(1:n_solid),          &
          erodible(1:n_solid) / dt ) )
 
-    continuous_phase_erosion_term = tot_solid_erosion * erodible_porosity
+    tot_solid_erosion = SUM( erosion_term(1:n_solid) )
+    tot_erosion = tot_solid_erosion / ( 1.0_wp - erodible_porosity )
+
+    continuous_phase_erosion_term = tot_erosion * erodible_porosity 
 
     IF ( alphas_tot .LE. alphastot_min ) RETURN
 
