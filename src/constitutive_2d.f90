@@ -2590,6 +2590,8 @@ CONTAINS
     REAL(wp) :: r_tilde_grav
     REAL(wp) :: centr_force_term
 
+    REAL(wp) :: qp_source(n_vars+2)
+
     LOGICAL :: sp_heat_flag
 
     sp_heat_flag = .TRUE.
@@ -2681,6 +2683,32 @@ CONTAINS
 
     h_dot = cell_fract_jk * vel_source
 
+    qp_source(1) = 1.0_wp
+    qp_source(2) = 0.0_wp
+    qp_source(3) = 0.0_wp
+    qp_source(4) = t_source
+
+    IF ( alpha_flag ) THEN
+
+       qp_source(5:4+n_solid) = alphas_source(1:n_solid)
+       qp_source(4+n_solid+1:4+n_solid+n_add_gas) = alphag_source(1:n_add_gas)
+       IF ( gas_flag .AND. liquid_flag ) qp_source(n_vars) = alphal_source
+
+    ELSE
+
+       qp_source(5:4+n_solid) = alphas_source(1:n_solid) * qp_source(1)
+       qp_source(4+n_solid+1:4+n_solid+n_add_gas) = alphag_source(1:n_add_gas) * qp_source(1)
+       IF ( gas_flag .AND. liquid_flag ) qp_source(n_vars) = alphal_source * qp_source(1)
+
+    END IF
+
+    qp_source(n_vars+1) = 0.0_wp
+    qp_source(n_vars+2) = 0.0_wp
+
+
+    CALL mixt_var(qp_source,r_Ri,r_rho_m,r_rho_c,r_red_grav,sp_heat_flag,r_sp_heat_c, &
+         r_sp_heat_mix)
+
     expl_term(1) = expl_term(1) + t_coeff * h_dot * r_rho_m
     expl_term(2) = expl_term(2) + 0.0_wp
     expl_term(3) = expl_term(3) + 0.0_wp
@@ -2701,6 +2729,7 @@ CONTAINS
          * h_dot * alphas_source(1:n_solid) * rho_s(1:n_solid)
 
     r_rho_g(1:n_add_gas) = pres / ( sp_gas_const_g(1:n_add_gas) * t_source )
+
 
     expl_term(4+n_solid+1:4+n_solid+n_add_gas) =                                &
          expl_term(4+n_solid+1:4+n_solid+n_add_gas) + t_coeff                   &
