@@ -2,6 +2,11 @@
 
 Shallow water model for multiphase flow (gas+particles) with density of gas temperature-dependent. 
 
+Before compiling the code, please be sure that the following libraries are installed on your system:
+
+- liblapack-dev 
+- libopenblas-dev
+
 To compile:
 
 > touch README
