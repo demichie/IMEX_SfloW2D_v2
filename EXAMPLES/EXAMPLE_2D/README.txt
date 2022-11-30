@@ -24,13 +24,13 @@ Run the solver:
 Two Python scripts to plot the results are provided. The first one works better with small simulations.
 Usage example:
 
->> ./plot_small.py example2D_0030.p_2d
+>> python plot_small.py example2D_0030.p_2d
 
 The second script allows to plot the topography, the flow thickness and the values of an additional variable (required packages: pandas, plotly). The plot is shown in a browser.
 
 Usage example:
 
->> ./plot_large.py example2D_0030.p_2d u
+>> python plot_large.py example2D_0030.p_2d u
 
 REFERENCES
 
