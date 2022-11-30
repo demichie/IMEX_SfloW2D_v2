@@ -24,12 +24,12 @@ Run the solver (this assumes that the example is in the original folder):
 A Python script to plot the results is provided. With this script you can choose the output and the variable to plot (h,hB,B,u,v)
 Usage example:
 
->> ./plot_phys.py exampleTrShock_200_0024.p_2d B hB
+>> python plot_phys.py exampleTrShock_200_0024.p_2d B hB
 
 A Python script to create an animation (mp4) of the simulation is also provided. This script plot the topography and animate the flow over it. The interval between frames in milliseconds has to be given as input.
 Usage example:
 
->> ./plot_animated.py exampleTrShock_200 100
+>> python plot_animated.py exampleTrShock_200 100
 
 
 REFERENCES
