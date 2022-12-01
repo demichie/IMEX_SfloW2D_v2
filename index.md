@@ -1,6 +1,6 @@
-# Welcome to IMEX_SfloW2D_v2
+# Welcome to IMEX_SfloW2D 2.0
 
-IMEX_SfloW2D_v2 is a FORTRAN90 code designed to model shallow gas-particles flows over digital elevation models (DEMs) of natural terrain. The model solves for the conservation equations (mass,momentum,energy) of the mixture, and accounts for sedimentation, erosion, friction and entrainment. The system is described by an hyperbolic system of partial differential equations with relaxation and source terms. It is possible to select a simpler rheology in order to mimic the system of equations described in Kurganov and Petrova, 2007.
+IMEX_SfloW2D 2.0 is a FORTRAN90 code designed to model shallow gas-particles flows over digital elevation models (DEMs) of natural terrain. The model solves for the conservation equations (mass,momentum,energy) of the mixture, and accounts for sedimentation, erosion, friction and entrainment. The system is described by an hyperbolic system of partial differential equations with relaxation and source terms. It is possible to select a simpler rheology in order to mimic the system of equations described in Kurganov and Petrova, 2007.
 
 Several examples (1D and 2D) are provided with the package.
 The code can deal with different scenarios, but its first aim is to treat gravitational flows over topographies described as digital elevation models (DEMs) in the ESRI ascii format. Moreover it is possible to save the solution as as ESRI ascii files, suitable for GIS softwares.
