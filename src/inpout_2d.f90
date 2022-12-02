@@ -413,6 +413,7 @@ CONTAINS
 
           WRITE(*,*) 'IOSTAT=',ios
           WRITE(*,*) 'ERROR: problem with namelist NEWRUN_PARAMETERS'
+          WRITE(*,newrun_parameters)
           WRITE(*,*) 'Please check the input file'
           STOP
 

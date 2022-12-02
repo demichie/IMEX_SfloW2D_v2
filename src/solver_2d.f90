@@ -140,6 +140,7 @@ MODULE solver_2d
   REAL(wp), ALLOCATABLE :: source_xy(:,:)
 
   LOGICAL, ALLOCATABLE :: solve_mask(:,:)
+  LOGICAL, ALLOCATABLE :: solve_mask_temp(:,:)
   LOGICAL, ALLOCATABLE :: solve_mask_x(:,:)
   LOGICAL, ALLOCATABLE :: solve_mask_y(:,:)
 
@@ -310,6 +311,7 @@ CONTAINS
     ALLOCATE ( a_interface_y_max(n_eqns,comp_cells_x,comp_interfaces_y) )
 
     ALLOCATE( solve_mask( comp_cells_x , comp_cells_y ) )
+    ALLOCATE( solve_mask_temp( comp_cells_x , comp_cells_y ) )
 
     solve_mask(1,1:comp_cells_y) = .TRUE.
     solve_mask(comp_cells_x,1:comp_cells_y) = .TRUE.
@@ -472,6 +474,8 @@ CONTAINS
     ALLOCATE( j_stag_y( comp_cells_x * comp_interfaces_y ) )
     ALLOCATE( k_stag_y( comp_cells_x * comp_interfaces_y ) )
 
+    WRITE(*,*) 'ALLOCATION OF ARRAYS COMPLETED'
+    
     RETURN
     
   END SUBROUTINE allocate_solver_variables
@@ -538,6 +542,7 @@ CONTAINS
     DEALLOCATE( H_interface_y )
 
     DEALLOCATE( solve_mask )
+    DEALLOCATE( solve_mask_temp )
     DEALLOCATE( solve_mask_x )
     DEALLOCATE( solve_mask_y )
 
@@ -596,7 +601,6 @@ CONTAINS
     
     INTEGER :: i,j,k
 
-    
     !$OMP PARALLEL
          
     IF ( solve_all ) THEN
@@ -630,7 +634,7 @@ CONTAINS
        !$OMP BARRIER
 
     END IF
-    
+
     IF ( radial_source_flag ) THEN
              
        !$OMP DO private(j,k)
@@ -658,19 +662,30 @@ CONTAINS
 
     DO i = 1,n_RK
 
+       solve_mask_temp = solve_mask 
+       
        ! solution domain is extended to neighbours of positive-mass cells
        solve_mask(2:comp_cells_x-1,2:comp_cells_y-1) =                          &
             solve_mask(2:comp_cells_x-1,2:comp_cells_y-1) .OR.                  &
-            solve_mask(1:comp_cells_x-2,2:comp_cells_y-1) .OR.                  &
-            solve_mask(3:comp_cells_x,2:comp_cells_y-1) .OR.                    &
-            solve_mask(2:comp_cells_x-1,1:comp_cells_y-2) .OR.                  &
-            solve_mask(2:comp_cells_x-1,3:comp_cells_y) 
+            solve_mask_temp(1:comp_cells_x-2,2:comp_cells_y-1)
+       
+       solve_mask(2:comp_cells_x-1,2:comp_cells_y-1) =                          &
+            solve_mask(2:comp_cells_x-1,2:comp_cells_y-1) .OR.                  &
+            solve_mask_temp(3:comp_cells_x,2:comp_cells_y-1)
+       
+       solve_mask(2:comp_cells_x-1,2:comp_cells_y-1) =                          &
+            solve_mask(2:comp_cells_x-1,2:comp_cells_y-1) .OR.                  &
+            solve_mask_temp(2:comp_cells_x-1,1:comp_cells_y-2)
+       
+       solve_mask(2:comp_cells_x-1,2:comp_cells_y-1) =                          &
+            solve_mask(2:comp_cells_x-1,2:comp_cells_y-1) .OR.                  &
+            solve_mask_temp(2:comp_cells_x-1,3:comp_cells_y) 
        
     END DO
 
     !$OMP END MASTER
     !$OMP BARRIER
-    
+
     !$OMP DO private(j,k)
     
     DO k = 1,comp_cells_y
@@ -688,7 +703,6 @@ CONTAINS
     END DO
     
     !$OMP END DO
-
     !$OMP WORKSHARE
 
     solve_mask_x(1:comp_interfaces_x,1:comp_cells_y) = .FALSE.
