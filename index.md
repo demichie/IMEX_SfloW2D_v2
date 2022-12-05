@@ -12,6 +12,17 @@ Tomaso Esposti Ongaro
 Samantha Engwell
 Brandon Keim
 
+### Documentation
+
+A wiki page describing the model is available at:
+
+[https://github.com/demichie/IMEX_SfloW2D_v2/wiki](https://github.com/demichie/IMEX_SfloW2D_v2/wiki) 
+
+Doxygen generated documentation of the code can be found at:
+
+[http://demichie.github.io/IMEX_SfloW2D_v2/html/](http://demichie.github.io/IMEX_SfloW2D_v2/html/) 
+
+
 ### Installation and execution
 
 Check first if you have the LAPACK library installed on your system.
