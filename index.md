@@ -8,8 +8,11 @@ The code can deal with different scenarios, but its first aim is to treat gravit
 ### Authors and Contributors
 
 Mattia de' Michieli Vitturi (@demichie)
+
 Tomaso Esposti Ongaro
+
 Samantha Engwell
+
 Brandon Keim
 
 ### Documentation
