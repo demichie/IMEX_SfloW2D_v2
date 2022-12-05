@@ -28,7 +28,11 @@ Doxygen generated documentation of the code can be found at:
 
 ### Installation and execution
 
-Check first if you have the LAPACK library installed on your system.
+Before compiling the code, please be sure that the following libraries are installed on your system:
+
+- liblapack-dev 
+- libopenblas-dev
+
 
 Download the IMEX_SfloW2D_v2 package and create the executable with the following commands from a terminal:
 
