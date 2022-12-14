@@ -4,17 +4,15 @@ No friction is considered in this test (RHEOLOGY_FLAG=F).
 On the left boundary (supercritical) the volumetric flow and flow thickness are fixed: hu = 10.0m^2/s,  h = 1m.
 On the right boundary (still supercritical) zero gradient boundary conditions are prescribed.
 A Python script is provided to create the input file for this example. 
-Please provide three arguments:
+Please provide two arguments:
 
 1) Number of cells in the x-direction 
 
-2) Flow temperature (Kelvin)
-
-3) Logical for plot of initial solution (true or false)
+2) Logical for plot of initial solution (true or false)
 
 Usage example of the script:
 
->> ./create_example.py 200 300 false
+>> ./create_example.py 200 false
 
 Run the solver (this assumes that the example is in the original folder):
 

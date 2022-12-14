@@ -7,7 +7,7 @@ import numpy as np
 import time
 import sys
 
-if len(sys.argv)==4: 
+if len(sys.argv)==3: 
 
     print('Number of cells')
     a = sys.argv[1]
@@ -22,12 +22,6 @@ if len(sys.argv)==4:
         sys.exit()
 
     a = sys.argv[2]
-    try:
-        T = float(a)
-    except ValueError:
-        print("You must enter a float")
-
-    a = sys.argv[3]
     if a == 'true': 
         plot_flag = True
     elif a == 'false':
@@ -38,16 +32,16 @@ if len(sys.argv)==4:
 
 else:
 
-    print('Please provide three arguments:\n')
+    print('Please provide two arguments:\n')
     print('1) Number of cells\n')
-    print('3) Temperature (>0)\n')
-    print('4) Plot flag (true or false)\n')
+    print('2) Plot flag (true or false)\n')
     sys.exit()
 
 
 
 rho_l = 1000.0
 SP_HEAT_L = 4200.0
+T = 300.0
 
 # Define the boundaries x_left and x_right of the spatial domain
 x_left = 0.0

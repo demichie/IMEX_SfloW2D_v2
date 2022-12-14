@@ -5,17 +5,15 @@ On the left boundary (subcritical) only the volumetric flow is fixed: hu = 4.42m
 On the right boundary (subcritical) flow height is fixed: h = 2m.
 
 A Python script is provided to create the input file for this example. 
-Please provide three arguments:
+Please provide two arguments:
 
 1) Number of cells in the x-direction 
 
-3) Flow temperature (Kelvin)
-
-4) Logical for plot of initial solution (true or false)
+2) Logical for plot of initial solution (true or false)
 
 Usage example of the script:
 
->> ./create_example.py 200 300 false
+>> ./create_example.py 200 false
 
 Run the solver (this assumes that the example is in the original folder):
 
