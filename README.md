@@ -28,11 +28,17 @@ The executable is copied in the bin folder.
 
 Several examples can be found in the EXAMPLES folder.
 
-It is possible also to use Docker container with the latest version of the model:
+## Docker container
+
+If you do not have a compiler on your system, there is a Docker container with the executable of the latest version of the model at this link:
+
+https://hub.docker.com/repository/docker/demichie/imex_sflow2d_v2
+
+If you have docker installed on your computer, you can download the container from the commant line with:
 
 > docker pull demichie/imex_sflow2d_v2
 
-LINUX/MAC
+### LINUX/MAC
 
 Create a folder for your simulation with all the input files and then run the container with:
 
@@ -46,7 +52,7 @@ If your simulation produced .p_2d output files, you can post-process those files
 
 > docker run -v $PWD:/home/user_sw/SW_RUNS -i -t demichie/imex_sflow2d_v2 p2d_to_netcdf
 
-WINDOWS COMMAND LINE
+### WINDOWS COMMAND LINE
 
 Create a folder for your simulation with all the input files and then run the container with:
 
@@ -60,7 +66,7 @@ If your simulation produced .p_2d output files, you can post-process those files
 
 > docker run -v %cd%:/home/user_sw/SW_RUNS -i -t demichie/imex_sflow2d_v2 p2d_to_netcdf
 
-WINDOWS POWERSHELL
+### WINDOWS POWERSHELL
 
 Create a folder for your simulation with all the input files and then run the container with:
 
