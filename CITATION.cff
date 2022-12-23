@@ -1,0 +1,9 @@
+cff-version: 1.1.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: de' Michieli Vitturi
+    given-names: Mattia
+    orcid: https://orcid.org/0000-0002-6750-9245
+title: demichie/IMEX_SfloW2D_v2: IMEX_sflow2D 2.0
+version: v2.0.0
+date-released: 2022-12-23
