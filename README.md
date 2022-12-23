@@ -1,6 +1,6 @@
 # Depth-averaged gas-particles model
 
-[![DOI](https://zenodo.org/badge/76662835.svg)](https://zenodo.org/badge/latestdoi/76662835)
+[![DOI](https://zenodo.org/badge/218571198.svg)](https://zenodo.org/badge/latestdoi/218571198)
 
 Shallow water model for multiphase flow (gas+particles) with density of gas temperature-dependent. 
 
