@@ -1,5 +1,7 @@
 # Depth-averaged gas-particles model
 
+[![DOI](https://zenodo.org/badge/76662835.svg)](https://zenodo.org/badge/latestdoi/76662835)
+
 Shallow water model for multiphase flow (gas+particles) with density of gas temperature-dependent. 
 
 Before compiling the code, please be sure that the following libraries are installed on your system:
@@ -79,5 +81,7 @@ If your simulation produced .asc output files, you can post-process those files 
 If your simulation produced .p_2d output files, you can post-process those files to have a netCDF4 file with:
 
 > docker run -v ${PWD}:/home/user_sw/SW_RUNS -i -t demichie/imex_sflow2d_v2 p2d_to_netcdf
+
+
 
 
