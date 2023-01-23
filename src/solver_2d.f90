@@ -1376,7 +1376,7 @@ CONTAINS
 
        CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
 
-       IF ( qp(4,j,k) .LT. 290.0_wp ) THEN
+       IF ( qp(4,j,k) .LT. 273.0_wp ) THEN
           
           WRITE(*,*) 'temperature check'
           WRITE(*,*) j,k
