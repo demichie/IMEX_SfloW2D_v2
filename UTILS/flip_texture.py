@@ -33,5 +33,3 @@ imageio.imwrite('textureT_ud.png', im_ud)
 im_ud_lr = np.flipud(im_lr)
 
 imageio.imwrite('textureT_ud_lr.png', im_ud_lr)
-
-
