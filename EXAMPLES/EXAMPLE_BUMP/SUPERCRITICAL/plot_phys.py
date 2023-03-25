@@ -1,28 +1,26 @@
 #!/usr/bin/env python
 """
-% This function 
+% This function
 
 """
-import numpy as np                      
+import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-import time
 import sys
 import os.path
 
-if len(sys.argv)==3: 
- 
+if len(sys.argv) == 3:
+
     filename = sys.argv[1]
 
-    os.path.isfile(filename) 
+    os.path.isfile(filename)
 
     var = sys.argv[2]
 
-elif len(sys.argv)==4: 
- 
+elif len(sys.argv) == 4:
+
     filename = sys.argv[1]
 
-    os.path.isfile(filename) 
+    os.path.isfile(filename)
 
     var = sys.argv[2]
 
@@ -36,18 +34,18 @@ else:
     print('2) 2nd Variable to plot: h,hB,B,u,v,T_mass_flux\n')
     sys.exit()
 
-data = np.loadtxt(filename,skiprows=0)
+data = np.loadtxt(filename, skiprows=0)
 
-x_cent = data[:,0]
-y_cent = data[:,1]
-h = data[:,2]
-u = data[:,3]
-v = data[:,4]
-B_cent = data[:,5]
-hB = data[:,6]
-T = data[:,7]
-rho_m = data[:,8]
-red_grav = data[:,9]
+x_cent = data[:, 0]
+y_cent = data[:, 1]
+h = data[:, 2]
+u = data[:, 3]
+v = data[:, 4]
+B_cent = data[:, 5]
+hB = data[:, 6]
+T = data[:, 7]
+rho_m = data[:, 8]
+red_grav = data[:, 9]
 
 x_unique = np.unique(x_cent)
 
@@ -57,103 +55,93 @@ n_unique = len(x_unique)
 # create a figure for the plot
 fig, ax = plt.subplots()
 
+if (n_cent == n_unique):
 
-if ( n_cent == n_unique):
-
-    if var=='h':
+    if var == 'h':
 
         z = h
 
-    elif var=='B':
+    elif var == 'B':
 
         z = B_cent
 
-    elif var=='u':
+    elif var == 'u':
 
         z = u
 
-    elif var=='hu':
+    elif var == 'hu':
 
-        z = h*u
+        z = h * u
 
-    elif var=='v':
+    elif var == 'v':
 
         z = v
 
-    elif var=='hB':
+    elif var == 'hB':
 
         z = hB
 
-    elif var=='T':
+    elif var == 'T':
 
         z = T
 
-    elif var=='alphas':
-
-        z = alphas
-
-    elif var=='rho_m':
+    elif var == 'rho_m':
 
         z = rho_m
 
-    elif var=='red_grav':
+    elif var == 'red_grav':
 
         z = red_grav
 
-    elif var=='mass_flux':
+    elif var == 'mass_flux':
 
-        z = rho_m*h*u
+        z = rho_m * h * u
 
-    elif var=='Ri':
+    elif var == 'Ri':
 
-        z = red_grav * h / ( u**2 + v**2 )
+        z = red_grav * h / (u**2 + v**2)
 
     else:
 
-        print('Please specify the variable to plot as 2nd argument: h,hB,B,u,v')
+        print(
+            'Please specify the variable to plot as 2nd argument: h,hB,B,u,v')
         sys.exit()
 
+    plt.xlim([np.amin(x_unique), np.amax(x_unique)])
 
-    plt.xlim([np.amin(x_unique),np.amax(x_unique)])
+    line1, = ax.plot(x_unique, z)
+    # plt.ylim([np.amin(z)/1.001,np.amax(z)*1.001])
 
-    line1, = ax.plot(x_unique,z)
-    #plt.ylim([np.amin(z)/1.001,np.amax(z)*1.001])
+    if len(sys.argv) == 4:
 
-    if len(sys.argv)==4:
-
-        if var2=='h':
+        if var2 == 'h':
 
             z2 = h
 
-        elif var2=='B':
+        elif var2 == 'B':
 
             z2 = B_cent
 
-        elif var2=='u':
+        elif var2 == 'u':
 
             z2 = u
 
-        elif var2=='v':
+        elif var2 == 'v':
 
             z2 = v
 
-        elif var2=='hB':
+        elif var2 == 'hB':
 
             z2 = hB
 
         else:
 
-            print('Please specify the 2nd variable to plot as 3nd argument: h,hB,B,u,v')
+            print(
+                'Please specify the 2nd variable to plot as 3nd argument: '
+                + 'h,hB,B,u,v'
+            )
             sys.exit()
 
-        line2, = ax.plot(x_unique,z2)
-
-
-
+        line2, = ax.plot(x_unique, z2)
 
 plt.show()
-
-
-
-
-
