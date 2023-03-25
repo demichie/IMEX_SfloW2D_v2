@@ -1,15 +1,12 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from linecache import getline
-import matplotlib.patches as mpatches
 from matplotlib.colors import BoundaryNorm
 import matplotlib.ticker as ticker
 import csv
 import glob
 import os
-from os.path import exists
 from matplotlib.colors import LightSource
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
 def merge_vt(VTfile):
@@ -48,15 +45,13 @@ def merge_vt(VTfile):
         ]
 
         counter = 0
-        for l in res_list:
-            source1 = VTfile.replace(".txt", "_" + idx[l] + ".asc")
+        for ll in res_list:
+            source1 = VTfile.replace(".txt", "_" + idx[ll] + ".asc")
             # print(source1)
             # print(float(dyn_pressure[l]))
             hdr = [getline(source1, i) for i in range(1, 7)]
             values = [float(h.split(" ")[-1].strip()) for h in hdr]
             cols, rows, lx, ly, cell, nd = values
-            xres = cell
-            yres = cell * -1
 
             # Load the dem into a numpy array
             arr = np.loadtxt(source1, skiprows=6)
