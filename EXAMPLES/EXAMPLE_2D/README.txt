@@ -21,16 +21,16 @@ Run the solver:
 
 >> ../../bin/IMEX_SfloW2D
 
-Two Python scripts to plot the results are provided. The first one works better with small simulations.
-Usage example:
+A script to convert the output of the model in NetCDF4 format is provided in the UTILS folder.
+First create a simbolic link of the script in this folder:
 
->> python plot_small.py example2D_0030.p_2d
+>> ln -s ../../UTILS/p2d_to_netCDF4.py .
 
-The second script allows to plot the topography, the flow thickness and the values of an additional variable (required packages: pandas, plotly). The plot is shown in a browser.
+Then, execute the python script
 
-Usage example:
+>> python p2d_to_netCDF4.py example2D.bak
 
->> python plot_large.py example2D_0030.p_2d u
+The new file can be plotted with Paraview.
 
 REFERENCES
 

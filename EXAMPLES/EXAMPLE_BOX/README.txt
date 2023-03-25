@@ -19,10 +19,16 @@ Run the solver:
 
 >> ../../bin/IMEX_SfloW2D
 
-A Python script to plot the results is provided. With this script you can choose the output and the variable to plot (h,hB,B,u,v)
-Usage example:
+A script to convert the output of the model in NetCDF4 format is provided in the UTILS folder.
+First create a simbolic link of the script in this folder:
 
->> python plot_phys.py exampleBOX_400_0100.p_2d B hB
+>> ln -s ../../UTILS/p2d_to_netCDF4.py .
+
+Then, execute the python script
+
+>> python p2d_to_netCDF4.py exampleBOX_400.bak
+
+The new file can be plotted with Paraview.
 
 A Python script to create an animation (mp4) of the simulation is also provided. This script plot the topography and animate the flow over it. The interval between frames in milliseconds has to be given as input.
 Usage example:
