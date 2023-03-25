@@ -18,6 +18,6 @@
 * Ensure the PR description clearly describes the problem and solution.
   Include the relevant issue number if applicable.
 
-Thanks! 
+Thanks!
 
 The IMEX_SfloW2D_v2 Team
