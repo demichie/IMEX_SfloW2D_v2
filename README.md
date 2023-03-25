@@ -28,6 +28,7 @@ To compile the code with OpenMP add the following flag in src/Makefile:
 2) with intel: -qopenmp
 
 > make
+
 > make install
 
 The executable is copied in the bin folder.
