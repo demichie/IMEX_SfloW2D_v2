@@ -1,10 +1,12 @@
 import pandas as pd
-from scipy.stats import norm
+# from scipy.stats import norm
 import numpy as np
 import random
 from linecache import getline
 
 ##########################################
+
+
 def uniform_discrete_1D_sampling(seq_1, n_samples):
 
     # Sample from arrays
@@ -12,7 +14,7 @@ def uniform_discrete_1D_sampling(seq_1, n_samples):
     list_indx = random.choices(range(len(seq_1)), k=n_samples)
 
     list_1 = [seq_1[i] for i in list_indx]
-    
+
     return list_1
 
 
@@ -52,14 +54,14 @@ def linear_continuous_1D_sampling(val_min, val_max, n_samples):
 
 ##########################################
 
-def associate_sector_to_coords(sect_asc_file,coor_x,coor_y):
+
+def associate_sector_to_coords(sect_asc_file, coor_x, coor_y):
 
     # Read .asc file into a numpy array
     print('Reading .asc file: ' + sect_asc_file)
 
     hdr = [getline(sect_asc_file, i) for i in range(1, 7)]
-    values = [float(h.split(" ")[-1].strip())
-              for h in hdr]
+    values = [float(h.split(" ")[-1].strip()) for h in hdr]
 
     cols, rows, lx, ly, cell, nd = values
     cols = int(cols)
@@ -70,29 +72,23 @@ def associate_sector_to_coords(sect_asc_file,coor_x,coor_y):
                         header=None,
                         skiprows=6,
                         dtype='unicode').astype(float).values
-    val = np.flipud(val)  
-    
-    x_min = lx
-    x_max = lx + cols * cell
+    val = np.flipud(val)
 
-    y_min = lx
-    y_max = ly + rows * cell
-          
     sector_list = []
-    
-    for xp,yp in zip(coor_x,coor_y):
-    
+
+    for xp, yp in zip(coor_x, coor_y):
+
         # get the index of the cell from x and y
         ix = int(np.floor((xp - lx) / cell))
-        ix = max(0,min(ix,cols-1))
+        ix = max(0, min(ix, cols - 1))
         iy = int(np.floor((yp - ly) / cell))
-        iy = max(0,min(iy,rows-1))
-        
-        sector_list.append(int(val[iy,ix]))
-      
+        iy = max(0, min(iy, rows - 1))
+
+        sector_list.append(int(val[iy, ix]))
+
     return sector_list
-    
-    
+
+
 ##########################################
 def nonuniform_continuous_grid_sampling(asc_file, n_samples, discrete_flag):
 
@@ -102,8 +98,7 @@ def nonuniform_continuous_grid_sampling(asc_file, n_samples, discrete_flag):
     print('Reading .asc file: ' + asc_file)
 
     hdr = [getline(asc_file, i) for i in range(1, 7)]
-    values = [float(h.split(" ")[-1].strip())
-              for h in hdr]
+    values = [float(h.split(" ")[-1].strip()) for h in hdr]
 
     cols, rows, lx, ly, cell, nd = values
     cols = int(cols)
@@ -115,8 +110,8 @@ def nonuniform_continuous_grid_sampling(asc_file, n_samples, discrete_flag):
                         skiprows=6,
                         dtype='unicode').astype(float).values
     val = np.flipud(val)
-    
-    val[val==nd] = 0.0
+
+    val[val == nd] = 0.0
 
     # normalize the values
     val = val / np.sum(val)
@@ -129,11 +124,11 @@ def nonuniform_continuous_grid_sampling(asc_file, n_samples, discrete_flag):
 
     x_min = lx
     x_max = lx + cols * cell
-    print('xmin,xmax',x_min,x_max)
+    print('xmin,xmax', x_min, x_max)
 
     y_min = ly
     y_max = ly + rows * cell
-    print('ymin,ymax',y_min,y_max)
+    print('ymin,ymax', y_min, y_max)
 
     # initialize the list for the two sample arrays
     x_list = []
@@ -173,9 +168,9 @@ def nonuniform_continuous_grid_sampling(asc_file, n_samples, discrete_flag):
 
                 break
 
-    # Compute the bi-dimensional histogram of the two data samples x_asc and y_asc
-    # The histogram is normalized, and it should converge to the normalized ascii
-    # file.
+    # Compute the bi-dimensional histogram of the two data samples x_asc and
+    # y_asc. The histogram is normalized, and it should converge to the
+    # normalized ascii file.
     H, yedges, xedges = np.histogram2d(x_list,
                                        y_list,
                                        bins=(cols, rows),
@@ -231,6 +226,7 @@ def nonuniform_discrete_sampling(params, weights, n_samples):
 
 ##########################################
 
+
 def main():
 
     list_values = []
@@ -280,7 +276,6 @@ def main():
     list_names.append('xi')
 
     ###
-
     """
     asc_file = 'aree.asc'
     coor_x,coor_y = nonuniform_continuous_grid_sampling(asc_file,
@@ -295,8 +290,7 @@ def main():
     """
 
     ###
-    
-    
+
     # list of 2D points
     points = [[500360, 4177600], [500650, 4177913]]
     # weight of 2D points
@@ -312,26 +306,22 @@ def main():
     coor_y = [param[1] for param in param_list]
     list_values.append(coor_y)
     list_names.append('Coor_y')
-    
-    
+
     ###
-    
     """
     sector_list = associate_sector_to_coords('sectors.asc',coor_x,coor_y)
 
     list_values.append(sector_list)
     list_names.append('Sector')
     """
-    
-        
+
     ###
-    
+
     velocity = [0.0, 30.0, 60.0, 90.0]
-    list_vel = uniform_discrete_1D_sampling(velocity,n_samples)
+    list_vel = uniform_discrete_1D_sampling(velocity, n_samples)
 
     list_values.append(list_vel)
     list_names.append('Velocity')
-
 
     df = pd.DataFrame(list(map(list, zip(*list_values))), columns=list_names)
 

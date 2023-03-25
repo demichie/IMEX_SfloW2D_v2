@@ -1,28 +1,28 @@
 import pandas as pd
-import numpy as np
 import os
 import shutil as st
 from stat import S_ISREG
 
-def replace_strings(working_dir, df , header , i_row):
+
+def replace_strings(working_dir, df, header, i_row):
 
     main_dir = os.getcwd()
     os.chdir(working_dir)
     directory = os.getcwd()
 
     for fname in os.listdir(directory):
-    
-        path = os.path.join(directory,fname)
-        
+
+        path = os.path.join(directory, fname)
+
         try:
             st = os.lstat(path)
         except EnvironmentError:
             continue
         else:
-        
-            if S_ISREG(st.st_mode):  
 
-#        if os.path.isfile(fname) and "template" in fname:
+            if S_ISREG(st.st_mode):
+
+                #        if os.path.isfile(fname) and "template" in fname:
 
                 f = open(fname, 'r')
                 filedata = f.read()
@@ -41,8 +41,8 @@ def replace_strings(working_dir, df , header , i_row):
 
                         for line in f:
                             # replacing the string and write to output file
-                            filedata = filedata.replace(searchstring,
-                                                    str(df.at[i_row, name]))
+                            filedata = filedata.replace(
+                                searchstring, str(df.at[i_row, name]))
 
                 f.close()
                 f_out = open(fname, 'w')
@@ -51,13 +51,13 @@ def replace_strings(working_dir, df , header , i_row):
 
     os.chdir(main_dir)
 
+
 ##########################################
+
 
 def main():
 
     df = pd.read_csv('samples.csv')
-
-    templatedir = 'templatedir'
 
     print(df)
 
@@ -70,11 +70,11 @@ def main():
 
         working_dir = "ensemble." + "{:05d}".format(i_row)
         working_dir = os.path.join(os.getcwd(), working_dir)
-    
+
         st.copytree('templatedir', working_dir, symlinks=True)
-    
-        replace_strings(working_dir, df , header , i_row)
-        
+
+        replace_strings(working_dir, df, header, i_row)
+
 
 if __name__ == '__main__':
 

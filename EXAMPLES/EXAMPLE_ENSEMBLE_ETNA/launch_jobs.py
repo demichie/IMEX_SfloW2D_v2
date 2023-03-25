@@ -2,10 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
-import shutil
-import re
 import subprocess
-import time
 
 dirs = next(os.walk('.'))[1]
 
@@ -18,11 +15,11 @@ max_processes = 4
 for x in dirs:
 
     if "ensemble." in x:
-    
+
         os.chdir(x)
-        processes.add(subprocess.Popen([command,x]))
+        processes.add(subprocess.Popen([command, x]))
         if len(processes) >= max_processes:
             os.wait()
-            processes.difference_update([p for p in processes if p.poll() is not None])
-        os.chdir("..") 
-
+            processes.difference_update(
+                [p for p in processes if p.poll() is not None])
+        os.chdir("..")

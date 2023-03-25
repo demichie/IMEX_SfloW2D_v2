@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 """
-% This function 
+% This function
 
 """
 import numpy as np
-import time
 import sys
 
-if len(sys.argv)==5: 
+if len(sys.argv) == 5:
 
     print('Number of cells')
     a = sys.argv[1]
@@ -16,9 +15,9 @@ if len(sys.argv)==5:
 
         n_cells = int(a)
         print(n_cells)
- 
+
     else:
- 
+
         sys.exit()
 
     a = sys.argv[2]
@@ -31,15 +30,15 @@ if len(sys.argv)==5:
     try:
         T = float(a)
     except ValueError:
-        print("You must enter a float for temperature: "+a)
+        print("You must enter a float for temperature: " + a)
 
     a = sys.argv[4]
-    if a == 'true': 
+    if a == 'true':
         plot_flag = True
     elif a == 'false':
         plot_flag = False
     else:
-        raise ValueError("You must enter true or false: "+a)
+        raise ValueError("You must enter true or false: " + a)
 
 else:
 
@@ -50,7 +49,6 @@ else:
     print('4) Plot flag (true or false)\n')
     sys.exit()
 
-
 n_solid = 1
 
 rho_s = 2000.0
@@ -60,34 +58,32 @@ SP_HEAT_A = 998.0
 SP_GAS_CONST_A = 287.051
 PRES = 101300.0
 
-rho_a = PRES / ( T * SP_GAS_CONST_A )
+rho_a = PRES / (T * SP_GAS_CONST_A)
 
-rho_m = alfas * rho_s + ( 1.0-alfas ) * rho_a
+rho_m = alfas * rho_s + (1.0 - alfas) * rho_a
 
 xs = alfas * rho_s / rho_m
 
-SP_HEAT_MIX = xs * SP_HEAT_S + ( 1.0 - xs ) * SP_HEAT_A
+SP_HEAT_MIX = xs * SP_HEAT_S + (1.0 - xs) * SP_HEAT_A
 
 # Define the boundaries x_left and x_right of the spatial domain
 x_left = -5.0
 x_right = 7.0
 
-
 # Define the number n_points of points of the grid
-n_points  = n_cells+1
+n_points = n_cells + 1
 
 # Define the grid stepsize dx
-dx = ( x_right - x_left ) / ( n_points - 1 )
-
+dx = (x_right - x_left) / (n_points - 1)
 
 # Define the array x of the grid points
-x = np.linspace(x_left,x_right,n_points)
+x = np.linspace(x_left, x_right, n_points)
 
-x_cent = np.linspace(x_left+0.5*dx,x_right-0.5*dx,n_cells)
+x_cent = np.linspace(x_left + 0.5 * dx, x_right - 0.5 * dx, n_cells)
 
-B = np.zeros((n_points,1))
-w = np.zeros((n_points,1))
-u = np.zeros((n_points,1))
+B = np.zeros((n_points, 1))
+w = np.zeros((n_points, 1))
+u = np.zeros((n_points, 1))
 
 B_cent = np.zeros_like(x_cent)
 w_cent = np.zeros_like(x_cent)
@@ -95,7 +91,6 @@ u_cent = np.zeros_like(x_cent)
 
 slope = 2.0
 B_disc = 0.0
-
 
 h_left = 0.0
 h_right = 0.0
@@ -108,86 +103,88 @@ init_sol_disc = 0.0
 # define the topography
 for i in range(n_points):
 
-    if x[i]<B_disc:
-    
+    if x[i] < B_disc:
+
         B[i] = np.abs(x[i]) * np.sin(np.deg2rad(slope))
-    
-    elif x[i]==B_disc:
-    
+
+    elif x[i] == B_disc:
+
         B[i] = 0.0
 
-    elif x[i]<=2.5:
-    
+    elif x[i] <= 2.5:
+
         B[i] = 0.0
 
-    else: 
+    else:
 
         B[i] = 0.2
 
 # define the topography
 for i in range(n_points):
 
-    if x[i]<init_sol_disc:
-    
-        w[i] = B[i]+h_left
+    if x[i] < init_sol_disc:
+
+        w[i] = B[i] + h_left
         u[i] = u_left
-    
-    elif x[i]==init_sol_disc:
-    
-        w[i] = B[i]+0.5*(h_left+h_right)
-        u[i] = 0.5*(u_left+u_right)
+
+    elif x[i] == init_sol_disc:
+
+        w[i] = B[i] + 0.5 * (h_left + h_right)
+        u[i] = 0.5 * (u_left + u_right)
 
     else:
-    
-        w[i] = B[i]+h_right
+
+        w[i] = B[i] + h_right
         u[i] = u_right
 
- 
 # define the initial solution
 for i in range(n_cells):
 
-    B_cent[i] = 0.5*(B[i]+B[i+1])
-    w_cent[i] = 0.5*(w[i]+w[i+1])
-    u_cent[i] = 0.5*(u[i]+u[i+1])
-
+    B_cent[i] = 0.5 * (B[i] + B[i + 1])
+    w_cent[i] = 0.5 * (w[i] + w[i + 1])
+    u_cent[i] = 0.5 * (u[i] + u[i + 1])
 
 # create topography file
 header = "ncols     %s\n" % n_points
 header += "nrows    %s\n" % 1
-header += "xllcorner " + str(x_left-0.5*dx) +"\n"
-header += "yllcorner " + str(0-0.5*dx) +"\n"
-header += "cellsize " + str(dx) +"\n"
+header += "xllcorner " + str(x_left - 0.5 * dx) + "\n"
+header += "yllcorner " + str(0 - 0.5 * dx) + "\n"
+header += "cellsize " + str(dx) + "\n"
 header += "NODATA_value -9999\n"
 
 output_full = 'topography_dem.asc'
 
-np.savetxt(output_full, np.transpose(B), header=header, fmt='%1.12f',comments='')
+np.savetxt(output_full,
+           np.transpose(B),
+           header=header,
+           fmt='%1.12f',
+           comments='')
 
 # create intial solution file
-q0 = np.zeros((6+n_solid,n_cells))
+q0 = np.zeros((6 + n_solid, n_cells))
 
-q0[0,:] = x_cent
-q0[1,:] = 0.0
-q0[2,:] = rho_m * (w_cent-B_cent)
-q0[3,:] = rho_m * (w_cent-B_cent)*u_cent
-q0[4,:] = 0.0
-q0[5,:] = rho_m * (w_cent-B_cent)* ( SP_HEAT_MIX * T + 0.5 * u_cent**2 )
+q0[0, :] = x_cent
+q0[1, :] = 0.0
+q0[2, :] = rho_m * (w_cent - B_cent)
+q0[3, :] = rho_m * (w_cent - B_cent) * u_cent
+q0[4, :] = 0.0
+q0[5, :] = rho_m * (w_cent - B_cent) * (SP_HEAT_MIX * T + 0.5 * u_cent**2)
 
 for i in range(n_solid):
-    q0[6+i,:] = rho_s*(w_cent-B_cent)*alfas/n_solid
+    q0[6 + i, :] = rho_s * (w_cent - B_cent) * alfas / n_solid
 
 init_file = 'exampleSlope_0000.q_2d'
 
-np.savetxt(init_file, np.transpose(q0), fmt='%19.12e') 
+np.savetxt(init_file, np.transpose(q0), fmt='%19.12e')
 
-with open(init_file,'a') as file:
+with open(init_file, 'a') as file:
     file.write('\n')
 
 # Read in the file
-with open('IMEX_SfloW2D.template', 'r') as file :
-  filedata = file.read()
+with open('IMEX_SfloW2D.template', 'r') as file:
+    filedata = file.read()
 
-runname= 'exampleSlope_'+str(n_cells)
+runname = 'exampleSlope_' + str(n_cells)
 
 # Replace the target string
 filedata = filedata.replace('runname', runname)
@@ -198,21 +195,19 @@ filedata = filedata.replace('dx', str(dx))
 
 # Write the file out again
 with open('IMEX_SfloW2D.inp', 'w') as file:
-  file.write(filedata)
+    file.write(filedata)
 
 if (plot_flag):
 
     import matplotlib.pyplot as plt
-    import matplotlib.animation as animation
-    
+
     # create a figure for the plot
     fig, ax = plt.subplots()
-    plt.ylim([-0.1,5.1])
-    plt.xlim([x_left,x_right])
-    
+    plt.ylim([-0.1, 5.1])
+    plt.xlim([x_left, x_right])
+
     # plot the initial solution and call "line" the plot
-    line1, = ax.plot(x,B)
-    line2, = ax.plot(x_cent,w_cent,'-g')
-    
-    
+    line1, = ax.plot(x, B)
+    line2, = ax.plot(x_cent, w_cent, '-g')
+
     plt.show()

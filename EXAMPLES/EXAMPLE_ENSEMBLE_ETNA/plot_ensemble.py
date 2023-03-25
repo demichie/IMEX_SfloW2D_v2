@@ -1,101 +1,93 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from linecache import getline
-import matplotlib.patches as mpatches
 from matplotlib.colors import BoundaryNorm
 import matplotlib.ticker as ticker
-import csv
 import glob
 import os
-from os.path import exists
 from matplotlib.colors import LightSource
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 topography_file = '../DEM/Etna2014_crop.asc'
 
-def interp2Dgrids(xin,yin,Zin,Xout,Yout):
+
+def interp2Dgrids(xin, yin, Zin, Xout, Yout):
     """
-    Interpolation from a regular grid to a second regular grid 
+    Interpolation from a regular grid to a second regular grid
 
     @params:
-        xin      - Required : original grid X values (1D Dble) 
-        yin      - Required : original grid Y values (1D Dble) 
-        Zin      - Required : original grid Z values (2D Dble) 
-        xout     - Required : new grid X values (2D Dble) 
-        yout     - Required : new grid Y values (2D Dble) 
+        xin      - Required : original grid X values (1D Dble)
+        yin      - Required : original grid Y values (1D Dble)
+        Zin      - Required : original grid Z values (2D Dble)
+        xout     - Required : new grid X values (2D Dble)
+        yout     - Required : new grid Y values (2D Dble)
     """
     xinMin = np.min(xin)
-    xinMax = np.max(xin)
 
     yinMin = np.min(yin)
-    yinMax = np.max(yin)
 
-    cellin = xin[1]-xin[0]
+    cellin = xin[1] - xin[0]
 
-    xout = Xout[0,:]
-    xoutMin = np.min(xout)
-    xoutMax = np.max(xout)
+    xout = Xout[0, :]
 
-    yout = Yout[:,0]
-    youtMin = np.min(yout)
-    youtMax = np.max(yout)
+    yout = Yout[:, 0]
 
-    cellout = xout[1]-xout[0]
+    # Search for the cell
+    xi = (xout - xinMin) / cellin
+    yi = (yout - yinMin) / cellin
 
-    # Search for the cell containing the center of the parent lobe
-    xi = (xout - xinMin)/cellin
-    yi = (yout - yinMin)/cellin
+    # Indexes of the lower-left corner of the cell
+    ix = np.maximum(0, np.minimum(xin.shape[0] - 2, np.floor(xi).astype(int)))
+    iy = np.maximum(0, np.minimum(yin.shape[0] - 2, np.floor(yi).astype(int)))
 
-    # Indexes of the lower-left corner of the cell containing the center of the parent lobe     
-    ix = np.maximum(0,np.minimum(xin.shape[0]-2,np.floor(xi).astype(int)))
-    iy = np.maximum(0,np.minimum(yin.shape[0]-2,np.floor(yi).astype(int)))
-
-    # Indexes of the top-right corner of the cell containing the center of the parent lobe     
-    ix1 = ix+1
-    iy1 = iy+1
+    # Indexes of the top-right corner of the cell
+    ix1 = ix + 1
+    iy1 = iy + 1
 
     # Relative coordinates of the center of the parent lobe in the cell
-    xi_fract = np.maximum(0,np.minimum(1,(xi-ix).reshape(1,Xout.shape[1])))
-    yi_fract = np.maximum(0,np.minimum(1,(yi-iy).reshape(Yout.shape[0],1)))
+    xi_fract = np.maximum(0, np.minimum(1, (xi - ix).reshape(1,
+                                                             Xout.shape[1])))
+    yi_fract = np.maximum(0, np.minimum(1, (yi - iy).reshape(Yout.shape[0],
+                                                             1)))
 
-    xi_out_yi = np.outer(yi_fract,xi_fract)
+    xi_out_yi = np.outer(yi_fract, xi_fract)
 
-    Zout = xi_out_yi * Zin[np.ix_(iy1,ix1)] + \
-           ( xi_fract - xi_out_yi ) * Zin[np.ix_(iy,ix1)] + \
-           ( yi_fract - xi_out_yi ) * Zin[np.ix_(iy1,ix)] + \
-           ( 1.0 - xi_fract - yi_fract + xi_out_yi ) * Zin[np.ix_(iy,ix)] 
+    Zout = xi_out_yi * Zin[np.ix_(iy1, ix1)] + \
+        (xi_fract - xi_out_yi) * Zin[np.ix_(iy, ix1)] + \
+        (yi_fract - xi_out_yi) * Zin[np.ix_(iy1, ix)] + \
+        (1.0 - xi_fract - yi_fract + xi_out_yi) * Zin[np.ix_(iy, ix)]
 
     return Zout
 
 
-def regrid(xin, yin, fin, xl, xr , yl, yr):
+def regrid(xin, yin, fin, xl, xr, yl, yr):
 
-        
-    nXin = xin.shape[0]-1
-    nYin = yin.shape[0]-1
+    nXin = xin.shape[0] - 1
+    nYin = yin.shape[0] - 1
 
     dXin = xin[1] - xin[0]
     dYin = yin[1] - yin[0]
-    
-    ix1 = int(np.maximum( 0 , np.ceil(( xl - xin[0] ) / dXin ).astype(int) -1 ))
-    ix2 = int(np.minimum( nXin , np.ceil( ( xr -xin[0] ) / dXin ).astype(int) ))
-        
-    iy1 = int(np.maximum( 0 , np.ceil( ( yl - yin[0] ) / dYin ).astype(int) -1 ))
-    iy2 = int(np.minimum( nYin , np.ceil( ( yr - yin[0] ) / dYin ).astype(int) ))
 
-    print('ix1,ix2,iy1,iy2',ix1,ix2,iy1,iy2)
+    ix1 = int(np.maximum(0, np.ceil((xl - xin[0]) / dXin).astype(int) - 1))
+    ix2 = int(np.minimum(nXin, np.ceil((xr - xin[0]) / dXin).astype(int)))
+
+    iy1 = int(np.maximum(0, np.ceil((yl - yin[0]) / dYin).astype(int) - 1))
+    iy2 = int(np.minimum(nYin, np.ceil((yr - yin[0]) / dYin).astype(int)))
+
+    print('ix1,ix2,iy1,iy2', ix1, ix2, iy1, iy2)
 
     fout = 0.0
 
-    for ix in range(ix1,ix2):
-        
-       alfa_x = ( np.minimum(xr,xin[ix+1]) - np.maximum(xl,xin[ix]) ) / ( xr - xl )
+    for ix in range(ix1, ix2):
 
-       for iy in range(iy1,iy2):
-                
-          alfa_y = ( np.minimum(yr,yin[iy+1]) - np.maximum(yl,yin[iy]) ) / ( yr - yl )
+        alfa_x = (np.minimum(xr, xin[ix + 1]) -
+                  np.maximum(xl, xin[ix])) / (xr - xl)
 
-          fout = fout + alfa_x * alfa_y * fin[iy,ix]
+        for iy in range(iy1, iy2):
+
+            alfa_y = (np.minimum(yr, yin[iy + 1]) -
+                      np.maximum(yl, yin[iy])) / (yr - yl)
+
+            fout = fout + alfa_x * alfa_y * fin[iy, ix]
 
     return fout
 
@@ -209,7 +201,6 @@ X, Y = np.meshgrid(x, y)
 xin = np.linspace(lx, lx + (cols) * cell1, int(cols + 1))
 yin = np.linspace(ly, ly + (rows) * cell1, int(rows + 1))
 
-
 # when layering multiple images, the images need to have the same
 # extent.  This does not mean they need to have the same shape, but
 # they both need to render to the same coordinate system determined by
@@ -283,7 +274,7 @@ for dir in glob.glob("result*"):
         y = np.linspace(ly, ly + (rows) * cell, int(rows + 1))
 
         X, Y = np.meshgrid(x, y)
-        
+
         extent2 = lx, lx + cols * cell, ly, ly + rows * cell
 
         levels = np.linspace(min_arr, max_arr, 11)
@@ -294,7 +285,7 @@ for dir in glob.glob("result*"):
 
         ls = LightSource(azdeg=45, altdeg=45)
 
-        h_new = interp2Dgrids(xin,yin,h,X,Y)
+        h_new = interp2Dgrids(xin, yin, h, X, Y)
 
         im1 = plt.imshow(ls.hillshade(np.flipud(h_new),
                                       vert_exag=2.0,
@@ -310,13 +301,17 @@ for dir in glob.glob("result*"):
         ax.set_aspect('equal', 'box')
 
         im_ratio = rows / cols
-        
+
         cmap = plt.get_cmap('terrain_r')
         norm = BoundaryNorm(levels, ncolors=cmap.N, clip=True)
-        # p1 = plt.pcolormesh(X, Y, arr, cmap=cmap, linewidth=0,rasterized=True,norm=norm, alpha=0.55)
-        p1 = plt.imshow(arr, cmap=cmap,interpolation='nearest',
-                         extent=extent1, alpha=0.65,norm=norm)
-        
+
+        p1 = plt.imshow(arr,
+                        cmap=cmap,
+                        interpolation='nearest',
+                        extent=extent1,
+                        alpha=0.65,
+                        norm=norm)
+
         clb = plt.colorbar(p1,
                            fraction=0.046 * im_ratio,
                            pad=0.04,
@@ -329,7 +324,6 @@ for dir in glob.glob("result*"):
         ]
         clb.set_ticklabels(ticks)
         clb.set_label(label_str, labelpad=-40, y=1.05, rotation=0)
-        
 
         txt_box = plt.text(0.1,
                            0.9,
