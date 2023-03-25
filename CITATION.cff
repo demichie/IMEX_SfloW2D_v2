@@ -1,5 +1,5 @@
 cff-version: 1.1.0
-title: IMEX_sfloW2D
+title: IMEX_SfloW2D_v2
 message: "If you use this software, please cite it as below."
 authors:
   - given-names: Mattia
@@ -9,6 +9,6 @@ authors:
     affiliation: Istituto Nazionale di Geofisica e Vulcanologia
     orcid: 'https://orcid.org/0000-0002-6750-9245'
 title: demichie/IMEX_SfloW2D_v2: IMEX_sflow2D 2.0
-version: 2.0.0
+version: 1.0.0
 date-released: 2023-03-25
-license: GPL-2.0
+license: GPL-3.0
