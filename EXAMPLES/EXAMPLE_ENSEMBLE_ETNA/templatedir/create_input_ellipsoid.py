@@ -437,7 +437,7 @@ print('vx,vy', vx, vy)
 
 # Opening our text file in read only
 # mode using the open() function
-with open(r'IMEX_sfloW2D.inp', 'r') as file:
+with open(r'IMEX_SfloW2D.inp', 'r') as file:
 
     # Reading the content of the file
     # using the read() function and storing
