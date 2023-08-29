@@ -17,6 +17,7 @@ MODULE init_2d
 
   REAL(wp), ALLOCATABLE :: thickness_init(:,:)
 
+  !> Initial thickness of erodible layer (solid+voids)
   REAL(wp), ALLOCATABLE :: erodible_init(:,:)
 
 CONTAINS

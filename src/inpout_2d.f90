@@ -675,6 +675,8 @@ CONTAINS
 
     USE constitutive_2d, ONLY : H_crit_rel
 
+    USE init_2d, ONLY : erodible_init
+
     ! External procedures
     USE constitutive_2d, ONLY : mixt_var , eval_flux_coeffs
 
@@ -1142,9 +1144,11 @@ CONTAINS
 
     ! ------- READ solid_transport_parameters NAMELIST --------------------------
 
+    ALLOCATE( erodible_init(comp_cells_x,comp_cells_y) )
     ALLOCATE( erodible( n_solid , comp_cells_x , comp_cells_y ) )
-    erodible(1:n_solid,1:comp_cells_x,1:comp_cells_y) = 0.0_wp
 
+    erodible_init(:,:) = 0.0E+0_wp
+    erodible(1:n_solid,1:comp_cells_x,1:comp_cells_y) = 0.0_wp
     
     IF ( n_solid .GE. 1 ) THEN
 
@@ -1249,6 +1253,9 @@ CONTAINS
 
                 END IF
 
+                WRITE(*,*) 'Absolute fractions of solide phases in erodible layer:'
+                WRITE(*,*) erodible_fract * ( 1.0_wp-erodible_porosity )
+
              END IF read_erodible_fract
 
              IF ( T_erodible .LT. 0.0_wp ) THEN
@@ -1287,26 +1294,21 @@ CONTAINS
 
        END IF
 
-       IF ( TRIM(erodible_file) .EQ. '' ) THEN
-
+       check_erodible_file:IF ( TRIM(erodible_file) .EQ. '' ) THEN
+          
           IF ( initial_erodible_thickness .GE. 0.0_wp ) THEN
-
+             
              IF( erosion_coeff .EQ. 0.0_wp ) THEN
-
+                
                 WRITE(*,*) 'WARNING: erodible_file not used'
                 WRITE(*,*) 'erosion_coeff = ', erosion_coeff
-
-                erodible(1:n_solid,:,:) = 0.0E+0_wp
+                
+                erodible_init(:,:) = 0.0E+0_wp
 
              ELSE
 
-                DO i_solid=1,n_solid
-
-                   erodible(i_solid,:,:) = erodible_fract(i_solid) *            &
-                        initial_erodible_thickness
-
-                END DO
-
+                erodible_init(:,:) = initial_erodible_thickness
+                
                 WRITE(*,*) 'Initial thickness of erodible layer',               &
                      initial_erodible_thickness
 
@@ -1314,7 +1316,7 @@ CONTAINS
 
           ELSE
 
-             erodible(1:n_solid,:,:) = 0.0E+0_wp
+             erodible_init(:,:) = 0.0E+0_wp
 
              IF ( verbose_level .GE. 0.0_wp ) THEN
 
@@ -1327,7 +1329,7 @@ CONTAINS
              END IF
 
           END IF
-
+          
        ELSE
 
           IF ( initial_erodible_thickness .GE. 0.0_wp ) THEN
@@ -1341,7 +1343,7 @@ CONTAINS
              WRITE(*,*) 'WARNING: erodible_file not used'
              WRITE(*,*) 'erosion_coeff = ', erosion_coeff
 
-             erodible(1:n_solid,:,:) = 0.0E+0_wp
+             erodible_init(:,:) = 0.0E+0_wp
 
           ELSE
 
@@ -1356,8 +1358,15 @@ CONTAINS
 
           END IF
 
-       END IF
+       END IF check_erodible_file
 
+       DO i_solid=1,n_solid
+
+          erodible(i_solid,:,:) = erodible_fract(i_solid) *               &
+               ( 1.0_wp - erodible_porosity ) * erodible_init(:,:)
+          
+       END DO
+       
     END IF
 
     n_vars = n_vars + n_solid
@@ -4261,14 +4270,16 @@ CONTAINS
        ENDDO
 
        WRITE(*,*) 
-       IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Total volume from restart =',    &
-            cellsize**2*SUM(thickness_input)
 
        WHERE ( thickness_input .EQ. nodata_value )
 
           thickness_input = 0.0_wp
 
        END WHERE
+
+       IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Total volume from restart =',    &
+            cellsize**2*SUM(thickness_input)
+
 
        !----- NEW INITIALIZATION OF THICKNESS FROM RESTART
        ALLOCATE( x1(ncols+1) , y1(nrows+1) )
@@ -4304,8 +4315,11 @@ CONTAINS
 
        IF ( subtract_init_flag ) THEN
 
-          IF ( erosion_coeff .GT. 0.0_wp ) THEN
+          WRITE(*,*) 'Subtricting initial thickness from DEM'
+          B_cent(:,:) = B_cent(:,:) - thickness_init(:,:)
 
+          IF ( erosion_coeff .GT. 0.0_wp ) THEN
+             
              IF ( MAXVAL(erodible_init(:,:)) .GT. 0.0_wp ) THEN
 
                 WRITE(*,*)
@@ -4324,11 +4338,8 @@ CONTAINS
 
                 END IF
 
-                WRITE(*,*) 'Absolute fractions of solide phases in deposit:'
-
                 DO i_solid=1,n_solid
 
-                   WRITE(*,*) erodible_fract(i_solid) * ( 1.0_wp-erodible_porosity )
                    erodible(i_solid,:,:) = erodible_fract(i_solid) *               &
                         ( 1.0_wp - erodible_porosity ) * erodible_init(:,:)
 
@@ -4337,11 +4348,6 @@ CONTAINS
                 WRITE(*,*)
 
              END IF
-
-          ELSE
-
-             WRITE(*,*) 'Subtricting initial thickness from DEM'
-             B_cent(:,:) = B_cent(:,:) - thickness_init(:,:)
 
           END IF
 
@@ -4545,164 +4551,147 @@ CONTAINS
     INTEGER :: i_solid
 
 
-    IF ( TRIM(erodible_file) .EQ. '' ) THEN
-
-       DO i_solid=1,n_solid
-
-          erodible(i_solid,:,:) = 1.0E+5_wp
-
-       END DO
-
-    ELSE
-
-       INQUIRE (FILE=erodible_file,exist=lexist)
-
-       WRITE(*,*)
-
-       IF ( lexist .EQV. .FALSE.) THEN
-
-          WRITE(*,*) 'Erodible file: ',TRIM(erodible_file) , ' not found'
-          STOP
-
-       END IF
-
-       OPEN(erodible_unit,FILE=erodible_file,STATUS='old')
-
-       IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Erodible file: ',                &
-            TRIM(erodible_file),' found'
-
-       dot_idx = SCAN(erodible_file, ".", .TRUE.)
-
-       check_file = erodible_file(dot_idx+1:dot_idx+3)
-
-       IF ( check_file .NE. 'asc' ) THEN
-
-          WRITE(*,*) 'Erodible file not in the right format (*.asc)'
-          STOP
-
-       END IF
-
-       READ(erodible_unit,*) chara, ncols
-       READ(erodible_unit,*) chara, nrows
-       READ(erodible_unit,*) chara, xllcorner
-       READ(erodible_unit,*) chara, yllcorner
-       READ(erodible_unit,*) chara, cellsize
-       READ(erodible_unit,*) chara, nodata_value
-
-       ALLOCATE( erodible_init(comp_cells_x,comp_cells_y) )
-       ALLOCATE( erodible_input(ncols,nrows) )
-
-       IF ( ( xllcorner - x0 ) .GT. 1.E-5_wp*cellsize ) THEN
-
-          WRITE(*,*)
-          WRITE(*,*) 'WARNING: initial solution and domain extent'
-          WRITE(*,*) 'xllcorner greater than x0', xllcorner , x0
-
-       END IF
-
-       IF ( ( yllcorner - y0 ) .GT. 1.E-5_wp*cellsize ) THEN
-
-          WRITE(*,*)
-          WRITE(*,*) 'WARNING: initial solution and domain extent'
-          WRITE(*,*) 'yllcorner greater then y0', yllcorner , y0
-
-       END IF
-
-       IF ( x0+cell_size*(comp_cells_x+1) - ( xllcorner+cellsize*(ncols+1) )    &
-            .GT. 1.E-5_wp*cellsize ) THEN
-
-          WRITE(*,*)
-          WRITE(*,*) 'WARNING: initial solution and domain extent'
-          WRITE(*,*) 'xrrcorner greater than ', xllcorner , x0
-
-       END IF
-
-       IF ( x0+cell_size*(comp_cells_x+1) - ( xllcorner+cellsize*(ncols+1) )    &
-            .GT. 1.E-5_wp*cellsize ) THEN
-
-          WRITE(*,*)
-          WRITE(*,*) 'WARNING: initial solution and domain extent'
-          WRITE(*,*) 'yllcorner greater then y0', yllcorner , y0
-
-       END IF
-
-
-       IF ( cellsize .NE. cell_size ) THEN
-
-          WRITE(*,*)
-          WRITE(*,*) 'WARNING: changing resolution of erodible layer' 
-          WRITE(*,*) 'cellsize not equal to cell_size', cellsize , cell_size
-          WRITE(*,*)
-
-       END IF
-
-       DO k=1,nrows
-
-          WRITE(*,FMT="(A1,A,t21,F6.2,A)",ADVANCE="NO") ACHAR(13),              &
-               & " Percent Complete: ",( REAL(k) / REAL(nrows))*100.0, "%"
-
-          READ(erodible_unit,*) erodible_input(1:ncols,nrows-k+1)
-
-       ENDDO
-
-       CLOSE(erodible_unit)
-
-       WRITE(*,*) 
-       IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Total erodible volume =',        &
-            cellsize**2*SUM(erodible_input)
-
-       WHERE ( erodible_input .EQ. nodata_value )
-
-          erodible_input = 0.0_wp
-
-       END WHERE
-
-       !----- NEW INITIALIZATION OF THICKNESS FROM RESTART
-       ALLOCATE( x1(ncols+1) , y1(nrows+1) )
-
-       DO j=1,ncols+1
-
-          x1(j) = xllcorner + (j-1)*cellsize
-
-       END DO
-
-       DO k=1,nrows+1
-
-          y1(k) = yllcorner + (k-1)*cellsize
-
-       END DO
-
-       DO j=1,comp_cells_x
-
-          xl = x0 + (j-1)*cell_size
-          xr = x0 + (j)*cell_size
-
-          DO k=1,comp_cells_y
-
-             yl = y0 + (k-1)*cell_size
-             yr = y0 + (k)*cell_size
-
-             CALL regrid_scalar( x1 , y1 , erodible_input , xl , xr , yl ,     &
-                  yr , erodible_init(j,k) )
-
-          END DO
-
-       END DO
-
-       IF ( VERBOSE_LEVEL .GE. 0 ) THEN
-
-          WRITE(*,*) 'Total erodible volume on computational grid =' ,          &
-               cell_size**2 * SUM( erodible_init(:,:) )
-
-       END IF
-
-       DO i_solid=1,n_solid
-
-          erodible(i_solid,:,:) = erodible_fract(i_solid) * erodible_init(:,:)
-
-       END DO
-
+    INQUIRE (FILE=erodible_file,exist=lexist)
+
+    WRITE(*,*)
+    
+    IF ( lexist .EQV. .FALSE.) THEN
+       
+       WRITE(*,*) 'Erodible file: ',TRIM(erodible_file) , ' not found'
+       STOP
+       
     END IF
+    
+    OPEN(erodible_unit,FILE=erodible_file,STATUS='old')
+    
+    IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Erodible file: ',                   &
+         TRIM(erodible_file),' found'
+    
+    dot_idx = SCAN(erodible_file, ".", .TRUE.)
+    
+    check_file = erodible_file(dot_idx+1:dot_idx+3)
+    
+    IF ( check_file .NE. 'asc' ) THEN
+       
+       WRITE(*,*) 'Erodible file not in the right format (*.asc)'
+       STOP
+       
+    END IF
+    
+    READ(erodible_unit,*) chara, ncols
+    READ(erodible_unit,*) chara, nrows
+    READ(erodible_unit,*) chara, xllcorner
+    READ(erodible_unit,*) chara, yllcorner
+    READ(erodible_unit,*) chara, cellsize
+    READ(erodible_unit,*) chara, nodata_value
+    
+    ALLOCATE( erodible_input(ncols,nrows) )
+    
+    IF ( ( xllcorner - x0 ) .GT. 1.E-5_wp*cellsize ) THEN
+       
+       WRITE(*,*)
+       WRITE(*,*) 'WARNING: initial solution and domain extent'
+       WRITE(*,*) 'xllcorner greater than x0', xllcorner , x0
+       
+    END IF
+    
+    IF ( ( yllcorner - y0 ) .GT. 1.E-5_wp*cellsize ) THEN
+       
+       WRITE(*,*)
+       WRITE(*,*) 'WARNING: initial solution and domain extent'
+       WRITE(*,*) 'yllcorner greater then y0', yllcorner , y0
+       
+    END IF
+    
+    IF ( x0+cell_size*(comp_cells_x+1) - ( xllcorner+cellsize*(ncols+1) )       &
+         .GT. 1.E-5_wp*cellsize ) THEN
+       
+       WRITE(*,*)
+       WRITE(*,*) 'WARNING: initial solution and domain extent'
+       WRITE(*,*) 'xrrcorner greater than ', xllcorner , x0
+       
+    END IF
+    
+    IF ( x0+cell_size*(comp_cells_x+1) - ( xllcorner+cellsize*(ncols+1) )       &
+         .GT. 1.E-5_wp*cellsize ) THEN
+       
+       WRITE(*,*)
+       WRITE(*,*) 'WARNING: initial solution and domain extent'
+       WRITE(*,*) 'yllcorner greater then y0', yllcorner , y0
+       
+    END IF
+    
+    
+    IF ( cellsize .NE. cell_size ) THEN
+       
+       WRITE(*,*)
+       WRITE(*,*) 'WARNING: changing resolution of erodible layer' 
+       WRITE(*,*) 'cellsize not equal to cell_size', cellsize , cell_size
+       WRITE(*,*)
+       
+    END IF
+    
+    DO k=1,nrows
+       
+       WRITE(*,FMT="(A1,A,t21,F6.2,A)",ADVANCE="NO") ACHAR(13),                 &
+            & " Percent Complete: ",( REAL(k) / REAL(nrows))*100.0, "%"
+       
+       READ(erodible_unit,*) erodible_input(1:ncols,nrows-k+1)
+       
+    ENDDO
+    
+    CLOSE(erodible_unit)
+    
+    WRITE(*,*) 
+    IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Total erodible volume =',           &
+         cellsize**2*SUM(erodible_input)
+    
+    WHERE ( erodible_input .EQ. nodata_value )
+
+       erodible_input = 0.0_wp
+
+    END WHERE
+    
+    !----- NEW INITIALIZATION OF THICKNESS FROM RESTART
+    ALLOCATE( x1(ncols+1) , y1(nrows+1) )
+    
+    DO j=1,ncols+1
+       
+       x1(j) = xllcorner + (j-1)*cellsize
+       
+    END DO
+    
+    DO k=1,nrows+1
+       
+       y1(k) = yllcorner + (k-1)*cellsize
+       
+    END DO
+    
+    DO j=1,comp_cells_x
+       
+       xl = x0 + (j-1)*cell_size
+       xr = x0 + (j)*cell_size
+       
+       DO k=1,comp_cells_y
+          
+          yl = y0 + (k-1)*cell_size
+          yr = y0 + (k)*cell_size
+          
+          CALL regrid_scalar( x1 , y1 , erodible_input , xl , xr , yl ,         &
+               yr , erodible_init(j,k) )
+          
+       END DO
+       
+    END DO
+    
+    IF ( VERBOSE_LEVEL .GE. 0 ) THEN
+       
+       WRITE(*,*) 'Total erodible volume on computational grid =' ,             &
+            cell_size**2 * SUM( erodible_init(:,:) )
+       
+    END IF
+    
+    RETURN
 
 
   END SUBROUTINE read_erodible
