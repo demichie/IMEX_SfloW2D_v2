@@ -195,7 +195,7 @@ PROGRAM IMEX_SfloW2D
 
   t = t_start
 
-  CALL check_solve(.FALSE.)
+  CALL check_solve(.TRUE.)
 
   IF ( topo_change_flag ) CALL topography_reconstruction
 

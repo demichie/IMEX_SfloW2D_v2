@@ -139,6 +139,9 @@ MODULE solver_2d
   !> Array defining fraction of cells affected by source term
   REAL(wp), ALLOCATABLE :: source_xy(:,:)
 
+  REAL(wp), ALLOCATABLE :: solve_mask_time(:,:)
+
+
   LOGICAL, ALLOCATABLE :: solve_mask(:,:)
   LOGICAL, ALLOCATABLE :: solve_mask_temp(:,:)
   LOGICAL, ALLOCATABLE :: solve_mask_x(:,:)
@@ -310,8 +313,11 @@ CONTAINS
     ALLOCATE ( a_interface_x_max(n_eqns,comp_interfaces_x,comp_cells_y) )
     ALLOCATE ( a_interface_y_max(n_eqns,comp_cells_x,comp_interfaces_y) )
 
+    ALLOCATE( solve_mask_time( comp_cells_x , comp_cells_y ) )
     ALLOCATE( solve_mask( comp_cells_x , comp_cells_y ) )
     ALLOCATE( solve_mask_temp( comp_cells_x , comp_cells_y ) )
+
+    solve_mask_time(1:comp_cells_x,1:comp_cells_y) = 0.0_wp
 
     solve_mask(1,1:comp_cells_y) = .TRUE.
     solve_mask(comp_cells_x,1:comp_cells_y) = .TRUE.
@@ -541,6 +547,7 @@ CONTAINS
     DEALLOCATE( H_interface_x )
     DEALLOCATE( H_interface_y )
 
+    DEALLOCATE( solve_mask_time )
     DEALLOCATE( solve_mask )
     DEALLOCATE( solve_mask_temp )
     DEALLOCATE( solve_mask_x )
@@ -619,7 +626,8 @@ CONTAINS
     !$OMP BARRIER
     
     !$OMP WORKSHARE
-    WHERE ( q(1,2:comp_cells_x-1,2:comp_cells_y-1) .GT. 0.0_wp )                &
+    WHERE ( ( q(1,2:comp_cells_x-1,2:comp_cells_y-1) .GT. 0.0_wp ) .AND.        &
+         ( solve_mask_time(2:comp_cells_x-1,2:comp_cells_y-1) .LE. t ) )       & 
          solve_mask(2:comp_cells_x-1,2:comp_cells_y-1) = .TRUE.
     !$OMP END WORKSHARE
     

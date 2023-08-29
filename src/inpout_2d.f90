@@ -99,6 +99,9 @@ MODULE inpout_2d
 
   IMPLICIT NONE
 
+  INTEGER :: n_restart_files
+  CHARACTER(LEN = 40), dimension(10) :: restart_files
+
   CHARACTER(LEN=40) :: run_name           !< Name of the run
   CHARACTER(LEN=40) :: bak_name           !< Backup file for the parameters
   CHARACTER(LEN=40) :: input_file         !< File with the run parameters
@@ -228,11 +231,13 @@ MODULE inpout_2d
   REAL(wp) :: thickness_levels0(10)
   REAL(wp) :: dyn_pres_levels0(10)
 
+  REAL(wp) :: release_time(10)
+
   NAMELIST / run_parameters / run_name , restart , t_start , t_end , dt_output ,&
        output_cons_flag , output_esri_flag , output_phys_flag ,                 &
        output_runout_flag , verbose_level
-  NAMELIST / restart_parameters / restart_file, T_init, T_ambient , u_init ,    &
-        v_init , sed_vol_perc
+  NAMELIST / restart_parameters / n_restart_files, restart_files, release_time ,&
+       T_init , T_ambient , u_init , v_init , sed_vol_perc
 
   NAMELIST / newrun_parameters / n_solid , topography_file , x0 , y0 ,          &
        comp_cells_x , comp_cells_y , cell_size , rheology_flag , alpha_flag ,   &
@@ -319,8 +324,11 @@ CONTAINS
     output_runout_flag = .FALSE.
     verbose_level = 0
 
-    !-- Inizialization of the Variables for the namelist restart parameters
+    !-- Inizialization of the Variables for the namelist RESTART_PARAMETERS
+    n_restart_files = 1
+    restart_files(:) = ''
     restart_file = ''
+    release_time(:) = 0.0_wp
     T_init = 0.0_wp
     T_ambient = 0.0_wp
     u_init = 0.0_wp
@@ -715,6 +723,8 @@ CONTAINS
 
     LOGICAL :: tend1 
     CHARACTER(LEN=80) :: card
+
+    INTEGER :: i_file
 
     INTEGER :: i_solid , j , k
 
@@ -1443,6 +1453,48 @@ CONTAINS
           STOP
 
        ELSE
+
+          IF ( n_restart_files .LE. 0 ) THEN
+
+             WRITE(*,*) 'n_restart_files must be >= 1'
+             WRITE(*,*) 'n_restart_files',n_restart_files
+             WRITE(*,*) 'ERROR: problem with namelist RESTART_PARAMETERS'
+             WRITE(*,*) 'Please check the input file'
+             STOP             
+
+          ELSE
+
+             DO i_file=1,n_restart_files
+
+                IF ( TRIM(restart_files(i_file)) .EQ. '' ) THEN
+
+                   WRITE(*,*) 'ERROR: problem with namelist RESTART_PARAMETERS'
+                   WRITE(*,*) 'n_restart_files',n_restart_files
+                   WRITE(*,*) 'restart_files ',restart_files
+                   WRITE(*,*) 'Please check the input file'
+                   STOP                    
+
+                END IF
+
+             END DO
+
+             DO i_file=n_restart_files+1,10
+
+                IF ( TRIM(restart_files(i_file)) .NE. '' ) THEN
+
+                   WRITE(*,*) 'ERROR: problem with namelist RESTART_PARAMETERS'
+                   WRITE(*,*) 'n_restart_files',n_restart_files
+                   WRITE(*,*) 'restart_files',restart_files
+                   WRITE(*,*) 'Please check the input file'
+                   STOP                    
+
+                END IF
+
+             END DO
+
+             restart_file = restart_files(1)
+
+          END IF
 
           dot_idx = SCAN(restart_file, ".", .TRUE.)
 
@@ -4107,7 +4159,7 @@ CONTAINS
 
     ! External procedures
     USE geometry_2d, ONLY : interp_2d_scalarB , regrid_scalar
-    USE solver_2d, ONLY : allocate_solver_variables
+    USE solver_2d, ONLY : allocate_solver_variables , solve_mask_time
 
     ! External variables
     USE geometry_2d, ONLY : comp_cells_x , x0 , comp_cells_y , y0 , dx , dy
@@ -4136,6 +4188,8 @@ CONTAINS
 
     REAL(wp) :: xj , yk
 
+    REAL(wp) :: thickness_interp
+
     REAL(wp), ALLOCATABLE :: thickness_input(:,:)
 
     REAL(wp), ALLOCATABLE :: x1(:) , y1(:)
@@ -4150,33 +4204,20 @@ CONTAINS
 
     INTEGER :: i_vars , i_solid
 
-    INQUIRE (FILE=restart_file,exist=lexist)
+    INTEGER :: i_file
 
-    WRITE(*,*)
-    ! WRITE(*,*) 'READ INIT',restart_file,lexist,restart_unit
+    ALLOCATE( thickness_init(comp_cells_x,comp_cells_y) )
 
-    IF ( lexist .EQV. .FALSE.) THEN
+    thickness_init(:,:) = 0.0_wp
 
-       WRITE(*,*) 'Restart: ',TRIM(restart_file) , ' not found'
-       STOP
-
-    ELSE
-
-       OPEN(restart_unit,FILE=restart_file,STATUS='old')
-
-       IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Restart: ',TRIM(restart_file),   &
-            ' found'
-
-    END IF
-
-    dot_idx = SCAN(restart_file, ".", .TRUE.)
-
+    restart_file = restart_files(1)
+ 
     check_file = restart_file(dot_idx+1:dot_idx+3)
-
+    
     IF ( check_file .EQ. 'asc' ) THEN
-
+       
        IF ( liquid_flag .AND. gas_flag ) THEN
-
+          
           WRITE(*,*) 'ERROR: problem with namelist NEWRUN_PARAMETERS'
           WRITE(*,*) 'When restarting from .asc file only'
           WRITE(*,*) 'one of these parameters must be set to .TRUE.'          
@@ -4185,9 +4226,9 @@ CONTAINS
           WRITE(*,*) 'Please check the input file'
           CLOSE(restart_unit)
           STOP
-
+          
        ELSEIF ( ( .NOT.liquid_flag ) .AND. ( .NOT. gas_flag ) ) THEN
-
+          
           WRITE(*,*) 'ERROR: problem with namelist NEWRUN_PARAMETERS'
           WRITE(*,*) 'When restarting from .asc file only one'
           WRITE(*,*) 'of these parameters must be set to .TRUE.'
@@ -4196,168 +4237,222 @@ CONTAINS
           WRITE(*,*) 'Please check the input file'
           CLOSE(restart_unit)
           STOP
-
+          
        ELSEIF ( gas_flag ) THEN
-
+          
           IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Carrier phase: gas'
-
+          
        ELSEIF ( liquid_flag ) THEN
-
+          
           IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Carrier phase: liquid'
+          
+       END IF
+       
+    END IF
 
+    WRITE(*,*) 'n_restart_files',n_restart_files
+      
+    DO i_file=1,n_restart_files
+
+       restart_file = restart_files(i_file)
+
+       INQUIRE (FILE=restart_file,exist=lexist)
+       
+       WRITE(*,*)
+       
+       IF ( lexist .EQV. .FALSE.) THEN
+          
+          WRITE(*,*) 'Restart: ',TRIM(restart_file) , ' not found'
+          STOP
+          
+       ELSE
+          
+          OPEN(restart_unit,FILE=restart_file,STATUS='old')
+          
+          IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Restart: ',TRIM(restart_file),   &
+               ' found'
+  
+          WRITE(*,*) 'Release time: ',release_time(i_file)
+        
        END IF
 
-       READ(restart_unit,*) chara, ncols
-       READ(restart_unit,*) chara, nrows
-       READ(restart_unit,*) chara, xllcorner
-       READ(restart_unit,*) chara, yllcorner
-       READ(restart_unit,*) chara, cellsize
-       READ(restart_unit,*) chara, nodata_value
+       dot_idx = SCAN(restart_file, ".", .TRUE.)
+       
+       check_file = restart_file(dot_idx+1:dot_idx+3)
+       
+       IF ( check_file .EQ. 'asc' ) THEN
+          
+          READ(restart_unit,*) chara, ncols
+          READ(restart_unit,*) chara, nrows
+          READ(restart_unit,*) chara, xllcorner
+          READ(restart_unit,*) chara, yllcorner
+          READ(restart_unit,*) chara, cellsize
+          READ(restart_unit,*) chara, nodata_value
+          
+          ALLOCATE( thickness_input(ncols,nrows) )
+          
+          IF ( ( xllcorner - x0 ) .GT. 1.E-5_wp*cellsize ) THEN
+             
+             WRITE(*,*)
+             WRITE(*,*) 'WARNING: initial solution and domain extent'
+             WRITE(*,*) 'xllcorner greater than x0', xllcorner , x0
+             
+          END IF
+          
+          IF ( ( yllcorner - y0 ) .GT. 1.E-5_wp*cellsize ) THEN
+             
+             WRITE(*,*)
+             WRITE(*,*) 'WARNING: initial solution and domain extent'
+             WRITE(*,*) 'yllcorner greater then y0', yllcorner , y0
+             
+          END IF
+          
+          IF ( x0+cell_size*(comp_cells_x+1) - ( xllcorner+cellsize*(ncols+1) )    &
+               .GT. 1.E-5_wp*cellsize ) THEN
+             
+             WRITE(*,*)
+             WRITE(*,*) 'WARNING: initial solution and domain extent'
+             WRITE(*,*) 'xrrcorner greater than ', xllcorner , x0
+             
+          END IF
+          
+          IF ( x0+cell_size*(comp_cells_x+1) - ( xllcorner+cellsize*(ncols+1) )    &
+               .GT. 1.E-5_wp*cellsize ) THEN
+             
+             WRITE(*,*)
+             WRITE(*,*) 'WARNING: initial solution and domain extent'
+             WRITE(*,*) 'yllcorner greater then y0', yllcorner , y0
+             
+          END IF
+          
+          IF ( cellsize .NE. cell_size ) THEN
+             
+             WRITE(*,*)
+             WRITE(*,*) 'WARNING: changing resolution of restart' 
+             WRITE(*,*) 'cellsize not equal to cell_size', cellsize , cell_size
+             WRITE(*,*)
+             
+          END IF
+          
+          DO k=1,nrows
+             
+             WRITE(*,FMT="(A1,A,t21,F6.2,A)",ADVANCE="NO") ACHAR(13),              &
+                  & " Percent Complete: ",( REAL(k) / REAL(nrows))*100.0, "%"
+             
+             READ(restart_unit,*) thickness_input(1:ncols,nrows-k+1)
+             
+          ENDDO
+          
+          WRITE(*,*) 
+          
+          WHERE ( thickness_input .EQ. nodata_value )
+             
+             thickness_input = 0.0_wp
+             
+          END WHERE
+          
+          IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Total volume from restart =',    &
+               cellsize**2*SUM(thickness_input)
+          
+          
+          !----- NEW INITIALIZATION OF THICKNESS FROM RESTART
+          ALLOCATE( x1(ncols+1) , y1(nrows+1) )
+          
+          DO j=1,ncols+1
+             
+             x1(j) = xllcorner + (j-1)*cellsize
+             
+          END DO
+          
+          DO k=1,nrows+1
+             
+             y1(k) = yllcorner + (k-1)*cellsize
+             
+          END DO
+          
+          DO j=1,comp_cells_x
+             
+             xl = x0 + (j-1)*cell_size
+             xr = x0 + (j)*cell_size
+             
+             DO k=1,comp_cells_y
+                
+                yl = y0 + (k-1)*cell_size
+                yr = y0 + (k)*cell_size
+                
+                CALL regrid_scalar( x1 , y1 , thickness_input , xl , xr , yl ,     &
+                     yr , thickness_interp )
+                
+                thickness_init(j,k) =  thickness_init(j,k) + thickness_interp
 
-       ALLOCATE( thickness_init(comp_cells_x,comp_cells_y) )
-       ALLOCATE( thickness_input(ncols,nrows) )
-
-       IF ( ( xllcorner - x0 ) .GT. 1.E-5_wp*cellsize ) THEN
-
-          WRITE(*,*)
-          WRITE(*,*) 'WARNING: initial solution and domain extent'
-          WRITE(*,*) 'xllcorner greater than x0', xllcorner , x0
-
-       END IF
-
-       IF ( ( yllcorner - y0 ) .GT. 1.E-5_wp*cellsize ) THEN
-
-          WRITE(*,*)
-          WRITE(*,*) 'WARNING: initial solution and domain extent'
-          WRITE(*,*) 'yllcorner greater then y0', yllcorner , y0
-
-       END IF
-
-       IF ( x0+cell_size*(comp_cells_x+1) - ( xllcorner+cellsize*(ncols+1) )    &
-            .GT. 1.E-5_wp*cellsize ) THEN
-
-          WRITE(*,*)
-          WRITE(*,*) 'WARNING: initial solution and domain extent'
-          WRITE(*,*) 'xrrcorner greater than ', xllcorner , x0
-
-       END IF
-
-       IF ( x0+cell_size*(comp_cells_x+1) - ( xllcorner+cellsize*(ncols+1) )    &
-            .GT. 1.E-5_wp*cellsize ) THEN
-
-          WRITE(*,*)
-          WRITE(*,*) 'WARNING: initial solution and domain extent'
-          WRITE(*,*) 'yllcorner greater then y0', yllcorner , y0
-
-       END IF
-
-       IF ( cellsize .NE. cell_size ) THEN
-
-          WRITE(*,*)
-          WRITE(*,*) 'WARNING: changing resolution of restart' 
-          WRITE(*,*) 'cellsize not equal to cell_size', cellsize , cell_size
-          WRITE(*,*)
-
-       END IF
-
-       DO k=1,nrows
-
-          WRITE(*,FMT="(A1,A,t21,F6.2,A)",ADVANCE="NO") ACHAR(13),              &
-               & " Percent Complete: ",( REAL(k) / REAL(nrows))*100.0, "%"
-
-          READ(restart_unit,*) thickness_input(1:ncols,nrows-k+1)
-
-       ENDDO
-
-       WRITE(*,*) 
-
-       WHERE ( thickness_input .EQ. nodata_value )
-
-          thickness_input = 0.0_wp
-
-       END WHERE
-
-       IF ( VERBOSE_LEVEL .GE. 0 ) WRITE(*,*) 'Total volume from restart =',    &
-            cellsize**2*SUM(thickness_input)
-
-
-       !----- NEW INITIALIZATION OF THICKNESS FROM RESTART
-       ALLOCATE( x1(ncols+1) , y1(nrows+1) )
-
-       DO j=1,ncols+1
-
-          x1(j) = xllcorner + (j-1)*cellsize
-
-       END DO
-
-       DO k=1,nrows+1
-
-          y1(k) = yllcorner + (k-1)*cellsize
-
-       END DO
-
-       DO j=1,comp_cells_x
-
-          xl = x0 + (j-1)*cell_size
-          xr = x0 + (j)*cell_size
-
-          DO k=1,comp_cells_y
-
-             yl = y0 + (k-1)*cell_size
-             yr = y0 + (k)*cell_size
-
-             CALL regrid_scalar( x1 , y1 , thickness_input , xl , xr , yl ,     &
-                  yr , thickness_init(j,k) )
-
+                IF ( thickness_interp .GT. 0.0_wp ) THEN 
+                   
+                   ! WRITE(*,*) 'j,k,thickness: ',j,k,thickness_init(j,k)
+                   solve_mask_time(j,k) = release_time(i_file)
+                   
+                END IF
+                
+             END DO
+             
           END DO
 
-       END DO
+          DEALLOCATE( thickness_input )
+          
+          DEALLOCATE( x1 , y1 )
 
+       END IF
+
+       CLOSE(restart_unit)
+       
+    END DO
+   
+    IF ( check_file .EQ. 'asc' ) THEN
+       
        IF ( subtract_init_flag ) THEN
-
+             
           WRITE(*,*) 'Subtricting initial thickness from DEM'
           B_cent(:,:) = B_cent(:,:) - thickness_init(:,:)
-
-          IF ( erosion_coeff .GT. 0.0_wp ) THEN
              
+          IF ( erosion_coeff .GT. 0.0_wp ) THEN
+                
              IF ( MAXVAL(erodible_init(:,:)) .GT. 0.0_wp ) THEN
-
+                   
                 WRITE(*,*)
                 WRITE(*,*) 'Subtracting initial thickness from erodible thickness'
                 erodible_init(:,:) = erodible_init(:,:) - thickness_init(:,:) *    &
                      ( SUM(alphas_init(1:n_solid))  /                              &
                      ( 1.0_wp - erodible_porosity ) )
-
+                
                 IF ( MINVAL(erodible_init(:,:)) .LT. 0.0_wp ) THEN
-
+                   
                    WRITE(*,*) 'WARNING: MINVAL(erodible_init) = ',                 &
                         MINVAL(erodible_init(:,:)) 
                    WRITE(*,*) 'Initial erodible thick. negative values changed to 0'
-
+                   
                    erodible_init = MAX( 0.0_wp , erodible_init )
-
+                   
                 END IF
-
+                
                 DO i_solid=1,n_solid
-
+                   
                    erodible(i_solid,:,:) = erodible_fract(i_solid) *               &
                         ( 1.0_wp - erodible_porosity ) * erodible_init(:,:)
-
+                   
                 END DO
-
+                
                 WRITE(*,*)
-
+                
              END IF
-
+             
           END IF
-
+          
        END IF
-
+          
 
        !----- END NEW INITIALIZATION OF THICKNESS FROM RESTART
-
+       
        IF ( gas_flag ) THEN
-
+          
           rho_c = pres / ( sp_gas_const_a * T_init )
           sp_heat_c = sp_heat_a
 
@@ -4442,11 +4537,14 @@ CONTAINS
 
        END IF
 
-       DEALLOCATE( thickness_input )
 
        WRITE(*,*) 'n_vars',n_vars
 
-    ELSEIF ( check_file .EQ. 'q_2' ) THEN
+    END IF
+
+    IF ( check_file .EQ. 'q_2' ) THEN
+
+       OPEN(restart_unit,FILE=restart_file,STATUS='old')
 
        DO k=1,comp_cells_y
 
@@ -4491,11 +4589,6 @@ CONTAINS
        END IF
 
        ! Set this flag to 0 to not overwrite the initial condition
-
-    ELSE
-
-       WRITE(*,*) 'Restart file not in the right format (*.asc or *)'
-       STOP
 
     END IF
 
