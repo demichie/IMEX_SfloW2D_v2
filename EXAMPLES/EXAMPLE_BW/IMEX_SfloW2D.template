@@ -27,7 +27,7 @@
  TOPO_CHANGE_FLAG = T,
  /
 &RESTART_PARAMETERS
- RESTART_FILE="restartfile",
+ RESTART_FILES="restartfile",
  /
 &WEST_BOUNDARY_CONDITIONS
  H_BCW%FLAG=          0,

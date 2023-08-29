@@ -31,7 +31,7 @@
  SUBTRACT_INIT_FLAG = F ,
  /
 &RESTART_PARAMETERS
- RESTART_FILE ="./DEM/init_volume.asc" ,
+ RESTART_FILES ="./DEM/init_volume.asc" ,
  T_INIT = 373.D0 ,
  T_AMBIENT = 300.D0 ,
  SED_VOL_PERC = 50.0  ,
