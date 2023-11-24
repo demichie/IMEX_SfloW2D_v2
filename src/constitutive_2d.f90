@@ -28,6 +28,11 @@ MODULE constitutive_2d
   REAL(wp) :: mu
   REAL(wp) :: xi
 
+  !> drag coefficients (function Coulomb: mu(Fr))
+  REAL(wp) :: mu_0
+  REAL(wp) :: mu_inf
+  REAL(wp) :: Fr_0
+
   !> drag coefficients (B&W model)
   REAL(wp) :: friction_factor
 
@@ -2860,6 +2865,8 @@ CONTAINS
     COMPLEX(wp) :: mod_vel
     COMPLEX(wp) :: mod_vel2
     COMPLEX(wp) :: gamma
+    COMPLEX(wp) :: Fr                      !< Froude number
+    COMPLEX(wp) :: muFr                    !< mu(Fr)
     REAL(wp) :: h_threshold
 
     INTEGER :: i
@@ -3095,6 +3102,9 @@ CONTAINS
 
           ENDIF
 
+       ! Coulomb function rheology: mu(Fr)
+       ELSEIF ( rheology_model .EQ. 9 ) THEN
+
        ENDIF
 
     ENDIF
@@ -3173,6 +3183,12 @@ CONTAINS
     REAL(wp) :: r_red_grav
     REAL(wp) :: r_rho_c
     REAL(wp) :: r_Ri
+    REAL(wp) :: Fr                !< Froude number
+    REAL(wp) :: muFr             !< mu(fr)
+    ! REAL(wp) :: Fr_x                !< Froude number
+    ! REAL(wp) :: Fr_y                !< Froude number
+    ! REAL(wp) :: mu_Fr_x             !< mu(fr)_x
+    ! REAL(wp) :: mu_Fr_y             !< mu(fr)_y
 
     REAL(wp) :: temp_term
     REAL(wp) :: centr_force_term
@@ -3226,20 +3242,21 @@ CONTAINS
        CALL mixt_var(qpj, r_Ri, r_rho_m, r_rho_c, r_red_grav, sp_heat_flag,     &
             r_sp_heat_c, r_sp_heat_mix)
 
+
+       IF ( slope_correction_flag ) THEN
+          
+          r_w = r_u * Bprimej_x + r_v * Bprimej_y
+          
+       ELSE
+          
+          r_w = 0.0_wp
+          
+       END IF
+       
+       mod_vel = SQRT( r_u**2 + r_v**2 + r_w**2 )
+       
        ! Voellmy Salm rheology
        IF ( rheology_model .EQ. 1 ) THEN
-
-          IF ( slope_correction_flag ) THEN
-
-             r_w = r_u * Bprimej_x + r_v * Bprimej_y
-
-          ELSE
-
-             r_w = 0.0_wp
-
-          END IF
-
-          mod_vel = SQRT( r_u**2 + r_v**2 + r_w**2 )
 
           IF ( mod_vel .GT. 0.0_wp ) THEN
 
@@ -3319,10 +3336,41 @@ CONTAINS
 
           END IF
 
-       ELSEIF ( rheology_model .EQ. 5 ) THEN
+       ELSEIF ( rheology_model .EQ. 9 ) THEN
 
+          ! From Zhu et al. 2020 (DOI: https://doi.org/10.1007/s10035-020-01053-7)
+          ! mu_0: Coulomb friction coefficient at Fr=+inf
+          ! mu_inf: Coulomb friction coefficient at Fr=0
+          ! Fr : froude number (!!!computed here using the total velocity and the thickness instead of the particle holdup!!!)
+          ! Fr_0 : Renormalization factor controlling the gradient of the function
+          ! should also use rho or alpha?
+          ! must add something for curvature or temperature?
+          
+          ! Compute friction only if mass is flowing
+          IF ( mod_vel .GT. 0.0_wp ) THEN 
+             Fr = mod_vel / SQRT(grav * r_h) !The definition in Zhu 2020 et Roche 2021 is sligtlhy different!
+             muFr = mu_inf + (mu_0 - mu_inf) * exp(-Fr/Fr_0)
+                          
+             ! WRITE(*,*) 'Fr = ',Fr
+             ! WRITE(*,*) 'mu_inf,mu_0,Fr_0',mu_inf,mu_0,Fr_0
+             ! WRITE(*,*) 'muFr = ',muFr
+             ! READ(*,*)
+             ! source_term(2) = source_term(2) - r_rho_m * grav * r_h * muFr * (r_u / mod_vel) ! units of dqc(2)/dt [kg m-1 s-2]
+             ! source_term(3) = source_term(3) - r_rho_m * grav * r_h * muFr * (r_v / mod_vel) ! units of dqc(3)/dt [kg m-1 s-2]
+
+             temp_term = r_rho_m *  muFr * r_h * grav_coeff * ( r_red_grav +      &
+                  centr_force_term ) / mod_vel
+
+             ! units of dqc(2)/dt=d(rho h v)/dt (kg m-1 s-2)
+             source_term(2) = source_term(2) - temp_term * r_u
+
+             ! units of dqc(3)/dt=d(rho h v)/dt (kg m-1 s-2)
+             source_term(3) = source_term(3) - temp_term * r_v
+
+          END IF
+          
        ENDIF
-
+       
     ENDIF
 
     nh_semi_impl_term = source_term

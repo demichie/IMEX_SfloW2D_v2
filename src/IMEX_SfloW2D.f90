@@ -84,7 +84,7 @@ PROGRAM IMEX_SfloW2D
        thickness_levels , dyn_pres_levels
 
   USE solver_2d, ONLY : q , qp , t, dt
-  USE solver_2d, ONLY : hmax
+  USE solver_2d, ONLY : hmax , pdynmax
   USE solver_2d, ONLY : thck_table ,  pdyn_table , vuln_table
 
   USE constitutive_2d, ONLY : qc_to_qp
@@ -241,8 +241,15 @@ PROGRAM IMEX_SfloW2D
      IF ( q(1,j,k) .GT. 0.0_wp ) THEN
 
         CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars,j,k) , p_dyn )
+
         hmax(j,k) = qp(1,j,k)
 
+        IF ( q(1,j,k) .GT. 0.001_wp ) THEN
+           
+           pdynmax(j,k) = p_dyn
+
+        END IF
+           
         i_table = 0
         
         DO i_thk_lev=1,n_thickness_levels
@@ -266,6 +273,7 @@ PROGRAM IMEX_SfloW2D
         qp(1:n_vars,j,k) = 0.0_wp
         qp(4,j,k) = T_ambient
         hmax(j,k) = 0.0_wp
+        pdynmax(j,k) = 0.0_wp
 
      END IF
 
@@ -364,6 +372,12 @@ PROGRAM IMEX_SfloW2D
 
            hmax(j,k) = MAX( hmax(j,k) , qp(1,j,k) )
 
+           IF ( q(1,j,k) .GT. 0.001_wp ) THEN
+
+              pdynmax(j,k) = MAX( pdynmax(j,k) , p_dyn )
+
+           END IF
+              
            i_table = 0
            
            DO i_thk_lev=1,n_thickness_levels

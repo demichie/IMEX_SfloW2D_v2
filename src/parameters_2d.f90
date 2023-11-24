@@ -69,6 +69,7 @@ MODULE parameters_2d
   !> - 1      => Voellmy-Salm rheology
   !> - 2      => plastic rheology
   !> .
+  !> - 9      => Coulomb function mu(Fr) (Zhu... 2020 , Roche... 2021)
   INTEGER :: rheology_model
 
   LOGICAL :: liquid_flag

@@ -108,6 +108,9 @@ MODULE solver_2d
   !> Maximum over time of thickness
   REAL(wp), ALLOCATABLE :: hmax(:,:)
 
+  !> Maximum over time of dynamic pressure
+  REAL(wp), ALLOCATABLE :: pdynmax(:,:)
+
   !> Maximum over time of thickness
   LOGICAL, ALLOCATABLE :: vuln_table(:,:,:)
 
@@ -260,6 +263,7 @@ CONTAINS
     qp(4,1:comp_cells_x,1:comp_cells_y) = T_ambient
 
     ALLOCATE( hmax( comp_cells_x , comp_cells_y ) )
+    ALLOCATE( pdynmax( comp_cells_x , comp_cells_y ) )
 
     ALLOCATE( vuln_table( n_thickness_levels * n_dyn_pres_levels ,              &
          comp_cells_x , comp_cells_y ) )
@@ -502,7 +506,7 @@ CONTAINS
 
     DEALLOCATE( q , q0 , hpos , hpos_old )
 
-    DEALLOCATE( hmax )
+    DEALLOCATE( hmax , pdynmax )
 
     DEALLOCATE( vuln_table )
 

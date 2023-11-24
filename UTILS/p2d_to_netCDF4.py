@@ -274,6 +274,19 @@ redgrav = ncfile.createVariable('redgrav',
 redgrav.standard_name = 'reduced gravity'
 redgrav.units = 'meters/second^2'
 
+hmax = ncfile.createVariable('hmax', np.float64, ('time', 'y', 'x'))
+hmax.standard_name = 'max of flow thickness'  # this is a CF standard name
+hmax.units = 'meters'  
+
+pdynmax = ncfile.createVariable('pdynmax', np.float64, ('time', 'y', 'x'))
+pdynmax.standard_name = 'max of dynamic pressure'  # this is a CF standard name
+pdynmax.units = 'kilograms/(meters*second^2)'   
+
+modvelmax = ncfile.createVariable('modvelmax', np.float64, ('time', 'y', 'x'))
+modvelmax.standard_name = 'max of flow velocity'  # this is a CF standard name
+modvelmax.units = 'meters/second'  
+
+
 X = np.zeros((ny2, nx2))
 Y = np.zeros((ny2, nx2))
 
@@ -357,6 +370,12 @@ for i_output in range(output_first, output_last):
                           '_{0:04}'.format(i)][nc_output, :, :] = np.tile(
                               data[:, 14 + 3 * nsolid + naddgas + i],
                               2).reshape((ny2, nx2))
+                              
+            hmax[nc_output, :, :] = np.tile(data[:, 2], 14 + 4 * nsolid + naddgas).reshape((ny2, nx2))
+
+            pdynmax[nc_output, :, :] = np.tile(data[:, 2], 14 + 4 * nsolid + naddgas+1).reshape((ny2, nx2))
+            modvelmax[nc_output, :, :] = np.tile(data[:, 2], 14 + 4 * nsolid + naddgas+2).reshape((ny2, nx2))
+
 
         else:
 
@@ -419,6 +438,11 @@ for i_output in range(output_first, output_last):
                 globals()['Rouse_no' + '_{0:04}'.format(i)][
                     nc_output, :, :] = data[:, 14 + 3 * nsolid + naddgas +
                                             i].reshape((ny, nx))
+
+            hmax[nc_output, :, :] = data[:, 14 + 4 * nsolid + naddgas].reshape((ny, nx))
+            pdynmax[nc_output, :, :] = data[:, 14 + 4 * nsolid + naddgas+1].reshape((ny, nx))
+            modvelmax[nc_output, :, :] = data[:, 14 + 4 * nsolid + naddgas+2].reshape((ny, nx))
+            
 
         nc_output += 1
 

@@ -39,7 +39,7 @@ MODULE inpout_2d
   USE parameters_2d, ONLY : u_init
   USE parameters_2d, ONLY : v_init
 
-  ! -- Variables for the namelists LEFT/RIGHT_BOUNDARY_CONDITIONS
+  ! -- Variables for the namelists LEFT/RIGHT_BOUNDARY_CONDITIONSq
   USE parameters_2d, ONLY : bc
 
   ! -- Variables for the namelist NUMERIC_PARAMETERS
@@ -68,7 +68,8 @@ MODULE inpout_2d
 
   ! -- Variables for the namelist RHEOLOGY_PARAMETERS
   USE parameters_2d, ONLY : rheology_model
-  USE constitutive_2d, ONLY : mu , xi , tau , nu_ref , visc_par , T_ref
+  USE constitutive_2d, ONLY : mu , xi , tau , nu_ref , visc_par , T_ref,        &
+                               mu_0, mu_inf, Fr_0
   USE constitutive_2d, ONLY : alpha2 , beta2 , alpha1_coeff , beta1 , Kappa ,n_td
   USE constitutive_2d, ONLY : friction_factor
   USE constitutive_2d, ONLY : tau0
@@ -236,6 +237,7 @@ MODULE inpout_2d
   NAMELIST / run_parameters / run_name , restart , t_start , t_end , dt_output ,&
        output_cons_flag , output_esri_flag , output_phys_flag ,                 &
        output_runout_flag , verbose_level
+  
   NAMELIST / restart_parameters / n_restart_files, restart_files, release_time ,&
        T_init , T_ambient , u_init , v_init , sed_vol_perc
 
@@ -273,7 +275,7 @@ MODULE inpout_2d
 
   NAMELIST / rheology_parameters / rheology_model , mu , xi , tau , nu_ref ,    &
        visc_par , T_ref , alpha2 , beta2 , alpha1_ref , beta1 , Kappa , n_td ,  &
-       friction_factor , tau0
+       friction_factor , tau0, mu_0, mu_inf, Fr_0
 
   NAMELIST / runout_parameters / x0_runout , y0_runout , dt_runout ,            &
        eps_stop
@@ -393,6 +395,10 @@ CONTAINS
     T_ref = 0.0_wp
     visc_par = 0.0_wp
     tau0 = 0.0_wp
+    mu_0 = -1.0_wp
+    mu_inf = -1.0_wp
+    Fr_0 = -1.0_wp
+
 
     !-- Inizialization of the Variables for the namelist RUNOUT_PARAMETERS
     x0_runout = -1
@@ -544,6 +550,9 @@ CONTAINS
     T_ref = -1
     tau0 = -1
     friction_factor = -1
+    mu_0 = -1
+    mu_inf = -1
+    Fr_0 = -1
 
     alpha2 = -1.0_wp
     beta2 = -1.0_wp
@@ -586,6 +595,9 @@ CONTAINS
     !- Variables for the namelist RHEOLOGY_PARAMETERS
     xi = -1.0_wp
     mu = -1.0_wp
+    mu_0 = -1.0_wp
+    mu_inf = -1.0_wp
+    Fr_0 = -1.0_wp
 
     !- Variables for the namelist GAS_TRANSPORT_PARAMETERS
     sp_heat_a = -1.0_wp
@@ -2747,6 +2759,33 @@ CONTAINS
 
           END IF
 
+       ELSEIF ( rheology_model .EQ. 9 ) THEN
+          WRITE(*,*) 'RHEOLOGY_MODEL =' , rheology_model
+          WRITE(*,*) 'MU_0 =' , mu_0 ,' MU_inf =' , mu_inf, 'Fr_0 = ', Fr_0
+          IF ( ( mu_0 .EQ. -1.0_wp ) .AND. ( mu_inf .EQ. -1.0_wp ) .AND. ( Fr_0 .EQ. -1.0_wp ) ) THEN
+             ! Stop the program if the parameters are not a double-precision floating-point numbers (real numbers).
+             WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
+             WRITE(*,*) 'RHEOLOGY_MODEL =' , rheology_model
+             WRITE(*,*) 'MU_0 =' , mu_0 ,' MU_inf =' , mu_inf, 'Fr_0 = ', Fr_0
+             WRITE(*,*) 'Please check the input file'
+             STOP
+          END IF
+
+          !! Should add something similar? This is present in the Voellmy-Salm Rheology
+          ! IF ( ( T_ref .NE. -1.0_wp ) .OR. ( nu_ref .NE. -1.0_wp ) .OR.         &
+          !      ( visc_par .NE. -1.0_wp ) .OR. ( tau .NE. -1.0_wp ) .OR.         &
+          !      ( tau0 .NE. -1.0_wp ) ) THEN
+
+          !    WRITE(*,*) 'WARNING: parameters not used in RHEOLOGY_PARAMETERS'
+          !    IF ( T_ref .NE. -1.0_wp ) WRITE(*,*) 'T_ref =',T_ref 
+          !    IF ( nu_ref .NE. -1.0_wp ) WRITE(*,*) 'nu_ref =',nu_ref 
+          !    IF ( visc_par .NE. -1.0_wp ) WRITE(*,*) 'visc_par =',visc_par
+          !    IF ( tau .NE. -1.0_wp ) WRITE(*,*) 'tau =',tau 
+          !    IF ( tau0 .NE. -1.0_wp ) WRITE(*,*) 'tau0 =',tau0 
+          !    WRITE(*,*) 'Press ENTER to continue'
+          !    READ(*,*)
+          ! END IF
+
        ELSE
 
           WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
@@ -4822,7 +4861,7 @@ CONTAINS
     USE parameters_2d, ONLY : t_output , dt_output 
     USE parameters_2d, ONLY : t_steady
 
-    USE solver_2d, ONLY : q
+    USE solver_2d, ONLY : q , hmax , pdynmax
 
     IMPLICIT none
 
@@ -4863,7 +4902,8 @@ CONTAINS
 
     REAL(wp) :: Rouse_no(n_solid)
 
-
+    REAL(wp) :: mod_vel_max
+    
     sp_flag = .FALSE.
 
 
@@ -5044,12 +5084,14 @@ CONTAINS
 
              IF ( ABS( r_alphal ) .LT. 1.0E-20_wp ) r_alphal = 0.0_wp
 
+             mod_vel_max = SQRT(2.0 * pdynmax(j,k) / r_rho_m)
+             
              WRITE(output_unit_2d,1010) x_comp(j), y_comp(k), r_h , r_u , r_v , &
                   B_out , r_h + B_out , r_alphas , r_alphag , r_T , r_rho_m ,   &
                   r_red_grav , DEPOSIT(j,k,:) , EROSION(j,k,:) ,                &
                   SUM(ERODIBLE(1:n_solid,j,k)) / ( 1.0_wp - erodible_porosity ),&
-                  r_alphal , shear_vel , r_Ri , Rouse_no(1:n_solid)
-
+                  r_alphal , shear_vel , r_Ri , Rouse_no(1:n_solid), hmax(j,k) ,&
+                  pdynmax(j,k) , mod_vel_max
 
           END DO
 
