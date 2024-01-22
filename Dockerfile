@@ -24,8 +24,6 @@ RUN adduser --disabled-password user_sw
 USER user_sw
 WORKDIR /home/user_sw
 
-RUN cd /home/user_sw/
-
 RUN curl -LOk https://github.com/demichie/IMEX_SfloW2D_v2/archive/master.zip \
     && unzip *.zip \
     && cp /home/user_sw/IMEX_SfloW2D_v2-master/TESTS/run_tests.sh . \
