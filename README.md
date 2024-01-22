@@ -38,7 +38,8 @@ Several examples can be found in the EXAMPLES folder.
 ## Docker container
 
 If you do not have a compiler on your system, there is a Docker container
-with the executable of the latest version of the model at this link:
+with the executable of the latest version of the model at the following
+link:
 
 <https://hub.docker.com/repository/docker/demichie/imex_sflow2d_v2>
 
