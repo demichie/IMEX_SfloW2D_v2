@@ -42,7 +42,7 @@ RUN curl -LOk https://github.com/demichie/IMEX_SfloW2D_v2/archive/master.zip \
     && rm *.zip \
     && echo 'alias python=python3' >> .bash_aliases \
     && mkdir /home/user_sw/scripts \
-    && mv /home/user_sw/IMEX_SfloW2D-master/commands.sh /home/user_sw/scripts/commands.sh \
+    && mv /home/user_sw/IMEX_SfloW2D_v2-master/commands.sh /home/user_sw/scripts/commands.sh \
     && chmod +x /home/user_sw/scripts/commands.sh
 
 ENTRYPOINT ["/home/user_sw/scripts/commands.sh"]
