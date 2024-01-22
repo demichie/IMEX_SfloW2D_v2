@@ -26,13 +26,13 @@ WORKDIR /home/user_sw
 
 RUN cd /home/user_sw/
 
-RUN curl -LOk https://github.com/demichie/IMEX_SfloW2D/archive/master.zip \
+RUN curl -LOk https://github.com/demichie/IMEX_SfloW2D_v2/archive/master.zip \
     && unzip *.zip \
-    && cp /home/user_sw/IMEX_SfloW2D-master/TESTS/run_tests.sh . \
-    && echo 'cd /home/user_sw/IMEX_SfloW2D-master/TESTS/' | cat - run_tests.sh > temp \
+    && cp /home/user_sw/IMEX_SfloW2D_v2-master/TESTS/run_tests.sh . \
+    && echo 'cd /home/user_sw/IMEX_SfloW2D_v2-master/TESTS/' | cat - run_tests.sh > temp \
     && mv temp run_tests.sh \
     && chmod +x run_tests.sh \
-    && cd /home/user_sw/IMEX_SfloW2D-master \
+    && cd /home/user_sw/IMEX_SfloW2D_v2-master \
     && touch README \
     && autoreconf \
     && ./configure \
