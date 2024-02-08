@@ -451,7 +451,7 @@ with open(r'IMEX_SfloW2D.inp', 'r') as file:
 
 # Opening our text file in write only
 # mode to write the replaced content
-with open(r'IMEX_sfloW2D.inp', 'w') as file:
+with open(r'IMEX_SfloW2D.inp', 'w') as file:
 
     # Writing the replaced data in our
     # text file
