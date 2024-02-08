@@ -13,7 +13,7 @@
 &NEWRUN_PARAMETERS
  X0= 498813.0    ,
  Y0=  4175700.0     ,
- TOPOGRAPHY_FILE = './DEM/new_dem.asc' ,
+ TOPOGRAPHY_FILE = './DEM/Etna2014_crop.asc' ,
  COMP_CELLS_X=  450,
  COMP_CELLS_Y=  350,
  CELL_SIZE = 10.D0    ,
