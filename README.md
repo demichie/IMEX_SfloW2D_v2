@@ -4,7 +4,7 @@
 
 [![SQAaaS badge shields.io](https://img.shields.io/badge/sqaaas%20software-gold-yellow)](https://api.eu.badgr.io/public/assertions/VYyqk62SQfq4Hx1E3CsHHg "SQAaaS gold badge achieved")
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7769849.svg)](https://doi.org/10.5281/zenodo.7769849)
+[![DOI](https://zenodo.org/badge/218571198.svg)](https://zenodo.org/doi/10.5281/zenodo.7476736)
 
 Shallow water model for multiphase flow (gas+particles) with density of gas
 temperature-dependent.
