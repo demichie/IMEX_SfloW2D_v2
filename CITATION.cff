@@ -8,7 +8,7 @@ authors:
     email: mattia.demichielivitturi@ingv.it
     affiliation: Istituto Nazionale di Geofisica e Vulcanologia
     orcid: 'https://orcid.org/0000-0002-6750-9245'
-title: demichie/IMEX_SfloW2D_v2: IMEX_Sflow2D 2.0
-version: 1.0.0
+title: demichie/IMEX_SfloW2D_v2
+version: 1.0.1
 date-released: 2023-03-25
 license: GPL-3.0
