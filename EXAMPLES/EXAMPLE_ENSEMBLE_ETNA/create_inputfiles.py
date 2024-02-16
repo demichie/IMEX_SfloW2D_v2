@@ -29,7 +29,7 @@ def replace_strings(working_dir, df, header, i_row):
 
                 for name in header:
 
-                    searchstring = '"ENSEMBLE_' + name + '"'
+                    searchstring = 'ENSEMBLE_' + name
                     # print(searchstring)
                     f.seek(0)
 

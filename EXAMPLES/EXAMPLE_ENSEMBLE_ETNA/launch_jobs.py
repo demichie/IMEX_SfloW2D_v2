@@ -10,7 +10,7 @@ print('Start computation')
 
 command = "./run.sh"
 processes = set()
-max_processes = 4
+max_processes = 5
 
 for x in dirs:
 

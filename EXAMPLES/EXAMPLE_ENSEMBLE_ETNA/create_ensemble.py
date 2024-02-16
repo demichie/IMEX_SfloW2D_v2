@@ -301,11 +301,11 @@ def main():
 
     coor_x = [param[0] for param in param_list]
     list_values.append(coor_x)
-    list_names.append('Coor_x')
+    list_names.append('x')
 
     coor_y = [param[1] for param in param_list]
     list_values.append(coor_y)
-    list_names.append('Coor_y')
+    list_names.append('y')
 
     ###
     """
