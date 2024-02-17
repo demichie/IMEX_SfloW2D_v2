@@ -22,7 +22,9 @@ STEP 2: unzip the DEM file and create a symbolic link in the templatedir/DEM fol
 
 > cd DEM
 > unzip Etna2014_crop.zip
-> cd ../templatedir/DEM
+> cd ../templatedir
+> mkdir DEM
+> cd DEM
 > ln -s ../../DEM/Etna2014_crop.asc .
 > cd ../..
 
