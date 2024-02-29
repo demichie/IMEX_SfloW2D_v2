@@ -24,14 +24,14 @@ elif len(sys.argv) == 3:
 
 else:
 
-    print('Please provide file name (*.prb)\n')
+    print('Please provide file name (*.csv)\n')
     sys.exit()
 
 data = np.genfromtxt(prb_file, delimiter=',', skip_header=3)
 # print(data.shape)
 
 # read the content of the file opened
-file = open(prb_file)
+file = open(_file)
 content = file.readlines()
 
 # read 10th line from the file
@@ -60,7 +60,7 @@ for i in range(len(vars) - 1):
 
     plt.tight_layout()
 
-    fig_name = prb_file.replace(
+    fig_name = _file.replace(
         '.csv', '_' + (vars[i + 1].strip().replace('.', '_')) + '.pdf')
     fig_name = fig_name.replace('_.', '.')
     plt.savefig(fig_name)
