@@ -31,7 +31,7 @@ data = np.genfromtxt(prb_file, delimiter=',', skip_header=3)
 # print(data.shape)
 
 # read the content of the file opened
-file = open(_file)
+file = open(prb_file)
 content = file.readlines()
 
 # read 10th line from the file
