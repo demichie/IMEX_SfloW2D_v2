@@ -60,7 +60,7 @@ for i in range(len(vars) - 1):
 
     plt.tight_layout()
 
-    fig_name = _file.replace(
+    fig_name = prb_file.replace(
         '.csv', '_' + (vars[i + 1].strip().replace('.', '_')) + '.pdf')
     fig_name = fig_name.replace('_.', '.')
     plt.savefig(fig_name)
