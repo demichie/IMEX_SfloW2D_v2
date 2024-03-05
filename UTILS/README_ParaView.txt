@@ -15,11 +15,11 @@ ux	W-E velocity (m/s)
 uy	S-N velocity (m/s)
 
 
-Apply the filter "WarpByScalar" to the Scalar "b" to create the 3D view of the topography.
+Apply the filter "WarpByScalar" to .nc data and select the scalar "b" to create the 3D view of the topography.
 Click on the small "2D" icon on the top of the panel with the render view. It should switch to "3D"
 On the Color bar, Click on "Solid Color" and change it "b". Click now on the "Edit Color Map" icon, it should open the "Color Map Editor" panel. Choose the colormap you want by clicking on the small icon with a folder and a heart. Close the "Color Map Editor" panel.
 
-In the Pipeline Browser, select the .nc file and apply the filter "Warp by Scalar" to the variable "W" to create the 3D view of the flow over the topography.
+In the Pipeline Browser, select again the .nc file and apply the filter "Warp by Scalar" to the variable "W" to create the 3D view of the flow over the topography.
 
 In the Pipeline Browser, select the second "WarpByScalar" and apply the "Threshold" filter to remove the areas without the flow. The Scalar "T" can be used for the threshold (increase the Minimum slightly above the atmosphere value, ex. from 300 to 300.01). 
 On the Color bar, Click on "Solid Color" and change it "rhom" or "alphas".
