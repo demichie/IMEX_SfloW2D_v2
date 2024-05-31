@@ -724,16 +724,17 @@ CONTAINS
     !> array for depth-averaged value of rho*u(z)*C(z)
     REAL(wp) :: rho_u_alphas(n_solid)
 
-    REAL(wp) :: rho_alphas_int(n_solid)
-
     INTEGER :: i_solid
 
     REAL(wp) :: a
     REAL(wp) :: int
-    REAL(wp) :: alphas_rel_max
+    REAL(wp) :: normalizing_coeff
     REAL(wp) :: alphas_rel0
     REAL(wp) :: y
     REAL(wp) :: int_h0 , int_0 , int_def
+
+ 
+    REAL(wp) :: a_coeff
 
     INTEGER ( kind = 4 ) :: i
     ! REAL(wp) :: x,ei
@@ -752,6 +753,8 @@ CONTAINS
     w = 0.5_wp * h0 * w_quad
 
     ! CALL gaulegf(0.0_wp, h0, x, w, n_quad)
+
+    a_coeff = - vonK * shear_vel * (6.0_wp * (vonK * h0 + k_s / 10.0_wp)) / ( Sc * shear_vel * h0 )
     
     DO i_solid=1,n_solid
 
@@ -759,22 +762,16 @@ CONTAINS
 
        int = ( ( EXP(a*h0) - 1.0_wp ) / a + EXP(a*h0)*(h-h0) ) / h
 
-       alphas_rel_max = 1.0_wp / int
+       normalizing_coeff = 1.0_wp / int
 
        ! relative concentration C_rel at depth h0 (from the bottom)
        ! C_rel is defined as C(z)/C_avg
-       alphas_rel0 = alphas_rel_max * EXP(a*h0)
-
-       ! depth-averaged value of rho*C(z)
-       ! this results from the sum of the log region with thickness h0 and the 
-       ! constant region with thickness h-h0
-       rho_alphas_int(i_solid) = rho_alphas_avg(i_solid) * ( alphas_rel_max *   &
-            ( EXP(a*h0) - 1.0_wp ) / a + (h-h0)*alphas_rel0 ) / h
+       alphas_rel0 = normalizing_coeff * EXP(a*h0)
 
        ! we compute the integral in the log region of u_tilde(z)*C_rel(z), where 
        ! u_tilde is defined as u(z)/(u_guess*u_coeff*sqrt(friction_factor))
        int_quad = SUM( w * ( EXP(a*x) * LOG( b*x + 1.0_wp ) ) )
-       int_def = u_coeff * SQRT(friction_factor) / vonK * alphas_rel_max *      &
+       int_def = u_coeff * SQRT(friction_factor) / vonK * normalizing_coeff *      &
             int_quad
 
        ! we add the contribution of the integral of the constant region, we
@@ -788,7 +785,7 @@ CONTAINS
     ! we add the contribution of the gas phase to the depth-averaged mixture 
     ! density. This value should be equal to that used to compute the input
     ! values rhoalphas_avg.
-    rhom_avg = rho_c + SUM( ( rho_s - rho_c ) / rho_s * rho_alphas_int )
+    rhom_avg = rho_c + SUM( ( rho_s - rho_c ) / rho_s * rho_alphas_avg )
 
     ! we add the contribution of the gas phase to the mixture depth-averaged 
     ! momentum
@@ -1420,7 +1417,7 @@ CONTAINS
     REAL(wp) :: a_coeff
     !REAL(wp) :: a_crit_rel
     REAL(wp) :: alphas_rel0
-    real(wp) :: alphas_rel_max
+    real(wp) :: normalizing_coeff
     REAL(wp) :: b_term
     REAL(wp) :: exp_a_h0
 
@@ -1667,7 +1664,7 @@ CONTAINS
 
        log_term_h0 = LOG( b_term )**2
 
-       a_coeff = - 6.0_wp * Sc / r_h
+       a_coeff = - vonK * shear_vel * (6.0_wp * (vonK * h0 + k_s / 10.0_wp)) / ( Sc * shear_vel * h0 )
 
        x = 0.5_wp * h0 * ( x_quad + 1.0_wp )
        w = 0.5_wp * h0 * w_quad
@@ -1682,15 +1679,15 @@ CONTAINS
 
           int = ( ( exp_a_h0 -1.0_wp ) / a + exp_a_h0 * ( r_h-h0 ) ) / r_h
 
-          alphas_rel_max = 1.0_wp / int
+          normalizing_coeff = 1.0_wp / int
 
           ! relative concentration alphas_rel at depth h0 (from the bottom)
           ! alphas_rel is defined as alphas(z)/alphas_avg
-          alphas_rel0 = alphas_rel_max * exp_a_h0
+          alphas_rel0 = normalizing_coeff * exp_a_h0
 
           int_quad = SUM( w * ( EXP(a*x) * LOG( b*x + 1.0_wp ) ) )
 
-          int_def = u_coeff * SQRT(friction_factor) / vonK * alphas_rel_max *   &
+          int_def = u_coeff * SQRT(friction_factor) / vonK * normalizing_coeff *   &
                int_quad
 
           ! we add the contribution of the integral of the constant region, we
@@ -2171,7 +2168,7 @@ CONTAINS
     REAL(wp) :: w_log_term_x(n_quad)
     REAL(wp) :: int
     REAL(wp) :: exp_a_h0
-    REAL(wp) :: alphas_rel_max
+    REAL(wp) :: normalizing_coeff
     REAL(wp) :: alphas_rel0
     REAL(wp) :: rho_u_alphas(n_solid)
     REAL(wp) :: y
@@ -2293,7 +2290,7 @@ CONTAINS
 
     log_term_h0 = log( b_term )**2
 
-    a_coeff = - 6.0_wp * Sc / r_h
+    a_coeff = - vonK * shear_vel * (6.0_wp * (vonK * h0 + k_s / 10.0_wp)) / ( Sc * shear_vel * h0 )
 
     x = 0.5*h0*(x_quad+1.0_wp)
     w = 0.5*h0*w_quad
@@ -2310,15 +2307,15 @@ CONTAINS
 
        int = ( ( exp_a_h0 -1.0_wp ) / a + exp_a_h0 * ( r_h-h0 ) ) / r_h
 
-       alphas_rel_max = 1.0_wp / int
+       normalizing_coeff = 1.0_wp / int
 
        ! relative concentration alphas_rel at depth h0 (from the bottom)
        ! alphas_rel is defined as alphas(z)/alphas_avg
-       alphas_rel0 = alphas_rel_max * exp_a_h0
+       alphas_rel0 = normalizing_coeff * exp_a_h0
 
        int_quad = SUM( w * ( EXP(a*x) * LOG( b*x + 1.0_wp ) ) )
 
-       int_def = u_coeff * SQRT(friction_factor) / vonK * alphas_rel_max *      &
+       int_def = u_coeff * SQRT(friction_factor) / vonK * normalizing_coeff *      &
             int_quad
 
        ! we add the contribution of the integral of the constant region, we
@@ -2332,7 +2329,7 @@ CONTAINS
        int_quad = SUM( EXP(a*x) * w_log_term_x )
 
        rhom_hvel_vel = rhom_hvel_vel + ( rho_s(i_solid) - r_rho_c ) *           &
-            alphas_rel_max * r_alphas(i_solid) * mod_vel * mod_hvel *           &
+            normalizing_coeff * r_alphas(i_solid) * mod_vel * mod_hvel *           &
             ( u_coeff * SQRT(friction_factor) / vonK )**2 *                     &
             ( int_quad + ( r_h - h0 ) * exp_a_h0 * log_term_h0 )
 
@@ -2503,7 +2500,7 @@ CONTAINS
 
     h0 = h0_rel*k_s
 
-    a_coeff = - 6.0_wp * Sc / r_h
+    a_coeff = - vonK * shear_vel * (6.0_wp * (vonK * h0 + k_s / 10.0_wp)) / ( Sc * shear_vel * h0 )
 
     DO i_solid = 1,n_solid
 
