@@ -643,6 +643,8 @@ CONTAINS
     T_collapse = -1.0_wp
     h_collapse = -1.0_wp
     r_collapse = -1.0_wp
+    alphag_collapse = -1.0_wp
+    alphas_collapse = -1.0_wp
 
     !- Variables for the namelist VULNERABILTY_TABLE_PARAMETERS
     n_thickness_levels = -1
