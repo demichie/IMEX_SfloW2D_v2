@@ -3768,9 +3768,9 @@ CONTAINS
        sp_latent_heat = 2264705.0_wp
        sp_heat_liq_water = 4184.0_wp
 
-       mass_vap_rate = gamma_steam * r_T * SUM( rho_s * sp_heat_s *             &
-            deposition_term ) / ( sp_heat_liq_water * ( T_boiling - T_liquid )  &
-            + sp_latent_heat )
+       mass_vap_rate = gamma_steam * MAX(0.0_wp , r_T-T_boiling) * SUM( rho_s * &
+            sp_heat_s * deposition_term ) / ( sp_heat_liq_water * ( T_boiling - &
+            T_liquid ) + sp_latent_heat )
 
        eqns_term(1) = eqns_term(1) + mass_vap_rate
        eqns_term(4) = eqns_term(4) + mass_vap_rate * sp_heat_g(1) * T_boiling
