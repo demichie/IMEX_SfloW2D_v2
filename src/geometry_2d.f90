@@ -2228,6 +2228,9 @@ CONTAINS
   end subroutine calcei
 
   subroutine gaulegf(x1, x2, x, w, n)
+    
+    ! adapted from www.cs.umbbc.edu/~squire/download/gauleg.f90
+    ! gauleg.f90     P145 Numerical Recipes in Fortran
 
     implicit none
     integer, intent(in) :: n
