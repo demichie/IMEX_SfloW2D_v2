@@ -2235,7 +2235,7 @@ CONTAINS
     REAL(wp), dimension(n), intent(out) :: x, w
     integer :: i, j, m
     REAL(wp) :: p1, p2, p3, pp, xl, xm, z, z1
-    REAL(wp), parameter :: eps=3.0E-14_wp
+    REAL(wp), parameter :: eps=10.0_wp*epsilon(1.0_wp)
 
     m = (n+1)/2
     xm = 0.5_wp*(x2+x1)

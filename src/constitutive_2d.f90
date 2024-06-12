@@ -719,7 +719,7 @@ CONTAINS
     REAL(wp) :: shear_vel
 
     !>  Rouse numbers for the particle classes
-    REAL(wp) :: Pn(n_solid)
+    REAL(wp) :: Rouse_no(n_solid)
 
     !> array for depth-averaged value of rho*u(z)*C(z)
     REAL(wp) :: rho_u_alphas(n_solid)
@@ -747,7 +747,20 @@ CONTAINS
     shear_vel = u_guess * SQRT(friction_factor)
 
     ! Rouse numbers for the particle classes
-    Pn(1:n_solid) = settling_vel(1:n_solid) / ( vonK * shear_vel )
+    DO i_solid=1,n_solid
+
+       IF ( shear_vel .GT. 0.0_wp ) THEN
+
+          Rouse_no(i_solid) = settling_vel(i_solid) / ( vonK * shear_vel )
+          
+       ELSE
+          
+          Rouse_no(i_solid) = 0.0_wp
+          
+       END IF
+       
+    END DO
+    
 
     x = 0.5_wp * h0 * ( x_quad + 1.0_wp )
     w = 0.5_wp * h0 * w_quad
@@ -758,7 +771,7 @@ CONTAINS
     
     DO i_solid=1,n_solid
 
-       a = -( 6.0_wp * Pn(i_solid) * Sc ) / h
+       a = a_coeff * Rouse_no(i_solid)
 
        int = ( ( EXP(a*h0) - 1.0_wp ) / a + EXP(a*h0)*(h-h0) ) / h
 
