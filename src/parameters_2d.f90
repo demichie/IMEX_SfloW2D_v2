@@ -12,7 +12,7 @@ MODULE parameters_2d
   INTEGER, PARAMETER :: dp = Selected_Real_Kind (P=15,R=307)
 
   !> working precision
-  INTEGER, PARAMETER :: wp = sp
+  INTEGER, PARAMETER :: wp = dp
 
   REAL(wp), PARAMETER :: xinf = HUGE(0.0_wp)
   
