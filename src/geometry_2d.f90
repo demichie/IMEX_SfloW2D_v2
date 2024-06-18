@@ -2228,6 +2228,9 @@ CONTAINS
   end subroutine calcei
 
   subroutine gaulegf(x1, x2, x, w, n)
+    
+    ! adapted from www.cs.umbbc.edu/~squire/download/gauleg.f90
+    ! gauleg.f90     P145 Numerical Recipes in Fortran
 
     implicit none
     integer, intent(in) :: n
@@ -2235,7 +2238,7 @@ CONTAINS
     REAL(wp), dimension(n), intent(out) :: x, w
     integer :: i, j, m
     REAL(wp) :: p1, p2, p3, pp, xl, xm, z, z1
-    REAL(wp), parameter :: eps=3.0E-14_wp
+    REAL(wp), parameter :: eps=10.0_wp*epsilon(1.0_wp)
 
     m = (n+1)/2
     xm = 0.5_wp*(x2+x1)

@@ -643,6 +643,8 @@ CONTAINS
     T_collapse = -1.0_wp
     h_collapse = -1.0_wp
     r_collapse = -1.0_wp
+    alphag_collapse = -1.0_wp
+    alphas_collapse = -1.0_wp
 
     !- Variables for the namelist VULNERABILTY_TABLE_PARAMETERS
     n_thickness_levels = -1
@@ -775,6 +777,8 @@ CONTAINS
     REAL(wp) :: xc
     REAL(wp) :: xs_tot
     REAL(wp), ALLOCATABLE :: shape_coeff(:)
+
+    REAL(wp) :: lamb0, lamb1
 
     INTEGER :: iter_source , iter_max
 
@@ -3104,10 +3108,18 @@ CONTAINS
           END IF
 
           a_crit_rel = vonK / SQRT( friction_factor) + 1.0_wp
-          H_crit_rel = 1.0_wp / 30.0_wp * ( -a_crit_rel /                       &
-               lambertw0(-a_crit_rel *  EXP(-a_crit_rel) ) - 1.0_wp )
 
-          !WRITE(*,*) 'a_crit_rel',a_crit_rel 
+
+          lamb0 = lambertw0( -a_crit_rel *  EXP(-a_crit_rel) )
+          lamb1 = lambertwm1( -a_crit_rel *  EXP(-a_crit_rel) )
+
+          WRITE(*,*) lambertw0( -a_crit_rel *  EXP(-a_crit_rel) )
+          WRITE(*,*) lambertwm1( -a_crit_rel *  EXP(-a_crit_rel) )
+
+          H_crit_rel = 1.0_wp / 30.0_wp * ( -a_crit_rel /                       &
+               MAX(lamb0,lamb1) - 1.0_wp )
+
+          WRITE(*,*) 'a_crit_rel',a_crit_rel 
           !WRITE(*,*) 'Arg lambertW',-a_crit_rel *  EXP(-a_crit_rel)
           !WRITE(*,*) 'LambertW0', lambertw0(-a_crit_rel *  EXP(-a_crit_rel) )
           WRITE(*,*) 'H_crit',H_crit_rel*k_s
@@ -3697,7 +3709,7 @@ CONTAINS
                                       
                    search_Ri_loop:DO iter_source = 1,iter_max
 
-                      ! WRITE(*,*) 'iter_source',iter_source
+                      WRITE(*,*) 'iter_source',iter_source
                       
                       h_source = ( mfr_source/( source_length * rho_m * shape_coeff(1) ) &
                            * SQRT( Ri_source/red_grav ) )**(2.0_wp/3.0_wp)

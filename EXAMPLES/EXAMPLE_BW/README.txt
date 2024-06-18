@@ -17,7 +17,7 @@ Please provide four arguments:
 
 Usage example of the script:
 
->> ./create_example.py 400 0.1 900 false
+>> ./create_example.py 400 0.01 900 false
 
 Run the solver (this assumes that the example is in the original folder):
 
