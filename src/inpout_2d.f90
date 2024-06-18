@@ -682,7 +682,7 @@ CONTAINS
     USE parameters_2d, ONLY : bcW , bcE , bcS , bcN
 
     USE geometry_2d, ONLY : deposit , deposit_tot , erosion , erodible ,        &
-         erosion_tot , x_quad , w_quad
+         erosion_tot , z_quad , w_quad
 
     USE constitutive_2d, ONLY : rho_a_amb
     USE constitutive_2d, ONLY : rho_c_sub
@@ -3093,8 +3093,8 @@ CONTAINS
 
           ELSE
 
-             ALLOCATE( x_quad(N_quad) , w_quad(N_quad) )
-             CALL gaulegf(-1.0_wp, 1.0_wp, x_quad, w_quad, n_quad)
+             ALLOCATE( z_quad(N_quad) , w_quad(N_quad) )
+             CALL gaulegf(-1.0_wp, 1.0_wp, z_quad, w_quad, n_quad)
 
           END IF
 
@@ -3119,18 +3119,8 @@ CONTAINS
           H_crit_rel = 1.0_wp / 30.0_wp * ( -a_crit_rel /                       &
                MAX(lamb0,lamb1) - 1.0_wp )
 
-          WRITE(*,*) 'a_crit_rel',a_crit_rel 
-          !WRITE(*,*) 'Arg lambertW',-a_crit_rel *  EXP(-a_crit_rel)
-          !WRITE(*,*) 'LambertW0', lambertw0(-a_crit_rel *  EXP(-a_crit_rel) )
+          WRITE(*,*) 'H_crit_rel',H_crit_rel 
           WRITE(*,*) 'H_crit',H_crit_rel*k_s
-
-          !H_crit_rel = 1.0_wp / 30.0_wp * ( -a_crit_rel /                       &
-          !     lambertwm1(-a_crit_rel *  EXP(-a_crit_rel) ) - 1.0_wp )
-
-          !WRITE(*,*) 'LambertWm1', lambertwm1(-a_crit_rel *  EXP(-a_crit_rel) )
-          !WRITE(*,*) 'H_crit',H_crit_rel*k_s
-          !READ(*,*) 
-
 
        END IF
 

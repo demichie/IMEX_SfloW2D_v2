@@ -215,8 +215,61 @@ MODULE constitutive_2d
   !> Schmidt number: ratio of momentum and mass diffusivity
   REAL(wp) :: Sc
 
-CONTAINS
+  INTERFACE u_log_profile    ! Define generic function
+     MODULE PROCEDURE u_log_profile_scalar
+     MODULE PROCEDURE u_log_profile_array
+  END INTERFACE u_log_profile
 
+
+  INTERFACE alphas_exp_profile    ! Define generic function
+     MODULE PROCEDURE alphas_exp_profile_scalar
+     MODULE PROCEDURE alphas_exp_profile_array
+  END INTERFACE alphas_exp_profile
+  
+  
+CONTAINS
+  
+  FUNCTION u_log_profile_scalar(b,z)
+
+    REAL(wp) :: u_log_profile_scalar
+    REAL(wp), INTENT(IN) :: b
+    REAL(wp), INTENT(IN) :: z
+    
+    u_log_profile_scalar = LOG( b*z + 1.0_wp )
+    
+  END FUNCTION u_log_profile_scalar
+
+  FUNCTION u_log_profile_array(b,z)
+
+    REAL(wp) :: u_log_profile_array(n_quad)
+    REAL(wp), INTENT(IN) :: b
+    REAL(wp), INTENT(IN) :: z(n_quad)
+    
+    u_log_profile_array = LOG( b*z + 1.0_wp )
+    
+  END FUNCTION u_log_profile_array
+
+  FUNCTION alphas_exp_profile_scalar(a,z)
+
+    REAL(wp) :: alphas_exp_profile_scalar
+    REAL(wp), INTENT(IN) :: a
+    REAL(wp), INTENT(IN) :: z
+    
+    alphas_exp_profile_scalar = EXP( a*z )
+    
+  END FUNCTION alphas_exp_profile_scalar
+
+  FUNCTION alphas_exp_profile_array(a,z)
+
+    REAL(wp) :: alphas_exp_profile_array(n_quad)
+    REAL(wp), INTENT(IN) :: a
+    REAL(wp), INTENT(IN) :: z(n_quad)
+    
+    alphas_exp_profile_array = EXP( a*z )
+    
+  END FUNCTION alphas_exp_profile_array
+  
+  
   !******************************************************************************
   !> \brief Initialization of relaxation flags
   !
@@ -295,6 +348,7 @@ CONTAINS
        r_alphal , r_alphag , r_red_grav )
 
     USE geometry_2d, ONLY : lambertw , lambertw0 , lambertwm1
+    USE geometry_2d, ONLY : z_quad , w_quad
 
     USE parameters_2d, ONLY : eps_sing , eps_sing4 , vertical_profiles_flag
     IMPLICIT none
@@ -346,11 +400,10 @@ CONTAINS
     REAL(wp) :: h0_rel_1
     REAL(wp) :: h0_rel_2
 
-
-    REAL(wp) :: u_coeff
-
+    REAL(wp) :: normalizing_coeff_u
+    
     REAL(wp) :: h0
-    REAL(wp) :: u0
+    REAL(wp) :: u_rel0
 
     REAL(wp) :: uRho_avg
     REAL(wp) :: uRho_avg_new
@@ -370,6 +423,11 @@ CONTAINS
 
     INTEGER :: i_solid
 
+    REAL(wp) :: z(n_quad)
+    REAL(wp) :: w(n_quad)
+
+    REAL(wp) :: u_log_avg
+    
     ! compute solid mass fractions
     IF ( r_qj(1) .GT. EPSILON(1.0_wp) ) THEN
 
@@ -464,14 +522,6 @@ CONTAINS
 
     END IF
 
-!!$    IF ( r_T .LT. T_ambient ) THEN
-!!$
-!!$       WRITE(*,*) 'T',r_T
-!!$       WRITE(*,*) 'r_qj',r_qj
-!!$       READ(*,*)
-!!$
-!!$    END IF
-
     IF ( gas_flag ) THEN
 
        ! carrier phase is gas
@@ -565,20 +615,12 @@ CONTAINS
           h0_rel_2 = -b*lambertwm1( -EXP(d)/(b*c) ) - 1.0_wp / c
           h0_rel = MIN( h0_rel_1 , h0_rel_2)
 
-          ! h0_rel = -b*lambertw( -EXP(d)/(b*c) ) - 1.0_wp / c
-
-          u_coeff = 1.0_wp
-
        ELSE
 
           ! when h_rel <= H_crit_rel we have only the log profile and we have to
           ! rescale it in order to have the integral between o and h_rel equal to
           ! 1
-          ! The factor used to scale the velocity is u_coeff
-
           h0_rel = h_rel
-          u_coeff = vonK / SQRT(friction_factor)/( ( 1.0_wp + 1.0_wp /          &
-               ( 30.0_wp*h_rel ) ) * LOG( 30.0_wp*h_rel + 1.0_wp )-1.0_wp)
 
        END IF
 
@@ -586,8 +628,21 @@ CONTAINS
 
        b = 30.0_wp / k_s
 
+       ! Quadrature points and weights for the interval [0;h0] 
+       z = 0.5_wp * h0 * ( z_quad + 1.0_wp )
+       w = 0.5_wp * h0 * w_quad
+
+       u_log_avg = ( SUM( w * u_log_profile(b,z) ) + u_log_profile(b,h0)*(r_h-h0) )  &
+            / r_h
+
+       !u_log_avg = ( SUM( w * LOG( b*z + 1.0_wp ) ) + LOG( b*h0 + 1.0_wp )*(r_h-h0) )  &
+       !     / r_h
+       
+       normalizing_coeff_u = 1.0_wp / u_log_avg
+
        ! velocity at h0
-       u0 = u_coeff * SQRT(friction_factor) / vonK * LOG( b*h0 + 1.0_wp )
+       u_rel0 = normalizing_coeff_u * u_log_profile(b,h0)
+       ! u_rel0 = normalizing_coeff_u * LOG( b*h0 + 1.0_wp )
 
        uRho_avg = SQRT( r_qj(2)**2 + r_qj(3)**2 ) / r_h 
 
@@ -603,9 +658,9 @@ CONTAINS
        aitken_loop:DO i_aitken=1,10
 
           x0 = u_avg_guess
-
+         
           CALL avg_profiles_mix( r_h , settling_vel , rhos_alfas(1:n_solid) ,   &
-               u_avg_guess , h0 , b , u_coeff , u0 , r_rho_c , rhom_avg ,       &
+               u_avg_guess , h0 , b , u_rel0 , r_rho_c , rhom_avg ,   &
                uRho_avg_new )
 
           u_avg_new = u_avg_guess * uRho_avg / ( uRho_avg_new)
@@ -613,7 +668,7 @@ CONTAINS
           x1 = u_avg_new
 
           CALL avg_profiles_mix( r_h , settling_vel , rhos_alfas(1:n_solid) ,   &
-               u_avg_new , h0 , b , u_coeff , u0 , r_rho_c , rhom_avg ,         &
+               u_avg_new , h0 , b , u_rel0 , r_rho_c , rhom_avg ,     &
                uRho_avg_new )
 
           u_avg_new = u_avg_new * uRho_avg / ( uRho_avg_new)
@@ -643,22 +698,11 @@ CONTAINS
 
           u_avg_guess = u_avg_new
 
+          
        END DO aitken_loop
 
        r_u = u_avg_new * r_qj(2) / ( SQRT( r_qj(2)**2 + r_qj(3)**2 ) )
        r_v = u_avg_new * r_qj(3) / ( SQRT( r_qj(2)**2 + r_qj(3)**2 ) )
-
-       !IF ( r_h .GT. 0.0_wp ) THEN
-
-       !WRITE(*,*) 'h0',h0
-       !WRITE(*,*) 'r_rho_m', r_rho_m
-       !WRITE(*,*) 'rhom_avg',rhom_avg
-       !WRITE(*,*) 'uRho_avg',uRho_avg
-       !WRITE(*,*) 'uRho_avg_new',uRho_avg_new
-       !WRITE(*,*) 'r_u profile',r_u
-       !READ(*,*)
-
-       !END IF
 
     ELSE
 
@@ -694,9 +738,9 @@ CONTAINS
 
 
   SUBROUTINE avg_profiles_mix( h , settling_vel , rho_alphas_avg , u_guess ,    &
-       h0 , b , u_coeff , u0 , rho_c , rhom_avg , uRho_avg_new )
+       h0 , b , u_rel0 , rho_c , rhom_avg , uRho_avg_new )
 
-    USE geometry_2d, ONLY : x_quad , w_quad
+    USE geometry_2d, ONLY : z_quad , w_quad
     
     USE geometry_2d, ONLY : calcei , gaulegf
 
@@ -709,8 +753,7 @@ CONTAINS
     REAL(wp), INTENT(IN) :: u_guess
     REAL(wp), INTENT(IN) :: h0
     REAL(wp), INTENT(IN) :: b
-    REAL(wp), INTENT(IN) :: u_coeff
-    REAL(wp), INTENT(IN) :: u0
+    REAL(wp), INTENT(IN) :: u_rel0
     REAL(wp), INTENT(IN) :: rho_c
     REAL(wp), INTENT(OUT) :: rhom_avg
     REAL(wp), INTENT(OUT) :: uRho_avg_new
@@ -726,20 +769,26 @@ CONTAINS
 
     INTEGER :: i_solid
 
+    REAL(wp) :: normalizing_coeff_u
+    
     REAL(wp) :: a
-    REAL(wp) :: int
-    REAL(wp) :: normalizing_coeff
+
+    REAL(wp) :: alphas_exp_avg
+    REAL(wp) :: u_log_avg
+    
+    REAL(wp) :: normalizing_coeff_alpha
     REAL(wp) :: alphas_rel0
     REAL(wp) :: y
-    REAL(wp) :: int_h0 , int_0 , int_def
 
- 
+    REAL(wp) :: int_def1, int_def2
+    
+    REAL(wp) :: epsilon_s
     REAL(wp) :: a_coeff
 
     INTEGER ( kind = 4 ) :: i
     ! REAL(wp) :: x,ei
 
-    REAL(wp) :: x(n_quad)
+    REAL(wp) :: z(n_quad)
     REAL(wp) :: w(n_quad)
     REAL(wp) :: int_quad
 
@@ -761,37 +810,45 @@ CONTAINS
        
     END DO
     
-
-    x = 0.5_wp * h0 * ( x_quad + 1.0_wp )
+    ! Quadrature points and weights for the interval [0;h0] 
+    z = 0.5_wp * h0 * ( z_quad + 1.0_wp )
     w = 0.5_wp * h0 * w_quad
 
-    ! CALL gaulegf(0.0_wp, h0, x, w, n_quad)
+    epsilon_s = Sc * shear_vel * vonK * ( ( h0/6.0_wp ) + ( k_s / 60.0_wp ) )
+    a_coeff = - vonK * shear_vel / epsilon_s
 
-    a_coeff = - vonK * shear_vel * (6.0_wp * (vonK * h0 + k_s / 10.0_wp)) / ( Sc * shear_vel * h0 )
+    u_log_avg = ( SUM( w * u_log_profile(b,z) ) + u_log_profile(b,h0)*(h-h0) )  &
+         / h
+
+    normalizing_coeff_u = 1.0_wp / u_log_avg
     
     DO i_solid=1,n_solid
 
        a = a_coeff * Rouse_no(i_solid)
 
-       int = ( ( EXP(a*h0) - 1.0_wp ) / a + EXP(a*h0)*(h-h0) ) / h
+       ! depth-average value of exp(a*x)
+       alphas_exp_avg = ( SUM( w * alphas_exp_profile(a,z) ) +                  &
+            alphas_exp_profile(a,h0)*(h-h0) ) / h
+       
+       normalizing_coeff_alpha = 1.0_wp / alphas_exp_avg
 
-       normalizing_coeff = 1.0_wp / int
+       int_quad = SUM( w * ( alphas_exp_profile(a,z) * u_log_profile(b,z) ) )
 
-       ! relative concentration C_rel at depth h0 (from the bottom)
-       ! C_rel is defined as C(z)/C_avg
-       alphas_rel0 = normalizing_coeff * EXP(a*h0)
+       ! integral of alfa_rel_i*u between in the boundary layer
+       int_def1 = normalizing_coeff_u * normalizing_coeff_alpha * int_quad
 
-       ! we compute the integral in the log region of u_tilde(z)*C_rel(z), where 
-       ! u_tilde is defined as u(z)/(u_guess*u_coeff*sqrt(friction_factor))
-       int_quad = SUM( w * ( EXP(a*x) * LOG( b*x + 1.0_wp ) ) )
-       int_def = u_coeff * SQRT(friction_factor) / vonK * normalizing_coeff *      &
-            int_quad
+       ! relative concentration alphas_rel at depth h0 (from the bottom)
+       ! alphas_rel is defined as alphas(z)/alphas_avg
+       alphas_rel0 = normalizing_coeff_alpha * alphas_exp_profile(a,h0)
 
+       ! integral of alfa_rel_i*u in the free-stream layer
+       int_def2 =  ( h - h0 ) * u_rel0 * alphas_rel0
+       
        ! we add the contribution of the integral of the constant region, we
        ! average by dividing by h and we multiply by the density of solid and
        ! average concentration and by u_guess.
        rho_u_alphas(i_solid) = rho_alphas_avg(i_solid) * u_guess *              &
-            ( int_def + ( h - h0 ) * alphas_rel0 * u0 ) / h
+            ( int_def1 + int_def2 ) / h
 
     END DO
 
@@ -1360,7 +1417,7 @@ CONTAINS
 
   SUBROUTINE qp_to_qc(qp,qc)
 
-    USE geometry_2d, ONLY : x_quad, w_quad
+    USE geometry_2d, ONLY : z_quad, w_quad
     
     USE parameters_2d, ONLY : vertical_profiles_flag
     USE geometry_2d, ONLY : gaulegf
@@ -1404,13 +1461,13 @@ CONTAINS
     REAL(wp) :: rho_u_alphas(n_solid)
     REAL(wp) :: uRho_avg
 
-    REAL(wp) :: u0
-    REAL(wp) :: u_coeff
+    REAL(wp) :: u_rel0
+    REAL(wp) :: normalizing_coeff_u
     REAL(wp) :: shear_vel
 
     REAL(wp) :: a , b , c , d
 
-    REAL(wp) :: x(n_quad) , w(n_quad)
+    REAL(wp) :: z(n_quad) , w(n_quad)
 
     REAL(wp) :: inv_kin_visc
     REAL(wp) :: settling_vel
@@ -1422,18 +1479,20 @@ CONTAINS
     REAL(wp) :: r_w
     REAL(wp) :: mod_vel
     REAL(wp) :: log_term_h0
-    REAL(wp) :: int_quad , int , int_def
-    REAL(wp) :: h_rel , H_crit_rel , h0_rel , h0
+    REAL(wp) :: alphas_exp_avg
+    REAL(wp) :: int_quad
+    REAL(wp) :: int_def1 , int_def2
+    REAL(wp) :: h_rel , h0_rel , h0
     REAL(wp) :: h0_rel_1
     REAL(wp) :: h0_rel_2
 
+    REAL(wp) :: epsilon_s
     REAL(wp) :: a_coeff
-    !REAL(wp) :: a_crit_rel
     REAL(wp) :: alphas_rel0
-    real(wp) :: normalizing_coeff
+    real(wp) :: normalizing_coeff_alpha
     REAL(wp) :: b_term
-    REAL(wp) :: exp_a_h0
 
+    REAL(wp) :: u_log_avg
 
     r_h = qp(1)
 
@@ -1609,7 +1668,7 @@ CONTAINS
 
        ! Viscosity read from input file [m2 s-1]
        inv_kin_visc = 1.0_wp / kin_visc_c
-
+       
        DO i_solid=1,n_solid
 
           settling_vel = settling_velocity( diam_s(i_solid) , rho_s(i_solid) ,  &
@@ -1649,20 +1708,12 @@ CONTAINS
           h0_rel_2 = -b*lambertwm1( -EXP(d)/(b*c) ) - 1.0_wp / c
           h0_rel = MIN( h0_rel_1 , h0_rel_2)
 
-          !h0_rel = -b*lambertw( -EXP(d)/(b*c) ) - 1.0_wp / c
-
-          u_coeff = 1.0_wp
-
        ELSE
 
           ! when h_rel <= H_crit_rel we have only the log profile and we have to
           ! rescale it in order to have the integral between o and h_rel equal to
           ! 1
-          ! The factor used to scale the velocity is u_coeff
-
           h0_rel = h_rel
-          u_coeff = vonK / SQRT(friction_factor)/( ( 1.0_wp + 1.0_wp /          &
-               ( 30.0_wp*h_rel ) ) * LOG( 30.0_wp*h_rel + 1.0_wp )-1.0_wp)
 
        END IF
 
@@ -1670,44 +1721,52 @@ CONTAINS
 
        b = 30.0_wp / k_s
 
-       ! velocty at h0
-       u0 = u_coeff * SQRT(friction_factor) / vonK * LOG( b*h0 + 1.0_wp )
-
        b_term = b*h0 + 1.0_wp
 
-       log_term_h0 = LOG( b_term )**2
+       ! log_term_h0 = LOG( b_term )**2
 
-       a_coeff = - vonK * shear_vel * (6.0_wp * (vonK * h0 + k_s / 10.0_wp)) / ( Sc * shear_vel * h0 )
-
-       x = 0.5_wp * h0 * ( x_quad + 1.0_wp )
+       log_term_h0 = u_log_profile(b,h0)**2
+       
+       epsilon_s = Sc * shear_vel * vonK * ( ( h0/6.0_wp ) + ( k_s / 60.0_wp ) )
+       a_coeff = - vonK * shear_vel / epsilon_s
+       
+       z = 0.5_wp * h0 * ( z_quad + 1.0_wp )
        w = 0.5_wp * h0 * w_quad
 
-       ! CALL gaulegf(0.0_wp, h0, x, w, n_quad)
+       u_log_avg = ( SUM( w * u_log_profile(b,z) ) + u_log_profile(b,h0)*(r_h-h0) )  &
+            / r_h
 
+       normalizing_coeff_u = 1.0_wp / u_log_avg
+
+       ! relative velocty at h0
+       u_rel0 = normalizing_coeff_u * u_log_profile(b,h0)
+       
        DO i_solid = 1,n_solid
 
           a = a_coeff * Rouse_no(i_solid)
 
-          exp_a_h0 = EXP(a*h0)
+          alphas_exp_avg = ( SUM( w * alphas_exp_profile(a,z) ) +               &
+               alphas_exp_profile(a,h0)*(r_h-h0) ) / r_h
 
-          int = ( ( exp_a_h0 -1.0_wp ) / a + exp_a_h0 * ( r_h-h0 ) ) / r_h
+          normalizing_coeff_alpha = 1.0_wp / alphas_exp_avg
 
-          normalizing_coeff = 1.0_wp / int
+          int_quad = SUM( w * ( alphas_exp_profile(a,z) * u_log_profile(b,z) ) )
 
-          ! relative concentration alphas_rel at depth h0 (from the bottom)
-          ! alphas_rel is defined as alphas(z)/alphas_avg
-          alphas_rel0 = normalizing_coeff * exp_a_h0
+          ! integral of alfa_i*u between in the boundary layer
+          int_def1 = ( mod_vel * normalizing_coeff_u ) *                        &
+               ( r_alphas(i_solid) * normalizing_coeff_alpha ) * int_quad
 
-          int_quad = SUM( w * ( EXP(a*x) * LOG( b*x + 1.0_wp ) ) )
+          ! relative concentration alphas_rel at h0
+          alphas_rel0 = normalizing_coeff_alpha * alphas_exp_profile(a,h0)
 
-          int_def = u_coeff * SQRT(friction_factor) / vonK * normalizing_coeff *   &
-               int_quad
+          ! integral of alfa_i*u in the free-stream layer
+          int_def2 =  ( r_h - h0 ) * ( mod_vel * u_rel0 ) *                     &
+               ( alphas_rel0 * r_alphas(i_solid) ) 
 
           ! we add the contribution of the integral of the constant region, we
           ! average by dividing by h and we multiply by the density of solid and
           ! average concentration and by u_guess.
-          rho_u_alphas(i_solid) = rho_s(i_solid)*r_alphas(i_solid) * mod_vel *  &
-               ( int_def + ( r_h - h0 ) * alphas_rel0 * u0 ) / r_h
+          rho_u_alphas(i_solid) = rho_s(i_solid) * ( int_def1 + int_def2 ) / r_h
 
        END DO
 
@@ -1716,6 +1775,9 @@ CONTAINS
        uRho_avg = ( mod_vel * r_rho_c + SUM((rho_s - r_rho_c) / rho_s *         &
             rho_u_alphas) )
 
+       !WRITE(*,*) ' uRho_avg', uRho_avg
+       !READ(*,*)
+       
        qc(2) = r_h * uRho_avg * r_u / mod_vel
        qc(3) = r_h * uRho_avg * r_v / mod_vel
 
@@ -2113,7 +2175,7 @@ CONTAINS
 
   SUBROUTINE eval_flux_coeffs(qpj,B_prime_x,B_prime_y,r_rho_c,r_rho_m,shape_coeff)
 
-    USE geometry_2d, ONLY : x_quad, w_quad
+    USE geometry_2d, ONLY : z_quad, w_quad
     
     USE geometry_2d, ONLY : lambertw,lambertw0,lambertwm1
     USE geometry_2d, ONLY : calcei
@@ -2162,30 +2224,37 @@ CONTAINS
     REAL(wp) :: h0_rel_1
     REAL(wp) :: h0_rel_2
 
-    REAL(wp) :: u_coeff
+    REAL(wp) :: normalizing_coeff_u
 
     REAL(wp) :: h0
 
-    REAL(wp) :: u0
+    REAL(wp) :: u_rel0
 
     INTEGER :: i_solid
 
-    REAL(wp) :: x(n_quad)
+    REAL(wp) :: z(n_quad)
     REAL(wp) :: w(n_quad)
 
+    REAL(wp) :: epsilon_s
     REAL(wp) :: a_coeff
+
     REAL(wp) :: b_term
     REAL(wp) :: log_term_h0
 
-    REAL(wp) :: log_term_x(n_quad)
-    REAL(wp) :: w_log_term_x(n_quad)
-    REAL(wp) :: int
-    REAL(wp) :: exp_a_h0
-    REAL(wp) :: normalizing_coeff
+    REAL(wp) :: log_term_z(n_quad)
+    REAL(wp) :: w_log_term_z(n_quad)
+
+    REAL(wp) :: alphas_exp_avg
+    REAL(wp) :: u_log_avg
+    
+    REAL(wp) :: normalizing_coeff_alpha
     REAL(wp) :: alphas_rel0
     REAL(wp) :: rho_u_alphas(n_solid)
     REAL(wp) :: y
-    REAL(wp) :: int_h0 , int_0 , int_def , int_quad
+    REAL(wp) :: int_quad
+
+    REAL(wp) :: int_def1 , int_def2
+    
     REAL(wp) :: ei
     REAL(wp) :: uRho_avg
     REAL(wp) :: int_hvel_vel
@@ -2272,21 +2341,12 @@ CONTAINS
        h0_rel_2 = -b*lambertwm1( -EXP(d)/(b*c) ) - 1.0_wp / c
        h0_rel = MIN( h0_rel_1 , h0_rel_2)
 
-
-       ! h0_rel = -b*lambertw( -EXP(d)/(b*c) ) - 1.0_wp / c
-
-       u_coeff = 1.0_wp
-
     ELSE
 
        ! when h_rel <= H_crit_rel we have only the log profile and we have to
        ! rescale it in order to have the integral between o and h_rel equal to
        ! 1
-       ! The factor used to scale the velocity is u_coeff
-
        h0_rel = h_rel
-       u_coeff = vonK / SQRT(friction_factor)/( ( 1.0_wp + 1.0_wp /             &
-            ( 30.0_wp*h_rel ) ) * LOG( 30.0_wp*h_rel + 1.0_wp ) - 1.0_wp )
 
     END IF
 
@@ -2294,57 +2354,68 @@ CONTAINS
 
     b = 30.0_wp / k_s
 
-    ! velocity at top of log profile layer
-    u0 = u_coeff * SQRT(friction_factor) / vonK * LOG( b*h0 + 1.0_wp )
-    
     rhom_hvel_vel = 0.0_wp
 
     b_term = b*h0 + 1.0_wp
+    ! log_term_h0 = log( b_term )**2
 
-    log_term_h0 = log( b_term )**2
-
-    a_coeff = - vonK * shear_vel * (6.0_wp * (vonK * h0 + k_s / 10.0_wp)) / ( Sc * shear_vel * h0 )
-
-    x = 0.5*h0*(x_quad+1.0_wp)
+    log_term_h0 =  u_log_profile(b,h0)**2
+    
+    z = 0.5*h0*(z_quad+1.0_wp)
     w = 0.5*h0*w_quad
     
-    log_term_x = log( b*x + 1.0_wp )**2
+    log_term_z =  u_log_profile(b,z)**2
+    ! log_term_z = log( b*z + 1.0_wp )**2
+    w_log_term_z = w * log_term_z
 
-    w_log_term_x = w * log_term_x
+    epsilon_s = Sc * shear_vel * vonK * ( ( h0/6.0_wp ) + ( k_s / 60.0_wp ) )
+    a_coeff = - vonK * shear_vel / epsilon_s
 
+    u_log_avg = ( SUM( w * u_log_profile(b,z) ) + u_log_profile(b,h0)*(r_h-h0) )  &
+         / r_h
+    
+    normalizing_coeff_u = 1.0_wp / u_log_avg
+
+    ! relative velocity at top of boundary layer (z=h0)
+    u_rel0 = normalizing_coeff_u * u_log_profile(b,h0)
+    
     DO i_solid = 1,n_solid
 
        a = a_coeff * Rouse_no(i_solid)
 
-       exp_a_h0 = EXP(a*h0)
+       alphas_exp_avg = ( SUM( w * alphas_exp_profile(a,z) ) +                  &
+            alphas_exp_profile(a,h0)*(r_h-h0) ) / r_h
+       
+       normalizing_coeff_alpha = 1.0_wp / alphas_exp_avg
 
-       int = ( ( exp_a_h0 -1.0_wp ) / a + exp_a_h0 * ( r_h-h0 ) ) / r_h
+       ! integral of profiles
+       int_quad = SUM( w * ( alphas_exp_profile(a,z) * u_log_profile(b,z) ) )
 
-       normalizing_coeff = 1.0_wp / int
+       ! integral of alfa_i*u between in the boundary layer
+       int_def1 = ( mod_vel * normalizing_coeff_u ) *                           &
+            ( r_alphas(i_solid) * normalizing_coeff_alpha ) * int_quad
+       
+       ! relative concentration alphas_rel at h0
+       alphas_rel0 = normalizing_coeff_alpha * alphas_exp_profile(a,h0)
+       
+       ! integral of alfa_i*u in the free-stream layer
+       int_def2 =  ( r_h - h0 ) * ( mod_vel * u_rel0 ) *                        &
+            ( r_alphas(i_solid) * alphas_rel0 )
+       
+       ! we sum the two integrals, multiply by the density of solid and
+       ! divide by thickness h to find the depth-average value
+       rho_u_alphas(i_solid) = rho_s(i_solid) * ( int_def1 + int_def2 ) / r_h
+       
+       ! integral of alphas_rel(z)*u_rel(z)^2 in the log region (0<=z<=h0)
+       int_def1 = SUM( alphas_exp_profile(a,z) * w_log_term_z )
 
-       ! relative concentration alphas_rel at depth h0 (from the bottom)
-       ! alphas_rel is defined as alphas(z)/alphas_avg
-       alphas_rel0 = normalizing_coeff * exp_a_h0
-
-       int_quad = SUM( w * ( EXP(a*x) * LOG( b*x + 1.0_wp ) ) )
-
-       int_def = u_coeff * SQRT(friction_factor) / vonK * normalizing_coeff *      &
-            int_quad
-
-       ! we add the contribution of the integral of the constant region, we
-       ! average by dividing by h and we multiply by the density of solid and
-       ! average concentration and by u_guess.
-       rho_u_alphas(i_solid) = rho_s(i_solid) * r_alphas(i_solid) * mod_vel *   &
-            ( int_def + ( r_h - h0 ) * alphas_rel0 * u0 ) / r_h
-
-       ! integral of u_rel(z)^2*alphas_rel(z) in the log region (0<=z<=h0)
-       ! here u_rel(z) = u(z)/u_avg
-       int_quad = SUM( EXP(a*x) * w_log_term_x )
-
+       ! integral in the free-stream region
+       int_def2 = ( r_h - h0 ) *  alphas_exp_profile(a,h0) * log_term_h0
+       
        rhom_hvel_vel = rhom_hvel_vel + ( rho_s(i_solid) - r_rho_c ) *           &
-            normalizing_coeff * r_alphas(i_solid) * mod_vel * mod_hvel *           &
-            ( u_coeff * SQRT(friction_factor) / vonK )**2 *                     &
-            ( int_quad + ( r_h - h0 ) * exp_a_h0 * log_term_h0 )
+            ( normalizing_coeff_alpha * r_alphas(i_solid) ) *                   &
+            ( mod_hvel * mod_vel * normalizing_coeff_u**2 ) *                   &
+            ( int_def1 + int_def2 )
 
     END DO
 
@@ -2353,11 +2424,16 @@ CONTAINS
     uRho_avg = ( mod_vel * r_rho_c + SUM((rho_s - r_rho_c) / rho_s *            &
          rho_u_alphas) )
 
+    ! integral of square of relative velocity between 0 and h0
+    int_def1 = SUM( w *  u_log_profile(b,z)**2 )
+    ! int_def1 = SUM( w * (LOG( b*z + 1.0_wp ))**2 )
+
+    ! integral of square of relative velocity between h0 and h
+    int_def2 = ( r_h - h0 ) * log_term_h0 
+    
     ! integral of (h*velocity)*velocity profile between 0 and h
     int_hvel_vel = mod_hvel * mod_vel *                                         &
-         ( u_coeff * SQRT(friction_factor) / vonK )**2 *                        &
-         ( ( 2.0_wp*b*h0 + b_term * log_term_h0 - 2.0_wp*b_term *               &
-         LOG(b_term) )/b + ( r_h - h0 ) * log_term_h0 )
+         normalizing_coeff_u**2 * ( int_def1 + int_def2 )
 
     rhom_hvel_vel = ( rhom_hvel_vel + r_rho_c * int_hvel_vel ) / r_h**2
 
@@ -2369,18 +2445,6 @@ CONTAINS
     shape_coeff(4) = shape_coeff(1)
 
     shape_coeff(5:4+n_solid) = rho_u_alphas / ( rho_s * r_alphas * mod_vel )
-
-    ! shape_coeff = 1.0_wp
-
-!!$    WRITE(*,*) 'h0',h0
-!!$    WRITE(*,*) 'r_h,mod_vel',r_h,mod_vel
-!!$    WRITE(*,*) 'uRho_avg',uRho_avg
-!!$    WRITE(*,*) 'int_quad',int_quad
-!!$    WRITE(*,*) 'x_quad',x_quad
-!!$    WRITE(*,*) 'w_quad',w_quad
-!!$    WRITE(*,*) ' rho_u_alphas', rho_u_alphas
-!!$    WRITE(*,*) 'shape_coeff',shape_coeff
-!!$    READ(*,*)
 
     RETURN
 
@@ -2408,7 +2472,7 @@ CONTAINS
 
   SUBROUTINE eval_dep_coeffs( qpj , mod_vel , r_rho_c , r_rho_m , dep_coeff )
 
-    USE geometry_2d, ONLY : x_quad , w_quad
+    USE geometry_2d, ONLY : z_quad , w_quad
     
     USE geometry_2d, ONLY : lambertw,lambertw0,lambertwm1
     USE geometry_2d, ONLY : calcei
@@ -2445,11 +2509,14 @@ CONTAINS
 
     INTEGER :: i_solid
 
+    REAL(wp) :: epsilon_s
     REAL(wp) :: a_coeff
 
-    REAL(wp) :: int
-    REAL(wp) :: exp_a_h0
+    REAL(wp) :: alphas_exp_avg
     REAL(wp) :: y
+
+    REAL(wp) :: z(n_quad)
+    REAL(wp) :: w(n_quad)
 
     dep_coeff(1:n_eqns) = 1.0_wp
 
@@ -2513,17 +2580,20 @@ CONTAINS
 
     h0 = h0_rel*k_s
 
-    a_coeff = - vonK * shear_vel * (6.0_wp * (vonK * h0 + k_s / 10.0_wp)) / ( Sc * shear_vel * h0 )
+    epsilon_s = Sc * shear_vel * vonK * ( ( h0/6.0_wp ) + ( k_s / 60.0_wp ) )
+    a_coeff = - vonK * shear_vel / epsilon_s
 
+    z = 0.5_wp * h0 * ( z_quad + 1.0_wp )
+    w = 0.5_wp * h0 * w_quad
+    
     DO i_solid = 1,n_solid
 
        a = a_coeff * Rouse_no(i_solid)
 
-       exp_a_h0 = EXP(a*h0)
+       alphas_exp_avg = ( SUM( w * alphas_exp_profile(a,z) ) +                  &
+            alphas_exp_profile(a,h0)*(r_h-h0) ) / r_h
 
-       int = ( ( exp_a_h0 - 1.0_wp ) / a + exp_a_h0 * ( r_h-h0 ) ) / r_h
-
-       dep_coeff(i_solid) = 1.0_wp / int
+       dep_coeff(i_solid) = 1.0_wp / alphas_exp_avg
 
     END DO
 

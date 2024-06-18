@@ -140,7 +140,7 @@ MODULE geometry_2d
   REAL(wp) :: cell_size
   INTEGER :: comp_cells_xy
 
-  REAL(wp), ALLOCATABLE :: x_quad(:)
+  REAL(wp), ALLOCATABLE :: z_quad(:)
   REAL(wp), ALLOCATABLE :: w_quad(:)
   
 CONTAINS
