@@ -68,7 +68,7 @@ SP_HEAT_MIX = xs * SP_HEAT_S + (1.0 - xs) * SP_HEAT_A
 
 # Define the boundaries x_left and x_right of the spatial domain
 x_left = 0.0
-x_right = 50000.0
+x_right = 5000.0
 
 # Define the number n_points of points of the grid
 n_points = n_cells + 1
@@ -178,7 +178,7 @@ filedata = filedata.replace('restartfile', 'exampleBW_0000.q_2d')
 filedata = filedata.replace('x_left', str(x_left))
 filedata = filedata.replace('n_cells', str(n_cells))
 filedata = filedata.replace('dx', str(dx))
-filedata = filedata.replace('halphas', str(400.0 * alfas))
+filedata = filedata.replace('halphas', str(100.0 * alfas))
 filedata = filedata.replace('temp', str(T))
 
 # Write the file out again
