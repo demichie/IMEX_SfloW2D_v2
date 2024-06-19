@@ -1,9 +1,10 @@
-This example simulate a 1D flow  with friction, deposition  and entrainment over a gentle slope. The vertical profiles for particle concentration and velocity can be activated by setting, in the NEWRUN_PARAMETERS namelist:
+This example simulate a 1D flow  with friction, deposition  and entrainment over a gentle slope. The temperature equation is solved in this example (ENERGY_FLAG=F).
+
+The vertical profiles for particle concentration and velocity can be activated by setting, in the NEWRUN_PARAMETERS namelist:
 
 >> VERTICAL_PROFILES_FLAG = T
 
-The temperature equation is solved in this example (ENERGY_FLAG=F).
-Topography does not change with deposition (TOPO_CHANGE_FLAG=F), but it is interesting to test the effect on the flow changing the flag.
+Please note that the mass flow rates at the inlet, with and without the vertical profiles, are different.
 
 A Python script is provided to create the input file for this example. 
 Please provide four arguments:
