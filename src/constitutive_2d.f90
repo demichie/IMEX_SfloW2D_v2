@@ -1113,6 +1113,8 @@ CONTAINS
 
        END IF
 
+       r_Ri = 0.0_wp
+       
        RETURN
 
     END IF
@@ -1197,7 +1199,7 @@ CONTAINS
 
     ELSE
 
-       r_Ri = 1.E10_wp
+       r_Ri = 0.0_wp
 
     END IF
 
