@@ -1146,7 +1146,6 @@ CONTAINS
                       NH( 1:n_eqns , j , k , 1:n_RK ) , B_prime_x(j,k) ,        &
                       B_prime_y(j,k) )
 
-
                 IF ( comp_cells_y .EQ. 1 ) THEN
 
                    q_guess(3) = 0.0_wp
@@ -1567,7 +1566,7 @@ CONTAINS
        RETURN
        
     END IF
-    
+
     normalize_q = .TRUE.
     normalize_f = .FALSE.
     opt_search_NL = .TRUE.

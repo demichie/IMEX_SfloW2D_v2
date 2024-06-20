@@ -2854,7 +2854,7 @@ CONTAINS
     REAL(wp), INTENT(IN) :: dt 
 
 
-    REAL(wp) :: r_qp(n_vars)
+    REAL(wp) :: r_qp(n_vars+2)
     REAL(wp) :: p_dyn
     REAL(wp) :: r_h
     REAL(wp) :: r_u
@@ -2866,7 +2866,7 @@ CONTAINS
     IF ( r_qj(1) .EQ. 0.0_wp ) RETURN
 
     CALL qc_to_qp(r_qj , r_qp , p_dyn )
-
+    
     r_h = r_qp(1)
 
     r_u = r_qp(n_vars+1)
