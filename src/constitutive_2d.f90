@@ -660,7 +660,7 @@ CONTAINS
           x0 = u_avg_guess
          
           CALL avg_profiles_mix( r_h , settling_vel , rhos_alfas(1:n_solid) ,   &
-               u_avg_guess , h0 , b , u_rel0 , r_rho_c , rhom_avg ,   &
+               u_avg_guess , h0 , b , u_rel0 , r_rho_c , rhom_avg ,             &
                uRho_avg_new )
 
           u_avg_new = u_avg_guess * uRho_avg / ( uRho_avg_new)
@@ -668,7 +668,7 @@ CONTAINS
           x1 = u_avg_new
 
           CALL avg_profiles_mix( r_h , settling_vel , rhos_alfas(1:n_solid) ,   &
-               u_avg_new , h0 , b , u_rel0 , r_rho_c , rhom_avg ,     &
+               u_avg_new , h0 , b , u_rel0 , r_rho_c , rhom_avg ,               &
                uRho_avg_new )
 
           u_avg_new = u_avg_new * uRho_avg / ( uRho_avg_new)
@@ -1492,7 +1492,6 @@ CONTAINS
     REAL(wp) :: a_coeff
     REAL(wp) :: alphas_rel0
     real(wp) :: normalizing_coeff_alpha
-    REAL(wp) :: b_term
 
     REAL(wp) :: u_log_avg
 
@@ -1723,20 +1722,16 @@ CONTAINS
 
        b = 30.0_wp / k_s
 
-       b_term = b*h0 + 1.0_wp
-
-       ! log_term_h0 = LOG( b_term )**2
-
        log_term_h0 = u_log_profile(b,h0)**2
        
-       epsilon_s = Sc * shear_vel * vonK * ( ( h0/6.0_wp ) + ( k_s / 60.0_wp ) )
+       epsilon_s = Sc * shear_vel * vonK * (( h0 / 6.0_wp ) + ( k_s / 60.0_wp ))
        a_coeff = - vonK * shear_vel / epsilon_s
        
        z = 0.5_wp * h0 * ( z_quad + 1.0_wp )
        w = 0.5_wp * h0 * w_quad
 
-       u_log_avg = ( SUM( w * u_log_profile(b,z) ) + u_log_profile(b,h0)*(r_h-h0) )  &
-            / r_h
+       u_log_avg = ( SUM( w * u_log_profile(b,z) ) + u_log_profile(b,h0) *      &
+            ( r_h -h0 ) ) / r_h
 
        normalizing_coeff_u = 1.0_wp / u_log_avg
 
@@ -1777,9 +1772,6 @@ CONTAINS
        uRho_avg = ( mod_vel * r_rho_c + SUM((rho_s - r_rho_c) / rho_s *         &
             rho_u_alphas) )
 
-       !WRITE(*,*) ' uRho_avg', uRho_avg
-       !READ(*,*)
-       
        qc(2) = r_h * uRho_avg * r_u / mod_vel
        qc(3) = r_h * uRho_avg * r_v / mod_vel
 
@@ -2240,7 +2232,6 @@ CONTAINS
     REAL(wp) :: epsilon_s
     REAL(wp) :: a_coeff
 
-    REAL(wp) :: b_term
     REAL(wp) :: log_term_h0
 
     REAL(wp) :: log_term_z(n_quad)
@@ -2260,7 +2251,8 @@ CONTAINS
     REAL(wp) :: ei
     REAL(wp) :: uRho_avg
     REAL(wp) :: int_hvel_vel
-    REAL(wp) :: rhom_hvel_vel
+    REAL(wp) :: int_rhom_hvel_vel
+    REAL(wp) :: rhom_vel_vel
 
     shape_coeff(1:n_eqns) = 1.0_wp
 
@@ -2356,37 +2348,36 @@ CONTAINS
 
     b = 30.0_wp / k_s
 
-    rhom_hvel_vel = 0.0_wp
-
-    b_term = b*h0 + 1.0_wp
-    ! log_term_h0 = log( b_term )**2
-
     log_term_h0 =  u_log_profile(b,h0)**2
     
-    z = 0.5*h0*(z_quad+1.0_wp)
-    w = 0.5*h0*w_quad
+    z = 0.5 * h0 * (z_quad+1.0_wp)
+    w = 0.5 * h0 * w_quad
     
     log_term_z =  u_log_profile(b,z)**2
-    ! log_term_z = log( b*z + 1.0_wp )**2
+
     w_log_term_z = w * log_term_z
 
-    epsilon_s = Sc * shear_vel * vonK * ( ( h0/6.0_wp ) + ( k_s / 60.0_wp ) )
-    a_coeff = - vonK * shear_vel / epsilon_s
-
-    u_log_avg = ( SUM( w * u_log_profile(b,z) ) + u_log_profile(b,h0)*(r_h-h0) )  &
+    u_log_avg = ( SUM( w * u_log_profile(b,z) ) + u_log_profile(b,h0)*(r_h-h0) ) &
          / r_h
     
     normalizing_coeff_u = 1.0_wp / u_log_avg
 
     ! relative velocity at top of boundary layer (z=h0)
     u_rel0 = normalizing_coeff_u * u_log_profile(b,h0)
-    
+
+    ! constant terms for the concentration profiles within the loop
+    epsilon_s = Sc * shear_vel * vonK * ( ( h0/6.0_wp ) + ( k_s / 60.0_wp ) )
+    a_coeff = - vonK * shear_vel / epsilon_s
+
+    ! initial partial sum to zero
+    int_rhom_hvel_vel = 0.0_wp
+
     DO i_solid = 1,n_solid
 
        a = a_coeff * Rouse_no(i_solid)
 
        alphas_exp_avg = ( SUM( w * alphas_exp_profile(a,z) ) +                  &
-            alphas_exp_profile(a,h0)*(r_h-h0) ) / r_h
+            alphas_exp_profile(a,h0) * ( r_h - h0 ) ) / r_h
        
        normalizing_coeff_alpha = 1.0_wp / alphas_exp_avg
 
@@ -2414,7 +2405,7 @@ CONTAINS
        ! integral in the free-stream region
        int_def2 = ( r_h - h0 ) *  alphas_exp_profile(a,h0) * log_term_h0
        
-       rhom_hvel_vel = rhom_hvel_vel + ( rho_s(i_solid) - r_rho_c ) *           &
+       int_rhom_hvel_vel = int_rhom_hvel_vel + ( rho_s(i_solid) - r_rho_c ) *   &
             ( normalizing_coeff_alpha * r_alphas(i_solid) ) *                   &
             ( mod_hvel * mod_vel * normalizing_coeff_u**2 ) *                   &
             ( int_def1 + int_def2 )
@@ -2437,11 +2428,12 @@ CONTAINS
     int_hvel_vel = mod_hvel * mod_vel *                                         &
          normalizing_coeff_u**2 * ( int_def1 + int_def2 )
 
-    rhom_hvel_vel = ( rhom_hvel_vel + r_rho_c * int_hvel_vel ) / r_h**2
+    ! depth-averaged momentum flux
+    rhom_vel_vel = ( int_rhom_hvel_vel + r_rho_c * int_hvel_vel ) / r_h**2
 
     shape_coeff(1) = uRho_avg / ( mod_vel * r_rho_m )
 
-    shape_coeff(2:3) = rhom_hvel_vel / ( uRho_avg * mod_vel )
+    shape_coeff(2:3) = rhom_vel_vel / ( uRho_avg * mod_vel )
 
     ! we assume a vertically-constant temperature profile
     shape_coeff(4) = shape_coeff(1)
@@ -3423,13 +3415,15 @@ CONTAINS
           ! From Zhu et al. 2020 (DOI: https://doi.org/10.1007/s10035-020-01053-7)
           ! mu_0: Coulomb friction coefficient at Fr=+inf
           ! mu_inf: Coulomb friction coefficient at Fr=0
-          ! Fr : froude number (!!!computed here using the total velocity and the thickness instead of the particle holdup!!!)
+          ! Fr : froude number (!!!computed here using the total velocity and the thickness 
+          ! instead of the particle holdup!!!)
           ! Fr_0 : Renormalization factor controlling the gradient of the function
           ! should also use rho or alpha?
           ! must add something for curvature or temperature?
           
           ! Compute friction only if mass is flowing
           IF ( mod_vel .GT. 0.0_wp ) THEN 
+
              Fr = mod_vel / SQRT(grav * r_h) !The definition in Zhu 2020 et Roche 2021 is sligtlhy different!
              muFr = mu_inf + (mu_0 - mu_inf) * exp(-Fr/Fr_0)
                           
