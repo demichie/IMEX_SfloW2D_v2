@@ -345,7 +345,7 @@ CONTAINS
   !******************************************************************************
 
   SUBROUTINE r_phys_var(r_qj , r_h , r_u , r_v , r_alphas , r_rho_m , r_T ,     &
-       r_alphal , r_alphag , r_red_grav )
+       r_alphal , r_alphag , r_red_grav , p_dyn)
 
     USE geometry_2d, ONLY : lambertw , lambertw0 , lambertwm1
     USE geometry_2d, ONLY : z_quad , w_quad
@@ -363,7 +363,8 @@ CONTAINS
     REAL(wp), INTENT(OUT) :: r_alphal          !< real-value liquid volume fract
     REAL(wp), INTENT(OUT) :: r_alphag(n_add_gas) !< real-value gas volume fracts
     REAL(wp), INTENT(OUT) :: r_red_grav        !< real-value reduced gravity
-
+    REAL(wp), INTENT(OUT) :: p_dyn
+    
     REAL(wp) :: r_inv_rhom
     REAL(wp) :: r_xs(n_solid)     !< real-value solid mass fractions
     REAL(wp) :: r_xg(n_add_gas)     !< real-value additional gas mass fractions
@@ -427,7 +428,7 @@ CONTAINS
     REAL(wp) :: w(n_quad)
 
     REAL(wp) :: u_log_avg
-    
+
     ! compute solid mass fractions
     IF ( r_qj(1) .GT. EPSILON(1.0_wp) ) THEN
 
@@ -455,6 +456,7 @@ CONTAINS
        r_alphag = 0.0_wp
        r_red_grav = 0.0_wp
        r_rho_c = rho_a_amb
+       p_dyn = 0.0_wp
        RETURN
 
     END IF
@@ -575,6 +577,8 @@ CONTAINS
     ! reduced gravity
     r_red_grav = ( r_rho_m - rho_a_amb ) * r_inv_rhom * grav
 
+    p_dyn = 0.5 * r_rho_m * ( r_u**2 + r_v**2 )
+
     IF ( vertical_profiles_flag ) THEN
 
        rhos_alfas_tot_u = r_xs_tot * r_qj(2) / r_h  
@@ -661,7 +665,7 @@ CONTAINS
          
           CALL avg_profiles_mix( r_h , settling_vel , rhos_alfas(1:n_solid) ,   &
                u_avg_guess , h0 , b , u_rel0 , r_rho_c , rhom_avg ,             &
-               uRho_avg_new )
+               uRho_avg_new , p_dyn )
 
           u_avg_new = u_avg_guess * uRho_avg / ( uRho_avg_new)
 
@@ -669,7 +673,7 @@ CONTAINS
 
           CALL avg_profiles_mix( r_h , settling_vel , rhos_alfas(1:n_solid) ,   &
                u_avg_new , h0 , b , u_rel0 , r_rho_c , rhom_avg ,               &
-               uRho_avg_new )
+               uRho_avg_new , p_dyn )
 
           u_avg_new = u_avg_new * uRho_avg / ( uRho_avg_new)
 
@@ -738,7 +742,7 @@ CONTAINS
 
 
   SUBROUTINE avg_profiles_mix( h , settling_vel , rho_alphas_avg , u_guess ,    &
-       h0 , b , u_rel0 , rho_c , rhom_avg , uRho_avg_new )
+       h0 , b , u_rel0 , rho_c , rhom_avg , uRho_avg_new , p_dyn )
 
     USE geometry_2d, ONLY : z_quad , w_quad
     
@@ -757,6 +761,7 @@ CONTAINS
     REAL(wp), INTENT(IN) :: rho_c
     REAL(wp), INTENT(OUT) :: rhom_avg
     REAL(wp), INTENT(OUT) :: uRho_avg_new
+    REAL(wp), INTENT(OUT) :: p_dyn
 
     !> Shear velocity computed from u_guess
     REAL(wp) :: shear_vel
@@ -767,6 +772,9 @@ CONTAINS
     !> array for depth-averaged value of rho*u(z)*C(z)
     REAL(wp) :: rho_u_alphas(n_solid)
 
+
+    REAL(wp) :: rho_alphas(n_solid)
+
     INTEGER :: i_solid
 
     REAL(wp) :: normalizing_coeff_u
@@ -776,7 +784,7 @@ CONTAINS
     REAL(wp) :: alphas_exp_avg
     REAL(wp) :: u_log_avg
     
-    REAL(wp) :: normalizing_coeff_alpha
+    REAL(wp) :: normalizing_coeff_alpha(n_solid)
     REAL(wp) :: alphas_rel0
     REAL(wp) :: y
 
@@ -791,6 +799,11 @@ CONTAINS
     REAL(wp) :: z(n_quad)
     REAL(wp) :: w(n_quad)
     REAL(wp) :: int_quad
+
+    REAL(wp) :: rhom_z
+    REAL(wp) :: u_z
+
+    REAL(wp) :: z_test
 
     ! Shear velocity computed from u_guess
     shear_vel = u_guess * SQRT(friction_factor)
@@ -830,16 +843,16 @@ CONTAINS
        alphas_exp_avg = ( SUM( w * alphas_exp_profile(a,z) ) +                  &
             alphas_exp_profile(a,h0)*(h-h0) ) / h
        
-       normalizing_coeff_alpha = 1.0_wp / alphas_exp_avg
+       normalizing_coeff_alpha(i_solid) = 1.0_wp / alphas_exp_avg
 
        int_quad = SUM( w * ( alphas_exp_profile(a,z) * u_log_profile(b,z) ) )
 
        ! integral of alfa_rel_i*u between in the boundary layer
-       int_def1 = normalizing_coeff_u * normalizing_coeff_alpha * int_quad
+       int_def1 = normalizing_coeff_u * normalizing_coeff_alpha(i_solid) * int_quad
 
        ! relative concentration alphas_rel at depth h0 (from the bottom)
        ! alphas_rel is defined as alphas(z)/alphas_avg
-       alphas_rel0 = normalizing_coeff_alpha * alphas_exp_profile(a,h0)
+       alphas_rel0 = normalizing_coeff_alpha(i_solid) * alphas_exp_profile(a,h0)
 
        ! integral of alfa_rel_i*u in the free-stream layer
        int_def2 =  ( h - h0 ) * u_rel0 * alphas_rel0
@@ -861,6 +874,25 @@ CONTAINS
     ! momentum
     uRho_avg_new = ( u_guess*rho_c + SUM((rho_s-rho_c) / rho_s * rho_u_alphas) )
 
+
+    ! test for dynamic pressure at z=z_test
+
+    z_test = MIN(z_test,h0)
+    
+    DO i_solid = 1,n_solid
+
+       rho_alphas(i_solid) = rho_alphas_avg(i_solid) *                          &
+            normalizing_coeff_alpha(i_solid) * alphas_exp_profile(a,z_test)
+       
+    END DO
+
+    rhom_z = rho_c + SUM( ( rho_s - rho_c ) / rho_s * rho_alphas )
+    
+    u_z = ( u_guess * normalizing_coeff_u * u_log_profile(b,z_test) )
+
+    p_dyn = 0.5_wp * rhom_z * u_z**2
+
+    
   END SUBROUTINE avg_profiles_mix
 
   !******************************************************************************
@@ -1359,7 +1391,7 @@ CONTAINS
     REAL(wp) :: r_red_grav
 
     CALL r_phys_var( qc , r_h , r_u , r_v , r_alphas , r_rho_m , r_T ,          &
-         r_alphal , r_alphag , r_red_grav )
+         r_alphal , r_alphag , r_red_grav , p_dyn )
 
     qp(1) = r_h
 
@@ -1384,8 +1416,6 @@ CONTAINS
 
     qp(n_vars+1) = r_u
     qp(n_vars+2) = r_v
-
-    p_dyn = 0.5_wp * r_rho_m * ( r_u**2 + r_v**2 )
 
     RETURN
 
