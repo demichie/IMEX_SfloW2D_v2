@@ -95,7 +95,7 @@ MODULE inpout_2d
        thickness_levels , dyn_pres_levels
 
   ! --- Variables for the namelist VERTICAL_PROFILES_PARAMETERS
-  USE constitutive_2d, ONLY : vonK , k_s , Sc
+  USE constitutive_2d, ONLY : vonK , k_s , Sc , z_dyn
   USE parameters_2d, ONLY : bottom_conc_flag , n_quad
 
   IMPLICIT NONE
@@ -286,7 +286,7 @@ MODULE inpout_2d
   NAMELIST / vulnerability_table_parameters / thickness_levels0 , dyn_pres_levels0
 
   NAMELIST / vertical_profiles_parameters / vonK , k_s  , Sc , bottom_conc_flag,&
-       n_quad
+       n_quad , z_dyn
 
 CONTAINS
 
@@ -658,6 +658,7 @@ CONTAINS
     Sc = -1
     bottom_conc_flag = .FALSE.
     n_quad = -1
+    z_dyn = -1
 
   END SUBROUTINE init_param
 
@@ -3107,6 +3108,14 @@ CONTAINS
 
           END IF
 
+          IF ( z_dyn .LE. 0.0_wp ) THEN
+
+             WRITE(*,*) 'WARNING: problem with namelist VERTICAL_PROFILES_PARAMETERS'
+             WRITE(*,*) 'z_dyn =' , z_dyn
+             WRITE(*,*) 'Dynamic pressure computed as depth-averaged value'
+
+          END IF
+          
           a_crit_rel = vonK / SQRT( friction_factor) + 1.0_wp
 
 

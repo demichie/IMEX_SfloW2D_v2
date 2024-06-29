@@ -215,6 +215,8 @@ MODULE constitutive_2d
   !> Schmidt number: ratio of momentum and mass diffusivity
   REAL(wp) :: Sc
 
+  REAL(wp) :: z_dyn
+
   INTERFACE u_log_profile    ! Define generic function
      MODULE PROCEDURE u_log_profile_scalar
      MODULE PROCEDURE u_log_profile_array
@@ -268,6 +270,60 @@ CONTAINS
     alphas_exp_profile_array = EXP( a*z )
     
   END FUNCTION alphas_exp_profile_array
+
+  FUNCTION dynamic_pressure(rho_c, alphas, normalizing_coeff_alpha , a,  &
+       u, normalizing_coeff_u , b, z)  
+
+    !> dynamic pressure
+    REAL(wp) :: dynamic_pressure
+
+
+    !> density of the carrier phase
+    REAL(wp), INTENT(IN) :: rho_c
+    !> depth-averaged volumetric fractions of solid phases
+    REAL(wp), INTENT(IN) :: alphas(n_solid)
+    !> normalizing coefficients of the solid profile functions
+    REAL(wp), INTENT(IN) :: normalizing_coeff_alpha(n_solid)
+    !> shape parameters of the solid profile function
+    REAL(wp), INTENT(IN) :: a(n_solid)
+    ! depth-averaged velocity
+    REAL(wp), INTENT(IN) :: u
+    !> normalizing coefficients of the velocity profile function
+    REAL(wp), INTENT(IN) :: normalizing_coeff_u
+    !> shape parameter of the velocity profile function
+    REAL(wp), INTENT(IN) :: b
+    !> elevation at which the dynamic pressure is computed
+    REAL(wp), INTENT(IN) :: z
+
+    !> volumetric fractions of solid at z
+    REAL(wp) :: alphas_z(n_solid)
+    !> mixture density at z
+    REAL(wp) :: rhom_z
+    !> mixture velocity at z
+    REAL(wp) :: u_z
+
+    !> volumetric fraction of carrier phase at z
+    REAL(wp) :: alphac_z
+
+    !> loop counter
+    INTEGER :: i_solid
+    
+    DO i_solid = 1,n_solid
+
+       alphas_z(i_solid) = alphas(i_solid) *                                    &
+            normalizing_coeff_alpha(i_solid) * alphas_exp_profile(a(i_solid),z)
+       
+    END DO
+
+    alphac_z = 1.0_wp - SUM(alphas_z)
+    
+    rhom_z = alphac_z * rho_c + SUM( rho_s * alphas_z )
+
+    u_z = ( u * normalizing_coeff_u * u_log_profile(b,z) )
+
+    dynamic_pressure = 0.5_wp * rhom_z * u_z**2
+
+  END FUNCTION dynamic_pressure
   
   
   !******************************************************************************
@@ -774,12 +830,13 @@ CONTAINS
 
 
     REAL(wp) :: rho_alphas(n_solid)
+    REAL(wp) :: alphas(n_solid)
 
     INTEGER :: i_solid
 
     REAL(wp) :: normalizing_coeff_u
     
-    REAL(wp) :: a
+    REAL(wp) :: a(n_solid)
 
     REAL(wp) :: alphas_exp_avg
     REAL(wp) :: u_log_avg
@@ -837,22 +894,25 @@ CONTAINS
     
     DO i_solid=1,n_solid
 
-       a = a_coeff * Rouse_no(i_solid)
+       a(i_solid) = a_coeff * Rouse_no(i_solid)
 
        ! depth-average value of exp(a*x)
-       alphas_exp_avg = ( SUM( w * alphas_exp_profile(a,z) ) +                  &
-            alphas_exp_profile(a,h0)*(h-h0) ) / h
+       alphas_exp_avg = ( SUM( w * alphas_exp_profile(a(i_solid),z) ) +         &
+            alphas_exp_profile(a(i_solid),h0)*(h-h0) ) / h
        
        normalizing_coeff_alpha(i_solid) = 1.0_wp / alphas_exp_avg
 
-       int_quad = SUM( w * ( alphas_exp_profile(a,z) * u_log_profile(b,z) ) )
+       int_quad = SUM( w * ( alphas_exp_profile(a(i_solid),z) *                 &
+            u_log_profile(b,z) ) )
 
        ! integral of alfa_rel_i*u between in the boundary layer
-       int_def1 = normalizing_coeff_u * normalizing_coeff_alpha(i_solid) * int_quad
+       int_def1 = normalizing_coeff_u * normalizing_coeff_alpha(i_solid) *      &
+            int_quad
 
        ! relative concentration alphas_rel at depth h0 (from the bottom)
        ! alphas_rel is defined as alphas(z)/alphas_avg
-       alphas_rel0 = normalizing_coeff_alpha(i_solid) * alphas_exp_profile(a,h0)
+       alphas_rel0 = normalizing_coeff_alpha(i_solid) *                         &
+            alphas_exp_profile(a(i_solid),h0)
 
        ! integral of alfa_rel_i*u in the free-stream layer
        int_def2 =  ( h - h0 ) * u_rel0 * alphas_rel0
@@ -875,24 +935,21 @@ CONTAINS
     uRho_avg_new = ( u_guess*rho_c + SUM((rho_s-rho_c) / rho_s * rho_u_alphas) )
 
 
-    ! test for dynamic pressure at z=z_test
-
-    z_test = MIN(z_test,h0)
-    
-    DO i_solid = 1,n_solid
-
-       rho_alphas(i_solid) = rho_alphas_avg(i_solid) *                          &
-            normalizing_coeff_alpha(i_solid) * alphas_exp_profile(a,z_test)
+    IF ( z_dyn .GT. 0.0_wp ) THEN
        
-    END DO
+       z_test = MIN(z_dyn,h0)
+       
+       alphas = rho_alphas_avg / rho_s
+       
+       p_dyn = dynamic_pressure(rho_c, alphas, normalizing_coeff_alpha , a, &
+            u_guess, normalizing_coeff_u , b, z_test)
 
-    rhom_z = rho_c + SUM( ( rho_s - rho_c ) / rho_s * rho_alphas )
-    
-    u_z = ( u_guess * normalizing_coeff_u * u_log_profile(b,z_test) )
+    ELSE
 
-    p_dyn = 0.5_wp * rhom_z * u_z**2
+       p_dyn = 0.5_wp * rhom_avg * uRho_avg_new
 
-    
+    END IF
+       
   END SUBROUTINE avg_profiles_mix
 
   !******************************************************************************
