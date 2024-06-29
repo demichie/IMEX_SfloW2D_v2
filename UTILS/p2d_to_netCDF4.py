@@ -371,10 +371,10 @@ for i_output in range(output_first, output_last):
                               data[:, 14 + 3 * nsolid + naddgas + i],
                               2).reshape((ny2, nx2))
                               
-            hmax[nc_output, :, :] = np.tile(data[:, 2], 14 + 4 * nsolid + naddgas).reshape((ny2, nx2))
+            hmax[nc_output, :, :] = np.tile(data[:, 14 + 4 * nsolid + naddgas], 2).reshape((ny2, nx2))
 
-            pdynmax[nc_output, :, :] = np.tile(data[:, 2], 14 + 4 * nsolid + naddgas+1).reshape((ny2, nx2))
-            modvelmax[nc_output, :, :] = np.tile(data[:, 2], 14 + 4 * nsolid + naddgas+2).reshape((ny2, nx2))
+            pdynmax[nc_output, :, :] = np.tile(data[:, 14 + 4 * nsolid + naddgas+1], 2).reshape((ny2, nx2))
+            modvelmax[nc_output, :, :] = np.tile(data[:, 14 + 4 * nsolid + naddgas+2], 2).reshape((ny2, nx2))
 
 
         else:
