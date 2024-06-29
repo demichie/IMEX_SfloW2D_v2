@@ -3122,9 +3122,6 @@ CONTAINS
           lamb0 = lambertw0( -a_crit_rel *  EXP(-a_crit_rel) )
           lamb1 = lambertwm1( -a_crit_rel *  EXP(-a_crit_rel) )
 
-          WRITE(*,*) lambertw0( -a_crit_rel *  EXP(-a_crit_rel) )
-          WRITE(*,*) lambertwm1( -a_crit_rel *  EXP(-a_crit_rel) )
-
           H_crit_rel = 1.0_wp / 30.0_wp * ( -a_crit_rel /                       &
                MAX(lamb0,lamb1) - 1.0_wp )
 
