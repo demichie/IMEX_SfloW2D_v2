@@ -124,7 +124,7 @@ PROGRAM IMEX_SfloW2D
 
 
   WRITE(*,*) '---------------------'
-  WRITE(*,*) 'IMEX_SfloW2D 1.0'
+  WRITE(*,*) 'IMEX_SfloW2D 2.0'
   WRITE(*,*) '---------------------'
 
   !$ use_openmp = .true.
