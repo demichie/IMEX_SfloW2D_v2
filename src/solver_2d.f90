@@ -934,7 +934,6 @@ CONTAINS
 
           !$OMP ATOMIC
           dt = MIN(dt,dt_cfl)
-          !$OMP END ATOMIC
 
        END DO
        !$OMP END DO
