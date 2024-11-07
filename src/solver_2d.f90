@@ -934,7 +934,6 @@ CONTAINS
 
           !$OMP ATOMIC
           dt = MIN(dt,dt_cfl)
-          !$OMP END ATOMIC
 
        END DO
        !$OMP END DO
@@ -2677,7 +2676,7 @@ CONTAINS
 
        !$OMP DO private(j,k,i,fluxL,fluxR,flux_avg_x)
 
-       interfaces_x_loop:DO l = 1,solve_interfaces_x
+       x_interfaces_loop:DO l = 1,solve_interfaces_x
 
           j = j_stag_x(l)
           k = k_stag_x(l)
@@ -2724,7 +2723,7 @@ CONTAINS
 
           END IF
 
-       END DO interfaces_x_loop
+       END DO x_interfaces_loop
 
        !$OMP END DO NOWAIT
 
@@ -2736,7 +2735,7 @@ CONTAINS
 
        !$OMP DO private(j,k,i,fluxB,fluxT,flux_avg_y)
        
-       interfaces_y_loop:DO l = 1,solve_interfaces_y
+       y_interfaces_loop:DO l = 1,solve_interfaces_y
 
           j = j_stag_y(l)
           k = k_stag_y(l)
@@ -2783,7 +2782,7 @@ CONTAINS
 
           END IF
 
-       END DO interfaces_y_loop
+       END DO y_interfaces_loop
 
        !$OMP END DO
 
