@@ -27,7 +27,7 @@ MODULE inpout_2d
   USE parameters_2d, ONLY : rheology_flag , energy_flag , alpha_flag ,          &
        topo_change_flag , radial_source_flag , collapsing_volume_flag ,         &
        liquid_flag , gas_flag , subtract_init_flag , bottom_radial_source_flag ,&
-       vertical_profiles_flag , lateral_source_flag
+       vertical_profiles_flag , lateral_source_flag , serial_flag
 
   USE parameters_2d, ONLY : slope_correction_flag , curvature_term_flag 
 
@@ -236,7 +236,7 @@ MODULE inpout_2d
 
   NAMELIST / run_parameters / run_name , restart , t_start , t_end , dt_output ,&
        output_cons_flag , output_esri_flag , output_phys_flag ,                 &
-       output_runout_flag , verbose_level
+       output_runout_flag , verbose_level , serial_flag
   
   NAMELIST / restart_parameters / n_restart_files, restart_files, release_time ,&
        T_init , T_ambient , u_init , v_init , sed_vol_perc
@@ -360,6 +360,7 @@ CONTAINS
     slope_correction_flag = .FALSE.
     curvature_term_flag  = .FALSE.
     vertical_profiles_flag = .FALSE.
+    serial_flag = .TRUE.
 
     !-- Inizialization of the Variables for the namelist NUMERIC_PARAMETERS
     dt0 = 1.0E-4_wp

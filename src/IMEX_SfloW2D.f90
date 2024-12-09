@@ -79,6 +79,7 @@ PROGRAM IMEX_SfloW2D
   USE parameters_2d, ONLY : radial_source_flag
   USE parameters_2d, ONLY : lateral_source_flag
   USE parameters_2d, ONLY : collapsing_volume_flag
+  USE parameters_2d, ONLY : serial_flag
 
   USE parameters_2d, ONLY : n_thickness_levels , n_dyn_pres_levels ,          &
        thickness_levels , dyn_pres_levels
@@ -127,21 +128,6 @@ PROGRAM IMEX_SfloW2D
   WRITE(*,*) 'IMEX_SfloW2D 2.0'
   WRITE(*,*) '---------------------'
 
-  !$ use_openmp = .true.
-  !$ print *, "OpenMP program"
-
-  IF ( .NOT. use_openmp) THEN
-
-     PRINT *, "Non-OpenMP simulation"
-
-  ELSE
-
-     !$ n_threads = omp_get_max_threads()
-     !$ CALL OMP_SET_NUM_THREADS(n_threads)
-     IF ( verbose_level .GE. 0 ) WRITE(*,*) 'Number of threads used',n_threads
-
-  END IF
-
   ! First initialize the system_clock
   CALL system_clock(count_rate=cr)
   CALL system_clock(count_max=cm)
@@ -154,6 +140,27 @@ PROGRAM IMEX_SfloW2D
 
   CALL read_param
 
+
+  !$ use_openmp = .true.
+  !$ print *, "OpenMP program"
+
+  IF ( .NOT. use_openmp) THEN
+
+     PRINT *, "Non-OpenMP simulation"
+
+  ELSE
+
+     ! Check the serial flag
+     IF (serial_flag) THEN
+        CALL omp_set_num_threads(1)  ! Use only 1 thread
+     END IF
+             
+     !$ n_threads = omp_get_max_threads()
+     !$ CALL OMP_SET_NUM_THREADS(n_threads)
+     IF ( verbose_level .GE. 0 ) WRITE(*,*) 'Number of threads used',n_threads
+
+  END IF
+  
 !!$
 !!$  !avg_profiles_mix( h , settling_vel , rho_alphas_avg,&
 !!$  !      u_guess , h0 , b , u_coeff , u_rel0 , rho_c , uRho_avg_new )

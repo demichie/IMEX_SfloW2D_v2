@@ -81,6 +81,8 @@ MODULE parameters_2d
   LOGICAL :: radial_source_flag
 
   LOGICAL :: lateral_source_flag
+
+  LOGICAL :: serial_flag
   
   !> Flag to choose if initial volume is subtracted from topography or erodible layer
   !> - T      => change initial topography or erodible layer by subtracting initial volume 
