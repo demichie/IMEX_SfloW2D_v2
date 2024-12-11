@@ -85,7 +85,7 @@ PROGRAM IMEX_SfloW2D
        thickness_levels , dyn_pres_levels
 
   USE solver_2d, ONLY : q , qp , t, dt
-  USE solver_2d, ONLY : hmax , pdynmax
+  USE solver_2d, ONLY : hmax , pdynmax , mod_vel_max
   USE solver_2d, ONLY : thck_table ,  pdyn_table , vuln_table
 
   USE constitutive_2d, ONLY : qc_to_qp
@@ -123,6 +123,7 @@ PROGRAM IMEX_SfloW2D
 
   REAL(wp) :: ans1
 
+  REAL(wp) :: mod_vel , mod_vel2, r_u, r_v
 
   WRITE(*,*) '---------------------'
   WRITE(*,*) 'IMEX_SfloW2D 2.0'
@@ -153,11 +154,12 @@ PROGRAM IMEX_SfloW2D
      ! Check the serial flag
      IF (serial_flag) THEN
         CALL omp_set_num_threads(1)  ! Use only 1 thread
+        WRITE(*,*) 'Serial run'
      END IF
              
      !$ n_threads = omp_get_max_threads()
      !$ CALL OMP_SET_NUM_THREADS(n_threads)
-     IF ( verbose_level .GE. 0 ) WRITE(*,*) 'Number of threads used',n_threads
+     WRITE(*,*) 'Parallel run: number of threads used',n_threads
 
   END IF
   
@@ -247,13 +249,20 @@ PROGRAM IMEX_SfloW2D
 
      IF ( q(1,j,k) .GT. 0.0_wp ) THEN
 
-        CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars,j,k) , p_dyn )
+        CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
 
         hmax(j,k) = qp(1,j,k)
 
-        IF ( q(1,j,k) .GT. 0.001_wp ) THEN
+        r_u = qp(n_vars+1,j,k)
+        r_v = qp(n_vars+2,j,k)
+        
+        mod_vel2 = r_u**2 + r_v**2
+        mod_vel = SQRT( mod_vel2 )
+        
+        IF ( qp(1,j,k) .GT. 0.001_wp ) THEN
            
            pdynmax(j,k) = p_dyn
+           mod_vel_max(j,k) = mod_vel
 
         END IF
            
@@ -379,9 +388,16 @@ PROGRAM IMEX_SfloW2D
 
            hmax(j,k) = MAX( hmax(j,k) , qp(1,j,k) )
 
-           IF ( q(1,j,k) .GT. 0.001_wp ) THEN
+           r_u = qp(n_vars+1,j,k)
+           r_v = qp(n_vars+2,j,k)
+        
+           mod_vel2 = r_u**2 + r_v**2
+           mod_vel = SQRT( mod_vel2 )
+        
+           IF ( qp(1,j,k) .GT. 0.001_wp ) THEN
 
               pdynmax(j,k) = MAX( pdynmax(j,k) , p_dyn )
+              mod_vel_max(j,k) = MAX( mod_vel_max(j,k) , mod_vel )
 
            END IF
               

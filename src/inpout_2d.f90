@@ -4870,7 +4870,7 @@ CONTAINS
     USE parameters_2d, ONLY : t_output , dt_output 
     USE parameters_2d, ONLY : t_steady
 
-    USE solver_2d, ONLY : q , hmax , pdynmax
+    USE solver_2d, ONLY : q , hmax , pdynmax , mod_vel_max
 
     IMPLICIT none
 
@@ -4910,8 +4910,6 @@ CONTAINS
     REAL(wp) :: inv_kin_visc
 
     REAL(wp) :: Rouse_no(n_solid)
-
-    REAL(wp) :: mod_vel_max
     
     sp_flag = .FALSE.
 
@@ -5093,14 +5091,12 @@ CONTAINS
 
              IF ( ABS( r_alphal ) .LT. 1.0E-20_wp ) r_alphal = 0.0_wp
 
-             mod_vel_max = SQRT(2.0 * pdynmax(j,k) / r_rho_m)
-             
              WRITE(output_unit_2d,1010) x_comp(j), y_comp(k), r_h , r_u , r_v , &
                   B_out , r_h + B_out , r_alphas , r_alphag , r_T , r_rho_m ,   &
                   r_red_grav , DEPOSIT(j,k,:) , EROSION(j,k,:) ,                &
                   SUM(ERODIBLE(1:n_solid,j,k)) / ( 1.0_wp - erodible_porosity ),&
                   r_alphal , shear_vel , r_Ri , Rouse_no(1:n_solid), hmax(j,k) ,&
-                  pdynmax(j,k) , mod_vel_max
+                  pdynmax(j,k) , mod_vel_max(j,k)
 
           END DO
 

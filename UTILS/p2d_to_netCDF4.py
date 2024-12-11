@@ -48,6 +48,9 @@ else:
 
 print(bakfile)
 
+stochflag = False
+poreflag = False
+
 with open(bakfile) as fp:
 
     for cnt, line in enumerate(fp):
@@ -128,6 +131,21 @@ with open(bakfile) as fp:
             liqflag_str = liqflag_str.replace(',', '')
             liqflag = ('T' in liqflag_str)
             print("liqflag", liqflag)
+
+        if "STOCHASTIC_FLAG" in line:
+            stochflag_str = line.replace('STOCHASTIC_FLAG', '')
+            stochflag_str = stochflag_str.replace('=', '')
+            stochflag_str = stochflag_str.replace(',', '')
+            stochflag = ('T' in stochflag_str)
+            print("stochflag", stochflag)
+
+        if "PORE_PRESSURE_FLAG" in line:
+            poreflag_str = line.replace('PORE_PRESSURE_FLAG', '')
+            poreflag_str = poreflag_str.replace('=', '')
+            poreflag_str = poreflag_str.replace(',', '')
+            poreflag = ('T' in poreflag_str)
+            print("poreflag", poreflag)
+
 
 n_output = int((t_end - t_start) / dt_output)
 
@@ -284,7 +302,33 @@ pdynmax.units = 'kilograms/(meters*second^2)'
 
 modvelmax = ncfile.createVariable('modvelmax', np.float64, ('time', 'y', 'x'))
 modvelmax.standard_name = 'max of flow velocity'  # this is a CF standard name
-modvelmax.units = 'meters/second'  
+modvelmax.units = 'meters/second' 
+
+if stochflag:
+
+    Zs = ncfile.createVariable('Zs', np.float64, ('time', 'y', 'x'))
+    Zs.standard_name = 'stochastic variable'  # this is a CF standard name
+    Zs.units = ''  
+
+    nstoch = 1
+    
+else:
+
+    nstoch = 0
+    
+        
+if poreflag:
+
+    Ppore = ncfile.createVariable('Ppore', np.float64, ('time', 'y', 'x'))
+    Ppore.standard_name = 'pore pressure'  # this is a CF standard name
+    Ppore.units = 'Pa'  
+
+    npore = 1
+    
+else:
+
+    npore = 0
+    
 
 
 X = np.zeros((ny2, nx2))
@@ -371,10 +415,18 @@ for i_output in range(output_first, output_last):
                               data[:, 14 + 3 * nsolid + naddgas + i],
                               2).reshape((ny2, nx2))
                               
-            hmax[nc_output, :, :] = np.tile(data[:, 14 + 4 * nsolid + naddgas], 2).reshape((ny2, nx2))
+            hmax[nc_output, :, :] = np.tile(data[:, 2], 14 + 4 * nsolid + naddgas).reshape((ny2, nx2))
 
-            pdynmax[nc_output, :, :] = np.tile(data[:, 14 + 4 * nsolid + naddgas+1], 2).reshape((ny2, nx2))
-            modvelmax[nc_output, :, :] = np.tile(data[:, 14 + 4 * nsolid + naddgas+2], 2).reshape((ny2, nx2))
+            pdynmax[nc_output, :, :] = np.tile(data[:, 2], 14 + 4 * nsolid + naddgas+1).reshape((ny2, nx2))
+            modvelmax[nc_output, :, :] = np.tile(data[:, 2], 14 + 4 * nsolid + naddgas+2).reshape((ny2, nx2))
+
+            if (nstoch>0):
+            
+                Zs[nc_output, :, :] = np.tile(data[:, 2], 14 + 4 * nsolid + naddgas+3).reshape((ny2, nx2))
+            
+            if (npore>0):
+            
+                Ppore[nc_output, :, :] = np.tile(data[:, 2], 14 + 4 * nsolid + naddgas+nstoch+3).reshape((ny2, nx2))
 
 
         else:
@@ -439,11 +491,19 @@ for i_output in range(output_first, output_last):
                     nc_output, :, :] = data[:, 14 + 3 * nsolid + naddgas +
                                             i].reshape((ny, nx))
 
-            hmax[nc_output, :, :] = data[:, 14 + 4 * nsolid + naddgas].reshape((ny, nx))
-            pdynmax[nc_output, :, :] = data[:, 14 + 4 * nsolid + naddgas+1].reshape((ny, nx))
-            modvelmax[nc_output, :, :] = data[:, 14 + 4 * nsolid + naddgas+2].reshape((ny, nx))
+            if (nstoch>0):
             
+                Zs[nc_output, :, :] = data[:, 14 + 4 * nsolid + naddgas].reshape((ny, nx))
+            
+            if (npore>0):
+            
+                Ppore[nc_output, :, :] = data[:, 14 + 4 * nsolid + naddgas+nstoch].reshape((ny, nx))
 
+            hmax[nc_output, :, :] = data[:, 14 + 4 * nsolid + naddgas+nstoch+npore].reshape((ny, nx))
+            pdynmax[nc_output, :, :] = data[:, 14 + 4 * nsolid + naddgas+nstoch+npore+1].reshape((ny, nx))
+            modvelmax[nc_output, :, :] = data[:, 14 + 4 * nsolid + naddgas+nstoch+npore+2].reshape((ny, nx))
+            
+           
         nc_output += 1
 
 if (nx == 1):
