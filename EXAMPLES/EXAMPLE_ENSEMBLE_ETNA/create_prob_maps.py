@@ -94,7 +94,7 @@ def main():
     current_dir = os.getcwd()
     os.chdir('./templatedir/')
 
-    with open('IMEX_SfloW2D.template') as fp:
+    with open('IMEX_SfloW2D.inp') as fp:
 
         thick_levels = []
         dyn_pres_levels = []
@@ -173,7 +173,7 @@ def main():
         calculate_map(VTfile, row_list, 0)
 
     # group by coordinates (both x and y)
-    group = df.groupby(["Coor_x", "Coor_y"])
+    group = df.groupby(["x", "y"])
     n_groups = len(group.groups)
     group_list = list(group.groups.values())
     """
