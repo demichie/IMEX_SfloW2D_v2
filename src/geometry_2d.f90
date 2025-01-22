@@ -669,7 +669,7 @@ CONTAINS
             ( grav_coeff(1:comp_cells_x-1,:) + grav_coeff(2:comp_cells_x,:) )
        grav_coeff_stag_x(comp_interfaces_x,:) = grav_coeff(comp_cells_x,:)
 
-       grav_coeff_stag_y(:,1) = grav_coeff(1,:)
+       grav_coeff_stag_y(:,1) = grav_coeff(:,1)
        grav_coeff_stag_y(:,2:comp_interfaces_y-1) = 0.5_wp *                    &
             ( grav_coeff(:,1:comp_cells_y-1) + grav_coeff(:,2:comp_cells_y) )
        grav_coeff_stag_y(:,comp_interfaces_y) = grav_coeff(:,comp_cells_y)
