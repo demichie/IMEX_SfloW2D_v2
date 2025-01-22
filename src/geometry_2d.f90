@@ -592,7 +592,7 @@ CONTAINS
              B_second_xx(j,k) = 0.0_wp
              B_cent_extended(1,2:comp_cells_y+1) = B_cent(1,1:comp_cells_y)
              B_cent_extended(comp_cells_x+2,2:comp_cells_y+1) =                 &
-                  B_cent(1,1:comp_cells_y)
+                  B_cent(comp_cells_x,1:comp_cells_y)
 
           END IF check_comp_cells_x
 
@@ -641,7 +641,7 @@ CONTAINS
              B_second_yy(j,k) = 0.0_wp
              B_cent_extended(2:comp_cells_x+1,1) = B_cent(1:comp_cells_x,1)
              B_cent_extended(2:comp_cells_x+1,comp_cells_y+2) =                 &
-                  B_cent(1:comp_cells_x,1)
+                  B_cent(1:comp_cells_x,comp_cells_y)
 
           ENDIF check_comp_cells_y
 
