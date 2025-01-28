@@ -3321,6 +3321,7 @@ CONTAINS
     REAL(wp) :: source_term(n_eqns)
 
     REAL(wp) :: mod_vel
+    REAL(wp) :: mod_hor_vel
 
     REAL(wp) :: h_threshold
 
@@ -3415,6 +3416,8 @@ CONTAINS
        END IF
        
        mod_vel = SQRT( r_u**2 + r_v**2 + r_w**2 )
+
+       mod_hor_vel = SQRT( r_u**2 + r_v**2 )
        
        ! Voellmy Salm rheology
        IF ( rheology_model .EQ. 1 ) THEN
@@ -3434,13 +3437,13 @@ CONTAINS
              END IF
 
              temp_term = r_rho_m *  mu * r_h * grav_coeff * ( r_red_grav +      &
-                  centr_force_term ) / mod_vel
+                  centr_force_term )
 
              ! units of dqc(2)/dt=d(rho h v)/dt (kg m-1 s-2)
-             source_term(2) = source_term(2) - temp_term * r_u
+             source_term(2) = source_term(2) - temp_term * r_u / mod_hor_vel
 
              ! units of dqc(3)/dt=d(rho h v)/dt (kg m-1 s-2)
-             source_term(3) = source_term(3) - temp_term * r_v
+             source_term(3) = source_term(3) - temp_term * r_v / mod_hor_vel
 
           END IF
 
