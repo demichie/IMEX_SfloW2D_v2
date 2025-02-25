@@ -240,7 +240,8 @@ PROGRAM IMEX_SfloW2D
 
   vuln_table = .FALSE.
 
-  !$OMP PARALLEL DO private(j,k,p_dyn,i_table,i_thk_lev,i_pdyn_lev)
+  !$OMP PARALLEL DO private(j,k,p_dyn,i_table,i_thk_lev,i_pdyn_lev,mod_vel2,    &
+  !$OMP & mod_vel)
 
   DO l = 1,solve_cells
 
