@@ -2776,7 +2776,7 @@ CONTAINS
 
     IF ( curvature_term_flag ) THEN
 
-       centr_force_term = Bsecondj_xx * r_u**2 + Bsecondj_xy * r_u * r_v +      &
+       centr_force_term = Bsecondj_xx * r_u**2 + 2.0_wp*Bsecondj_xy*r_u * r_v + &
             Bsecondj_yy * r_v**2
 
     ELSE
