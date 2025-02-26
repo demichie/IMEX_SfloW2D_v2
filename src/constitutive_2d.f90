@@ -633,8 +633,6 @@ CONTAINS
     ! reduced gravity
     r_red_grav = ( r_rho_m - rho_a_amb ) * r_inv_rhom * grav
 
-    p_dyn = 0.5 * r_rho_m * ( r_u**2 + r_v**2 )
-
     IF ( vertical_profiles_flag ) THEN
 
        rhos_alfas_tot_u = r_xs_tot * r_qj(2) / r_h  
@@ -781,6 +779,8 @@ CONTAINS
 
     END IF
 
+    p_dyn = 0.5 * r_rho_m * ( r_u**2 + r_v**2 )
+    
     ! Richardson number
     IF ( ( r_u**2 + r_v**2 ) .GT. 0.0_wp ) THEN
 

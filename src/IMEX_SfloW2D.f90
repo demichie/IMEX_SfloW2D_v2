@@ -378,6 +378,7 @@ PROGRAM IMEX_SfloW2D
 
      !$OMP PARALLEL DO private(j,k,p_dyn,i_table,i_thk_lev,i_pdyn_lev)
 
+     
      DO l = 1,solve_cells
 
         j = j_cent(l)
