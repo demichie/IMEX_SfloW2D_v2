@@ -41,12 +41,12 @@ If you do not have a compiler on your system, there is a Docker container
 with the executable of the latest version of the model at the following
 link:
 
-<https://hub.docker.com/repository/docker/demichie/imex_sflow2d_v2>
+<https://github.com/demichie/IMEX_SfloW2D_v2/pkgs/container/imex_sflow2d_v2>
 
 If you have docker installed on your computer, you can download the container
 from the commant line with:
 
-> docker pull demichie/imex_sflow2d_v2
+> docker pull ghcr.io/demichie/imex_sflow2d_v2:sha256-080bf69dd96c57482ca27fa37096e96b9b15813ca5d7a8a5736ea9a0599884f9
 
 ### LINUX/MAC
 
