@@ -3024,6 +3024,7 @@ CONTAINS
     COMPLEX(wp) :: source_term(n_eqns)
 
     COMPLEX(wp) :: mod_vel
+    COMPLEX(wp) :: mod_vel0
     COMPLEX(wp) :: mod_vel2
     COMPLEX(wp) :: gamma
     COMPLEX(wp) :: Fr                      !< Froude number
@@ -3096,6 +3097,7 @@ CONTAINS
 
        mod_vel2 = u**2 + v**2 + w**2
        mod_vel = SQRT( mod_vel2 )
+       mod_vel0 = SQRT( u**2 + v**2 )
 
        IF ( rheology_model .EQ. 1 ) THEN
           ! Voellmy Salm rheology
@@ -3103,10 +3105,10 @@ CONTAINS
           IF ( REAL(mod_vel) .NE. 0.0_wp ) THEN 
 
              ! IMPORTANT: grav3_surf is always negative 
-             source_term(2) = source_term(2) - rho_m * ( u / mod_vel ) *        &
+             source_term(2) = source_term(2) - rho_m * ( u / mod_vel0 ) *        &
                   ( grav / xi ) * mod_vel2
 
-             source_term(3) = source_term(3) - rho_m * ( v / mod_vel ) *        &
+             source_term(3) = source_term(3) - rho_m * ( v / mod_vel0 ) *        &
                   ( grav / xi ) * mod_vel2
 
           ENDIF
@@ -3116,9 +3118,9 @@ CONTAINS
           ! Plastic rheology
           IF ( REAL(mod_vel) .NE. 0.0_wp ) THEN 
 
-             source_term(2) = source_term(2) - rho_m * tau * ( u / mod_vel )
+             source_term(2) = source_term(2) - rho_m * tau * ( u / mod_vel0 )
 
-             source_term(3) = source_term(3) - rho_m * tau * ( v / mod_vel )
+             source_term(3) = source_term(3) - rho_m * tau * ( v / mod_vel0 )
 
           ENDIF
 
@@ -3229,7 +3231,7 @@ CONTAINS
 
           IF ( REAL(mod_vel) .GT. 0.0_wp ) THEN
 
-             temp_term = grav * rho_m * h * s_f / mod_vel
+             temp_term = grav * rho_m * h * s_f / mod_vel0
 
              ! same units of dqc(2)/dt: kg m-1 s-2
              source_term(2) = source_term(2) - u * temp_term
@@ -3245,8 +3247,8 @@ CONTAINS
 
           IF ( REAL(mod_vel) .NE. 0.0_wp ) THEN
 
-             source_term(2) = source_term(2) - rho_m * c_tau * ( u / mod_vel )
-             source_term(3) = source_term(3) - rho_m * c_tau * ( v / mod_vel )
+             source_term(2) = source_term(2) - rho_m * c_tau * ( u / mod_vel0 )
+             source_term(3) = source_term(3) - rho_m * c_tau * ( v / mod_vel0 )
 
           END IF
 
@@ -3255,11 +3257,11 @@ CONTAINS
 
           IF ( REAL(mod_vel) .NE. 0.0_wp ) THEN 
 
-             source_term(2) = source_term(2) - rho_m * u * friction_factor *    &
-                  mod_vel
+             source_term(2) = source_term(2) - rho_m * ( u / mod_vel0 ) * friction_factor *    &
+                  mod_vel2
 
-             source_term(3) = source_term(3) - rho_m * v * friction_factor *    &
-                  mod_vel
+             source_term(3) = source_term(3) - rho_m * ( v / mod_vel0 ) * friction_factor *    &
+                  mod_vel2
 
           ENDIF
 
