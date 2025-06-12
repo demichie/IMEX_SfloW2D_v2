@@ -264,7 +264,8 @@ MODULE inpout_2d
        energy_flag , liquid_flag , radial_source_flag , collapsing_volume_flag ,&
        topo_change_flag , gas_flag , subtract_init_flag , n_add_gas ,           &
        bottom_radial_source_flag , slope_correction_flag , curvature_term_flag ,&
-       vertical_profiles_flag , lateral_source_flag , stochastic_flag
+       vertical_profiles_flag , lateral_source_flag , stochastic_flag ,         &
+       pore_pressure_flag
 
   NAMELIST / initial_conditions /  released_volume , x_release , y_release ,    &
        velocity_mod_release , velocity_ang_release , T_init , T_ambient
@@ -385,7 +386,8 @@ CONTAINS
     serial_flag = .TRUE.
     stochastic_flag = .FALSE.
     stoch_transport_flag = .FALSE.
-
+    pore_pressure_flag = .FALSE.
+    
     !-- Inizialization of the Variables for the namelist NUMERIC_PARAMETERS
     dt0 = 1.0E-4_wp
     max_dt = 1.0E-3_wp

@@ -4145,12 +4145,10 @@ CONTAINS
     ! Evaluate the equation term related to the noise transport equation
     ! (if transport flag is false nothing is done)
     eqns_term(5+n_solid+n_add_gas:4+n_solid+n_add_gas+n_stoch_vars) =           &
-         eqns_term(1) * r_Zs(5+n_solid+n_add_gas:4+n_solid+n_add_gas+           &
-         n_stoch_vars)
+         eqns_term(1) * r_Zs(1:n_stoch_vars)
     
     eqns_term(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas+n_stoch_vars+&
-         n_pore_vars) = eqns_term(1) *  r_pore_pres(5+n_solid+n_add_gas+        &
-         n_stoch_vars:4+n_solid+n_add_gas+n_stoch_vars+n_pore_vars)
+         n_pore_vars) = eqns_term(1) * r_pore_pres(1:n_pore_vars)
           
     ! erodible layer thickness source terms [m s-1]:
     ! due to erosion and deposition of solid+continuous phase
