@@ -703,7 +703,6 @@ CONTAINS
   SUBROUTINE init_source
 
     USE parameters_2d, ONLY : x_source , y_source , r_source
-    USE parameters_2d, ONLY : radial_source_flag
 
     USE parameters_2d, ONLY : source_side
     USE parameters_2d, ONLY : x1_source , x2_source
@@ -1690,7 +1689,7 @@ CONTAINS
     !               "Precise and fast computation of Lambert W-functions
     !                without transcendental function evaluations"
     !
-    integer n1,n,j,jmax,nh
+    integer n,j,jmax,nh
     real(wp) z,p2,y,w,wj,yj,f0,f1,f00,f11,f0y
     real(wp) Em1,E1,ej,em(-1:64),g(0:64),a(12),b(12)
     logical first/.TRUE./
@@ -2250,6 +2249,7 @@ CONTAINS
       
        z = cos(pi_g*(i-0.25_wp)/(n+0.5_wp))
        z1 = 0.0_wp
+       pp = 0.0_wp
        do while(abs(z-z1) .gt. eps)
           p1 = 1.0_wp
           p2 = 0.0_wp

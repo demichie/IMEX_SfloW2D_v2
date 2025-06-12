@@ -17,6 +17,7 @@ IMEX_SfloW2D_SOURCES = \
                 constitutive_2d.f90 \
                 solver_2d.f90 \
                 init_2d.f90 \
+                stochastic_module.f90 \
                 inpout_2d.f90 \
                 IMEX_SfloW2D.f90
 
