@@ -10,6 +10,7 @@ MODULE init_2d
   USE parameters_2d, ONLY : wp
   USE parameters_2d, ONLY : verbose_level
   USE parameters_2d, ONLY : n_solid , n_add_gas
+  USE parameters_2d, ONLY : n_stoch_vars , n_pore_vars
 
   IMPLICIT none
 
@@ -104,6 +105,9 @@ CONTAINS
     qp0_init(4) = T_collapse              ! T
     qp0_init(5:4+n_solid) = 0.0_wp        ! alphas
     qp0_init(4+n_solid+1:4+n_solid+n_add_gas) = 0.0_wp        ! alphag
+    qp0_init(5+n_solid+n_add_gas:4+n_solid+n_add_gas+n_stoch_vars) = 0.0_wp
+    qp0_init(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas+n_stoch_vars+ &
+         n_pore_vars) =  0.0_wp
     qp0_init(n_vars+1:n_vars+2) = 0.0_wp  ! u,v
 
     ! values within the collapsing volume
@@ -135,6 +139,12 @@ CONTAINS
                      h_collapse * alphag_collapse(1:n_add_gas)
 
              END IF
+
+             qp_init(5+n_solid+n_add_gas:4+n_solid+n_add_gas+n_stoch_vars) =    &
+                  1.0_wp
+             
+             qp_init(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas       &
+                  +n_stoch_vars+n_pore_vars) = 1.0_wp             
              
              CALL qp_to_qc( qp_init(1:n_vars+2) , q(1:n_vars,j,k) )
              

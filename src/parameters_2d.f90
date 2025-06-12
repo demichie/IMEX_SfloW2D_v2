@@ -70,6 +70,7 @@ MODULE parameters_2d
   !> - 2      => plastic rheology
   !> .
   !> - 9      => Coulomb function mu(Fr) (Zhu... 2020 , Roche... 2021)
+  !> - 10     => Coulomb function mu(U) (Lucas... 2014)
   INTEGER :: rheology_model
 
   LOGICAL :: liquid_flag
@@ -132,11 +133,34 @@ MODULE parameters_2d
   !> .  
   LOGICAL :: bottom_conc_flag
 
+  LOGICAL :: stoch_transport_flag
+
+  LOGICAL :: pore_pressure_flag
+
+  !> Flag for stochastic friction model
+  !> - T      => we use stochastic friction model
+  !> - F      => we use deterministic friction model
+  !> . 
+  LOGICAL :: stochastic_flag
+
+  !> Flag for mean field friction model
+  !> - T      => we use mean field friction model
+  !> - F      => we use mean field friction model
+  !> . 
+  LOGICAL :: mean_field_flag
+
+  !> Flag to save the stochastic variables at times
+  !> - T     => write stochastic variables on file
+  !> - F     => do not write stochastic variables on file
+  !> .
+  LOGICAL :: output_stoch_vars_flag
+
+  !> Scale of spatial correlation for stochastic model
+  REAL(wp) :: length_spatial_corr
 
   !> Elevation of the water level in the DEM file
   REAL(wp) :: water_level
-  
-  
+    
   INTEGER :: n_thickness_levels
   INTEGER :: n_dyn_pres_levels
   REAL(wp), ALLOCATABLE :: thickness_levels(:)
@@ -191,7 +215,6 @@ MODULE parameters_2d
   REAL(wp) :: alphag_collapse(100)
 
   LOGICAL :: bottom_radial_source_flag
-
   
   !> Initial volume of the flow
   REAL(wp) :: released_volume
@@ -231,6 +254,9 @@ MODULE parameters_2d
 
   INTEGER :: n_add_gas  !< Number of additional gas components
 
+  INTEGER :: n_stoch_vars
+  INTEGER :: n_pore_vars
+  
   INTEGER :: n_nh     !< Number of non-hyperbolic terms
 
   INTEGER :: n_RK     !< Runge-Kutta order

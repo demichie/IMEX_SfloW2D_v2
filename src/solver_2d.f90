@@ -36,6 +36,7 @@ MODULE solver_2d
   USE parameters_2d, ONLY : verbose_level
   USE parameters_2d, ONLY : radial_source_flag , bottom_radial_source_flag
   USE parameters_2d, ONLY : lateral_source_flag
+  USE parameters_2d, ONLY : stochastic_flag
 
   USE parameters_2d, ONLY : bcW , bcE , bcS , bcN
 
@@ -225,6 +226,12 @@ MODULE solver_2d
 
   REAL(wp) :: h , one_by_h
 
+  !> Stochastic Noise
+  REAL(wp), ALLOCATABLE :: Z(:,:)
+  !> Array for kernel
+  REAL(wp), ALLOCATABLE :: conv_kernel(:,:)
+  !> Friction values at cells
+  REAL(wp), ALLOCATABLE :: fric_array(:,:)
   
 CONTAINS
 
@@ -488,6 +495,19 @@ CONTAINS
     ALLOCATE( j_stag_y( comp_cells_x * comp_interfaces_y ) )
     ALLOCATE( k_stag_y( comp_cells_x * comp_interfaces_y ) )
 
+    ! Allocate array containing the stochastic noise
+    IF (stochastic_flag) THEN
+       ALLOCATE ( Z(comp_cells_x , comp_cells_y) )
+       Z(1:comp_cells_x,1:comp_cells_y) = 0.0_wp
+    END IF
+    
+    ! Allocate array containing the friction values if needed
+    IF ((rheology_model .EQ. 9) .OR. (rheology_model .EQ. 1)                    &
+         .OR. (rheology_model .EQ. 10)) THEN
+       ALLOCATE (fric_array(comp_cells_x , comp_cells_y))
+       fric_array(1:comp_cells_x,1:comp_cells_y) = 0.0_wp
+    END IF
+    
     WRITE(*,*) 'ALLOCATION OF ARRAYS COMPLETED'
     
     RETURN
@@ -508,6 +528,9 @@ CONTAINS
 
   SUBROUTINE deallocate_solver_variables
 
+    USE geometry_2d, ONLY: cell_size
+    USE parameters_2d, ONLY: length_spatial_corr
+    
     DEALLOCATE( q , q0 , hpos , hpos_old )
 
     DEALLOCATE( hmax , pdynmax , mod_vel_max )
@@ -590,6 +613,20 @@ CONTAINS
     DEALLOCATE ( j_stag_x , k_stag_x )
     DEALLOCATE ( j_stag_y , k_stag_y )
 
+    ! should use allocated(...) to see if arrays are allocated!
+    IF ( stochastic_flag ) THEN
+       DEALLOCATE( Z ) ! Stochastic noise
+       ! Deallocated kernel if activated before
+       IF (length_spatial_corr .GT. cell_size) THEN 
+          DEALLOCATE(conv_kernel)
+       END IF
+    END IF
+    
+    IF ((rheology_model .EQ. 9) .OR. (rheology_model .EQ. 1)                    &
+         .OR. (rheology_model .EQ. 10)) THEN
+       DEALLOCATE(fric_array) ! friction term  
+    END IF
+    
     RETURN
     
   END SUBROUTINE deallocate_solver_variables
@@ -975,7 +1012,6 @@ CONTAINS
 
     USE constitutive_2d, ONLY : T_ambient
 
-
     USE geometry_2d, ONLY : B_nodata
 
 !!$    USE parameters_2d, ONLY : time_param , bottom_radial_source_flag
@@ -1098,7 +1134,8 @@ CONTAINS
                 CALL eval_nh_semi_impl_terms( B_prime_x(j,k) , B_prime_y(j,k) , &
                      B_second_xx(j,k) , B_second_xy(j,k) , B_second_yy(j,k) ,   &
                      grav_coeff(j,k) , q_fv( 1:n_vars , j , k ) ,               &
-                     qp( 1:n_vars , j , k ) , SI_NH(1:n_eqns,j,k,i_RK) )
+                     qp( 1:n_vars , j , k ) , SI_NH(1:n_eqns,j,k,i_RK) ,        &
+                     Z(j,k), fric_array(j,k) )
 
                 ! Assemble the initial guess for the implicit solver
                 q_si(1:n_vars) = q_fv(1:n_vars,j,k ) + dt * a_diag *            &
@@ -1147,7 +1184,7 @@ CONTAINS
                      divFlux( 1:n_eqns , j , k , 1:n_RK ) ,                     &
                       expl_terms( 1:n_eqns,j,k,1:n_RK ) ,                       &
                       NH( 1:n_eqns , j , k , 1:n_RK ) , B_prime_x(j,k) ,        &
-                      B_prime_y(j,k) )
+                      B_prime_y(j,k), Z(j,k), fric_array(j,k)  )
 
                 IF ( comp_cells_y .EQ. 1 ) THEN
 
@@ -1169,14 +1206,15 @@ CONTAINS
                 ELSE
                    
                    ! Eval and store the implicit term at the i_RK step
-                   CALL eval_implicit_terms( B_prime_x(j,k) , B_prime_y(j,k) ,     &
-                        r_qj = q_guess , r_nh_term_impl = NH(1:n_eqns,j,k,i_RK) )
+                   CALL eval_implicit_terms( B_prime_x(j,k) , B_prime_y(j,k) ,  &
+                        Z(j,k), fric_array(j,k), r_qj = q_guess ,               &
+                        r_nh_term_impl = NH(1:n_eqns,j,k,i_RK) )
                    
                    IF ( q_si(2)**2 + q_si(3)**2 .EQ. 0.0_wp ) THEN
                       
                       q_guess(2:3) = 0.0_wp 
                       
-                   ELSEIF ( ( q_guess(2)*q_si(2) .LE. 0.0_wp ) .AND.               &
+                   ELSEIF ( ( q_guess(2)*q_si(2) .LE. 0.0_wp ) .AND.            &
                         ( q_guess(3)*q_si(3) .LE. 0.0_wp ) ) THEN
                       
                    ! If the impl. friction term changed the sign of the 
@@ -1492,7 +1530,7 @@ CONTAINS
   !******************************************************************************
 
   SUBROUTINE solve_rk_step( qj, qj_old, a_tilde, a_dirk, a_diag, Rj_not_impl,   &
-       divFluxj, Expl_terms_j , NHj , Bprimej_x , Bprimej_y )
+       divFluxj, Expl_terms_j, NHj, Bprimej_x, Bprimej_y, Zij, fric_val )
 
     USE parameters_2d, ONLY : max_nl_iter , tol_rel , tol_abs
 
@@ -1513,6 +1551,8 @@ CONTAINS
     REAL(wp), INTENT(IN) :: NHj(n_eqns,n_RK)
     REAL(wp), INTENT(IN) :: Bprimej_x
     REAL(wp), INTENT(IN) :: Bprimej_y
+    REAL(wp), INTENT(IN):: Zij ! value stochastic process
+    REAL(wp), INTENT(OUT) :: fric_val ! to save the value of the friction
 
     REAL(wp) :: qj_init(n_vars)
 
@@ -1587,7 +1627,7 @@ CONTAINS
             - MATMUL(NHj,a_dirk) )
 
        CALL eval_f( qj , qj_old , a_diag , coeff_f , Rj_not_impl , Bprimej_x ,  &
-            Bprimej_y , right_term , scal_f )
+            Bprimej_y , right_term , scal_f, Zij, fric_val )
 
        IF ( verbose_level .GE. 3 ) THEN
 
@@ -1637,7 +1677,7 @@ CONTAINS
        IF ( verbose_level .GE. 2 ) WRITE(*,*) 'solve_rk_step: nl_iter',nl_iter
 
        CALL eval_f( qj , qj_old , a_diag , coeff_f , Rj_not_impl , Bprimej_x ,  &
-            Bprimej_y , right_term , scal_f )
+            Bprimej_y , right_term , scal_f , Zij , fric_val )
        
        IF ( verbose_level .GE. 2 ) THEN
 
@@ -1670,7 +1710,7 @@ CONTAINS
        ! ---- evaluate the descent direction ------------------------------------
 
        CALL eval_jacobian( qj_rel , qj_org , coeff_f , Bprimej_x , Bprimej_y ,  &
-            left_matrix )
+            left_matrix, Zij, fric_val )
        
        IF ( COUNT( implicit_flag ) .EQ. n_eqns ) THEN
 
@@ -1770,7 +1810,7 @@ CONTAINS
 
           CALL lnsrch( qj_rel_NR_old , qj_org , qj_old , scal_f_old , grad_f ,  &
                desc_dir , coeff_f , qj_rel , scal_f , right_term , stpmax ,     &
-               check , Rj_not_impl , Bprimej_x , Bprimej_y )
+               check , Rj_not_impl , Bprimej_x , Bprimej_y, Zij, fric_val )
 
        ELSE
 
@@ -1779,7 +1819,7 @@ CONTAINS
           qj = qj_rel * qj_org
 
           CALL eval_f( qj , qj_old , a_diag , coeff_f , Rj_not_impl ,           &
-               Bprimej_x , Bprimej_y , right_term , scal_f )
+               Bprimej_x , Bprimej_y , right_term , scal_f, Zij, fric_val )
 
        END IF
 
@@ -1850,7 +1890,7 @@ CONTAINS
 
   SUBROUTINE lnsrch( qj_rel_NR_old , qj_org , qj_old , scal_f_old , grad_f ,    &
        desc_dir , coeff_f , qj_rel , scal_f , right_term , stpmax , check ,     &
-       Rj_not_impl , Bprimej_x , Bprimej_y )
+       Rj_not_impl , Bprimej_x , Bprimej_y, Zij, fric_val )
 
     IMPLICIT NONE
 
@@ -1894,6 +1934,9 @@ CONTAINS
     REAL(wp), INTENT(IN) :: Bprimej_x
     REAL(wp), INTENT(IN) :: Bprimej_y
 
+    ! vars for stochastic variable
+    REAL(wp), INTENT(IN):: Zij ! value stochastic process
+    REAL(wp), INTENT(OUT) :: fric_val ! to save the value of the friction
     REAL(wp), PARAMETER :: TOLX=epsilon(qj_rel)
 
     INTEGER, DIMENSION(1) :: ndum
@@ -1955,7 +1998,7 @@ CONTAINS
        qj = qj_rel * qj_org
 
        CALL eval_f( qj , qj_old , a_diag , coeff_f , Rj_not_impl , Bprimej_x ,  &
-            Bprimej_y, right_term , scal_f )
+            Bprimej_y, right_term , scal_f, Zij, fric_val )
 
        IF ( verbose_level .GE. 4 ) THEN
 
@@ -2070,7 +2113,7 @@ CONTAINS
   !******************************************************************************
 
   SUBROUTINE eval_f( qj , qj_old , a_diag , coeff_f , Rj_not_impl , Bprimej_x , &
-       Bprimej_y , f_nl , scal_f )
+       Bprimej_y , f_nl , scal_f, Zij, fric_val )
 
     USE constitutive_2d, ONLY : eval_implicit_terms
 
@@ -2089,10 +2132,13 @@ CONTAINS
     REAL(wp), INTENT(OUT) :: f_nl(n_eqns)
     REAL(wp), INTENT(OUT) :: scal_f
 
+    REAL(wp), INTENT(IN):: Zij ! value stochastic process
+    REAL(wp), INTENT(OUT) :: fric_val ! to save the value of the friction
+
     REAL(wp) :: nh_term_impl(n_eqns)
     REAL(wp) :: Rj(n_eqns)
 
-    CALL eval_implicit_terms( Bprimej_x , Bprimej_y , r_qj = qj ,               &
+    CALL eval_implicit_terms( Bprimej_x , Bprimej_y, Zij, fric_val, r_qj = qj , &
          r_nh_term_impl=nh_term_impl ) 
 
     Rj = Rj_not_impl - a_diag * nh_term_impl
@@ -2124,7 +2170,7 @@ CONTAINS
   !******************************************************************************
 
   SUBROUTINE eval_jacobian( qj_rel , qj_org , coeff_f, Bprimej_x , Bprimej_y ,  &
-       left_matrix)
+       left_matrix, Zij, fric_val)
 
     USE constitutive_2d, ONLY : eval_implicit_terms
 
@@ -2139,6 +2185,9 @@ CONTAINS
 
     REAL(wp), INTENT(OUT) :: left_matrix(n_eqns,n_vars)
 
+    REAL(wp), INTENT(IN):: Zij ! value stochastic process
+    REAL(wp), INTENT(OUT) :: fric_val ! to save the value of the friction
+    
     REAL(wp) :: Jacob_relax(n_eqns,n_vars)
     COMPLEX(wp) :: nh_terms_cmplx_impl(n_eqns)
     COMPLEX(wp) :: qj_cmplx(n_vars) , qj_rel_cmplx(n_vars)
@@ -2170,8 +2219,8 @@ CONTAINS
 
           qj_cmplx = qj_rel_cmplx * qj_org
 
-          CALL eval_implicit_terms( Bprimej_x , Bprimej_y , c_qj = qj_cmplx ,   &
-               c_nh_term_impl = nh_terms_cmplx_impl ) 
+          CALL eval_implicit_terms( Bprimej_x , Bprimej_y, Zij, fric_val,       &
+               c_qj = qj_cmplx , c_nh_term_impl = nh_terms_cmplx_impl ) 
 
           Jacob_relax(1:n_eqns,i) = coeff_f(i) *                                &
                AIMAG(nh_terms_cmplx_impl) * one_by_h

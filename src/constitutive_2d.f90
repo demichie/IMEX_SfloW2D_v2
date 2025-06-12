@@ -4,10 +4,11 @@
 MODULE constitutive_2d
 
   USE parameters_2d, ONLY : wp, sp ,tolh
-  USE parameters_2d, ONLY : n_eqns , n_vars , n_solid , n_add_gas , n_quad
+  USE parameters_2d, ONLY : n_eqns , n_vars , n_solid , n_add_gas , n_quad ,    &
+       n_stoch_vars , n_pore_vars
   USE parameters_2d, ONLY : rheology_flag , rheology_model , energy_flag ,      &
        liquid_flag , gas_flag , alpha_flag , slope_correction_flag ,            &
-       curvature_term_flag
+       curvature_term_flag, stochastic_flag, mean_field_flag
 
   IMPLICIT none
 
@@ -27,11 +28,13 @@ MODULE constitutive_2d
   !> drag coefficients (Voellmy-Salm model)
   REAL(wp) :: mu
   REAL(wp) :: xi
+  REAL(wp) :: xi_temp
 
-  !> drag coefficients (function Coulomb: mu(Fr))
+  !> friction coefficients (function Coulomb: mu(Fr) and mu:(U))
   REAL(wp) :: mu_0
   REAL(wp) :: mu_inf
   REAL(wp) :: Fr_0
+  REAL(wp) :: U_w
 
   !> drag coefficients (B&W model)
   REAL(wp) :: friction_factor
@@ -401,7 +404,7 @@ CONTAINS
   !******************************************************************************
 
   SUBROUTINE r_phys_var(r_qj , r_h , r_u , r_v , r_alphas , r_rho_m , r_T ,     &
-       r_alphal , r_alphag , r_red_grav , p_dyn)
+       r_alphal , r_alphag , r_red_grav , p_dyn , r_Zs , r_pore_pres)
 
     USE geometry_2d, ONLY : lambertw , lambertw0 , lambertwm1
     USE geometry_2d, ONLY : z_quad , w_quad
@@ -420,7 +423,9 @@ CONTAINS
     REAL(wp), INTENT(OUT) :: r_alphag(n_add_gas) !< real-value gas volume fracts
     REAL(wp), INTENT(OUT) :: r_red_grav        !< real-value reduced gravity
     REAL(wp), INTENT(OUT) :: p_dyn
-    
+    REAL(wp), INTENT(OUT) :: r_Zs(n_stoch_vars)!< real-value stochastic variable
+    REAL(wp), INTENT(OUT) :: r_pore_pres(n_pore_vars)       !< real-value pore pressure
+
     REAL(wp) :: r_inv_rhom
     REAL(wp) :: r_xs(n_solid)     !< real-value solid mass fractions
     REAL(wp) :: r_xg(n_add_gas)     !< real-value additional gas mass fractions
@@ -500,6 +505,12 @@ CONTAINS
 
        r_xg(1:n_add_gas) = r_qj(4+n_solid+1:4+n_solid+n_add_gas) * inv_qj1
 
+       r_Zs(1:n_stoch_vars) = r_qj(5+n_solid+n_add_gas :                        &
+            4+n_solid+n_add_gas+n_stoch_vars) * inv_qj1
+       
+       r_pore_pres(1:n_pore_vars) = r_qj(5+n_solid+n_add_gas+n_stoch_vars :     &
+            4+n_solid+n_add_gas+n_stoch_vars+n_pore_vars) * inv_qj1    
+       
     ELSE
 
        r_h = 0.0_wp
@@ -513,6 +524,9 @@ CONTAINS
        r_red_grav = 0.0_wp
        r_rho_c = rho_a_amb
        p_dyn = 0.0_wp
+       r_Zs = 0.0_wp
+       r_pore_pres = 0.0_wp
+
        RETURN
 
     END IF
@@ -973,7 +987,7 @@ CONTAINS
   !******************************************************************************
 
   SUBROUTINE c_phys_var( c_qj , h , u , v , T , rho_m , alphas , alphag ,       &
-       inv_rhom )
+       inv_rhom , Zs , pore_pres )
 
     USE COMPLEXIFY
     USE parameters_2d, ONLY : eps_sing , eps_sing4
@@ -988,6 +1002,8 @@ CONTAINS
     COMPLEX(wp), INTENT(OUT) :: alphas(n_solid) !< sediment volume fractions
     COMPLEX(wp), INTENT(OUT) :: alphag(n_solid) !< sediment volume fractions
     COMPLEX(wp), INTENT(OUT) :: inv_rhom        !< 1/mixture density [kg-1 m3]
+    COMPLEX(wp), INTENT(OUT) :: Zs(n_stoch_vars) !< real-value stochastic variable
+    COMPLEX(wp), INTENT(OUT) :: pore_pres(n_pore_vars)       !< real-value pore pressure
 
     COMPLEX(wp) :: xs(n_solid)             !< sediment mass fractions
     COMPLEX(wp) :: xg(n_add_gas)           !< additional gas comp. mass fractions
@@ -1009,6 +1025,12 @@ CONTAINS
 
        xg(1:n_add_gas) = c_qj(4+n_solid+1:4+n_solid+n_add_gas) * inv_cqj1
 
+       Zs(1:n_stoch_vars) = c_qj(5+n_solid+n_add_gas :                          &
+            4+n_solid+n_add_gas+n_stoch_vars) * inv_cqj1
+
+       pore_pres(1:n_pore_vars) = c_qj(5+n_solid+n_add_gas+n_stoch_vars :      &
+            4+n_solid+n_add_gas+n_stoch_vars+n_pore_vars) * inv_cqj1    
+       
     ELSE
 
        h = CMPLX(0.0_wp,0.0_wp,wp)
@@ -1019,6 +1041,9 @@ CONTAINS
        alphas = CMPLX(0.0_wp,0.0_wp,wp)
        alphag = CMPLX(0.0_wp,0.0_wp,wp)
        inv_rhom = 1.0_wp / rho_m
+       Zs = 0.0_wp
+       pore_pres = 0.0_wp
+
        RETURN       
 
     END IF
@@ -1446,9 +1471,11 @@ CONTAINS
     REAL(wp) :: r_alphal          !< real-value liquid volume fraction
     REAL(wp) :: r_alphag(n_add_gas) !< real-value add. gas volume fractions
     REAL(wp) :: r_red_grav
+    REAL(wp) :: r_Zs(n_stoch_vars)!< real-value stochastic variable
+    REAL(wp) :: r_pore_pres(n_pore_vars)       !< real-value pore pressure
 
     CALL r_phys_var( qc , r_h , r_u , r_v , r_alphas , r_rho_m , r_T ,          &
-         r_alphal , r_alphag , r_red_grav , p_dyn )
+         r_alphal , r_alphag , r_red_grav , p_dyn , r_Zs , r_pore_pres )
 
     qp(1) = r_h
 
@@ -1471,6 +1498,12 @@ CONTAINS
 
     END IF
 
+    qp(5+n_solid+n_add_gas:4+n_solid+n_add_gas+n_stoch_vars) =                  &
+         r_Zs(1:n_stoch_vars)
+
+    qp(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas+n_stoch_vars+       &
+         n_pore_vars) =  r_pore_pres(1:n_pore_vars)
+    
     qp(n_vars+1) = r_u
     qp(n_vars+2) = r_v
 
@@ -1539,6 +1572,9 @@ CONTAINS
     REAL(wp) :: r_xs(n_solid)     !< real-value solid mass fractions
     REAL(wp) :: r_xg(n_add_gas)   !< real-value add.gas mass fractions
 
+    REAL(wp) :: r_Zs(n_stoch_vars)!< real-value stochastic variable
+    REAL(wp) :: r_pore_pres(n_pore_vars)       !< real-value pore pressure
+    
     REAL(wp) :: r_alphas_rhos(n_solid)
     REAL(wp) :: r_alphag_rhog(n_add_gas)
     REAL(wp) :: alphas_tot
@@ -1744,6 +1780,12 @@ CONTAINS
 
     END IF
 
+    r_Zs(1:n_stoch_vars) = qp(5+n_solid+n_add_gas:4+n_solid+n_add_gas +         &
+         n_stoch_vars)
+        
+    r_pore_pres(1:n_pore_vars) = qp(5+n_solid+n_add_gas+n_stoch_vars:           &
+         4+n_solid+n_add_gas+n_stoch_vars+n_pore_vars)
+    
     qc(1) = r_rho_m * r_h
 
     IF ( vertical_profiles_flag ) THEN
@@ -1892,7 +1934,14 @@ CONTAINS
 
     qc(5:4+n_solid) = r_xs * qc(1)
     qc(4+n_solid+1:4+n_solid+n_add_gas) = r_xg * qc(1)
-
+    
+    qc(5+n_solid+n_add_gas:4+n_solid+n_add_gas+n_stoch_vars) =                  &
+         r_Zs(1:n_stoch_vars) * qc(1)
+    
+    qc(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas+n_stoch_vars+       &
+         n_pore_vars) =  r_pore_pres(1:n_pore_vars) * qc(1)
+    
+    
     IF ( gas_flag .AND. liquid_flag ) qc(n_vars) = r_xl * qc(1)
 
     RETURN
@@ -2173,6 +2222,18 @@ CONTAINS
                qcj(4+n_solid+1:4+n_solid+n_add_gas) *                           &
                shape_coeff(4+n_solid+1:4+n_solid+n_add_gas)
 
+          ! Flux of stochastic variables
+          flux(5+n_solid+n_add_gas:4+n_solid+n_add_gas+n_stoch_vars) = r_u *    &
+               qcj(5+n_solid+n_add_gas:4+n_solid+n_add_gas+n_stoch_vars) *      &
+               shape_coeff(5+n_solid+n_add_gas:4+n_solid+n_add_gas+n_stoch_vars)
+
+          ! Flux of pore pressure
+          flux(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas+n_stoch_vars&
+               + n_pore_vars) = r_u * qcj(5+n_solid+n_add_gas+n_stoch_vars:4+   &
+               n_solid+n_add_gas+n_stoch_vars+n_pore_vars) * shape_coeff(5+     &
+               n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas+n_stoch_vars+ &
+               n_pore_vars)
+          
           ! Mass flux of liquid in x-direction: u * ( h * alphal * rhol )
           IF ( gas_flag .AND. liquid_flag ) flux(n_vars) = r_u * qcj(n_vars) *  &
                shape_coeff(n_vars)
@@ -2217,6 +2278,18 @@ CONTAINS
                qcj(4+n_solid+1:4+n_solid+n_add_gas) *                           &
                shape_coeff(4+n_solid+1:4+n_solid+n_add_gas)
 
+          ! Flux of stochastic variables
+          flux(5+n_solid+n_add_gas:4+n_solid+n_add_gas+n_stoch_vars) = r_v *    &
+               qcj(5+n_solid+n_add_gas:4+n_solid+n_add_gas+n_stoch_vars) *      &
+               shape_coeff(5+n_solid+n_add_gas:4+n_solid+n_add_gas+n_stoch_vars)
+          
+          ! Flux of pore pressure
+          flux(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas+            &
+               n_stoch_vars+n_pore_vars) = r_v * qcj(5+n_solid+n_add_gas+       &
+               n_stoch_vars:4+n_solid+n_add_gas+n_stoch_vars+n_pore_vars) *     &
+               shape_coeff(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas+&
+               n_stoch_vars+n_pore_vars)
+          
           ! Mass flux of liquid in x-direction: u * ( h * alphal * rhol )
           IF ( gas_flag .AND. liquid_flag ) flux(n_vars) = r_v * qcj(n_vars) *  &
                shape_coeff(n_vars)
@@ -2863,10 +2936,18 @@ CONTAINS
     ELSE
 
        qp_source(5:4+n_solid) = alphas_source(1:n_solid) * qp_source(1)
-       qp_source(4+n_solid+1:4+n_solid+n_add_gas) = alphag_source(1:n_add_gas) * qp_source(1)
-       IF ( gas_flag .AND. liquid_flag ) qp_source(n_vars) = alphal_source * qp_source(1)
+       qp_source(4+n_solid+1:4+n_solid+n_add_gas) = alphag_source(1:n_add_gas)  &
+            * qp_source(1)
+       IF ( gas_flag .AND. liquid_flag ) qp_source(n_vars) = alphal_source      &
+            * qp_source(1)
 
     END IF
+
+    ! Source term transport stoc equation
+    qp_source(5+n_solid+n_add_gas:4+n_solid+n_add_gas+n_stoch_vars) = 0.0_wp
+
+    qp_source(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas+n_stoch_vars+&
+         n_pore_vars) = 0.0_wp
 
     qp_source(n_vars+1) = 0.0_wp
     qp_source(n_vars+2) = 0.0_wp
@@ -2895,7 +2976,6 @@ CONTAINS
          * h_dot * alphas_source(1:n_solid) * rho_s(1:n_solid)
 
     r_rho_g(1:n_add_gas) = pres / ( sp_gas_const_g(1:n_add_gas) * t_source )
-
 
     expl_term(4+n_solid+1:4+n_solid+n_add_gas) =                                &
          expl_term(4+n_solid+1:4+n_solid+n_add_gas) + t_coeff                   &
@@ -2992,8 +3072,8 @@ CONTAINS
   !
   !******************************************************************************
 
-  SUBROUTINE eval_implicit_terms( Bprimej_x, Bprimej_y, c_qj, c_nh_term_impl,   &
-       r_qj , r_nh_term_impl )
+  SUBROUTINE eval_implicit_terms( Bprimej_x, Bprimej_y, Zij, fric_val,          &
+       c_qj, c_nh_term_impl, r_qj , r_nh_term_impl )
 
     USE COMPLEXIFY 
 
@@ -3003,6 +3083,8 @@ CONTAINS
 
     REAL(wp), INTENT(IN) :: Bprimej_x
     REAL(wp), INTENT(IN) :: Bprimej_y
+    REAL(wp), INTENT(IN):: Zij
+    REAL(wp), INTENT(OUT) :: fric_val
     COMPLEX(wp), INTENT(IN), OPTIONAL :: c_qj(n_vars)
     COMPLEX(wp), INTENT(OUT), OPTIONAL :: c_nh_term_impl(n_eqns)
     REAL(wp), INTENT(IN), OPTIONAL :: r_qj(n_vars)
@@ -3027,8 +3109,6 @@ CONTAINS
     COMPLEX(wp) :: mod_vel0
     COMPLEX(wp) :: mod_vel2
     COMPLEX(wp) :: gamma
-    COMPLEX(wp) :: Fr                      !< Froude number
-    COMPLEX(wp) :: muFr                    !< mu(Fr)
     REAL(wp) :: h_threshold
 
     INTEGER :: i
@@ -3059,6 +3139,10 @@ CONTAINS
 
     COMPLEX(wp) :: c_tau
 
+    COMPLEX(wp) :: Zs(n_stoch_vars)
+
+    COMPLEX(wp) :: pore_pres(n_pore_vars)
+
     IF ( present(c_qj) .AND. present(c_nh_term_impl) ) THEN
 
        qj = c_qj
@@ -3083,7 +3167,7 @@ CONTAINS
 
     IF (rheology_flag) THEN
 
-       CALL c_phys_var(qj,h,u,v,T,rho_m,alphas,alphag,inv_rho_m)
+       CALL c_phys_var(qj,h,u,v,T,rho_m,alphas,alphag,inv_rho_m,Zs,pore_pres)
 
        IF ( slope_correction_flag ) THEN
 
@@ -3103,6 +3187,19 @@ CONTAINS
           ! Voellmy Salm rheology
 
           IF ( REAL(mod_vel) .NE. 0.0_wp ) THEN 
+
+             ! Modify xi if using a stochastic model
+             IF (stochastic_flag) THEN 
+               xi_temp = xi + Zij
+               ! Limit the boundaies of stochastic friction
+               IF (xi_temp .LT. 1._wp) xi_temp = 1._wp
+               IF (xi_temp .GT. 1e5_wp) xi_temp = 1e5_wp   
+             ELSE
+               xi_temp = xi
+             END IF  
+             
+             ! Store stoch value of xi
+             fric_val = xi_temp
 
              ! IMPORTANT: grav3_surf is always negative 
              source_term(2) = source_term(2) - rho_m * ( u / mod_vel0 ) *        &
@@ -3305,7 +3402,8 @@ CONTAINS
   !******************************************************************************
 
   SUBROUTINE eval_nh_semi_impl_terms( Bprimej_x , Bprimej_y , Bsecondj_xx ,     &
-       Bsecondj_xy , Bsecondj_yy , grav_coeff , qcj , qpj , nh_semi_impl_term )
+       Bsecondj_xy , Bsecondj_yy , grav_coeff , qcj , qpj , nh_semi_impl_term , &
+       Zj, fric_val )
 
     IMPLICIT NONE
 
@@ -3318,7 +3416,10 @@ CONTAINS
 
     REAL(wp), INTENT(IN) :: qcj(n_vars)
     REAL(wp), INTENT(IN) :: qpj(n_vars+2)
+    REAL(wp), INTENT(IN) :: Zj ! value stochastic process
+
     REAL(wp), INTENT(OUT) :: nh_semi_impl_term(n_eqns)
+    REAL(wp), INTENT(OUT) :: fric_val
 
     REAL(wp) :: source_term(n_eqns)
 
@@ -3348,7 +3449,9 @@ CONTAINS
     REAL(wp) :: r_rho_c
     REAL(wp) :: r_Ri
     REAL(wp) :: Fr                !< Froude number
-    REAL(wp) :: muFr             !< mu(fr)
+    REAL(wp) :: U_f               !< norm velocity for frirction
+    REAL(wp) :: muF               !< mu(fr) o rmu(U)
+    !REAL(wp) :: muU               !< mu(U)
     ! REAL(wp) :: Fr_x                !< Froude number
     ! REAL(wp) :: Fr_y                !< Froude number
     ! REAL(wp) :: mu_Fr_x             !< mu(fr)_x
@@ -3367,7 +3470,7 @@ CONTAINS
     ! initialize and evaluate the forces terms
     source_term(1:n_eqns) = 0.0_wp
 
-    IF (rheology_flag) THEN
+    rheology_if:IF (rheology_flag) THEN
 
        r_h = qpj(1)
        r_u = qpj(n_vars+1)
@@ -3422,7 +3525,7 @@ CONTAINS
        mod_hor_vel = SQRT( r_u**2 + r_v**2 )
        
        ! Voellmy Salm rheology
-       IF ( rheology_model .EQ. 1 ) THEN
+       rheology_model_if:IF ( rheology_model .EQ. 1 ) THEN
 
           IF ( mod_vel .GT. 0.0_wp ) THEN
 
@@ -3456,8 +3559,6 @@ CONTAINS
           ! Temperature dependent rheology
        ELSEIF ( rheology_model .EQ. 3 ) THEN
 
-          mod_vel = SQRT( r_u**2 + r_v**2 )
-
           IF ( mod_vel .GT. 0.0_wp ) THEN
 
              ! units of dqc(2)/dt [kg m-1 s-2]
@@ -3488,58 +3589,141 @@ CONTAINS
 
           END IF
 
-          mod_vel = SQRT( r_u**2 + r_v**2 )
-
           IF ( mod_vel .GT. 0.0_wp ) THEN
 
-             temp_term = grav * r_rho_m * r_h * s_y / mod_vel
+             temp_term = grav * r_rho_m * r_h * s_y
 
              ! units of dqc(2)/dt [kg m-1 s-2]
-             source_term(2) = source_term(2) - temp_term * r_u
+             source_term(2) = source_term(2) - temp_term * r_u / mod_hor_vel
 
              ! units of dqc(3)/dt [kg m-1 s-2]
-             source_term(3) = source_term(3) - temp_term * r_v
+             source_term(3) = source_term(3) - temp_term * r_v / mod_hor_vel
 
           END IF
 
        ELSEIF ( rheology_model .EQ. 9 ) THEN
 
-          ! From Zhu et al. 2020 (DOI: https://doi.org/10.1007/s10035-020-01053-7)
+          ! From Zhu et al. 2020
+          ! (DOI: https://doi.org/10.1007/s10035-020-01053-7)
           ! mu_0: Coulomb friction coefficient at Fr=+inf
           ! mu_inf: Coulomb friction coefficient at Fr=0
-          ! Fr : froude number (!!!computed here using the total velocity and the thickness 
-          ! instead of the particle holdup!!!)
-          ! Fr_0 : Renormalization factor controlling the gradient of the function
+          ! Fr : froude number (!!!computed here using the total velocity and
+          ! the thickness instead of the particle holdup!!!)
+          ! Fr_0 : Renormalization factor controlling the gradient of the
+          ! function Zj : Value of the OU process at given cell (they can be
+          ! tranformed)
+          
           ! should also use rho or alpha?
           ! must add something for curvature or temperature?
+                    
+          ! Compute friction only if mass is flowing (this implies that there
+          ! is mass)
+ 
+          IF ( mod_vel .GT. 0.0_wp ) THEN 
+             ! Computing froude number (The definition in Zhu 2020 et Roche 2021
+             ! is sligtlhy different!)
+             Fr = mod_vel / SQRT(r_red_grav * r_h) 
+             
+             ! Mofidy deterministic Fr if needed
+             IF ( stochastic_flag ) THEN
+               ! Add mean field correction or stochastic noise   
+               IF (mean_field_flag) THEN
+                  Fr = Fr !+ MeanFieldCorrection(grav, r_h, Fr) ! TEMP MODEL, DO NOT USE IT
+               ELSE
+                  IF (r_h .GT. 0.01_wp) THEN
+                     Fr = Fr + Zj 
+                  END IF
+               END IF
+               ! Set Foude number to zero if negative
+               IF (Fr .LT. 0._wp) Fr = 0._wp
+             END IF
+
+             ! Evaluating mu(fr), (mu_0 < mu_inf), it is increasing with Fr
+             muF = mu_inf + (mu_0 - mu_inf) * exp(-Fr/Fr_0)
+             
+             ! Compute temporal friction term (temp_term = 0 if h=0)            
+             temp_term = r_rho_m *  ( muF * r_h * grav_coeff * ( r_red_grav +   &
+                  centr_force_term ) )
+
+             ! Update the source term
+             ! units of dqc(2)/dt=d(rho h u)/dt (kg m-1 s-2)
+             source_term(2) = source_term(2) - temp_term * r_u / mod_hor_vel
+             
+             ! units of dqc(3)/dt=d(rho h v)/dt (kg m-1 s-2)
+             source_term(3) = source_term(3) - temp_term * r_v / mod_hor_vel
           
-          ! Compute friction only if mass is flowing
+          ELSE ! If ||u|| = 0 then there will be no friction in this code
+            
+            muF = 0._wp
+          
+          END IF
+         
+         ! Set value friction to output variable (so that it can be saved!)
+          fric_val = muF
+
+      ELSEIF ( rheology_model .EQ. 10 ) THEN
+
+          ! From Lucas et al. 2014 (DOI: 10.1038/ncomms4417)
+          ! mu_0: Coulomb friction coefficient at U=0
+          ! mu_inf: Coulomb friction coefficient at U=+inf
+          ! U_w : Renormalization factor controlling the gradient of the function
+          ! Zj : Value of the OU process at given cell (they can be tranformed)
+                              
+          ! Compute friction only if mass is flowing (this implies that there is mass)
           IF ( mod_vel .GT. 0.0_wp ) THEN 
 
-             Fr = mod_vel / SQRT(grav * r_h) !The definition in Zhu 2020 et Roche 2021 is sligtlhy different!
-             muFr = mu_inf + (mu_0 - mu_inf) * exp(-Fr/Fr_0)
-                          
-             ! WRITE(*,*) 'Fr = ',Fr
-             ! WRITE(*,*) 'mu_inf,mu_0,Fr_0',mu_inf,mu_0,Fr_0
-             ! WRITE(*,*) 'muFr = ',muFr
-             ! READ(*,*)
-             ! source_term(2) = source_term(2) - r_rho_m * grav * r_h * muFr * (r_u / mod_vel) ! units of dqc(2)/dt [kg m-1 s-2]
-             ! source_term(3) = source_term(3) - r_rho_m * grav * r_h * muFr * (r_v / mod_vel) ! units of dqc(3)/dt [kg m-1 s-2]
+             ! Mofidy deterministic U if needed
+             IF ( stochastic_flag ) THEN
+               ! Add mean field correction or stochastic noise   
+               IF (mean_field_flag) THEN
+                  U_f = mod_vel !TEMP MODEL, DO NOT USE IT
+               ELSE
+                  U_f = mod_vel + Zj 
+               END IF
+             ELSE
+               U_f = mod_vel
+             END IF
 
-             temp_term = r_rho_m *  muFr * r_h * grav_coeff * ( r_red_grav +      &
-                  centr_force_term ) / mod_vel
+             ! Evaluating mu(U), (mu_0 > mu_inf), it is decreasing with U
+             IF ( U_f .LT. U_w) THEN
+               muF = mu_0
+             ELSE
+               ! (for small h ; u->inf but if not true)
+               ! Max friction if h -> 0 : else weakening friction
+               IF (r_h .LT. 0.1_wp) THEN 
+                  muF = mu_0
+               ELSE
+                  muF = mu_inf + (mu_0-mu_inf)/(U_f/U_w)
+               END IF
+               ! Alternative :  
+               ! Use exp and limit with sigmoid : (a=15, b=0.5)
+               ! muF = mu_0 - ((mu_inf - mu_0) * exp(-(U_f-U_w)/U_w) *             &       
+               !        (1._wp / (1._wp + exp(-15_wp * (r_h - 0.5_wp))))  
+             END IF
 
-             ! units of dqc(2)/dt=d(rho h v)/dt (kg m-1 s-2)
-             source_term(2) = source_term(2) - temp_term * r_u
+             ! Compute temporal friction term (temp_term = 0 if h=0)            
+             temp_term = r_rho_m *  ( muF * r_h * grav_coeff * ( r_red_grav +      &
+                  centr_force_term ) )
 
+             ! Update the source term
+             ! units of dqc(2)/dt=d(rho h u)/dt (kg m-1 s-2)
+             source_term(2) = source_term(2) - temp_term * r_u / mod_hor_vel
+             
              ! units of dqc(3)/dt=d(rho h v)/dt (kg m-1 s-2)
-             source_term(3) = source_term(3) - temp_term * r_v
-
-          END IF
+             source_term(3) = source_term(3) - temp_term * r_v / mod_hor_vel
           
-       ENDIF
+          ELSE ! If ||u|| = 0 then there will be no friction in this code
+            
+            muF = 0._wp
+          
+          END IF
+
+          ! Set value friction to output variable (so that it can be saved!)
+          fric_val = muF
+          
+       ENDIF rheology_model_if
        
-    ENDIF
+    ENDIF rheology_if
 
     nh_semi_impl_term = source_term
 
@@ -3615,6 +3799,9 @@ CONTAINS
     REAL(wp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
     REAL(wp) :: r_T          !< real-value mixture temperature [K]
     REAL(wp) :: r_rho_m      !< real-value mixture density [kg/m3]
+    REAL(wp) :: r_Zs(n_stoch_vars)!< real-value stochastic variable
+    REAL(wp) :: r_pore_pres(n_pore_vars)       !< real-value pore pressure
+
     REAL(wp) :: tot_erosion  !< total erosion rate [m/s]
     REAL(wp) :: tot_solid_erosion !< total solid erosion rate [m/s]
 
@@ -3691,7 +3878,13 @@ CONTAINS
 
     alphas_tot = SUM(r_alphas)
 
+    r_Zs(1:n_stoch_vars) = qpj(5+n_solid+n_add_gas:4+n_solid+n_add_gas +        &
+         n_stoch_vars)
+    
+    r_pore_pres(1:n_pore_vars) = qpj(5+n_solid+n_add_gas+n_stoch_vars:          &
+         4+n_solid+n_add_gas+n_stoch_vars+n_pore_vars)
 
+    
     IF ( slope_correction_flag ) THEN
 
        r_w = r_u * B_prime_x + r_v * B_prime_y
@@ -3949,6 +4142,16 @@ CONTAINS
 
     END IF
 
+    ! Evaluate the equation term related to the noise transport equation
+    ! (if transport flag is false nothing is done)
+    eqns_term(5+n_solid+n_add_gas:4+n_solid+n_add_gas+n_stoch_vars) =           &
+         eqns_term(1) * r_Zs(5+n_solid+n_add_gas:4+n_solid+n_add_gas+           &
+         n_stoch_vars)
+    
+    eqns_term(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas+n_stoch_vars+&
+         n_pore_vars) = eqns_term(1) *  r_pore_pres(5+n_solid+n_add_gas+        &
+         n_stoch_vars:4+n_solid+n_add_gas+n_stoch_vars+n_pore_vars)
+          
     ! erodible layer thickness source terms [m s-1]:
     ! due to erosion and deposition of solid+continuous phase
     topo_term = ( dep_tot - ers_tot ) / ( 1.0_wp - erodible_porosity ) 

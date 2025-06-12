@@ -23,11 +23,13 @@ MODULE inpout_2d
   USE geometry_2d, ONLY : x0 , y0 , comp_cells_x , comp_cells_y , cell_size
   USE geometry_2d, ONLY : topography_profile , n_topography_profile_x ,         &
        n_topography_profile_y , nodata_topo
-  USE parameters_2d, ONLY : n_solid , n_add_gas
+  USE parameters_2d, ONLY : n_solid , n_add_gas , n_stoch_vars , n_pore_vars
   USE parameters_2d, ONLY : rheology_flag , energy_flag , alpha_flag ,          &
        topo_change_flag , radial_source_flag , collapsing_volume_flag ,         &
        liquid_flag , gas_flag , subtract_init_flag , bottom_radial_source_flag ,&
-       vertical_profiles_flag , lateral_source_flag , serial_flag
+       vertical_profiles_flag , lateral_source_flag , serial_flag ,             &
+       stochastic_flag, stoch_transport_flag, mean_field_flag ,                 &
+       pore_pressure_flag
 
   USE parameters_2d, ONLY : slope_correction_flag , curvature_term_flag 
 
@@ -69,7 +71,7 @@ MODULE inpout_2d
   ! -- Variables for the namelist RHEOLOGY_PARAMETERS
   USE parameters_2d, ONLY : rheology_model
   USE constitutive_2d, ONLY : mu , xi , tau , nu_ref , visc_par , T_ref,        &
-                               mu_0, mu_inf, Fr_0
+                               mu_0, mu_inf, Fr_0, U_w
   USE constitutive_2d, ONLY : alpha2 , beta2 , alpha1_coeff , beta1 , Kappa ,n_td
   USE constitutive_2d, ONLY : friction_factor
   USE constitutive_2d, ONLY : tau0
@@ -98,6 +100,12 @@ MODULE inpout_2d
   USE constitutive_2d, ONLY : vonK , k_s , Sc , z_dyn
   USE parameters_2d, ONLY : bottom_conc_flag , n_quad
 
+  ! --- Variables for the namelist STOCHASTIC_PARAMETERS
+  USE stochastic_module, ONLY : sym_noise,                                      &    
+          std_min, std_max, std_slope_factor, tau_stochastic, noise_pow_val,    &
+          Z_min, Z_max, Z_mean, Z_std, percentiles             
+  USE parameters_2d, ONLY : output_stoch_vars_flag, length_spatial_corr   
+  
   IMPLICIT NONE
 
   INTEGER :: n_restart_files
@@ -132,6 +140,10 @@ MODULE inpout_2d
   INTEGER, PARAMETER :: erodible_unit = 18
   INTEGER, PARAMETER :: output_VT_unit = 19
   INTEGER, PARAMETER :: mass_center_unit = 20
+  INTEGER, PARAMETER :: stats_ou_unit = 21
+  INTEGER, PARAMETER :: fric_unit = 22
+  INTEGER, PARAMETER :: stats_fric_unit = 23
+  INTEGER, PARAMETER :: conv_kern_unit  = 24
 
   !> Counter for the output files
   INTEGER :: output_idx 
@@ -173,6 +185,8 @@ MODULE inpout_2d
   TYPE(bc),ALLOCATABLE :: alphag_bcW(:)
   TYPE(bc),ALLOCATABLE :: halphag_bcW(:)
   TYPE(bc) :: alphal_bcW , halphal_bcW
+  TYPE(bc),ALLOCATABLE :: stoch_bcW(:)
+  TYPE(bc),ALLOCATABLE :: pore_bcW(:)
 
   ! -- Variables for the namelists EAST_BOUNDARY_CONDITIONS
   TYPE(bc) :: h_bcE , hu_bcE , hv_bcE , T_bcE
@@ -181,6 +195,8 @@ MODULE inpout_2d
   TYPE(bc),ALLOCATABLE :: alphag_bcE(:)
   TYPE(bc),ALLOCATABLE :: halphag_bcE(:)
   TYPE(bc) :: alphal_bcE , halphal_bcE
+  TYPE(bc),ALLOCATABLE :: stoch_bcE(:)
+  TYPE(bc),ALLOCATABLE :: pore_bcE(:)
 
   ! -- Variables for the namelists SOUTH_BOUNDARY_CONDITIONS
   TYPE(bc) :: h_bcS , hu_bcS , hv_bcS , T_bcS
@@ -189,6 +205,8 @@ MODULE inpout_2d
   TYPE(bc),ALLOCATABLE :: alphag_bcS(:)
   TYPE(bc),ALLOCATABLE :: halphag_bcS(:)
   TYPE(bc) :: alphal_bcS , halphal_bcS
+  TYPE(bc),ALLOCATABLE :: stoch_bcS(:)
+  TYPE(bc),ALLOCATABLE :: pore_bcS(:)
 
   ! -- Variables for the namelists NORTH_BOUNDARY_CONDITIONS
   TYPE(bc) :: h_bcN , hu_bcN , hv_bcN , T_bcN
@@ -197,8 +215,8 @@ MODULE inpout_2d
   TYPE(bc),ALLOCATABLE :: alphag_bcN(:)
   TYPE(bc),ALLOCATABLE :: halphag_bcN(:)
   TYPE(bc) :: alphal_bcN , halphal_bcN
-
-
+  TYPE(bc),ALLOCATABLE :: stoch_bcN(:)
+  TYPE(bc),ALLOCATABLE :: pore_bcN(:)
 
   ! parameters to read a dem file
   INTEGER :: ncols, nrows, nodata_value
@@ -246,7 +264,7 @@ MODULE inpout_2d
        energy_flag , liquid_flag , radial_source_flag , collapsing_volume_flag ,&
        topo_change_flag , gas_flag , subtract_init_flag , n_add_gas ,           &
        bottom_radial_source_flag , slope_correction_flag , curvature_term_flag ,&
-       vertical_profiles_flag , lateral_source_flag
+       vertical_profiles_flag , lateral_source_flag , stochastic_flag
 
   NAMELIST / initial_conditions /  released_volume , x_release , y_release ,    &
        velocity_mod_release , velocity_ang_release , T_init , T_ambient
@@ -275,7 +293,7 @@ MODULE inpout_2d
 
   NAMELIST / rheology_parameters / rheology_model , mu , xi , tau , nu_ref ,    &
        visc_par , T_ref , alpha2 , beta2 , alpha1_ref , beta1 , Kappa , n_td ,  &
-       friction_factor , tau0, mu_0, mu_inf, Fr_0
+       friction_factor , tau0, mu_0, mu_inf, Fr_0, U_w
 
   NAMELIST / runout_parameters / x0_runout , y0_runout , dt_runout ,            &
        eps_stop
@@ -288,6 +306,10 @@ MODULE inpout_2d
   NAMELIST / vertical_profiles_parameters / vonK , k_s  , Sc , bottom_conc_flag,&
        n_quad , z_dyn
 
+  NAMELIST / stochastic_parameters /                                            &
+       mean_field_flag, output_stoch_vars_flag, sym_noise, std_max,             &
+       tau_stochastic, length_spatial_corr, noise_pow_val, stoch_transport_flag 
+  
 CONTAINS
 
   !******************************************************************************
@@ -361,6 +383,8 @@ CONTAINS
     curvature_term_flag  = .FALSE.
     vertical_profiles_flag = .FALSE.
     serial_flag = .TRUE.
+    stochastic_flag = .FALSE.
+    stoch_transport_flag = .FALSE.
 
     !-- Inizialization of the Variables for the namelist NUMERIC_PARAMETERS
     dt0 = 1.0E-4_wp
@@ -399,7 +423,7 @@ CONTAINS
     mu_0 = -1.0_wp
     mu_inf = -1.0_wp
     Fr_0 = -1.0_wp
-
+    U_w = -1.0_wp
 
     !-- Inizialization of the Variables for the namelist RUNOUT_PARAMETERS
     x0_runout = -1
@@ -407,6 +431,17 @@ CONTAINS
     dt_runout = 60
     eps_stop = 0.0_wp
 
+    !-- Inizialization of the Variables for the namelist STOCHASTIC_PARAMETERS
+    mean_field_flag = .FALSE.
+    sym_noise = 0.0_wp
+    output_stoch_vars_flag = .FALSE.
+    std_min = -1.0_wp 
+    std_max = -1.0_wp 
+    std_slope_factor  = -1.0_wp
+    tau_stochastic = -1.0_wp
+    length_spatial_corr = -1.0_wp
+    noise_pow_val = -1.0_wp
+    
     !-------------- Check if input file exists ----------------------------------
     input_file = 'IMEX_SfloW2D.inp'
 
@@ -487,6 +522,28 @@ CONTAINS
        ALLOCATE ( sp_heat_g(n_add_gas) )
        ALLOCATE ( sp_gas_const_g(n_add_gas) )
 
+
+       IF (stochastic_flag) THEN
+
+          READ(input_unit, stochastic_parameters,IOSTAT=ios)
+          REWIND(input_unit)
+
+          IF (stoch_transport_flag) n_stoch_vars = 1
+
+       END IF
+       
+       IF ( pore_pressure_flag ) n_pore_vars = 1
+
+       ALLOCATE ( stoch_bcW(n_stoch_vars) )
+       ALLOCATE ( stoch_bcE(n_stoch_vars) )
+       ALLOCATE ( stoch_bcS(n_stoch_vars) )
+       ALLOCATE ( stoch_bcN(n_stoch_vars) )
+
+       ALLOCATE ( pore_bcW(n_pore_vars) )
+       ALLOCATE ( pore_bcE(n_pore_vars) )
+       ALLOCATE ( pore_bcS(n_pore_vars) )
+       ALLOCATE ( pore_bcN(n_pore_vars) )
+       
        CLOSE(input_unit)
 
     END IF
@@ -505,7 +562,8 @@ CONTAINS
     alphal_bcW%flag = -1 
     halphal_bcW%flag = -1 
     T_bcW%flag = -1
-
+    stoch_bcW%flag = -1
+    pore_bcW%flag = -1
 
     h_bcE%flag = -1 
     hu_bcE%flag = -1 
@@ -517,6 +575,8 @@ CONTAINS
     alphal_bcE%flag = -1 
     halphal_bcE%flag = -1 
     T_bcE%flag = -1 
+    stoch_bcE%flag = -1
+    pore_bcE%flag = -1
 
     h_bcS%flag = -1 
     hu_bcS%flag = -1 
@@ -528,6 +588,8 @@ CONTAINS
     alphal_bcS%flag = -1 
     halphal_bcS%flag = -1 
     T_bcS%flag = -1 
+    stoch_bcS%flag = -1
+    pore_bcS%flag = -1
 
     h_bcN%flag = -1 
     hu_bcN%flag = -1 
@@ -539,6 +601,8 @@ CONTAINS
     alphal_bcN%flag = -1 
     halphal_bcN%flag = -1 
     T_bcN%flag = -1 
+    stoch_bcN%flag = -1
+    pore_bcN%flag = -1
 
     ! sed_vol_perc = -1.0_wp
 
@@ -554,6 +618,7 @@ CONTAINS
     mu_0 = -1
     mu_inf = -1
     Fr_0 = -1
+    U_w = -1
 
     alpha2 = -1.0_wp
     beta2 = -1.0_wp
@@ -599,6 +664,7 @@ CONTAINS
     mu_0 = -1.0_wp
     mu_inf = -1.0_wp
     Fr_0 = -1.0_wp
+    U_w = -1.0_wp
 
     !- Variables for the namelist GAS_TRANSPORT_PARAMETERS
     sp_heat_a = -1.0_wp
@@ -661,6 +727,17 @@ CONTAINS
     n_quad = -1
     z_dyn = -1
 
+    !-- Variable for the namelist STOCHASTIC_PARAMETERS
+    mean_field_flag = .FALSE.
+    sym_noise = 0.0_wp
+    output_stoch_vars_flag = .FALSE.
+    std_min = -1.0_wp 
+    std_max = -1.0_wp 
+    std_slope_factor  = -1.0_wp
+    tau_stochastic = -1.0_wp
+    length_spatial_corr = -1.0_wp
+    noise_pow_val = -1.0_wp
+    
   END SUBROUTINE init_param
 
   !******************************************************************************
@@ -711,19 +788,19 @@ CONTAINS
 
     NAMELIST / west_boundary_conditions / h_bcW , hu_bcW , hv_bcW ,             &
          alphas_bcW , halphas_bcW , T_bcW , alphag_bcW , halphag_bcW ,          &
-         alphal_bcW , halphal_bcW
+         alphal_bcW , halphal_bcW , stoch_bcW , pore_bcW
 
     NAMELIST / east_boundary_conditions / h_bcE , hu_bcE , hv_bcE ,             &
          alphas_bcE , halphas_bcE , T_bcE , alphag_bcE , halphag_bcE ,          &
-         alphal_bcE , halphal_bcE
+         alphal_bcE , halphal_bcE , stoch_bcE , pore_bcE
 
     NAMELIST / south_boundary_conditions / h_bcS , hu_bcS , hv_bcS ,            &
          alphas_bcS , halphas_bcS , T_bcS , alphag_bcS , halphag_bcS ,          &
-         alphal_bcS , halphal_bcS
+         alphal_bcS , halphal_bcS , stoch_bcS , pore_bcS
 
     NAMELIST / north_boundary_conditions / h_bcN , hu_bcN , hv_bcN ,            &
          alphas_bcN , halphas_bcN , T_bcN , alphag_bcN , halphag_bcN ,          &
-         alphal_bcN , halphal_bcN
+         alphal_bcN , halphal_bcN , stoch_bcN , pore_bcN
 
     NAMELIST / solid_transport_parameters / rho_s , diam_s , sp_heat_s ,        &
          erosion_coeff , erodible_porosity , settling_flag , T_erodible ,       &
@@ -1058,11 +1135,44 @@ CONTAINS
 
     END IF
 
-    ! ------- READ liquid_transport_parameters NAMELIST -------------------------
-
     n_vars = 4
 
     IF ( gas_flag ) n_vars = n_vars + n_add_gas
+
+    ! ----------- READ stochastic_parameters NAMELIST --------------------------
+
+    IF (stochastic_flag) THEN
+
+       READ(input_unit, stochastic_parameters,IOSTAT=ios)
+       REWIND(input_unit)
+
+       IF (stoch_transport_flag) THEN
+
+          n_stoch_vars = 1
+          n_vars = n_vars + 1
+
+       END IF
+          
+    ELSE
+
+       n_stoch_vars = 0
+
+    END IF
+
+    IF ( pore_pressure_flag ) THEN
+
+       n_pore_vars = 1
+       n_vars = n_vars + 1
+
+    ELSE
+
+       n_pore_vars = 0
+       
+    END IF
+    
+    
+    ! ------- READ liquid_transport_parameters NAMELIST -------------------------
+
 
     IF ( liquid_flag ) THEN
 
@@ -1803,9 +1913,39 @@ CONTAINS
 
           END IF
 
+       END IF
+
+       IF ( (stochastic_flag) .AND. (stoch_transport_flag) ) THEN
+
+          IF ( ANY(stoch_bcW(1:n_stoch_vars)%flag .EQ. -1 ) ) THEN 
+
+             WRITE(*,*) 'ERROR: problem with namelist WEST_BOUNDARY_CONDITIONS'
+             WRITE(*,*) 'B.C. for stochastic variable not set properly'
+             WRITE(*,*) 'Please check the input file'
+             WRITE(*,*) 'stoch_bcW'
+             WRITE(*,*) stoch_bcW(1:n_solid)
+             STOP
+
+          END IF
 
        END IF
 
+ 
+       IF ( pore_pressure_flag ) THEN
+
+          IF ( ANY(pore_bcW(1:n_pore_vars)%flag .EQ. -1 ) ) THEN 
+
+             WRITE(*,*) 'ERROR: problem with namelist WEST_BOUNDARY_CONDITIONS'
+             WRITE(*,*) 'B.C. for pore pressure not set properly'
+             WRITE(*,*) 'Please check the input file'
+             WRITE(*,*) 'pore_bcW'
+             WRITE(*,*) pore_bcW(1:n_solid)
+             STOP
+
+          END IF
+
+       END IF
+       
        IF ( T_bcW%flag .EQ. -1 ) THEN 
 
           WRITE(*,*) 'ERROR: problem with namelist WEST_BOUNDARY_CONDITIONS'
@@ -1965,6 +2105,36 @@ CONTAINS
 
        END IF
 
+       IF ( (stochastic_flag) .AND. (stoch_transport_flag) ) THEN
+
+          IF ( ANY(stoch_bcE(1:n_stoch_vars)%flag .EQ. -1 ) ) THEN 
+
+             WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
+             WRITE(*,*) 'B.C. for stochastic variable not set properly'
+             WRITE(*,*) 'Please check the input file'
+             WRITE(*,*) 'stoch_bcE'
+             WRITE(*,*) stoch_bcE(1:n_solid)
+             STOP
+
+          END IF
+
+       END IF
+
+       IF ( pore_pressure_flag ) THEN
+
+          IF ( ANY(pore_bcE(1:n_pore_vars)%flag .EQ. -1 ) ) THEN 
+
+             WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
+             WRITE(*,*) 'B.C. for pore pressure not set properly'
+             WRITE(*,*) 'Please check the input file'
+             WRITE(*,*) 'pore_bcE'
+             WRITE(*,*) pore_bcE(1:n_solid)
+             STOP
+
+          END IF
+
+       END IF
+       
        IF ( T_bcE%flag .EQ. -1 ) THEN 
 
           WRITE(*,*) 'ERROR: problem with namelist EAST_BOUNDARY_CONDITIONS'
@@ -2125,6 +2295,37 @@ CONTAINS
 
        END IF
 
+       IF ( (stochastic_flag) .AND. (stoch_transport_flag) ) THEN
+
+          IF ( ANY(stoch_bcS(1:n_stoch_vars)%flag .EQ. -1 ) ) THEN 
+
+             WRITE(*,*) 'ERROR: problem with namelist SOUTH_BOUNDARY_CONDITIONS'
+             WRITE(*,*) 'B.C. for stochastic variable not set properly'
+             WRITE(*,*) 'Please check the input file'
+             WRITE(*,*) 'stoch_bcS'
+             WRITE(*,*) stoch_bcS(1:n_solid)
+             STOP
+
+          END IF
+
+       END IF
+
+ 
+       IF ( pore_pressure_flag ) THEN
+
+          IF ( ANY(pore_bcS(1:n_pore_vars)%flag .EQ. -1 ) ) THEN 
+
+             WRITE(*,*) 'ERROR: problem with namelist SOUTH_BOUNDARY_CONDITIONS'
+             WRITE(*,*) 'B.C. for pore pressure not set properly'
+             WRITE(*,*) 'Please check the input file'
+             WRITE(*,*) 'pore_bcS'
+             WRITE(*,*) pore_bcS(1:n_solid)
+             STOP
+
+          END IF
+
+       END IF
+       
        IF ( T_bcS%flag .EQ. -1 ) THEN 
 
           WRITE(*,*) 'ERROR: problem with namelist SOUTH_BOUNDARY_CONDITIONS'
@@ -2282,6 +2483,37 @@ CONTAINS
 
        END IF
 
+       IF ( (stochastic_flag) .AND. (stoch_transport_flag) ) THEN
+
+          IF ( ANY(stoch_bcN(1:n_stoch_vars)%flag .EQ. -1 ) ) THEN 
+
+             WRITE(*,*) 'ERROR: problem with namelist NORTH_BOUNDARY_CONDITIONS'
+             WRITE(*,*) 'B.C. for stochastic variable not set properly'
+             WRITE(*,*) 'Please check the input file'
+             WRITE(*,*) 'stoch_bcN'
+             WRITE(*,*) stoch_bcN(1:n_solid)
+             STOP
+
+          END IF
+
+       END IF
+
+ 
+       IF ( pore_pressure_flag ) THEN
+
+          IF ( ANY(pore_bcN(1:n_pore_vars)%flag .EQ. -1 ) ) THEN 
+
+             WRITE(*,*) 'ERROR: problem with namelist NORTH_BOUNDARY_CONDITIONS'
+             WRITE(*,*) 'B.C. for pore pressure not set properly'
+             WRITE(*,*) 'Please check the input file'
+             WRITE(*,*) 'pore_bcN'
+             WRITE(*,*) pore_bcN(1:n_solid)
+             STOP
+
+          END IF
+
+       END IF
+       
        IF ( T_bcN%flag .EQ. -1 ) THEN 
 
           WRITE(*,*) 'ERROR: problem with namelist NORTH_BOUNDARY_CONDITIONS'
@@ -2328,6 +2560,27 @@ CONTAINS
 
     END IF
 
+    IF ( (stochastic_flag) .AND. (stoch_transport_flag) ) THEN
+
+       bcW(5+n_solid+n_add_gas:4+n_solid+n_add_gas+n_stoch_vars) = stoch_bcW(1:n_stoch_vars)
+       bcE(5+n_solid+n_add_gas:4+n_solid+n_add_gas+n_stoch_vars) = stoch_bcE(1:n_stoch_vars)
+       bcS(5+n_solid+n_add_gas:4+n_solid+n_add_gas+n_stoch_vars) = stoch_bcS(1:n_stoch_vars)
+       bcN(5+n_solid+n_add_gas:4+n_solid+n_add_gas+n_stoch_vars) = stoch_bcN(1:n_stoch_vars)
+
+    END IF
+    
+    IF ( pore_pressure_flag) THEN
+
+       bcW(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas+n_stoch_vars+   &
+            n_pore_vars) = pore_bcW(1:n_pore_vars)
+       bcE(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas+n_stoch_vars+   &
+            n_pore_vars) = pore_bcE(1:n_pore_vars)
+       bcS(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas+n_stoch_vars+   &
+            n_pore_vars) = pore_bcS(1:n_pore_vars)
+       bcN(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas+n_stoch_vars+   &
+            n_pore_vars) = pore_bcN(1:n_pore_vars)
+
+    END IF    
     IF ( gas_flag .AND. liquid_flag ) THEN
 
        IF ( alpha_flag ) THEN
@@ -2765,33 +3018,48 @@ CONTAINS
 
           END IF
 
+       ! Check Inputs Model Zhu et al 2020   
        ELSEIF ( rheology_model .EQ. 9 ) THEN
           WRITE(*,*) 'RHEOLOGY_MODEL =' , rheology_model
           WRITE(*,*) 'MU_0 =' , mu_0 ,' MU_inf =' , mu_inf, 'Fr_0 = ', Fr_0
-          IF ( ( mu_0 .EQ. -1.0_wp ) .AND. ( mu_inf .EQ. -1.0_wp ) .AND. ( Fr_0 .EQ. -1.0_wp ) ) THEN
-             ! Stop the program if the parameters are not a double-precision floating-point numbers (real numbers).
+          ! Stop the program if the parameters are not a double-precision floating-point numbers (real numbers).
+          IF ( ( mu_0 .LT. 0.0_wp ) .AND. ( mu_inf .LT. 0.0_wp ) .AND. ( Fr_0 .LT. 0.0_wp ) ) THEN
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'RHEOLOGY_MODEL =' , rheology_model
              WRITE(*,*) 'MU_0 =' , mu_0 ,' MU_inf =' , mu_inf, 'Fr_0 = ', Fr_0
-             WRITE(*,*) 'Please check the input file'
+             WRITE(*,*) 'All these parameters should be positive! Please correct the input file!'
+             STOP
+          END IF
+          ! Stop the program if mu_0 > mu_inf
+          IF ( mu_0 .GT. mu_inf ) THEN
+             WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
+             WRITE(*,*) 'RHEOLOGY_MODEL =' , rheology_model
+             WRITE(*,*) 'MU_0 =' , mu_0 ,' MU_inf =' , mu_inf, 'Fr_0 = ', Fr_0
+             WRITE(*,*) 'mu_inf > mu_0 required (mu(Fr) should be increasing)! Please correct the input file!'
              STOP
           END IF
 
-          !! Should add something similar? This is present in the Voellmy-Salm Rheology
-          ! IF ( ( T_ref .NE. -1.0_wp ) .OR. ( nu_ref .NE. -1.0_wp ) .OR.         &
-          !      ( visc_par .NE. -1.0_wp ) .OR. ( tau .NE. -1.0_wp ) .OR.         &
-          !      ( tau0 .NE. -1.0_wp ) ) THEN
-
-          !    WRITE(*,*) 'WARNING: parameters not used in RHEOLOGY_PARAMETERS'
-          !    IF ( T_ref .NE. -1.0_wp ) WRITE(*,*) 'T_ref =',T_ref 
-          !    IF ( nu_ref .NE. -1.0_wp ) WRITE(*,*) 'nu_ref =',nu_ref 
-          !    IF ( visc_par .NE. -1.0_wp ) WRITE(*,*) 'visc_par =',visc_par
-          !    IF ( tau .NE. -1.0_wp ) WRITE(*,*) 'tau =',tau 
-          !    IF ( tau0 .NE. -1.0_wp ) WRITE(*,*) 'tau0 =',tau0 
-          !    WRITE(*,*) 'Press ENTER to continue'
-          !    READ(*,*)
-          ! END IF
-
+       ! Check Inputs Model Lucas et al 2014  
+       ELSEIF ( rheology_model .EQ. 10 ) THEN
+          WRITE(*,*) 'RHEOLOGY_MODEL =' , rheology_model
+          WRITE(*,*) 'MU_0 =' , mu_0 ,' MU_inf =' , mu_inf, 'U_w = ', U_w
+          ! Stop the program if the parameters are not a double-precision floating-point numbers (real numbers).
+          IF ( ( mu_0 .LT. 0.0_wp ) .AND. ( mu_inf .LT. 0.0_wp ) .AND. ( U_w .LT. 0.0_wp ) ) THEN
+             WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
+             WRITE(*,*) 'RHEOLOGY_MODEL =' , rheology_model
+             WRITE(*,*) 'MU_0 =' , mu_0 ,' MU_inf =' , mu_inf, 'U_w = ', U_w
+             WRITE(*,*) 'All these parameters should be positive! Please correct the input file!'
+             STOP
+          END IF
+          ! Stop the program if mu_0 > mu_inf
+          IF ( mu_inf .GT. mu_0 ) THEN
+             WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
+             WRITE(*,*) 'RHEOLOGY_MODEL =' , rheology_model
+             WRITE(*,*) 'MU_0 =' , mu_0 ,' MU_inf =' , mu_inf, 'U_w = ', U_w
+             WRITE(*,*) 'mu_0 > mu_inf required (mu(U) should be decreasing)! Please correct the input file!'
+             STOP
+          END IF          
+          
        ELSE
 
           WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
@@ -3978,6 +4246,109 @@ CONTAINS
 300 tend1 = .TRUE.
 310 CONTINUE
 
+
+     ! ------- READ stochastic_parameters NAMELIST ---------------------------------
+    REWIND(input_unit)
+
+    IF ( stochastic_flag ) THEN
+     
+       READ(input_unit, stochastic_parameters,IOSTAT=ios)
+       
+       IF ( ios .NE. 0 ) THEN
+          WRITE(*,*) 'IOSTAT=',ios
+          WRITE(*,*) 'ERROR: problem with namelist STOCHASTIC_PARAMETERS'
+          WRITE(*,*) 'Please check the input file'
+          WRITE(*,stochastic_parameters) 
+          STOP
+          REWIND(input_unit)
+       ELSE
+          REWIND(input_unit)
+       END IF
+
+       WRITE(*,*) ' '
+       WRITE(*,*) 'START PARSING THE STOCASTIC PARAMETERS...'
+
+       ! Stop the program if the parameters are not positive double-precision floating-point numbers (real numbers).
+       IF (( std_max .LT. 0.0_wp ) .AND. (tau_stochastic .LT. 0.0_wp)) THEN
+          WRITE(*,*) 'ERROR: problem with namelist STOCHASTIC_PARAMETERS'
+          WRITE(*,*) 'std_max =' , std_max,  'tau_stochastic = ', tau_stochastic       
+          WRITE(*,*) 'All these values must be >0! Please check the input file'
+          STOP
+       END IF
+
+      ! Stop the program if the power value is negative (only important for asymmetric noises)
+       IF ( noise_pow_val .LT. 0.0_wp )  THEN
+          WRITE(*,*) 'ERROR: problem with namelist STOCHASTIC_PARAMETERS'
+          WRITE(*,*) 'noise_pow_val =' , noise_pow_val
+          WRITE(*,*) 'Required noise_pow_val > 0. ! Please correct the input file'
+          STOP
+       END IF
+
+       ! Setting facctor controlling the slope of the noise
+       WRITE(*,*) 'Setting <std_min> and <std_slope_factor> in function of the rheology_model chosen ...'
+       if (rheology_model .EQ. 9) THEN
+          std_min = 0.0_wp !std_max * (mu_0/mu_inf) ! mu_0 < mu_inf in mu(Fr)
+          std_slope_factor = Fr_0 * Fr_0
+          WRITE(*,*) 'Set : std_min= 0 ; std_slope_factor = Fr_0*Fr_0 !'
+          !WRITE(*,*) 'Set : std_min= std_max * (mu_0/mu_inf) ; std_slope_factor = Fr_0 !'
+       ELSEIF (rheology_model .EQ. 10) THEN
+          std_min = std_max * (mu_inf/mu_0) ! mu_0 > mu_inf in mu(U)
+          std_slope_factor = U_w
+          WRITE(*,*) 'Set : std_min = std_max * (mu_inf/mu_0) ; std_slope_factor = U_w !'
+       ENDIF   
+
+      ! Stop the program if std_min > std_max
+       IF ( std_min .GT. std_max ) THEN
+          ! Stop the program if the parameters are not positive double-precision floating-point numbers (real numbers).
+          WRITE(*,*) 'ERROR: problem with namelist STOCHASTIC_PARAMETERS'
+          WRITE(*,*) 'std_min =' , std_min ,'std_max =' , std_max,         &
+          'std_slope_factor = ', std_slope_factor
+          WRITE(*,*) 'st_min <= std_max required  ! Please correct the input file'
+          STOP
+       END IF
+       
+       ! Write values variable loaded after having performed all checks
+       WRITE(*,*) 'IMPUT PARAMETERS FOR THE STOCHASTIC MODEL :'
+       WRITE(*,*) 'std_min =' , std_min ,'std_max =' , std_max,                           &
+          'std_slope_factor = ', std_slope_factor, 'tau_stochastic = ', tau_stochastic,     &
+          'length_spatial_corr = ', length_spatial_corr
+       write(*,*) 'sym_noise =' , sym_noise ,'noise_pow_val =' , noise_pow_val
+       
+       ! Say if using mean field approx of stochastic noise 
+       IF (mean_field_flag) THEN
+          WRITE(*,*) 'Using the mean field approximation (that is deterministic) !'
+          WRITE(*,*) 'WARNING : The maen field approximation is not yet implemented !'
+          WRITE(*,*) 'STOPPING THE PROGRAMME !'
+       ELSE
+          ! Say if noise is symmetric or not   
+          IF (sym_noise == 1.0_wp) THEN 
+               WRITE(*,*) 'The noise will asymmetric and positive!'
+          ELSEIF (sym_noise == -1.0_wp) THEN 
+               WRITE(*,*) 'The noise will asymmetric and negative!'
+          ELSEIF (sym_noise == 0.0_wp) THEN 
+               WRITE(*,*) 'The noise will symmetric (positive and negative)!'
+          ELSE 
+               WRITE(*,*) 'The pameters sym_noise must be 0 (for sym noise),              &
+               1 (for positive noise) or -1 (for negative noise)!'
+          END IF
+
+          ! Say if noise is transported or not   
+          IF (stoch_transport_flag) THEN 
+               WRITE(*,*) 'The noise will be transported by the flow!'
+          ELSE
+               WRITE(*,*) 'The noise will not be transported by the flow!'
+          END IF
+       END IF
+
+       ! Say where the stochastic variables will be saved      
+       IF (output_stoch_vars_flag) THEN 
+          WRITE(*,*) 'The stochastic variables will be saved on a file!'
+       ELSE
+          WRITE(*,*) 'The stochastic variables will NOT be saved on a file!'
+       END IF
+    
+    END IF
+        
     ! ----- end search for check points -----------------------------------------
 
     CLOSE( input_unit )
@@ -4249,6 +4620,8 @@ CONTAINS
     REAL(wp) :: sp_heat_c
 
     INTEGER :: solid_idx
+
+    INTEGER :: stoch_idx , pore_idx
 
     INTEGER :: i_vars , i_solid
 
@@ -4564,9 +4937,37 @@ CONTAINS
                SUM(alphas_init) )
 
        END IF
+       
+       DO stoch_idx=5+n_solid+n_add_gas,4+n_solid+n_add_gas+n_stoch_vars
+          
+          ! rho_m*h*Zs
+          q(stoch_idx,:,:) = 0.0_wp
+          
+          WHERE ( thickness_init .GT. 0.0_wp )
+             
+             q(stoch_idx,:,:) = thickness_init(:,:) * rho_m * 1.0_wp
+             
+          END WHERE
+          
+       END DO
+       
+       
+       DO pore_idx=5+n_solid+n_add_gas+n_stoch_vars,4+n_solid+n_add_gas         &
+            +n_stoch_vars+n_pore_vars
 
+          ! rho_m*h*Zs
+          q(pore_idx,:,:) = 0.0_wp
+          
+          WHERE ( thickness_init .GT. 0.0_wp )
+             
+             q(pore_idx,:,:) = thickness_init(:,:) * rho_m * 1.0_wp
+             
+          END WHERE
+
+       END DO
+          
        output_idx = 0
-
+          
        IF ( verbose_level .GE. 1 ) THEN
 
           WRITE(*,*) 'Min q(1,:,:) =',MINVAL(q(1,:,:))
@@ -4888,6 +5289,8 @@ CONTAINS
     REAL(wp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
     REAL(wp) :: r_red_grav   !< real-value reduced gravity
     REAL(wp) :: p_dyn
+    REAL(wp) :: Zs(n_stoch_vars)
+    REAL(wp) :: pore_pres(n_pore_vars)
 
     REAL(wp) :: r_w          !< vertical component of the velocity
     REAL(wp) :: mod_vel , mod_vel2
@@ -5051,15 +5454,23 @@ CONTAINS
 
                    END IF
 
-
                 END IF
 
+                Zs(1:n_stoch_vars) = qp(5+n_solid+n_add_gas:4+n_solid+n_add_gas +         &
+                     n_stoch_vars)
+                
+                pore_pres(1:n_pore_vars) = qp(5+n_solid+n_add_gas+n_stoch_vars:           &
+                     4+n_solid+n_add_gas+n_stoch_vars+n_pore_vars)
+                                
              ELSE
 
                 r_alphas(1:n_solid) = 0.0_wp
                 r_alphag(1:n_add_gas) = 0.0_wp
                 r_alphal = 0.0_wp
 
+                Zs(1:n_stoch_vars) = 0.0_wp
+                pore_pres(1:n_pore_vars) = 0.0_wp
+                
              END IF
 
              IF ( ABS( r_h ) .LT. 1.0E-20_wp ) r_h = 0.0_wp
@@ -5095,8 +5506,9 @@ CONTAINS
                   B_out , r_h + B_out , r_alphas , r_alphag , r_T , r_rho_m ,   &
                   r_red_grav , DEPOSIT(j,k,:) , EROSION(j,k,:) ,                &
                   SUM(ERODIBLE(1:n_solid,j,k)) / ( 1.0_wp - erodible_porosity ),&
-                  r_alphal , shear_vel , r_Ri , Rouse_no(1:n_solid), hmax(j,k) ,&
-                  pdynmax(j,k) , mod_vel_max(j,k)
+                  r_alphal , shear_vel , r_Ri , Rouse_no(1:n_solid),            &
+                  Zs(1:n_stoch_vars) , pore_pres(1:n_pore_vars),                &     
+                  hmax(j,k) , pdynmax(j,k) , mod_vel_max(j,k)
 
           END DO
 
