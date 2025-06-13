@@ -220,6 +220,8 @@ MODULE constitutive_2d
 
   REAL(wp) :: z_dyn
 
+  REAL(wp) :: hydaulic_permeability
+
   INTERFACE u_log_profile    ! Define generic function
      MODULE PROCEDURE u_log_profile_scalar
      MODULE PROCEDURE u_log_profile_array
@@ -3075,8 +3077,11 @@ CONTAINS
   SUBROUTINE eval_implicit_terms( Bprimej_x, Bprimej_y, Zij, fric_val,          &
        c_qj, c_nh_term_impl, r_qj , r_nh_term_impl )
 
-    USE COMPLEXIFY 
+    USE COMPLEXIFY
 
+    USE geometry_2d, ONLY : pi_g
+
+    USE parameters_2d, ONLY : pore_pressure_flag
     USE parameters_2d, ONLY : four_thirds , neg_four_thirds
 
     IMPLICIT NONE
@@ -3142,6 +3147,10 @@ CONTAINS
     COMPLEX(wp) :: Zs(n_stoch_vars)
 
     COMPLEX(wp) :: pore_pres(n_pore_vars)
+
+    COMPLEX(wp) :: D_coeff(n_pore_vars)
+    REAL(wp) :: gamma_gas
+    COMPLEX(wp) :: gas_compressibility
 
     IF ( present(c_qj) .AND. present(c_nh_term_impl) ) THEN
 
@@ -3354,11 +3363,11 @@ CONTAINS
 
           IF ( REAL(mod_vel) .NE. 0.0_wp ) THEN 
 
-             source_term(2) = source_term(2) - rho_m * ( u / mod_vel0 ) * friction_factor *    &
-                  mod_vel2
+             source_term(2) = source_term(2) - rho_m * ( u / mod_vel0 ) *       &
+                  friction_factor * mod_vel2
 
-             source_term(3) = source_term(3) - rho_m * ( v / mod_vel0 ) * friction_factor *    &
-                  mod_vel2
+             source_term(3) = source_term(3) - rho_m * ( v / mod_vel0 ) *       &
+                  friction_factor * mod_vel2
 
           ENDIF
 
@@ -3369,6 +3378,23 @@ CONTAINS
 
     ENDIF
 
+    IF ( pore_pressure_flag ) THEN
+
+       h_threshold = 1.0E-10_wp
+
+       gamma_gas = sp_heat_a / ( sp_heat_a - sp_gas_const_a )
+       gas_compressibility = 1.0_wp / ( gamma_gas * pres )
+       
+       D_coeff = hydaulic_permeability / ( alphag * kin_visc_a *                &
+            gas_compressibility )
+       
+       ! Equation 12 from Gueugneau et al, 2017
+       source_term(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas +       &
+            n_stoch_vars+n_pore_vars) = - ( pi_g / 2.0_wp )**2 * D_coeff *      &
+            ( pore_pres - pres ) / MAX(h_threshold,h)
+       
+    END IF
+    
     nh_term = source_term
 
     IF ( present(c_qj) .AND. present(c_nh_term_impl) ) THEN

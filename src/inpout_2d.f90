@@ -534,8 +534,16 @@ CONTAINS
 
        END IF
        
-       IF ( pore_pressure_flag ) n_pore_vars = 1
+       IF ( pore_pressure_flag ) THEN
 
+          n_pore_vars = 1
+
+       ELSE
+
+          n_pore_vars = 0
+
+       END IF
+          
        ALLOCATE ( stoch_bcW(n_stoch_vars) )
        ALLOCATE ( stoch_bcE(n_stoch_vars) )
        ALLOCATE ( stoch_bcS(n_stoch_vars) )
@@ -2130,7 +2138,7 @@ CONTAINS
              WRITE(*,*) 'B.C. for pore pressure not set properly'
              WRITE(*,*) 'Please check the input file'
              WRITE(*,*) 'pore_bcE'
-             WRITE(*,*) pore_bcE(1:n_solid)
+             WRITE(*,*) pore_bcE(1:n_pore_vars)
              STOP
 
           END IF
@@ -2305,7 +2313,7 @@ CONTAINS
              WRITE(*,*) 'B.C. for stochastic variable not set properly'
              WRITE(*,*) 'Please check the input file'
              WRITE(*,*) 'stoch_bcS'
-             WRITE(*,*) stoch_bcS(1:n_solid)
+             WRITE(*,*) stoch_bcS(1:n_stoch_vars)
              STOP
 
           END IF
@@ -2321,7 +2329,7 @@ CONTAINS
              WRITE(*,*) 'B.C. for pore pressure not set properly'
              WRITE(*,*) 'Please check the input file'
              WRITE(*,*) 'pore_bcS'
-             WRITE(*,*) pore_bcS(1:n_solid)
+             WRITE(*,*) pore_bcS(1::n_pore_vars)
              STOP
 
           END IF
