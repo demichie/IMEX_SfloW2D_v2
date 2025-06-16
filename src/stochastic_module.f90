@@ -1,5 +1,5 @@
 !********************************************************************************
-!> \brief Numerical solver
+!> \brief Stochastic module
 !
 !> This moduel contains all the procedures for the stochastic variable
 !

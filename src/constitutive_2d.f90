@@ -220,7 +220,7 @@ MODULE constitutive_2d
 
   REAL(wp) :: z_dyn
 
-  REAL(wp) :: hydaulic_permeability
+  REAL(wp) :: hydraulic_permeability
 
   INTERFACE u_log_profile    ! Define generic function
      MODULE PROCEDURE u_log_profile_scalar
@@ -3152,6 +3152,10 @@ CONTAINS
     REAL(wp) :: gamma_gas
     COMPLEX(wp) :: gas_compressibility
 
+    COMPLEX(wp) :: rho_gas
+
+    COMPLEX(wp) :: porosity
+    
     IF ( present(c_qj) .AND. present(c_nh_term_impl) ) THEN
 
        qj = c_qj
@@ -3177,7 +3181,7 @@ CONTAINS
     IF (rheology_flag) THEN
 
        CALL c_phys_var(qj,h,u,v,T,rho_m,alphas,alphag,inv_rho_m,Zs,pore_pres)
-
+       
        IF ( slope_correction_flag ) THEN
 
           w = u * Bprimej_x + v * Bprimej_y
@@ -3384,15 +3388,23 @@ CONTAINS
 
        gamma_gas = sp_heat_a / ( sp_heat_a - sp_gas_const_a )
        gas_compressibility = 1.0_wp / ( gamma_gas * pres )
+       rho_gas = pres / ( sp_gas_const_a * T )
+
+       porosity = 1.0_wp - SUM(alphas)
        
-       D_coeff = hydaulic_permeability / ( alphag * kin_visc_a *                &
+       ! Eq. 7 from Gueugneau et al, 2017 
+       D_coeff = hydraulic_permeability / ( porosity * kin_visc_a * rho_gas *     &
             gas_compressibility )
-       
+
        ! Equation 12 from Gueugneau et al, 2017
-       source_term(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas +       &
-            n_stoch_vars+n_pore_vars) = - ( pi_g / 2.0_wp )**2 * D_coeff *      &
-            ( pore_pres - pres ) / MAX(h_threshold,h)
-       
+       IF ( ( REAL(pore_pres(1) - pres) .GT. 0.0_wp ) .AND. ( REAL(h) .GT. 0.0_wp) ) THEN
+
+          source_term(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas +       &
+               n_stoch_vars+n_pore_vars) = - rho_m * ( pi_g / 2.0_wp )**2 * D_coeff *      &
+               ( pore_pres - pres ) / MAX(h_threshold,h) 
+
+       END IF
+          
     END IF
     
     nh_term = source_term
@@ -3431,6 +3443,8 @@ CONTAINS
        Bsecondj_xy , Bsecondj_yy , grav_coeff , qcj , qpj , nh_semi_impl_term , &
        Zj, fric_val )
 
+    USE parameters_2D, ONLY: pore_pressure_flag
+    
     IMPLICIT NONE
 
     REAL(wp), INTENT(IN) :: Bprimej_x
@@ -3489,6 +3503,8 @@ CONTAINS
     LOGICAL :: sp_heat_flag
     REAL(wp) :: r_sp_heat_c
     REAL(wp) :: r_sp_heat_mix
+
+    REAL(wp) :: pore_pres(n_pore_vars)       !< pore pressure
 
     sp_heat_flag = .FALSE.
 
@@ -3570,6 +3586,16 @@ CONTAINS
              temp_term = r_rho_m *  mu * r_h * grav_coeff * ( r_red_grav +      &
                   centr_force_term )
 
+             IF ( pore_pressure_flag ) THEN
+
+                pore_pres(1:n_pore_vars) = qpj(5+n_solid+n_add_gas+n_stoch_vars:&
+                     4+n_solid+n_add_gas+n_stoch_vars+n_pore_vars)
+
+                temp_term = temp_term - mu * grav_coeff *                       &
+                     MAX( 0.0_wp, ( pore_pres(1) - pres ) )
+                
+             END IF
+                          
              ! units of dqc(2)/dt=d(rho h v)/dt (kg m-1 s-2)
              source_term(2) = source_term(2) - temp_term * r_u / mod_hor_vel
 
@@ -3781,7 +3807,6 @@ CONTAINS
   !> Mattia de' Michieli Vitturi
   !
   !******************************************************************************
-
 
   SUBROUTINE eval_mass_exchange_terms( qpj , B_zone , B_prime_x , B_prime_y ,   &
        erodible , dt , erosion_term , deposition_term ,                         &

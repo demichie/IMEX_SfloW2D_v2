@@ -105,6 +105,9 @@ MODULE inpout_2d
           std_min, std_max, std_slope_factor, tau_stochastic, noise_pow_val,    &
           Z_min, Z_max, Z_mean, Z_std, percentiles             
   USE parameters_2d, ONLY : output_stoch_vars_flag, length_spatial_corr   
+
+  ! --- Variables for the namelist PORE_PRESSURE_PARAMETERS
+  USE constitutive_2d, ONLY : hydraulic_permeability
   
   IMPLICIT NONE
 
@@ -310,6 +313,8 @@ MODULE inpout_2d
   NAMELIST / stochastic_parameters /                                            &
        mean_field_flag, output_stoch_vars_flag, sym_noise, std_max,             &
        tau_stochastic, length_spatial_corr, noise_pow_val, stoch_transport_flag 
+
+  NAMELIST / pore_pressure_parameters / hydraulic_permeability
   
 CONTAINS
 
@@ -443,6 +448,9 @@ CONTAINS
     tau_stochastic = -1.0_wp
     length_spatial_corr = -1.0_wp
     noise_pow_val = -1.0_wp
+
+    !-- Inizialization of the Variables for the namelist PORE_PRESSURE_PARAMETERS
+    hydraulic_permeability = 0.0_wp
     
     !-------------- Check if input file exists ----------------------------------
     input_file = 'IMEX_SfloW2D.inp'
@@ -536,6 +544,8 @@ CONTAINS
        
        IF ( pore_pressure_flag ) THEN
 
+          READ(input_unit, pore_pressure_parameters,IOSTAT=ios)
+          REWIND(input_unit)
           n_pore_vars = 1
 
        ELSE
@@ -747,6 +757,9 @@ CONTAINS
     tau_stochastic = -1.0_wp
     length_spatial_corr = -1.0_wp
     noise_pow_val = -1.0_wp
+
+    !-- Variable for the namelist PORE_PRESSURE_PARAMETERS
+    hydraulic_permeability = 0.0_wp
     
   END SUBROUTINE init_param
 
@@ -1170,6 +1183,22 @@ CONTAINS
     END IF
 
     IF ( pore_pressure_flag ) THEN
+
+       READ(input_unit, pore_pressure_parameters,IOSTAT=ios)
+
+       IF ( ios .NE. 0 ) THEN
+
+          WRITE(*,*) 'IOSTAT=',ios
+          WRITE(*,*) 'ERROR: problem with namelist PORE_PRESSURE_PARAMETERS'
+          WRITE(*,pore_pressure_parameters)
+          WRITE(*,*) 'Please check the input file'
+          STOP
+
+       ELSE
+
+          REWIND(input_unit)
+
+       END IF
 
        n_pore_vars = 1
        n_vars = n_vars + 1
@@ -4425,6 +4454,10 @@ CONTAINS
 
     IF ( radial_source_flag ) WRITE(backup_unit,radial_source_parameters)
 
+    IF ( stochastic_flag ) WRITE(backup_unit,stochastic_parameters)
+
+    IF ( pore_pressure_flag ) WRITE(backup_unit,pore_pressure_parameters)
+   
     IF ( output_runout_flag ) WRITE(backup_unit, runout_parameters)
 
     IF ( ( COUNT( thickness_levels0 .GT. 0.0_wp ) .GT. 0 ) .OR.                 &
