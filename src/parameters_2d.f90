@@ -272,7 +272,7 @@ MODULE parameters_2d
   !> - 'superbee' => superbee limiter (Roe, 1985);
   !> - 'van_leer' => monotonized central-difference limiter (van Leer, 1977)
   !> .
-  INTEGER :: limiter(20) = -1
+  INTEGER :: limiter(30) = -1
 
   !> Finite volume method:\n
   !> - 'LxF'       => lax-friedrichs scheme;
