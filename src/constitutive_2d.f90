@@ -1504,7 +1504,7 @@ CONTAINS
          r_Zs(1:n_stoch_vars)
 
     qp(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas+n_stoch_vars+       &
-         n_pore_vars) =  r_pore_pres(1:n_pore_vars)
+         n_pore_vars) = r_pore_pres(1:n_pore_vars)
     
     qp(n_vars+1) = r_u
     qp(n_vars+2) = r_v
@@ -2790,7 +2790,8 @@ CONTAINS
        qpj, expl_term, time, cell_fract_jk )
 
     USE parameters_2d, ONLY : vel_source , T_source , alphas_source ,           &
-         alphal_source , time_param , bottom_radial_source_flag , alphag_source
+         alphal_source , time_param , bottom_radial_source_flag , alphag_source,&
+         pore_pressure_flag , pore_pres_fract
 
 
     IMPLICIT NONE
@@ -2990,6 +2991,17 @@ CONTAINS
 
     END IF
 
+    IF ( pore_pressure_flag ) THEN
+
+       ! we multiply the pore pressure inlet rate by the rate for q1
+       expl_term(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas +       &
+            n_stoch_vars+n_pore_vars) = expl_term(5+n_solid+n_add_gas +       &
+            n_stoch_vars:4+n_solid+n_add_gas + n_stoch_vars+n_pore_vars) +    &
+            t_coeff * cell_fract_jk * vel_source * r_rho_m * grav *           &
+            pore_pres_fract * ( h_dot * r_rho_m )
+
+    END IF
+    
     RETURN
 
   END SUBROUTINE eval_expl_terms

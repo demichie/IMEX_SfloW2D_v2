@@ -156,7 +156,8 @@ CONTAINS
 
     USE parameters_2d, ONLY: eps_sing , eps_sing4
     USE parameters_2d, ONLY : bottom_radial_source_flag
-    USE parameters_2d, ONLY : x_source , y_source , r_source
+    USE parameters_2d, ONLY : x_source , y_source , r_source , r2_source ,      &
+         angle_source
     USE parameters_2d, ONLY : liquid_vaporization_flag
 
     IMPLICIT none
@@ -327,7 +328,8 @@ CONTAINS
 
     IF ( bottom_radial_source_flag ) THEN
 
-       CALL compute_cell_fract(x_source,y_source,r_source,cell_source_fractions)
+       CALL compute_cell_fract(x_source,y_source,r_source,r2_source,            &
+            angle_source,cell_source_fractions)
 
     END IF
 
@@ -1506,11 +1508,11 @@ CONTAINS
 
   END function maxmod
 
-  SUBROUTINE compute_cell_fract(xs,ys,rs,cell_fract)
+  SUBROUTINE compute_cell_fract(xs,ys,rs,r2s,angles,cell_fract)
 
     IMPLICIT NONE
 
-    REAL(wp), INTENT(IN) :: xs,ys,rs
+    REAL(wp), INTENT(IN) :: xs,ys,rs,r2s,angles
 
     REAL(wp), INTENT(OUT) :: cell_fract(comp_cells_x,comp_cells_y)
 
@@ -1524,6 +1526,12 @@ CONTAINS
 
     INTEGER :: h ,j, k
 
+    REAL(wp) :: ang_rad
+
+    ang_rad = angles / 180.0_wp * ATAN(1.0_wp)*4.0_wp
+
+    WRITE(*,*) 'ang_rad',ang_rad
+    
     n_points = 200
     n_points2 = n_points**2
 
@@ -1551,10 +1559,10 @@ CONTAINS
 
        DO k=1,comp_cells_y
 
-          IF ( ( x_stag(j+1) .LT. ( xs - rs ) ) .OR.                             &
-               ( x_stag(j) .GT. ( xs + rs ) ) .OR.                               &
-               ( y_stag(k+1) .LT. ( ys - rs ) ) .OR.                             &
-               ( y_stag(k) .GT. ( ys + rs ) ) ) THEN
+          IF ( ( x_stag(j+1) .LT. ( xs - MAX(rs,r2s) ) ) .OR.                   &
+               ( x_stag(j) .GT. ( xs + MAX(rs,r2s) ) ) .OR.                     &
+               ( y_stag(k+1) .LT. ( ys - MAX(rs,r2s) ) ) .OR.                   &
+               ( y_stag(k) .GT. ( ys + MAX(rs,r2s) ) ) ) THEN
 
              cell_fract(j,k) = 0.0_wp 
 
@@ -1562,8 +1570,11 @@ CONTAINS
 
              check_subgrid = 0
 
-             WHERE ( ( x_comp(j) + x_subgrid - xs )**2                           &
-                  + ( y_comp(k) + y_subgrid - ys )**2 < rs**2 )
+             WHERE ( ( ( ( x_comp(j) + x_subgrid - xs )*COS(ang_rad) +          &
+                   ( y_comp(k) + y_subgrid - ys )*SIN(ang_rad) )**2 / rs**2 +   &
+                   ( - ( x_comp(j) + x_subgrid - xs )*SIN(ang_rad) +            &
+                   ( y_comp(k) + y_subgrid - ys )*COS(ang_rad) )**2 / r2s**2 )  &
+                   .LE. 1.0_wp )
 
                 check_subgrid = 1
 
@@ -1582,7 +1593,7 @@ CONTAINS
     IF ( VERBOSE_LEVEL .GE. 0 ) THEN
 
        WRITE(*,*) 'Source area =',source_area,' Error =',ABS( 1.0_wp -          &
-            dx*dy*SUM(cell_fract) / ( 4.0_wp*ATAN(1.0_wp)*rs**2 ) )
+            dx*dy*SUM(cell_fract) / ( 4.0_wp*ATAN(1.0_wp)*rs*r2s ) )
 
     END IF
 

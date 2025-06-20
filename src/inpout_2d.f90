@@ -40,7 +40,7 @@ MODULE inpout_2d
   USE parameters_2d, ONLY : T_init
   USE parameters_2d, ONLY : u_init
   USE parameters_2d, ONLY : v_init
-
+  
   ! -- Variables for the namelists LEFT/RIGHT_BOUNDARY_CONDITIONSq
   USE parameters_2d, ONLY : bc
 
@@ -54,7 +54,8 @@ MODULE inpout_2d
   ! -- Variables for the namelist RADIAL_SOURCE_PARAMETERS
   USE parameters_2d, ONLY : x_source , y_source , r_source , vel_source ,       &
        T_source , h_source , alphas_source , alphal_source , alphag_source ,    &
-       time_param , Ri_source , mfr_source , xs_source , xl_source , xg_source
+       time_param , Ri_source , mfr_source , xs_source , xl_source , xg_source ,&
+       r2_source , angle_source
 
   ! -- Additional variables for the namelist LATERAL_SOURCE_PARAMETERS
   USE parameters_2d, ONLY : source_side , x1_source , x2_source , y1_source ,   &
@@ -108,6 +109,7 @@ MODULE inpout_2d
 
   ! --- Variables for the namelist PORE_PRESSURE_PARAMETERS
   USE constitutive_2d, ONLY : hydraulic_permeability
+  USE parameters_2d, ONLY : pore_pres_fract
   
   IMPLICIT NONE
 
@@ -279,9 +281,9 @@ MODULE inpout_2d
   NAMELIST / expl_terms_parameters / grav
 
   NAMELIST / radial_source_parameters / x_source , y_source , r_source ,        &
-       vel_source , T_source , h_source , alphas_source , alphal_source ,       &
-       alphag_source , time_param , Ri_source , mfr_source , xs_source ,        &
-       xl_source , xg_source
+       r2_source, angle_source, vel_source , T_source , h_source ,              &
+       alphas_source , alphal_source , alphag_source , time_param , Ri_source , &
+       mfr_source , xs_source , xl_source , xg_source
 
   NAMELIST / lateral_source_parameters / source_side , x1_source , x2_source ,  &
        y1_source , y2_source , vel_source , T_source , h_source , alphas_source,&
@@ -314,7 +316,7 @@ MODULE inpout_2d
        mean_field_flag, output_stoch_vars_flag, sym_noise, std_max,             &
        tau_stochastic, length_spatial_corr, noise_pow_val, stoch_transport_flag 
 
-  NAMELIST / pore_pressure_parameters / hydraulic_permeability
+  NAMELIST / pore_pressure_parameters / hydraulic_permeability, pore_pres_fract
   
 CONTAINS
 
@@ -451,6 +453,7 @@ CONTAINS
 
     !-- Inizialization of the Variables for the namelist PORE_PRESSURE_PARAMETERS
     hydraulic_permeability = 0.0_wp
+    pore_pres_fract = -1.0_wp
     
     !-------------- Check if input file exists ----------------------------------
     input_file = 'IMEX_SfloW2D.inp'
@@ -547,6 +550,20 @@ CONTAINS
           READ(input_unit, pore_pressure_parameters,IOSTAT=ios)
           REWIND(input_unit)
           n_pore_vars = 1
+
+          IF ( radial_source_flag .OR. bottom_radial_source_flag ) THEN
+
+             IF ( ( pore_pres_fract .LE. 0.0_wp ) .OR.                          &
+                  ( pore_pres_fract .LE. 0.0_wp ) ) THEN
+                
+                WRITE(*,*) 'ERROR: problem with namelist PORE_PRESSURE_PARAMETERS'
+                WRITE(*,*) 'pore_pres_fract =' , pore_pres_fract
+                WRITE(*,*) 'Please check the input file'
+                STOP
+
+             END IF
+                           
+          END IF
 
        ELSE
 
@@ -708,6 +725,8 @@ CONTAINS
     T_source = -1.0_wp
     h_source = -1.0_wp
     r_source = -1.0_wp
+    r2_source = -1.0_wp
+    angle_source = 0.0_wp
     vel_source = -1.0_wp
     Ri_source = -1.0_wp
     mfr_source = -1.0_wp
@@ -760,6 +779,7 @@ CONTAINS
 
     !-- Variable for the namelist PORE_PRESSURE_PARAMETERS
     hydraulic_permeability = 0.0_wp
+    pore_pres_fract = -1.0_wp
     
   END SUBROUTINE init_param
 
@@ -856,7 +876,7 @@ CONTAINS
 
     REAL(wp) :: expA , expB , Tc
 
-    CHARACTER(LEN=20) :: source_name
+    CHARACTER(LEN=30) :: source_name
     REAL(wp) :: source_length
     
     REAL(wp), ALLOCATABLE :: qp_source(:)
@@ -884,6 +904,9 @@ CONTAINS
 
     INTEGER :: iter_source , iter_max
 
+    ! parameter for elliptical source
+    REAL(wp) :: h_ell
+    
     OPEN(input_unit,FILE=input_file,STATUS='old')
 
     ! ---------- READ run_parameters NAMELIST -----------------------------------
@@ -3569,43 +3592,64 @@ CONTAINS
 
           END IF
 
-          IF ( radial_source_flag ) THEN
+          IF ( ( radial_source_flag) .OR. ( bottom_radial_source_flag ) ) THEN
+             
+             IF ( r2_source .LE. 0.0_wp ) THEN
+                
+                r2_source = r_source
+                angle_source = 0.0_wp
 
+             END IF
+                            
              pi_g = ATAN(1.0_wp)*4.0_wp
-             source_length = 2.0 * pi_g * r_source
+
+             h_ell = ( r_source - r2_source)**2 / ( r_source + r2_source)**2 
+
+             source_length = pi_g * ( r_source+r2_source ) * ( 1.0_wp +         &
+                  0.25_wp * h_ell + h_ell**2 / 64.0_wp + h_ell**3 / 256.0_wp +  &
+                  h_ell**4 * 25.0_wp / 16384.0_wp +                             &
+                  h_ell**5 * 49.0_wp / 65536.0_wp )
+
+             WRITE(*,*) 'source_length = ',source_length
+             
+             ! source_length = 2.0 * pi_g * r_source
           
-             IF ( ( x_source - r_source ) .LE. X0 + cell_size ) THEN
+             IF ( ( x_source - MAX(r_source,r2_source) ) .LE. X0 + cell_size ) THEN
 
                 WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
                 WRITE(*,*) 'SOURCE TOO LARGE'
-                WRITE(*,*) ' x_source - radius ',x_source-r_source
+                WRITE(*,*) ' x_source - MAX(radius,r2_source) ', x_source -     &
+                     MAX(r_source,r2_source)
                 STOP
                 
              END IF
              
-             IF ( ( x_source + r_source ) .GE. X0+(comp_cells_x-1)*cell_size ) THEN
+             IF ( ( x_source + MAX(r_source,r2_source) ) .GE. X0+(comp_cells_x-1)*cell_size ) THEN
                 
                 WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
                 WRITE(*,*) 'SOURCE TOO LARGE'
-                WRITE(*,*) ' x_source + radius ',x_source+r_source
+                WRITE(*,*) ' x_source + MAX(r_source,r2_source) ',x_source +    &
+                     MAX(r_source,r2_source)
                 STOP
                 
              END IF
              
-             IF ( ( y_source - r_source ) .LE. Y0 + cell_size ) THEN
+             IF ( ( y_source - MAX(r_source,r2_source) ) .LE. Y0 + cell_size ) THEN
                 
                 WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
                 WRITE(*,*) 'SOURCE TOO LARGE'
-                WRITE(*,*) ' y_source - radius ',y_source-r_source
+                WRITE(*,*) ' y_source - MAX(r_source,r2_source) ',y_source -    &
+                     MAX(r_source,r2_source)
                 STOP
                 
              END IF
              
-             IF ( ( y_source + r_source ) .GE. Y0+(comp_cells_y-1)*cell_size ) THEN
+             IF ( ( y_source + MAX(r_source,r2_source) ) .GE. Y0+(comp_cells_y-1)*cell_size ) THEN
                 
                 WRITE(*,*) 'ERROR: problem with namelist RADIAL_SOURCE_PARAMETERS'
                 WRITE(*,*) 'SOURCE TOO LARGE'
-                WRITE(*,*) ' y_source + radius ',y_source+r_source
+                WRITE(*,*) ' y_source + MAX(r_source,r2_source) ',y_source +    &
+                     MAX(r_source,r2_source)
                 STOP
                 
              END IF

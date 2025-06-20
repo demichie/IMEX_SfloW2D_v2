@@ -166,9 +166,20 @@ MODULE parameters_2d
   REAL(wp), ALLOCATABLE :: thickness_levels(:)
   REAL(wp), ALLOCATABLE :: dyn_pres_levels(:)
 
+  !> x-coordinate of center of the source
   REAL(wp) :: x_source
+
+  !> y-coordinate of center of the source
   REAL(wp) :: y_source
+
+  !> radius (or first semi-axis)
   REAL(wp) :: r_source
+
+  !> second semi-axis
+  REAL(wp) :: r2_source
+
+  !> angle between W-E direction and first semi-axis (clockwise)
+  REAL(wp) :: angle_source
   REAL(wp) :: vel_source
   REAL(wp) :: T_source
   REAL(wp) :: h_source
@@ -247,6 +258,8 @@ MODULE parameters_2d
   !> Initial sediment concentration in the pile of material
   REAL(wp), ALLOCATABLE :: alphas_init(:)
 
+  REAL(wp) :: pore_pres_fract
+  
   INTEGER :: n_vars   !< Number of conservative variables
   INTEGER :: n_eqns   !< Number of equations
 
