@@ -96,7 +96,7 @@ CONTAINS
 
     REAL(wp) :: cell_fract(comp_cells_x,comp_cells_y)
 
-    CALL compute_cell_fract(x_collapse,y_collapse,r_collapse,cell_fract)
+    CALL compute_cell_fract(x_collapse,y_collapse,r_collapse,r_collapse,0.0_wp,cell_fract)
 
     ! values outside the collapsing volume
     qp0_init(1) = 0.0_wp                  ! h
