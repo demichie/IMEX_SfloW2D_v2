@@ -14,8 +14,6 @@ else:
     print('Please provide file name (*_runout.csv)\n')
     sys.exit()
 
-runout_file = 'exampleKRAKATAU_runout.csv'
-
 data = np.genfromtxt(runout_file, delimiter=',', skip_header=1)
 print(data.shape)
 
