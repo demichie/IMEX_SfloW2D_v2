@@ -12,6 +12,7 @@ temperature-dependent.
 To compile the code you need a Fortran compiler and the NetCDF library for Fortran. You can install both with anaconda:
 
 > conda install conda-forge::gfortran
+> 
 > conda install conda-forge::netcdf-fortran
 
 Before compiling the code, please be sure that the following libraries are
