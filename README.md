@@ -9,6 +9,11 @@
 Shallow water model for multiphase flow (gas+particles) with density of gas
 temperature-dependent.
 
+To compile the code you need a Fortran compiler and the NetCDF library for Fortran. You can install both with anaconda:
+
+> conda install conda-forge::gfortran
+> conda install conda-forge::netcdf-fortran
+
 Before compiling the code, please be sure that the following libraries are
 installed on your system:
 
@@ -19,9 +24,9 @@ To compile:
 
 > touch README
 >
-> autoreconf
+> autoreconf -i
 >
-> ./configure
+> ./configure --with-netcdf=NETCDF_PATH
 
 To compile the code with OpenMP add the following flag in src/Makefile:
 1) with gfortran: -fopenmp
