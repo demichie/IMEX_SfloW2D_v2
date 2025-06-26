@@ -21,13 +21,14 @@ IMEX_SfloW2D_SOURCES = \
                 inpout_2d.f90 \
                 IMEX_SfloW2D.f90
 
-FCFLAGS         = -fopenmp -Ofast -funroll-all-loops
+FCFLAGS         = -fopenmp -Ofast -funroll-all-loops -I@NETCDF@/include -lnetcdff
 FCDEBUGFLAGS    = -Wall -g
 
-LIBS            = -lm -llapack
+LIBS            = -lm -llapack -L@NETCDF@/lib -lnetcdff 
 
 FC              = gfortran
 MPFC            = gfortran
 LINKER          = gfortran
+NETCDF = /opt/homebrew/Cellar/netcdf-fortran/4.6.1_1
 
 

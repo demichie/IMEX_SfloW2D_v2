@@ -177,6 +177,9 @@ MODULE inpout_2d
   !> .
   LOGICAL :: output_cons_flag
 
+  LOGICAL :: output_netcdf_flag
+
+  
   !> Flag to save the max runout at ouput times
   !> - T     => write max runout on file
   !> - F     => do not write max runout
@@ -257,8 +260,17 @@ MODULE inpout_2d
 
   REAL(wp) :: release_time(10)
 
+
+!> NC: Variabili condivise per la gestione del file NetCDF
+  INTEGER             :: ncid             !< ID del file NetCDF
+  INTEGER             :: dimids(3)        !< ID delle dimensioni [x, y, time]
+  INTEGER             :: x_varid, y_varid, t_varid !< ID delle variabili coordinate
+  INTEGER             :: b_varid, w_varid !< ID per b e w
+  INTEGER             :: nc_time_idx      !< Contatore per la dimensione temporale
+  CHARACTER(LEN=128)  :: nc_filename      !< Nome del file NetCDF
+  
   NAMELIST / run_parameters / run_name , restart , t_start , t_end , dt_output ,&
-       output_cons_flag , output_esri_flag , output_phys_flag ,                 &
+       output_cons_flag , output_esri_flag , output_phys_flag , output_netcdf_flag ,               &
        output_runout_flag , verbose_level , serial_flag
   
   NAMELIST / restart_parameters / n_restart_files, restart_files, release_time ,&
@@ -350,9 +362,10 @@ CONTAINS
     t_start = 0.0
     t_end = 5.0E-2_wp
     dt_output = 5.0E-3_wp
-    output_cons_flag = .TRUE.
-    output_esri_flag = .TRUE.
-    output_phys_flag = .TRUE.
+    output_cons_flag = .FALSE.
+    output_esri_flag = .FALSE.
+    output_phys_flag = .FALSE.
+    output_netcdf_flag = .FALSE.
     output_runout_flag = .FALSE.
     verbose_level = 0
 
@@ -927,7 +940,7 @@ CONTAINS
     END IF
 
     IF ( (.NOT.output_cons_flag) .AND. (.NOT.output_esri_flag) .AND.            &
-         (.NOT.output_phys_flag) ) dt_output = 2.0 * ( t_end - t_start ) 
+         (.NOT.output_phys_flag) .AND. (.NOT.output_netcdf_flag)) dt_output = 2.0 * ( t_end - t_start ) 
 
     t_output = t_start + dt_output
 
@@ -4601,7 +4614,7 @@ CONTAINS
     END IF
 
     IF ( (.NOT.output_cons_flag) .AND. (.NOT.output_esri_flag) .AND.            &
-         (.NOT.output_phys_flag) ) THEN
+         (.NOT.output_phys_flag) .AND. (.NOT.output_netcdf_flag)) THEN
 
        dt_output = 2.0 * ( t_end - t_start ) 
 
@@ -5407,6 +5420,8 @@ CONTAINS
     output_idx = output_idx + 1
 
     idx_string = lettera(output_idx-1)
+
+    IF ( output_netcdf_flag ) CALL write_netcdf_timestep(time)
 
     IF ( output_cons_flag ) THEN
 
@@ -6610,5 +6625,125 @@ CONTAINS
 
   END SUBROUTINE output_runout
 
+! ============================================================================
+  ! ===== NETCDF SUBROUTINES (Minimal version for b and w) =====================
+  ! ============================================================================
+
+  !******************************************************************************
+  !> \brief Initializes the NetCDF file, defining dimensions and variables.
+  !******************************************************************************
+  SUBROUTINE init_netcdf_output
+
+    USE netcdf
+    
+    USE geometry_2d, ONLY: comp_cells_x, comp_cells_y, x_comp, y_comp
+    IMPLICIT NONE
+
+    ! Set the output filename
+    nc_filename = TRIM(run_name) // '.nc'
+    IF (verbose_level >= 0) WRITE(*,*) 'Initializing NetCDF output file: ', TRIM(nc_filename)
+
+    ! Create the file, overwriting it if it already exists
+    CALL check( nf90_create(nc_filename, nf90_clobber + nf90_netcdf4, ncid) )
+
+    ! --- Define Dimensions ---
+    ! The IDs are saved into the module-level 'dimids' array
+    CALL check( nf90_def_dim(ncid, 'x',    comp_cells_x, dimids(1)) )
+    CALL check( nf90_def_dim(ncid, 'y',    comp_cells_y, dimids(2)) )
+    CALL check( nf90_def_dim(ncid, 'time', NF90_UNLIMITED, dimids(3)) )
+
+    ! --- Define Coordinate Variables ---
+    CALL check( nf90_def_var(ncid, 'x',    nf90_double, [dimids(1)], x_varid) )
+    CALL check( nf90_def_var(ncid, 'y',    nf90_double, [dimids(2)], y_varid) )
+    CALL check( nf90_def_var(ncid, 'time', nf90_double, [dimids(3)], t_varid) )
+
+    ! Assign attributes to the coordinate variables
+    CALL check( nf90_put_att(ncid, x_varid, 'units', 'meters') )
+    CALL check( nf90_put_att(ncid, y_varid, 'units', 'meters') )
+    CALL check( nf90_put_att(ncid, t_varid, 'units', 'seconds') )
+    CALL check( nf90_put_att(ncid, x_varid, 'long_name', 'x-coordinate') )
+    CALL check( nf90_put_att(ncid, y_varid, 'long_name', 'y-coordinate') )
+
+    ! --- Define Data Variables: b and w ---
+    ! We pass the full 'dimids' array (x, y, time) because these are 3D variables
+    CALL check( nf90_def_var(ncid, 'b', nf90_double, dimids, b_varid, deflate_level=5) )
+    CALL check( nf90_put_att(ncid, b_varid, 'units', 'meters') )
+    CALL check( nf90_put_att(ncid, b_varid, 'long_name', 'bed elevation') )
+
+    CALL check( nf90_def_var(ncid, 'w', nf90_double, dimids, w_varid, deflate_level=5) )
+    CALL check( nf90_put_att(ncid, w_varid, 'units', 'meters') )
+    CALL check( nf90_put_att(ncid, w_varid, 'long_name', 'free surface elevation') )
+
+    ! End define mode. This writes the header to the file.
+    CALL check( nf90_enddef(ncid) )
+
+    ! Write the static data (coordinate arrays)
+    CALL check( nf90_put_var(ncid, x_varid, x_comp) )
+    CALL check( nf90_put_var(ncid, y_varid, y_comp) )
+
+    ! Initialize the time record counter
+    nc_time_idx = 1
+  END SUBROUTINE init_netcdf_output
+
+  !******************************************************************************
+  !> \brief Writes the data for b and w for the current timestep.
+  !******************************************************************************
+  SUBROUTINE write_netcdf_timestep(time_in)
+    USE netcdf
+    USE geometry_2d, ONLY: B_cent, comp_cells_x, comp_cells_y
+    USE parameters_2d , ONLY : n_vars
+    USE solver_2d, ONLY : qp
+    
+    IMPLICIT NONE
+    REAL(wp), INTENT(IN) :: time_in
+    
+    INTEGER :: start(3), count(3)
+    REAL(wp), ALLOCATABLE :: w_grid(:,:)
+
+    WRITE(*,*) 'Writing ',nc_filename
+    
+    ! Write the time value for the current record (as a one-element array)
+    CALL check( nf90_put_var(ncid, t_varid, [time_in], start=[nc_time_idx]) )
+    
+    ! Set up the start and count arrays to write a 2D slice
+    start = (/ 1, 1, nc_time_idx /)
+    count = (/ comp_cells_x, comp_cells_y, 1 /)
+    
+    ! Write the bed topography (b)
+    CALL check( nf90_put_var(ncid, b_varid, B_cent, start=start, count=count) )
+
+    ! Calculate and write the free surface elevation (w = h + b)
+    ALLOCATE(w_grid(comp_cells_x, comp_cells_y))
+    w_grid = qp(1,:,:) + B_cent(:,:)
+    CALL check( nf90_put_var(ncid, w_varid, w_grid, start=start, count=count) )
+    DEALLOCATE(w_grid)
+    
+    ! Increment the time record counter for the next write operation
+    nc_time_idx = nc_time_idx + 1
+        
+  END SUBROUTINE write_netcdf_timestep
+
+  !******************************************************************************
+  !> \brief Closes the NetCDF file.
+  !******************************************************************************
+  SUBROUTINE close_netcdf
+    USE netcdf
+    IMPLICIT NONE
+    IF (verbose_level >= 0) WRITE(*,*) '*** SUCCESS: Closing NetCDF file ', TRIM(nc_filename)
+    CALL check( nf90_close(ncid) )
+  END SUBROUTINE close_netcdf
+
+  !******************************************************************************
+  !> \brief Checks the status of a NetCDF operation and stops on error.
+  !******************************************************************************
+  SUBROUTINE check(status)
+    USE netcdf
+    INTEGER, INTENT(IN) :: status
+    IF(status /= nf90_noerr) THEN 
+       PRINT *, 'FATAL NetCDF Error: ', TRIM(nf90_strerror(status))
+       STOP "Stopped due to NetCDF error"
+    END IF
+  END SUBROUTINE check
+  
 END MODULE inpout_2d
 

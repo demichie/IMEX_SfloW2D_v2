@@ -14,6 +14,13 @@ AM_INIT_AUTOMAKE([1.9])
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([src/Makefile])
 
+AC_ARG_WITH([netcdf],
+  AS_HELP_STRING([--with-netcdf=DIR], [location of NetCDF installation]),
+  [NETCDF=$withval],
+  [NETCDF="/usr/local/netcdf"]
+)
+
+AC_SUBST([NETCDF])
 
 AC_PREFIX_DEFAULT([..])
 
