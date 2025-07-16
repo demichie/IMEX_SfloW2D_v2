@@ -262,16 +262,17 @@ MODULE inpout_2d
 
 
 !> NC: Variabili condivise per la gestione del file NetCDF
-  INTEGER             :: ncid             !< ID del file NetCDF
-  INTEGER             :: dimids(3)        !< ID delle dimensioni [x, y, time]
-  INTEGER             :: x_varid, y_varid, t_varid !< ID delle variabili coordinate
-  INTEGER             :: b_varid, w_varid !< ID per b e w
-  INTEGER             :: nc_time_idx      !< Contatore per la dimensione temporale
-  CHARACTER(LEN=128)  :: nc_filename      !< Nome del file NetCDF
+  INTEGER             :: ncid             !< ID for NetCDF file
+  INTEGER             :: dimids(3)        !< ID for size of [x, y, time]
+  INTEGER             :: x_varid, y_varid, t_varid !< ID for x,y
+  INTEGER             :: b_varid, w_varid !< ID for b and w
+  INTEGER             :: h_varid          !> ID for h
+  INTEGER             :: nc_time_idx      !< Counter for time
+  CHARACTER(LEN=128)  :: nc_filename      !< NetCDF file name
   
   NAMELIST / run_parameters / run_name , restart , t_start , t_end , dt_output ,&
-       output_cons_flag , output_esri_flag , output_phys_flag , output_netcdf_flag ,               &
-       output_runout_flag , verbose_level , serial_flag
+       output_cons_flag , output_esri_flag , output_phys_flag ,                 &
+       output_netcdf_flag , output_runout_flag , verbose_level , serial_flag
   
   NAMELIST / restart_parameters / n_restart_files, restart_files, release_time ,&
        T_init , T_ambient , u_init , v_init , sed_vol_perc
@@ -940,7 +941,8 @@ CONTAINS
     END IF
 
     IF ( (.NOT.output_cons_flag) .AND. (.NOT.output_esri_flag) .AND.            &
-         (.NOT.output_phys_flag) .AND. (.NOT.output_netcdf_flag)) dt_output = 2.0 * ( t_end - t_start ) 
+         (.NOT.output_phys_flag) .AND. (.NOT.output_netcdf_flag))               &
+         dt_output = 2.0 * ( t_end - t_start ) 
 
     t_output = t_start + dt_output
 
@@ -6664,11 +6666,15 @@ CONTAINS
     CALL check( nf90_put_att(ncid, x_varid, 'long_name', 'x-coordinate') )
     CALL check( nf90_put_att(ncid, y_varid, 'long_name', 'y-coordinate') )
 
-    ! --- Define Data Variables: b and w ---
+    ! --- Define Data Variables: b , h and w ---
     ! We pass the full 'dimids' array (x, y, time) because these are 3D variables
     CALL check( nf90_def_var(ncid, 'b', nf90_double, dimids, b_varid, deflate_level=5) )
     CALL check( nf90_put_att(ncid, b_varid, 'units', 'meters') )
     CALL check( nf90_put_att(ncid, b_varid, 'long_name', 'bed elevation') )
+
+    CALL check( nf90_def_var(ncid, 'h', nf90_double, dimids, h_varid, deflate_level=5) )
+    CALL check( nf90_put_att(ncid, h_varid, 'units', 'meters') )
+    CALL check( nf90_put_att(ncid, h_varid, 'long_name', 'bed elevation') )
 
     CALL check( nf90_def_var(ncid, 'w', nf90_double, dimids, w_varid, deflate_level=5) )
     CALL check( nf90_put_att(ncid, w_varid, 'units', 'meters') )
@@ -6712,6 +6718,9 @@ CONTAINS
     ! Write the bed topography (b)
     CALL check( nf90_put_var(ncid, b_varid, B_cent, start=start, count=count) )
 
+    ! Write the flow thickness (h)
+    CALL check( nf90_put_var(ncid, h_varid, qp(1,:,:), start=start, count=count))
+
     ! Calculate and write the free surface elevation (w = h + b)
     ALLOCATE(w_grid(comp_cells_x, comp_cells_y))
     w_grid = qp(1,:,:) + B_cent(:,:)
@@ -6729,7 +6738,8 @@ CONTAINS
   SUBROUTINE close_netcdf
     USE netcdf
     IMPLICIT NONE
-    IF (verbose_level >= 0) WRITE(*,*) '*** SUCCESS: Closing NetCDF file ', TRIM(nc_filename)
+    IF (verbose_level >= 0) WRITE(*,*) '*** SUCCESS: Closing NetCDF file ',     &
+         TRIM(nc_filename)
     CALL check( nf90_close(ncid) )
   END SUBROUTINE close_netcdf
 
