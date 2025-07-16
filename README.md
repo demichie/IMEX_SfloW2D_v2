@@ -11,15 +11,9 @@ temperature-dependent.
 
 To compile the code you need a Fortran compiler and the NetCDF library for Fortran. You can install both with anaconda, by creating an anaconda environment and activating it:
 
-> conda create -n fortran_env conda-forge::gfortran_linux-64 sysroot_linux-64 make conda-forge::netcdf-fortran
+> conda create -n fortran_env conda-forge::gfortran_linux-64  sysroot_linux-64  make  conda-forge::netcdf-fortran  conda-forge::liblapack  conda-forge::libblas
 > 
 > conda activate fortran_env
-
-Before compiling the code, please be sure that the following libraries are
-installed on your system:
-
-- liblapack-dev
-- libopenblas-dev
 
 To compile:
 

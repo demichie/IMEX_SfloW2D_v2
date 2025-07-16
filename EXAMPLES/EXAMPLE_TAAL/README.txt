@@ -20,7 +20,7 @@ For a steady state source, remove the line with the four parameters.
 
 For a single pulse, the first parameter (time between cycles) has to be larger than the fourth one (duration of source). For example:
 
-TIME_PARAM = 300.D0 , 20.D0 , 0.0D0, 150.D0 ,
+TIME_PARAM = 100.D0 , 20.D0 , 0.0D0, 200.D0 ,
 
 In this case, we have a single 20 seconds pulse.
 
