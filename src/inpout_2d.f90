@@ -123,6 +123,10 @@ MODULE inpout_2d
   CHARACTER(LEN=40) :: restart_file       !< Name of the restart file 
   CHARACTER(LEN=40) :: probes_file        !< Name of the probes file 
   CHARACTER(LEN=40) :: output_file_2d     !< Name of the output files
+  CHARACTER(LEN=40) :: output_file_erosion!< Name of the output files
+  CHARACTER(LEN=40) :: output_file_erodible!< Name of the output files
+  CHARACTER(LEN=40) :: output_file_deposit!< Name of the output files
+  CHARACTER(LEN=40) :: output_file_B     !< Name of the output files
   CHARACTER(LEN=40) :: output_esri_file   !< Name of the esri output files
   CHARACTER(LEN=40) :: output_max_file    !< Name of the esri max. thick. file
   CHARACTER(LEN=40) :: runout_file        !< Name of the runout file 
@@ -149,6 +153,10 @@ MODULE inpout_2d
   INTEGER, PARAMETER :: fric_unit = 22
   INTEGER, PARAMETER :: stats_fric_unit = 23
   INTEGER, PARAMETER :: conv_kern_unit  = 24
+  INTEGER, PARAMETER :: output_unit_erosion = 25 
+  INTEGER, PARAMETER :: output_unit_erodible = 26 
+  INTEGER, PARAMETER :: output_unit_deposit = 27
+  INTEGER, PARAMETER :: output_unit_B = 28
 
   !> Counter for the output files
   INTEGER :: output_idx 
@@ -5418,7 +5426,6 @@ CONTAINS
     
     sp_flag = .FALSE.
 
-
     output_idx = output_idx + 1
 
     idx_string = lettera(output_idx-1)
@@ -5433,6 +5440,32 @@ CONTAINS
 
        OPEN(output_unit_2d,FILE=output_file_2d,status='unknown',form='formatted')
 
+       IF ( erosion_coeff .GT. 0.0_wp) THEN
+          
+          output_file_erosion = TRIM(run_name)//'_erosion_'//idx_string//'.q_2d'
+          output_file_erodible = TRIM(run_name)//'_erodible_'//idx_string//'.q_2d'
+          OPEN(output_unit_erosion,FILE=output_file_erosion,status='unknown',      &
+               form='formatted')
+          OPEN(output_unit_erodible,FILE=output_file_erodible,status='unknown',    &
+               form='formatted')
+
+       END IF
+
+       IF ( settling_flag ) THEN
+          
+          output_file_deposit = TRIM(run_name)//'_deposit_'//idx_string//'.q_2d'
+          OPEN(output_unit_deposit,FILE=output_file_deposit,status='unknown',      &
+               form='formatted')
+
+       END IF
+
+       IF ( topo_change_flag ) THEN
+       
+          output_file_B = TRIM(run_name)//'_B_'//idx_string//'.q_2d'
+          OPEN(output_unit_B,FILE=output_file_B,status='unknown',form='formatted')
+
+       END IF
+          
        !WRITE(output_unit_2d,1002) x0,dx,comp_cells_x,y0,dy,comp_cells_y,t
 
        DO k = 1,comp_cells_y
@@ -5450,9 +5483,43 @@ CONTAINS
              WRITE(output_unit_2d,'(2e20.12,100(e20.12))') x_comp(j), y_comp(k),&
                   (q(i_vars,j,k),i_vars=1,n_vars) 
 
+             IF ( erosion_coeff .GT. 0.0_wp) THEN
+                
+                WRITE(output_unit_erosion,'(2e20.12,100(e20.12))') x_comp(j), y_comp(k),&
+                     (erosion(j,k,i_vars),i_vars=1,n_solid) 
+
+                WRITE(output_unit_erodible,'(2e20.12,100(e20.12))') x_comp(j), y_comp(k),&
+                     (erodible(i_vars,j,k),i_vars=1,n_solid) 
+                
+             END IF
+
+             IF ( settling_flag ) THEN
+
+                WRITE(output_unit_deposit,'(2e20.12,100(e20.12))') x_comp(j), y_comp(k),&
+                     (deposit(j,k,i_vars),i_vars=1,n_solid) 
+                
+             END IF
+
+             IF ( topo_change_flag ) THEN
+
+                WRITE(output_unit_B,'(2e20.12,100(e20.12))') x_comp(j), y_comp(k),&
+                     B_cent(j,k) 
+                
+             END IF
+                             
           ENDDO
 
           WRITE(output_unit_2d,*) ' ' 
+          IF ( erosion_coeff .GT. 0.0_wp) THEN
+
+             WRITE(output_unit_erosion,*) ' '
+             WRITE(output_unit_erodible,*) ' '
+             
+          END IF
+
+          IF ( settling_flag ) WRITE(output_unit_deposit,*) ' '
+
+          IF ( topo_change_flag ) WRITE(output_unit_B,*) ' '
 
        END DO
 
@@ -5461,6 +5528,35 @@ CONTAINS
 
        CLOSE(output_unit_2d)
 
+       IF ( erosion_coeff .GT. 0.0_wp) THEN
+
+          WRITE(output_unit_erosion,*) ' '
+          WRITE(output_unit_erosion,*) ' '          
+          CLOSE(output_unit_erosion)
+
+          WRITE(output_unit_erodible,*) ' '
+          WRITE(output_unit_erodible,*) ' '          
+          CLOSE(output_unit_erodible)
+          
+       END IF
+
+       IF ( settling_flag ) THEN
+
+          WRITE(output_unit_deposit,*) ' '
+          WRITE(output_unit_deposit,*) ' '          
+          CLOSE(output_unit_deposit)
+                    
+       END IF
+       
+       IF ( topo_change_flag ) THEN
+
+          WRITE(output_unit_B,*) ' '
+          WRITE(output_unit_B,*) ' '          
+          CLOSE(output_unit_B)
+                    
+       END IF
+
+       
     END IF
 
     IF ( output_phys_flag ) THEN
