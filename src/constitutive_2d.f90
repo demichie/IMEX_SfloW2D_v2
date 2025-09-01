@@ -438,7 +438,7 @@ CONTAINS
     REAL(wp) :: r_xc            !< real-value carrier phase mass fraction
     REAL(wp) :: r_alphac        !< real-value carrier phase volume fraction
     REAL(wp) :: r_sp_heat_c     !< real-value specific heat of carrier phase
-    REAL(wp) :: r_sp_heat_mix   !< real-value specific heat of mixture
+   REAL(wp) :: r_sp_heat_mix   !< real-value specific heat of mixture
     REAL(wp) :: r_sp_gas_const_c!< real-value gas constant of carrier phase
     REAL(wp) :: r_rho_c         !< real-value carrier phase density [kg/m3]
     REAL(wp) :: r_inv_rho_c
@@ -511,7 +511,7 @@ CONTAINS
             4+n_solid+n_add_gas+n_stoch_vars) * inv_qj1
        
        r_pore_pres(1:n_pore_vars) = r_qj(5+n_solid+n_add_gas+n_stoch_vars :     &
-            4+n_solid+n_add_gas+n_stoch_vars+n_pore_vars) * inv_qj1    
+            4+n_solid+n_add_gas+n_stoch_vars+n_pore_vars) * inv_qj1
        
     ELSE
 
@@ -3405,7 +3405,7 @@ CONTAINS
        porosity = 1.0_wp - SUM(alphas)
        
        ! Eq. 7 from Gueugneau et al, 2017 
-       D_coeff = hydraulic_permeability / ( porosity * kin_visc_a * rho_gas *     &
+       D_coeff = hydraulic_permeability / ( porosity * kin_visc_a * rho_gas *   &
             gas_compressibility )
 
        ! Equation 12 from Gueugneau et al, 2017
@@ -3585,6 +3585,7 @@ CONTAINS
 
              IF ( curvature_term_flag ) THEN
 
+                ! See Eq. (3) Xia & Liang, 2018 Eng.Geol.   
                 ! centrifugal force term: (u,v)^T*Hessian*(u,v)
                 centr_force_term = Bsecondj_xx * r_u**2 + 2.0_wp * Bsecondj_xy * r_u *   &
                      r_v + Bsecondj_yy * r_v**2
@@ -3595,19 +3596,27 @@ CONTAINS
 
              END IF
 
-             temp_term = r_rho_m *  mu * r_h * grav_coeff * ( r_red_grav +      &
-                  centr_force_term )
+             ! See Eq. (3,5) Xia & Liang, 2018 Eng.Geol.  
+             ! add the contribution on mu (with coeff for large slope)
+             temp_term = mu * ( r_rho_m * r_red_grav * r_h ) * grav_coeff
 
              IF ( pore_pressure_flag ) THEN
 
                 pore_pres(1:n_pore_vars) = qpj(5+n_solid+n_add_gas+n_stoch_vars:&
                      4+n_solid+n_add_gas+n_stoch_vars+n_pore_vars)
 
-                temp_term = temp_term - mu * grav_coeff *                       &
-                     MAX( 0.0_wp, ( pore_pres(1) - pres ) )
-                
+                ! See Eq. (2) Gueugneau et al. 2017, GRL
+                ! add the contribution of pore pressure ( with coeff for slope)
+                temp_term = MAX(0.0_wp, temp_term - mu * grav_coeff *           &
+                     MAX( 0.0_wp, ( pore_pres(1) - pres ) ) )
+
              END IF
-                          
+
+             ! See Eq. (3) Xia & Liang, 2018 Eng.Geol.   
+             ! add the contribution of centr. force (with coeff for slope)
+             temp_term = temp_term + r_rho_m *  mu * r_h * grav_coeff *         &
+                  centr_force_term
+             
              ! units of dqc(2)/dt=d(rho h v)/dt (kg m-1 s-2)
              source_term(2) = source_term(2) - temp_term * r_u / mod_hor_vel
 

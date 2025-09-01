@@ -5423,6 +5423,8 @@ CONTAINS
     REAL(wp) :: inv_kin_visc
 
     REAL(wp) :: Rouse_no(n_solid)
+
+    REAL(wp) :: mu_eff
     
     sp_flag = .FALSE.
 
@@ -5595,7 +5597,7 @@ CONTAINS
 
              mod_vel2 = r_u**2 + r_v**2 + r_w**2
              mod_vel = SQRT( mod_vel2 )
-
+             
              IF ( rheology_model .EQ. 8 ) THEN
 
                 shear_stress = r_rho_m * friction_factor * mod_vel2
@@ -5656,12 +5658,26 @@ CONTAINS
 
                 END IF
 
-                Zs(1:n_stoch_vars) = qp(5+n_solid+n_add_gas:4+n_solid+n_add_gas +         &
-                     n_stoch_vars)
+                Zs(1:n_stoch_vars) = qp(5+n_solid+n_add_gas:4+n_solid+n_add_gas &
+                     + n_stoch_vars)
                 
-                pore_pres(1:n_pore_vars) = qp(5+n_solid+n_add_gas+n_stoch_vars:           &
+                pore_pres(1:n_pore_vars) = qp(5+n_solid+n_add_gas+n_stoch_vars: &
                      4+n_solid+n_add_gas+n_stoch_vars+n_pore_vars)
-                                
+
+
+                IF ( (rheology_flag) .AND. ( rheology_model .EQ. 1 ) ) THEN
+
+                   ! See Eq. (3) Gueugneau et al. 2017, GRL 
+                   mu_eff = mu * MAX( 0.0_wp , ( 1.0_wp - MAX( 0.0_wp,          &
+                        ( pore_pres(1) - pres ) )                               &
+                        / ( r_rho_m * r_h * r_red_grav ) ) )
+
+                ELSE
+
+                   mu_eff = 0.0_wp
+                   
+                END IF
+                
              ELSE
 
                 r_alphas(1:n_solid) = 0.0_wp
@@ -5670,6 +5686,7 @@ CONTAINS
 
                 Zs(1:n_stoch_vars) = 0.0_wp
                 pore_pres(1:n_pore_vars) = 0.0_wp
+                mu_eff = 0.0_wp
                 
              END IF
 
@@ -5701,13 +5718,13 @@ CONTAINS
              IF ( ABS( r_red_grav ) .LT. 1.0E-20_wp ) r_red_grav = 0.0_wp
 
              IF ( ABS( r_alphal ) .LT. 1.0E-20_wp ) r_alphal = 0.0_wp
-
+                            
              WRITE(output_unit_2d,1010) x_comp(j), y_comp(k), r_h , r_u , r_v , &
                   B_out , r_h + B_out , r_alphas , r_alphag , r_T , r_rho_m ,   &
                   r_red_grav , DEPOSIT(j,k,:) , EROSION(j,k,:) ,                &
                   SUM(ERODIBLE(1:n_solid,j,k)) / ( 1.0_wp - erodible_porosity ),&
                   r_alphal , shear_vel , r_Ri , Rouse_no(1:n_solid),            &
-                  Zs(1:n_stoch_vars) , pore_pres(1:n_pore_vars),                &     
+                  Zs(1:n_stoch_vars) , pore_pres(1:n_pore_vars) , mu_eff,       &     
                   hmax(j,k) , pdynmax(j,k) , mod_vel_max(j,k)
 
           END DO

@@ -323,7 +323,11 @@ if poreflag:
     Ppore.standard_name = 'pore pressure'  # this is a CF standard name
     Ppore.units = 'Pa'  
 
-    npore = 1
+    muEff = ncfile.createVariable('muEff', np.float64, ('time', 'y', 'x'))
+    muEff.standard_name = 'effective mu'  # this is a CF standard name
+    muEff.units = ''  
+
+    npore = 2
     
 else:
 
@@ -428,6 +432,7 @@ for i_output in range(output_first, output_last):
             
                 Ppore[nc_output, :, :] = np.tile(data[:, 2], 14 + 4 * nsolid + naddgas+nstoch+3).reshape((ny2, nx2))
 
+                muEff[nc_output, :, :] = np.tile(data[:, 2], 14 + 4 * nsolid + naddgas+nstoch+4).reshape((ny2, nx2))
 
         else:
 
@@ -498,6 +503,7 @@ for i_output in range(output_first, output_last):
             if (npore>0):
             
                 Ppore[nc_output, :, :] = data[:, 14 + 4 * nsolid + naddgas+nstoch].reshape((ny, nx))
+                muEff[nc_output, :, :] = data[:, 14 + 4 * nsolid + naddgas+nstoch+1].reshape((ny, nx))
 
             hmax[nc_output, :, :] = data[:, 14 + 4 * nsolid + naddgas+nstoch+npore].reshape((ny, nx))
             pdynmax[nc_output, :, :] = data[:, 14 + 4 * nsolid + naddgas+nstoch+npore+1].reshape((ny, nx))
