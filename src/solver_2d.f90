@@ -2259,9 +2259,10 @@ CONTAINS
     USE constitutive_2d, ONLY : eval_mass_exchange_terms
 
     USE constitutive_2d, ONLY : qc_to_qp , mixt_var
+    USE constitutive_2d, ONLY : entrainment_flag
     USE parameters_2d, ONLY : topo_change_flag , bottom_radial_source_flag
     USE parameters_2d, ONLY : erodible_deposit_flag
-    
+    USE parameters_2d, ONLY : pore_pressure_flag
 
     IMPLICIT NONE
     
@@ -2291,7 +2292,8 @@ CONTAINS
     sp_flag = .FALSE.
 
 
-    IF ( ( erosion_coeff .EQ. 0.0_wp ) .AND. ( .NOT.settling_flag ) ) RETURN
+    IF ( ( erosion_coeff .EQ. 0.0_wp ) .AND. ( .NOT.settling_flag ) &
+         .AND. ( .NOT.pore_pressure_flag ) .AND. ( .NOT.entrainment_flag) ) RETURN
 
     !$OMP PARALLEL DO private(j,k,erosion_term,deposition_term,eqns_term,       &
     !$OMP & topo_term,r_Ri,r_rho_m,r_rho_c,r_red_grav,                          &

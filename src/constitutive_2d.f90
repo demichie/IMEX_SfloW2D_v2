@@ -341,7 +341,7 @@ CONTAINS
 
   SUBROUTINE init_problem_param
 
-    USE parameters_2d, ONLY : n_nh
+    USE parameters_2d, ONLY : n_nh , pore_pressure_flag
     IMPLICIT NONE
 
     integer :: i,j
@@ -362,6 +362,13 @@ CONTAINS
     ! Solid volume fraction
     implicit_flag(5:4+n_solid) = .FALSE.
 
+    IF ( pore_pressure_flag ) THEN
+
+       implicit_flag(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas +       &
+            n_stoch_vars+n_pore_vars) = .TRUE.
+       
+    END IF
+    
     n_nh = COUNT( implicit_flag )
 
     ALLOCATE( implicit_map(n_nh) )
@@ -3126,6 +3133,7 @@ CONTAINS
     COMPLEX(wp) :: mod_vel0
     COMPLEX(wp) :: mod_vel2
     COMPLEX(wp) :: gamma
+    COMPLEX(wp) :: rho_g(n_add_gas)
     REAL(wp) :: h_threshold
 
     INTEGER :: i
@@ -3414,7 +3422,7 @@ CONTAINS
           source_term(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas +       &
                n_stoch_vars+n_pore_vars) = - rho_m * ( pi_g / 2.0_wp )**2 * D_coeff *      &
                ( pore_pres - pres ) / MAX(h_threshold,h) 
-
+          
        END IF
           
     END IF
@@ -3834,8 +3842,10 @@ CONTAINS
        continuous_phase_erosion_term , continuous_phase_loss_term , eqns_term , &
        topo_term  )
 
+    USE geometry_2d, ONLY : pi_g
+
     USE parameters_2d, ONLY : erodible_deposit_flag , liquid_vaporization_flag ,&
-         vertical_profiles_flag , bottom_conc_flag
+         vertical_profiles_flag , bottom_conc_flag , pore_pressure_flag
 
     IMPLICIT NONE
 
@@ -3912,6 +3922,7 @@ CONTAINS
 
     REAL(wp) :: dep_coeff(n_solid)
 
+    REAL(wp) :: pore_pressure_term
 
     erosion_term(1:n_solid) = 0.0_wp
     deposition_term(1:n_solid) = 0.0_wp
@@ -4115,10 +4126,21 @@ CONTAINS
     continuous_phase_loss_term =  continuous_phase_loss_term +                  &
          coeff_porosity * SUM( deposition_term(1:n_solid) )
 
+ 
+    IF ( pore_pressure_flag ) THEN
+
+       pore_pressure_term = hydraulic_permeability /                            &
+            ( kin_visc_a * r_rho_c ) / MAX(1.e-2,r_h) * 0.5_wp * pi_g *         &
+            r_pore_pres(1) 
+
+       continuous_phase_loss_term = continuous_phase_loss_term +                &
+            pore_pressure_term
+           
+    END IF   
 
     ! limit the loss accountaing for available continuous phase
     continuous_phase_loss_term = MIN( continuous_phase_loss_term ,              &
-         r_h * MAX( 0.0_wp , ( 1.0_wp - SUM(r_alphas) ) ) / dt )
+         r_h * MAX( 0.0_wp , ( 1.0_wp - SUM(r_alphas) -0.3_wp ) ) / dt )
 
     ! loss of continuous phase cannot 
     continuous_phase_loss_term = MIN( continuous_phase_loss_term ,              &
@@ -4152,7 +4174,7 @@ CONTAINS
     rho_dep_tot = DOT_PRODUCT( rho_s , deposition_term )
     ! solid total mass erosion rate [kg m-2 s-1]
     rho_ers_tot = DOT_PRODUCT( rho_s , erosion_term )
-
+       
     ! total mass equation source term [kg m-2 s-1]:
     ! deposition, erosion and entrainment are considered
     eqns_term(1) = rho_a_amb * air_entr + rho_ers_tot - rho_dep_tot             &

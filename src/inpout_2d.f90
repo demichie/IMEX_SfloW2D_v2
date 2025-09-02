@@ -269,14 +269,32 @@ MODULE inpout_2d
   REAL(wp) :: release_time(10)
 
 
-!> NC: Variabili condivise per la gestione del file NetCDF
-  INTEGER             :: ncid             !< ID for NetCDF file
-  INTEGER             :: dimids(3)        !< ID for size of [x, y, time]
+  ! NC: Variabili condivise per la gestione del file NetCDF
+  INTEGER             :: ncid              !< ID for NetCDF file
+  INTEGER             :: dimids(3)         !< ID for size of [x, y, time]
+  INTEGER             :: solid_dimid       !< ID for size of solids
   INTEGER             :: x_varid, y_varid, t_varid !< ID for x,y
-  INTEGER             :: b_varid, w_varid !< ID for b and w
-  INTEGER             :: h_varid          !> ID for h
-  INTEGER             :: nc_time_idx      !< Counter for time
-  CHARACTER(LEN=128)  :: nc_filename      !< NetCDF file name
+  INTEGER             :: b_varid, w_varid  !< ID for b and w
+  INTEGER             :: h_varid           !> ID for h
+  INTEGER             :: u_varid, v_varid  !> ID for u and v
+  INTEGER             :: Temp_varid        !> ID for T
+  INTEGER,ALLOCATABLE :: solid_varid(:)    !> ID for solid fractions
+  INTEGER,ALLOCATABLE :: gas_varid(:)      !> ID for gas fractions
+  INTEGER             :: alphal_varid      !> ID for liquid fraction
+  INTEGER,ALLOCATABLE :: stoch_varid(:)    !> ID for stochastic variable
+  INTEGER,ALLOCATABLE :: pore_varid(:)     !> ID for pore pressure
+  INTEGER             :: hMax_varid        !> ID for max of thickness
+  INTEGER             :: pDynMax_varid     !> ID for max of dynamic pressure
+  INTEGER             :: modVelMax_varid   !> ID for max of velicity magnitude
+  INTEGER,ALLOCATABLE :: deposit_varid(:)  !> ID for solid deposit
+  INTEGER,ALLOCATABLE :: erosion_varid(:)  !> ID for solid erosion
+  INTEGER             :: Ri2D_varid        !> ID for Richardson number
+  INTEGER             :: rho_m2D_varid     !> ID for flow density
+  INTEGER             :: red_grav2D_varid  !> ID for reduced gravity
+  INTEGER             :: muEff_varid       !> ID for effective mu
+  
+  INTEGER             :: nc_time_idx       !< Counter for time
+  CHARACTER(LEN=128)  :: nc_filename       !< NetCDF file name
   
   NAMELIST / run_parameters / run_name , restart , t_start , t_end , dt_output ,&
        output_cons_flag , output_esri_flag , output_phys_flag ,                 &
@@ -6688,8 +6706,10 @@ CONTAINS
     END IF
 
     OPEN(dakota_unit,FILE='runout.txt',status='replace',form='formatted')
-    WRITE(dakota_unit,'(A18,F12.3)') 'maximum runout =', MAX(old_runout,dist(imax(1),imax(2)) - init_runout)
-    WRITE(dakota_unit,'(A18,F12.3)') 'final runout =', dist(imax(1),imax(2)) - init_runout
+    WRITE(dakota_unit,'(A18,F12.3)') 'maximum runout =',                        &
+         MAX(old_runout,dist(imax(1),imax(2)) - init_runout)
+    WRITE(dakota_unit,'(A18,F12.3)') 'final runout =', dist(imax(1),imax(2)) -  &
+         init_runout
 
     CLOSE(dakota_unit)
 
@@ -6740,7 +6760,7 @@ CONTAINS
 
   END SUBROUTINE output_runout
 
-! ============================================================================
+  ! ============================================================================
   ! ===== NETCDF SUBROUTINES (Minimal version for b and w) =====================
   ! ============================================================================
 
@@ -6754,9 +6774,20 @@ CONTAINS
     USE geometry_2d, ONLY: comp_cells_x, comp_cells_y, x_comp, y_comp
     IMPLICIT NONE
 
+    INTEGER :: i
+    CHARACTER(LEN=4) :: idx_string
+
+    ALLOCATE(solid_varid(n_solid))
+    ALLOCATE(gas_varid(n_add_gas))
+    ALLOCATE(stoch_varid(n_stoch_vars))
+    ALLOCATE(pore_varid(n_pore_vars))
+    ALLOCATE(deposit_varid(n_solid))
+    ALLOCATE(erosion_varid(n_solid))
+    
     ! Set the output filename
     nc_filename = TRIM(run_name) // '.nc'
-    IF (verbose_level >= 0) WRITE(*,*) 'Initializing NetCDF output file: ', TRIM(nc_filename)
+    IF (verbose_level >= 0) WRITE(*,*) 'Initializing NetCDF output file: ',     &
+         TRIM(nc_filename)
 
     ! Create the file, overwriting it if it already exists
     CALL check( nf90_create(nc_filename, nf90_clobber + nf90_netcdf4, ncid) )
@@ -6766,33 +6797,178 @@ CONTAINS
     CALL check( nf90_def_dim(ncid, 'x',    comp_cells_x, dimids(1)) )
     CALL check( nf90_def_dim(ncid, 'y',    comp_cells_y, dimids(2)) )
     CALL check( nf90_def_dim(ncid, 'time', NF90_UNLIMITED, dimids(3)) )
-
+    
     ! --- Define Coordinate Variables ---
     CALL check( nf90_def_var(ncid, 'x',    nf90_double, [dimids(1)], x_varid) )
     CALL check( nf90_def_var(ncid, 'y',    nf90_double, [dimids(2)], y_varid) )
     CALL check( nf90_def_var(ncid, 'time', nf90_double, [dimids(3)], t_varid) )
-
+    
     ! Assign attributes to the coordinate variables
     CALL check( nf90_put_att(ncid, x_varid, 'units', 'meters') )
     CALL check( nf90_put_att(ncid, y_varid, 'units', 'meters') )
     CALL check( nf90_put_att(ncid, t_varid, 'units', 'seconds') )
+    
     CALL check( nf90_put_att(ncid, x_varid, 'long_name', 'x-coordinate') )
     CALL check( nf90_put_att(ncid, y_varid, 'long_name', 'y-coordinate') )
+    CALL check( nf90_put_att(ncid, t_varid, 'long_name', 'time') )
 
     ! --- Define Data Variables: b , h and w ---
     ! We pass the full 'dimids' array (x, y, time) because these are 3D variables
-    CALL check( nf90_def_var(ncid, 'b', nf90_double, dimids, b_varid, deflate_level=5) )
+    CALL check( nf90_def_var(ncid, 'b', nf90_double, dimids, b_varid,           &
+         deflate_level=5, shuffle=.true.) )
     CALL check( nf90_put_att(ncid, b_varid, 'units', 'meters') )
     CALL check( nf90_put_att(ncid, b_varid, 'long_name', 'bed elevation') )
 
-    CALL check( nf90_def_var(ncid, 'h', nf90_double, dimids, h_varid, deflate_level=5) )
+    CALL check( nf90_def_var(ncid, 'h', nf90_double, dimids, h_varid,           &
+         deflate_level=5, shuffle=.true.) )
     CALL check( nf90_put_att(ncid, h_varid, 'units', 'meters') )
-    CALL check( nf90_put_att(ncid, h_varid, 'long_name', 'bed elevation') )
+    CALL check( nf90_put_att(ncid, h_varid, 'long_name', 'flow thickness') )
 
-    CALL check( nf90_def_var(ncid, 'w', nf90_double, dimids, w_varid, deflate_level=5) )
+    CALL check( nf90_def_var(ncid, 'w', nf90_double, dimids, w_varid,           &
+         deflate_level=5, shuffle=.true.) )
     CALL check( nf90_put_att(ncid, w_varid, 'units', 'meters') )
-    CALL check( nf90_put_att(ncid, w_varid, 'long_name', 'free surface elevation') )
+    CALL check( nf90_put_att(ncid, w_varid, 'long_name',                        &
+         'free surface elevation') )
+    
+    CALL check( nf90_def_var(ncid, 'u', nf90_double, dimids, u_varid,           &
+         deflate_level=5, shuffle=.true.) )
+    CALL check( nf90_put_att(ncid, u_varid, 'units', 'meters/seconds') )
+    CALL check( nf90_put_att(ncid, u_varid, 'long_name',                        &
+         'velocity x-component') )
 
+    CALL check( nf90_def_var(ncid, 'v', nf90_double, dimids, v_varid,           &
+         deflate_level=5, shuffle=.true.) )
+    CALL check( nf90_put_att(ncid, v_varid, 'units', 'meters/seconds') )
+    CALL check( nf90_put_att(ncid, v_varid, 'long_name',                        &
+         'velocity y-component') )
+
+    CALL check( nf90_def_var(ncid, 'T', nf90_double, dimids, Temp_varid,        &
+         deflate_level=5, shuffle=.true.) )
+    CALL check( nf90_put_att(ncid, Temp_varid, 'units', 'kelvin') )
+    CALL check( nf90_put_att(ncid, Temp_varid, 'long_name', 'flow temperature') )
+
+    DO i = 1, n_solid
+
+       WRITE(idx_string,'(I2.2)') i
+
+       CALL check( nf90_def_var(ncid, 'solid_frac_'//trim(idx_string),          &
+            nf90_double, dimids, solid_varid(i), deflate_level=5,               &
+            shuffle=.true.) )
+       CALL check( nf90_put_att(ncid, solid_varid(i), 'units', '') )
+       CALL check( nf90_put_att(ncid, solid_varid(i), 'long_name',              &
+            'volume fraction of solid class '//TRIM(idx_string)) )
+
+       CALL check( nf90_def_var(ncid, 'deposit__'//trim(idx_string),            &
+            nf90_double, dimids, deposit_varid(i), deflate_level=5,             &
+            shuffle=.true.) )
+       CALL check( nf90_put_att(ncid, deposit_varid(i), 'units', 'meters') )
+       CALL check( nf90_put_att(ncid, deposit_varid(i), 'long_name',            &
+            'deposit thickness of solid class '//TRIM(idx_string)) )
+
+       CALL check( nf90_def_var(ncid, 'erosion_'//trim(idx_string),             &
+            nf90_double, dimids, erosion_varid(i), deflate_level=5,             &
+            shuffle=.true.) )
+       CALL check( nf90_put_att(ncid, erosion_varid(i), 'units', 'meters') )
+       CALL check( nf90_put_att(ncid, erosion_varid(i), 'long_name',            &
+            'eroded thickness of solid class '//TRIM(idx_string)) )
+       
+    END DO
+
+    DO i = 1, n_add_gas
+
+       WRITE(idx_string,'(I2.2)') i
+
+       CALL check( nf90_def_var(ncid, 'add_gas_frac_'//trim(idx_string),        &
+            nf90_double, dimids, gas_varid(i), deflate_level=5,                 &
+            shuffle=.true.) )
+       CALL check( nf90_put_att(ncid, gas_varid(i), 'units', '') )
+       CALL check( nf90_put_att(ncid, gas_varid(i), 'long_name',                &
+            'volume fraction of additiona gass class '//TRIM(idx_string)) )
+
+    END DO
+
+    IF ( gas_flag .AND. liquid_flag ) THEN
+    
+       CALL check( nf90_def_var(ncid, 'alphal', nf90_double, dimids,            &
+            alphal_varid, deflate_level=5, shuffle=.true.) )
+       CALL check( nf90_put_att(ncid, alphal_varid, 'units', '') )
+       CALL check( nf90_put_att(ncid, alphal_varid, 'long_name',                &
+            'liquid volume fraction') )
+
+    END IF
+       
+    DO i = 1, n_stoch_vars
+
+       WRITE(idx_string,'(I2.2)') i
+
+       CALL check( nf90_def_var(ncid, 'Zs_'//trim(idx_string), nf90_double,     &
+            dimids, stoch_varid(i), deflate_level=5, shuffle=.true.) )
+       CALL check( nf90_put_att(ncid, stoch_varid(i), 'units', '') )
+       CALL check( nf90_put_att(ncid, stoch_varid(i), 'long_name',              &
+            'stochastic variable '//TRIM(idx_string)) )
+
+    END DO
+
+    DO i = 1, n_pore_vars
+
+       WRITE(idx_string,'(I2.2)') i
+
+       CALL check( nf90_def_var(ncid, 'PorePres_'//trim(idx_string),            &
+            nf90_double, dimids, pore_varid(i), deflate_level=5,                &
+            shuffle=.true.) )
+       CALL check( nf90_put_att(ncid, pore_varid(i), 'units', 'Pa') )
+       CALL check( nf90_put_att(ncid, pore_varid(i), 'long_name',               &
+            'pore pressure '//TRIM(idx_string)) )
+
+    END DO
+
+    CALL check( nf90_def_var(ncid, 'hMax', nf90_double, dimids, hMax_varid,     &
+         deflate_level=5, shuffle=.true.) )
+    CALL check( nf90_put_att(ncid, hMax_varid, 'units', 'meters') )
+    CALL check( nf90_put_att(ncid, hMax_varid, 'long_name',                     &
+         'max flow thickness') )
+
+    CALL check( nf90_def_var(ncid, 'pDynMax', nf90_double, dimids,              &
+         pDynMax_varid, deflate_level=5, shuffle=.true.) )
+    CALL check( nf90_put_att(ncid, pDynMax_varid, 'units', 'Pa') )
+    CALL check( nf90_put_att(ncid, pDynMax_varid, 'long_name',                  &
+         'max dynamic pressure') )
+
+    CALL check( nf90_def_var(ncid, 'modVelMax', nf90_double, dimids,            &
+         modVelMax_varid, deflate_level=5, shuffle=.true.) )
+    CALL check( nf90_put_att(ncid, modVelMax_varid, 'units', 'm/s') )
+    CALL check( nf90_put_att(ncid, modVelMax_varid, 'long_name',                &
+         'max velocity magnitude') )
+
+    CALL check( nf90_def_var(ncid, 'Ri', nf90_double, dimids, Ri2D_varid,       &
+         deflate_level=5, shuffle=.true.) )
+    CALL check( nf90_put_att(ncid, Ri2D_varid, 'units', '') )
+    CALL check( nf90_put_att(ncid, Ri2D_varid, 'long_name',                     &
+         'Richardson number') )
+
+    CALL check( nf90_def_var(ncid, 'rhomix', nf90_double, dimids,               &
+         rho_m2D_varid, deflate_level=5, shuffle=.true.) )
+    CALL check( nf90_put_att(ncid, rho_m2D_varid, 'units', 'kg/m3') )
+    CALL check( nf90_put_att(ncid, rho_m2D_varid, 'long_name',                  &
+         'mixture density') )
+    
+    CALL check( nf90_def_var(ncid, 'red grav', nf90_double, dimids,             &
+         red_grav2D_varid, deflate_level=5, shuffle=.true.) )
+    CALL check( nf90_put_att(ncid, rho_m2D_varid, 'units', 'm2/s') )
+    CALL check( nf90_put_att(ncid, red_grav2D_varid, 'long_name',               &
+         'reduced gravity') )
+
+    IF ( (rheology_flag) .AND. ( rheology_model .EQ. 1 ) ) THEN
+
+       CALL check( nf90_def_var(ncid, 'mu eff', nf90_double, dimids,            &
+            muEff_varid, deflate_level=5, shuffle=.true.) )
+       CALL check( nf90_put_att(ncid, muEff_varid, 'units', '') )
+       CALL check( nf90_put_att(ncid, muEff_varid, 'long_name',                 &
+            'effective mu') )
+
+    END IF
+       
+    
     ! End define mode. This writes the header to the file.
     CALL check( nf90_enddef(ncid) )
 
@@ -6802,6 +6978,9 @@ CONTAINS
 
     ! Initialize the time record counter
     nc_time_idx = 1
+
+    RETURN
+
   END SUBROUTINE init_netcdf_output
 
   !******************************************************************************
@@ -6810,24 +6989,86 @@ CONTAINS
   SUBROUTINE write_netcdf_timestep(time_in)
     USE netcdf
     USE geometry_2d, ONLY: B_cent, comp_cells_x, comp_cells_y
+    USE geometry_2d, ONLY: deposit , erosion , erodible 
     USE parameters_2d , ONLY : n_vars
-    USE solver_2d, ONLY : qp
-    
+    USE solver_2d, ONLY : qp , hmax , pdynmax , mod_vel_max
+
+    USE constitutive_2d, ONLY : mixt_var    
+
     IMPLICIT NONE
     REAL(wp), INTENT(IN) :: time_in
     
     INTEGER :: start(3), count(3)
-    REAL(wp), ALLOCATABLE :: w_grid(:,:)
 
+    INTEGER :: i, j, k
+    CHARACTER(LEN=4) :: idx_string
+
+    INTEGER :: start1d(1), count1d(1)
+
+    LOGICAL :: sp_flag
+    
+    REAL(wp) :: r_Ri, r_rho_m, r_rho_c, r_red_grav, r_sp_heat_c,       &
+         r_sp_heat_mix
+    
+    REAL(wp), ALLOCATABLE :: frac(:,:)
+    REAL(wp), ALLOCATABLE :: Ri2D(:,:) , rho_m2D(:,:) , red_grav2D(:,:)
+    REAL(wp), ALLOCATABLE :: muEff(:,:)
+    
+    sp_flag = .FALSE.
+
+    ALLOCATE(Ri2D(SIZE(qp,2), SIZE(qp,3)))
+    ALLOCATE(rho_m2D(SIZE(qp,2), SIZE(qp,3)))
+    ALLOCATE(red_grav2D(SIZE(qp,2), SIZE(qp,3)))
+
+    Ri2D = 0.0_wp
+    rho_m2D = 0.0_wp
+    red_grav2D = 0.0_wp
+
+    DO k = 1,comp_cells_y
+       
+       DO j = 1,comp_cells_x
+          
+          IF ( qp(1,j,k) .GT. 0.0_wp ) THEN
+             
+             CALL mixt_var(qp(1:n_vars+2,j,k), r_Ri, r_rho_m, r_rho_c, r_red_grav, &
+                  sp_flag, r_sp_heat_c, r_sp_heat_mix)
+             
+          ELSE
+
+             r_Ri = 0.0_wp
+             r_rho_m = 0.0_wp
+             r_rho_c = 0.0_wp
+             r_red_grav = 0.0_wp
+             r_sp_heat_c = 0.0_wp
+             r_sp_heat_mix = 0.0_wp
+                          
+          END IF
+
+          Ri2D(j,k) = r_Ri
+          rho_m2D(j,k) = r_rho_m
+          red_grav2D(j,k) = r_red_grav
+          
+       END DO
+
+    END DO
+
+    ALLOCATE(frac(SIZE(qp,2), SIZE(qp,3)))
+
+    frac = 0.0_wp   ! inizializza a zero
+
+    start1d = (/ nc_time_idx /)
+    count1d = (/ 1 /)
+    
     WRITE(*,*) 'Writing ',nc_filename
+    WRITE(*,*) 'time_in ',time_in,start1d,count1d
     
     ! Write the time value for the current record (as a one-element array)
-    CALL check( nf90_put_var(ncid, t_varid, [time_in], start=[nc_time_idx]) )
-    
+    CALL check( nf90_put_var(ncid, t_varid, (/ time_in /), start=start1d, count=count1d) )   
+
     ! Set up the start and count arrays to write a 2D slice
     start = (/ 1, 1, nc_time_idx /)
     count = (/ comp_cells_x, comp_cells_y, 1 /)
-    
+
     ! Write the bed topography (b)
     CALL check( nf90_put_var(ncid, b_varid, B_cent, start=start, count=count) )
 
@@ -6835,14 +7076,162 @@ CONTAINS
     CALL check( nf90_put_var(ncid, h_varid, qp(1,:,:), start=start, count=count))
 
     ! Calculate and write the free surface elevation (w = h + b)
-    ALLOCATE(w_grid(comp_cells_x, comp_cells_y))
-    w_grid = qp(1,:,:) + B_cent(:,:)
-    CALL check( nf90_put_var(ncid, w_varid, w_grid, start=start, count=count) )
-    DEALLOCATE(w_grid)
+    CALL check( nf90_put_var(ncid, w_varid,  qp(1,:,:) + B_cent(:,:),           &
+         start=start, count=count) )
+
+    ! Write the velocity x-component (u)
+    CALL check( nf90_put_var(ncid, u_varid, qp(n_vars+1,:,:), start=start,      &
+         count=count))
+   
+    ! Write the velocity y-component (v)
+    CALL check( nf90_put_var(ncid, v_varid, qp(n_vars+2,:,:), start=start,      &
+         count=count))
+
+    ! Write the flow temperature (T)
+    CALL check( nf90_put_var(ncid, Temp_varid, qp(4,:,:), start=start,          &
+         count=count) )
+
+    ! Write solid fractions
+    DO i = 1, n_solid
+       
+       IF ( alpha_flag ) THEN
+          
+          WHERE (qp(1,:,:) /= 0.0_wp)
+             frac = qp(4+i,:,:)
+          END WHERE
+          
+       ELSE
+          
+          WHERE (qp(1,:,:) /= 0.0_wp)
+             frac = qp(4+i,:,:) / qp(1,:,:)
+          END WHERE
+          
+       END IF
+       
+       CALL check( nf90_put_var(ncid, solid_varid(i), frac, start=start,        &
+            count=count) )
+
+       CALL check( nf90_put_var(ncid, deposit_varid(i), deposit(:,:,i),         &
+            start=start, count=count) )
+
+       CALL check( nf90_put_var(ncid, erosion_varid(i), erosion(:,:,i),         &
+            start=start, count=count) )
+              
+    END DO
+       
+    ! Write add gas fractions
+    DO i = 1, n_add_gas
+
+       IF ( alpha_flag ) THEN
+          
+          WHERE (qp(1,:,:) /= 0.0_wp)
+             frac = qp(4+n_solid+i,:,:)
+          END WHERE
+          
+       ELSE
+          
+          WHERE (qp(1,:,:) /= 0.0_wp)
+             frac = qp(4+n_solid+i,:,:) / qp(1,:,:)
+          END WHERE
+          
+       END IF      
+
+       CALL check( nf90_put_var(ncid, gas_varid(i), qp(4+n_solid+i,:,:),     &
+            start=start, count=count) )
+    END DO
+    
+    IF ( gas_flag .AND. liquid_flag ) THEN
+
+       IF ( alpha_flag ) THEN
+          
+          WHERE (qp(1,:,:) /= 0.0_wp)
+             frac = qp(n_vars,:,:)
+          END WHERE
+          
+       ELSE
+          
+          WHERE (qp(1,:,:) /= 0.0_wp)
+             frac = qp(n_vars,:,:) / qp(1,:,:)
+          END WHERE
+          
+       END IF
+       
+       ! Write the liquid volume fraction (alphal)
+       CALL check( nf90_put_var(ncid, alphal_varid, frac, start=start,          &
+            count=count) )
+       
+    END IF
+          
+    ! Write stochastic variable
+    DO i = 1, n_stoch_vars
+       CALL check( nf90_put_var(ncid, stoch_varid(i),                           &
+            qp(4+n_solid+n_add_gas+i,:,:), start=start, count=count) )
+    END DO
+
+    ! Write pore pressure variable
+    DO i = 1, n_pore_vars
+       CALL check( nf90_put_var(ncid, pore_varid(i),                            &
+            qp(4+n_solid+n_add_gas+n_stoch_vars+i,:,:), start=start,            &
+            count=count) )
+    END DO
+
+    ! Write the max thickness (hMax)
+    CALL check( nf90_put_var(ncid, hMax_varid, hmax, start=start, count=count) )
+
+    ! Write the max dynamic pressure (pdynmax)
+    CALL check( nf90_put_var(ncid, PDynMax_varid, pdynmax, start=start,         &
+         count=count) )
+
+    ! Write the max velocity magnitude
+    CALL check( nf90_put_var(ncid, ModVelMax_varid, mod_vel_max, start=start,   &
+         count=count) )
+
+    ! Write the Richardson number
+    CALL check( nf90_put_var(ncid, Ri2D_varid, Ri2D, start=start, count=count) )
+
+    ! Write the mixture density
+    CALL check( nf90_put_var(ncid, rho_m2D_varid, rho_m2D, start=start,         &
+         count=count) )
+
+    ! Write the reduced gravity
+    CALL check( nf90_put_var(ncid, red_grav2D_varid, red_grav2D, start=start,   &
+         count=count) )
+
+    IF ( (rheology_flag) .AND. ( rheology_model .EQ. 1 ) ) THEN
+
+       ALLOCATE(muEff(SIZE(qp,2), SIZE(qp,3)))
+
+       muEff = 0.0_wp
+          
+       WHERE ( ( rho_m2D(:,:) * qp(1,:,:) * red_grav2D(:,:) ) /= 0.0_wp)
+                 
+          muEff = mu * MAX( 0.0_wp , ( 1.0_wp - MAX( 0.0_wp,                    &
+               ( qp(4+n_solid+n_add_gas+n_stoch_vars+1,:,:) - pres ) )          &
+               / ( rho_m2D(:,:) * qp(1,:,:) * red_grav2D(:,:) ) ) )
+
+          !muEff = MAX( 0.0_wp,                    &
+          !     ( qp(4+n_solid+n_add_gas+n_stoch_vars+1,:,:) - pres ) ) / &
+          !     ( rho_m2D(:,:) * qp(1,:,:) * red_grav2D(:,:) )
+          
+          
+       END WHERE
+       
+       ! Write the effective mu
+       CALL check( nf90_put_var(ncid, muEff_varid, muEff, start=start,          &
+            count=count) )
+
+       DEALLOCATE( muEff)
+       
+    END IF
     
     ! Increment the time record counter for the next write operation
     nc_time_idx = nc_time_idx + 1
-        
+
+    DEALLOCATE( Ri2D , rho_m2D , red_grav2D )
+    DEALLOCATE( frac )
+    
+    RETURN
+    
   END SUBROUTINE write_netcdf_timestep
 
   !******************************************************************************
