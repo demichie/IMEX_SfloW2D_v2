@@ -7007,13 +7007,14 @@ CONTAINS
 
     LOGICAL :: sp_flag
     
-    REAL(wp) :: r_Ri, r_rho_m, r_rho_c, r_red_grav, r_sp_heat_c,       &
-         r_sp_heat_mix
+    REAL(wp) :: r_Ri, r_rho_m, r_rho_c, r_red_grav, r_sp_heat_c, r_sp_heat_mix
     
     REAL(wp), ALLOCATABLE :: temp_array(:,:)
     REAL(wp), ALLOCATABLE :: Ri2D(:,:) , rho_m2D(:,:) , red_grav2D(:,:)
     REAL(wp), ALLOCATABLE :: muEff(:,:)
-    
+
+    WRITE(*,*) 'Writing ',nc_filename
+       
     sp_flag = .FALSE.
 
     ALLOCATE(Ri2D(SIZE(qp,2), SIZE(qp,3)))
@@ -7030,8 +7031,8 @@ CONTAINS
           
           IF ( qp(1,j,k) .GT. 0.0_wp ) THEN
              
-             CALL mixt_var(qp(1:n_vars+2,j,k), r_Ri, r_rho_m, r_rho_c, r_red_grav, &
-                  sp_flag, r_sp_heat_c, r_sp_heat_mix)
+             CALL mixt_var(qp(1:n_vars+2,j,k), r_Ri, r_rho_m, r_rho_c,          &
+                  r_red_grav, sp_flag, r_sp_heat_c, r_sp_heat_mix)
              
           ELSE
 
@@ -7059,11 +7060,9 @@ CONTAINS
     start1d = (/ nc_time_idx /)
     count1d = (/ 1 /)
     
-    WRITE(*,*) 'Writing ',nc_filename
-    WRITE(*,*) 'time_in ',time_in,start1d,count1d
-
     ! Write the time value for the current record (as a one-element array)
-    CALL check( nf90_put_var(ncid, t_varid, (/ time_in /), start=start1d, count=count1d) )   
+    CALL check( nf90_put_var(ncid, t_varid, (/ time_in /), start=start1d,       &
+         count=count1d) )   
 
     ! Set up the start and count arrays to write a 2D slice
     start = (/ 1, 1, nc_time_idx /)
@@ -7078,8 +7077,8 @@ CONTAINS
     temp_array(:,:) =  qp(1,:,:) + B_cent(:,:)
     
     ! Calculate and write the free surface elevation (w = h + b)
-    CALL check( nf90_put_var(ncid, w_varid, temp_array,           &
-         start=start, count=count) )
+    CALL check( nf90_put_var(ncid, w_varid, temp_array, start=start,            &
+         count=count) )
 
     temp_array = 0.0_wp   ! inizializza a zero
     
@@ -7112,7 +7111,7 @@ CONTAINS
           
        END IF
        
-       CALL check( nf90_put_var(ncid, solid_varid(i), temp_array, start=start,        &
+       CALL check( nf90_put_var(ncid, solid_varid(i), temp_array, start=start,  &
             count=count) )
 
        CALL check( nf90_put_var(ncid, deposit_varid(i), deposit(:,:,i),         &
@@ -7142,7 +7141,7 @@ CONTAINS
           
        END IF      
 
-       CALL check( nf90_put_var(ncid, gas_varid(i), qp(4+n_solid+i,:,:),     &
+       CALL check( nf90_put_var(ncid, gas_varid(i), qp(4+n_solid+i,:,:),        &
             start=start, count=count) )
     END DO
 
@@ -7165,7 +7164,7 @@ CONTAINS
        END IF
        
        ! Write the liquid volume fraction (alphal)
-       CALL check( nf90_put_var(ncid, alphal_varid, temp_array, start=start,          &
+       CALL check( nf90_put_var(ncid, alphal_varid, temp_array, start=start,    &
             count=count) )
        
     END IF
@@ -7218,11 +7217,6 @@ CONTAINS
           muEff = mu * MAX( 0.0_wp , ( 1.0_wp - MAX( 0.0_wp,                    &
                ( qp(4+n_solid+n_add_gas+n_stoch_vars+1,:,:) - pres ) )          &
                / ( rho_m2D(:,:) * qp(1,:,:) * red_grav2D(:,:) ) ) )
-
-          !muEff = MAX( 0.0_wp,                    &
-          !     ( qp(4+n_solid+n_add_gas+n_stoch_vars+1,:,:) - pres ) ) / &
-          !     ( rho_m2D(:,:) * qp(1,:,:) * red_grav2D(:,:) )
-          
           
        END WHERE
        
