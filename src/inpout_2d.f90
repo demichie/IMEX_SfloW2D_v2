@@ -6896,7 +6896,7 @@ CONTAINS
             'liquid volume fraction') )
 
     END IF
-       
+
     DO i = 1, n_stoch_vars
 
        WRITE(idx_string,'(I2.2)') i
@@ -7010,7 +7010,7 @@ CONTAINS
     REAL(wp) :: r_Ri, r_rho_m, r_rho_c, r_red_grav, r_sp_heat_c,       &
          r_sp_heat_mix
     
-    REAL(wp), ALLOCATABLE :: frac(:,:)
+    REAL(wp), ALLOCATABLE :: temp_array(:,:)
     REAL(wp), ALLOCATABLE :: Ri2D(:,:) , rho_m2D(:,:) , red_grav2D(:,:)
     REAL(wp), ALLOCATABLE :: muEff(:,:)
     
@@ -7052,16 +7052,16 @@ CONTAINS
 
     END DO
 
-    ALLOCATE(frac(SIZE(qp,2), SIZE(qp,3)))
+    ALLOCATE(temp_array(SIZE(qp,2), SIZE(qp,3)))
 
-    frac = 0.0_wp   ! inizializza a zero
+    temp_array = 0.0_wp   ! inizializza a zero
 
     start1d = (/ nc_time_idx /)
     count1d = (/ 1 /)
     
     WRITE(*,*) 'Writing ',nc_filename
     WRITE(*,*) 'time_in ',time_in,start1d,count1d
-    
+
     ! Write the time value for the current record (as a one-element array)
     CALL check( nf90_put_var(ncid, t_varid, (/ time_in /), start=start1d, count=count1d) )   
 
@@ -7075,10 +7075,14 @@ CONTAINS
     ! Write the flow thickness (h)
     CALL check( nf90_put_var(ncid, h_varid, qp(1,:,:), start=start, count=count))
 
+    temp_array(:,:) =  qp(1,:,:) + B_cent(:,:)
+    
     ! Calculate and write the free surface elevation (w = h + b)
-    CALL check( nf90_put_var(ncid, w_varid,  qp(1,:,:) + B_cent(:,:),           &
+    CALL check( nf90_put_var(ncid, w_varid, temp_array,           &
          start=start, count=count) )
 
+    temp_array = 0.0_wp   ! inizializza a zero
+    
     ! Write the velocity x-component (u)
     CALL check( nf90_put_var(ncid, u_varid, qp(n_vars+1,:,:), start=start,      &
          count=count))
@@ -7097,18 +7101,18 @@ CONTAINS
        IF ( alpha_flag ) THEN
           
           WHERE (qp(1,:,:) /= 0.0_wp)
-             frac = qp(4+i,:,:)
+             temp_array = qp(4+i,:,:)
           END WHERE
           
        ELSE
           
           WHERE (qp(1,:,:) /= 0.0_wp)
-             frac = qp(4+i,:,:) / qp(1,:,:)
+             temp_array = qp(4+i,:,:) / qp(1,:,:)
           END WHERE
           
        END IF
        
-       CALL check( nf90_put_var(ncid, solid_varid(i), frac, start=start,        &
+       CALL check( nf90_put_var(ncid, solid_varid(i), temp_array, start=start,        &
             count=count) )
 
        CALL check( nf90_put_var(ncid, deposit_varid(i), deposit(:,:,i),         &
@@ -7118,20 +7122,22 @@ CONTAINS
             start=start, count=count) )
               
     END DO
-       
+
+    temp_array = 0.0_wp   ! inizializza a zero
+    
     ! Write add gas fractions
     DO i = 1, n_add_gas
 
        IF ( alpha_flag ) THEN
           
           WHERE (qp(1,:,:) /= 0.0_wp)
-             frac = qp(4+n_solid+i,:,:)
+             temp_array = qp(4+n_solid+i,:,:)
           END WHERE
           
        ELSE
           
           WHERE (qp(1,:,:) /= 0.0_wp)
-             frac = qp(4+n_solid+i,:,:) / qp(1,:,:)
+             temp_array = qp(4+n_solid+i,:,:) / qp(1,:,:)
           END WHERE
           
        END IF      
@@ -7139,29 +7145,33 @@ CONTAINS
        CALL check( nf90_put_var(ncid, gas_varid(i), qp(4+n_solid+i,:,:),     &
             start=start, count=count) )
     END DO
+
+    temp_array = 0.0_wp   ! inizializza a zero
     
     IF ( gas_flag .AND. liquid_flag ) THEN
 
        IF ( alpha_flag ) THEN
           
           WHERE (qp(1,:,:) /= 0.0_wp)
-             frac = qp(n_vars,:,:)
+             temp_array = qp(n_vars,:,:)
           END WHERE
           
        ELSE
           
           WHERE (qp(1,:,:) /= 0.0_wp)
-             frac = qp(n_vars,:,:) / qp(1,:,:)
+             temp_array = qp(n_vars,:,:) / qp(1,:,:)
           END WHERE
           
        END IF
        
        ! Write the liquid volume fraction (alphal)
-       CALL check( nf90_put_var(ncid, alphal_varid, frac, start=start,          &
+       CALL check( nf90_put_var(ncid, alphal_varid, temp_array, start=start,          &
             count=count) )
        
     END IF
-          
+
+    temp_array = 0.0_wp   ! inizializza a zero
+  
     ! Write stochastic variable
     DO i = 1, n_stoch_vars
        CALL check( nf90_put_var(ncid, stoch_varid(i),                           &
@@ -7223,12 +7233,12 @@ CONTAINS
        DEALLOCATE( muEff)
        
     END IF
-    
+
     ! Increment the time record counter for the next write operation
     nc_time_idx = nc_time_idx + 1
 
     DEALLOCATE( Ri2D , rho_m2D , red_grav2D )
-    DEALLOCATE( frac )
+    DEALLOCATE( temp_array )
     
     RETURN
     
