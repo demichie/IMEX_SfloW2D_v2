@@ -222,6 +222,9 @@ MODULE constitutive_2d
 
   REAL(wp) :: hydraulic_permeability
 
+  REAL(wp) :: residual_alpha
+
+
   INTERFACE u_log_profile    ! Define generic function
      MODULE PROCEDURE u_log_profile_scalar
      MODULE PROCEDURE u_log_profile_array
@@ -3418,11 +3421,12 @@ CONTAINS
             gas_compressibility )
 
        ! Equation 12 from Gueugneau et al, 2017
-       IF ( ( REAL(exc_pore_pres(1)) .GT. 0.0_wp ) .AND. ( REAL(h) .GT. 0.0_wp) ) THEN
+       IF ( ( REAL(exc_pore_pres(1)) .GT. 0.0_wp )                              &
+            .AND. ( REAL(h) .GT. 0.0_wp) ) THEN
 
-          source_term(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas +       &
-               n_stoch_vars+n_pore_vars) = - rho_m * ( pi_g / 2.0_wp )**2 * D_coeff *      &
-               exc_pore_pres / MAX(h_threshold,h) 
+          source_term(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas +    &
+               n_stoch_vars+n_pore_vars) = - rho_m * ( pi_g / 2.0_wp )**2 *     &
+               D_coeff / MAX(h_threshold,h) * exc_pore_pres 
           
        END IF
           
@@ -3617,8 +3621,8 @@ CONTAINS
 
                 ! See Eq. (2) Gueugneau et al. 2017, GRL
                 ! add the contribution of pore pressure ( with coeff for slope)
-                temp_term = MAX(0.0_wp, temp_term - mu * grav_coeff *           &
-                     MAX( 0.0_wp, exc_pore_pres(1) ) )
+                temp_term = MAX(0.0_wp, temp_term - mu * grav_coeff             &
+                     * exc_pore_pres(1) )
 
              END IF
 
@@ -3925,6 +3929,7 @@ CONTAINS
     REAL(wp) :: dep_coeff(n_solid)
 
     REAL(wp) :: pore_pressure_term
+    REAL(wp) :: alpha_g
 
     erosion_term(1:n_solid) = 0.0_wp
     deposition_term(1:n_solid) = 0.0_wp
@@ -4128,21 +4133,26 @@ CONTAINS
     continuous_phase_loss_term =  continuous_phase_loss_term +                  &
          coeff_porosity * SUM( deposition_term(1:n_solid) )
 
- 
     IF ( pore_pressure_flag ) THEN
+       
+       alpha_g = 1.0_wp - alphas_tot
+       
+       IF ( alpha_g .GT. residual_alpha ) THEN 
+          
+          pore_pressure_term = hydraulic_permeability /                         &
+               ( kin_visc_a * r_rho_c ) / MAX(1.e-5,r_h) * 0.5_wp * pi_g *      &
+               r_exc_pore_pres(1)
+          
+          continuous_phase_loss_term = continuous_phase_loss_term +             &
+               pore_pressure_term
+          
+       END IF
 
-       pore_pressure_term = hydraulic_permeability /                            &
-            ( kin_visc_a * r_rho_c ) / MAX(1.e-2,r_h) * 0.5_wp * pi_g *         &
-            ( r_exc_pore_pres(1) + pres )
-
-       continuous_phase_loss_term = continuous_phase_loss_term +                &
-            pore_pressure_term
-           
     END IF   
 
     ! limit the loss accountaing for available continuous phase
     continuous_phase_loss_term = MIN( continuous_phase_loss_term ,              &
-         r_h * MAX( 0.0_wp , ( 1.0_wp - SUM(r_alphas) -0.3_wp ) ) / dt )
+         r_h * MAX( 0.0_wp , ( 1.0_wp - SUM(r_alphas) - residual_alpha ) ) / dt )
 
     ! loss of continuous phase cannot 
     continuous_phase_loss_term = MIN( continuous_phase_loss_term ,              &

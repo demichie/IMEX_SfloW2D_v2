@@ -109,6 +109,7 @@ MODULE inpout_2d
 
   ! --- Variables for the namelist PORE_PRESSURE_PARAMETERS
   USE constitutive_2d, ONLY : hydraulic_permeability
+  USE constitutive_2d, ONLY : residual_alpha
   USE parameters_2d, ONLY : pore_pres_fract
   
   IMPLICIT NONE
@@ -355,7 +356,8 @@ MODULE inpout_2d
        mean_field_flag, output_stoch_vars_flag, sym_noise, std_max,             &
        tau_stochastic, length_spatial_corr, noise_pow_val, stoch_transport_flag 
 
-  NAMELIST / pore_pressure_parameters / hydraulic_permeability, pore_pres_fract
+  NAMELIST / pore_pressure_parameters / hydraulic_permeability, pore_pres_fract,&
+       residual_alpha
   
 CONTAINS
 
@@ -494,7 +496,8 @@ CONTAINS
     !-- Inizialization of the Variables for the namelist PORE_PRESSURE_PARAMETERS
     hydraulic_permeability = 0.0_wp
     pore_pres_fract = -1.0_wp
-    
+    residual_alpha = 0.3_wp
+
     !-------------- Check if input file exists ----------------------------------
     input_file = 'IMEX_SfloW2D.inp'
 
@@ -820,7 +823,8 @@ CONTAINS
     !-- Variable for the namelist PORE_PRESSURE_PARAMETERS
     hydraulic_permeability = 0.0_wp
     pore_pres_fract = -1.0_wp
-    
+    residual_alpha = 0.3_wp
+
   END SUBROUTINE init_param
 
   !******************************************************************************
@@ -7237,6 +7241,8 @@ CONTAINS
 
     ! Increment the time record counter for the next write operation
     nc_time_idx = nc_time_idx + 1
+
+    CALL check( nf90_sync(ncid) )
 
     DEALLOCATE( Ri2D , rho_m2D , red_grav2D )
     DEALLOCATE( temp_array )
