@@ -15,6 +15,13 @@ To compile the code you need a Fortran compiler and the NetCDF library for Fortr
 > 
 > conda activate fortran_env
 
+or, on a osx computer:
+
+> conda create -n fortran_env conda-forge::gfortran make conda-forge::netcdf-fortran conda-forge::liblapack conda-forge::libblas
+> 
+> conda activate fortran_env
+
+
 To compile:
 
 > autoreconf -i
