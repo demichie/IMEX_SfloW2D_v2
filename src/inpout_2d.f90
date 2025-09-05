@@ -7222,7 +7222,7 @@ CONTAINS
        WHERE ( ( rho_m2D(:,:) * qp(1,:,:) * red_grav2D(:,:) ) /= 0.0_wp)
                  
           muEff = mu * MAX( 0.0_wp , ( 1.0_wp - MAX( 0.0_wp,                    &
-               ( qp(4+n_solid+n_add_gas+n_stoch_vars+1,:,:) - pres ) )          &
+               qp(4+n_solid+n_add_gas+n_stoch_vars+1,:,:) )                     &
                / ( rho_m2D(:,:) * qp(1,:,:) * red_grav2D(:,:) ) ) )
           
        END WHERE
