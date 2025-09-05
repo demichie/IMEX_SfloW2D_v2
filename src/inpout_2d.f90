@@ -5680,7 +5680,7 @@ CONTAINS
                      + n_stoch_vars)
                 
                 pore_pres(1:n_pore_vars) = qp(5+n_solid+n_add_gas+n_stoch_vars: &
-                     4+n_solid+n_add_gas+n_stoch_vars+n_pore_vars)
+                     4+n_solid+n_add_gas+n_stoch_vars+n_pore_vars) + pres
 
 
                 IF ( (rheology_flag) .AND. ( rheology_model .EQ. 1 ) ) THEN
@@ -5703,7 +5703,7 @@ CONTAINS
                 r_alphal = 0.0_wp
 
                 Zs(1:n_stoch_vars) = 0.0_wp
-                pore_pres(1:n_pore_vars) = 0.0_wp
+                pore_pres(1:n_pore_vars) = pres
                 mu_eff = 0.0_wp
                 
              END IF
@@ -7177,13 +7177,20 @@ CONTAINS
             qp(4+n_solid+n_add_gas+i,:,:), start=start, count=count) )
     END DO
 
+    temp_array = pres   ! initialize with atmospheric pressure
+
+    WHERE (qp(1,:,:) /= 0.0_wp)
+       temp_array = qp(4+n_solid+n_add_gas+n_stoch_vars+i,:,:) + pres
+    END WHERE
+    
     ! Write pore pressure variable
     DO i = 1, n_pore_vars
-       CALL check( nf90_put_var(ncid, pore_varid(i),                            &
-            qp(4+n_solid+n_add_gas+n_stoch_vars+i,:,:), start=start,            &
+       CALL check( nf90_put_var(ncid, pore_varid(i), temp_array, start=start,   &
             count=count) )
     END DO
 
+    temp_array = 0.0_wp   ! reset to zero
+    
     ! Write the max thickness (hMax)
     CALL check( nf90_put_var(ncid, hMax_varid, hmax, start=start, count=count) )
 
