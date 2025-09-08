@@ -8,7 +8,7 @@ AC_CONFIG_SRCDIR([src/IMEX_SfloW2D.f90])
 AC_PROG_FC
 
 # automake initialization (mandatory) including a check for automake API version >= 1.9
-AM_INIT_AUTOMAKE([1.9])
+AM_INIT_AUTOMAKE([1.9 foreign])
 
 # files to generate via autotools (prepare .am or .in source files)
 AC_CONFIG_FILES([Makefile])
