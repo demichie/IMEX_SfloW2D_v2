@@ -29,6 +29,6 @@ LIBS            = -lm -llapack -L@NETCDF@/lib -lnetcdff
 FC              = gfortran
 MPFC            = gfortran
 LINKER          = gfortran
-NETCDF = /opt/homebrew/Cellar/netcdf-fortran/4.6.1_1
+NETCDF = @NETCDF@
 
 
