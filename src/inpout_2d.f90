@@ -109,6 +109,7 @@ MODULE inpout_2d
 
   ! --- Variables for the namelist PORE_PRESSURE_PARAMETERS
   USE constitutive_2d, ONLY : hydraulic_permeability
+  USE constitutive_2d, ONLY : residual_alpha
   USE parameters_2d, ONLY : pore_pres_fract
   
   IMPLICIT NONE
@@ -355,7 +356,8 @@ MODULE inpout_2d
        mean_field_flag, output_stoch_vars_flag, sym_noise, std_max,             &
        tau_stochastic, length_spatial_corr, noise_pow_val, stoch_transport_flag 
 
-  NAMELIST / pore_pressure_parameters / hydraulic_permeability, pore_pres_fract
+  NAMELIST / pore_pressure_parameters / hydraulic_permeability, pore_pres_fract,&
+       residual_alpha
   
 CONTAINS
 
@@ -494,7 +496,8 @@ CONTAINS
     !-- Inizialization of the Variables for the namelist PORE_PRESSURE_PARAMETERS
     hydraulic_permeability = 0.0_wp
     pore_pres_fract = -1.0_wp
-    
+    residual_alpha = 0.3_wp
+
     !-------------- Check if input file exists ----------------------------------
     input_file = 'IMEX_SfloW2D.inp'
 
@@ -820,7 +823,8 @@ CONTAINS
     !-- Variable for the namelist PORE_PRESSURE_PARAMETERS
     hydraulic_permeability = 0.0_wp
     pore_pres_fract = -1.0_wp
-    
+    residual_alpha = 0.3_wp
+
   END SUBROUTINE init_param
 
   !******************************************************************************
@@ -5680,7 +5684,7 @@ CONTAINS
                      + n_stoch_vars)
                 
                 pore_pres(1:n_pore_vars) = qp(5+n_solid+n_add_gas+n_stoch_vars: &
-                     4+n_solid+n_add_gas+n_stoch_vars+n_pore_vars)
+                     4+n_solid+n_add_gas+n_stoch_vars+n_pore_vars) + pres
 
 
                 IF ( (rheology_flag) .AND. ( rheology_model .EQ. 1 ) ) THEN
@@ -5703,7 +5707,7 @@ CONTAINS
                 r_alphal = 0.0_wp
 
                 Zs(1:n_stoch_vars) = 0.0_wp
-                pore_pres(1:n_pore_vars) = 0.0_wp
+                pore_pres(1:n_pore_vars) = pres
                 mu_eff = 0.0_wp
                 
              END IF
@@ -7177,13 +7181,20 @@ CONTAINS
             qp(4+n_solid+n_add_gas+i,:,:), start=start, count=count) )
     END DO
 
+    temp_array = pres   ! initialize with atmospheric pressure
+
+    WHERE (qp(1,:,:) /= 0.0_wp)
+       temp_array = qp(4+n_solid+n_add_gas+n_stoch_vars+i,:,:) + pres
+    END WHERE
+    
     ! Write pore pressure variable
     DO i = 1, n_pore_vars
-       CALL check( nf90_put_var(ncid, pore_varid(i),                            &
-            qp(4+n_solid+n_add_gas+n_stoch_vars+i,:,:), start=start,            &
+       CALL check( nf90_put_var(ncid, pore_varid(i), temp_array, start=start,   &
             count=count) )
     END DO
 
+    temp_array = 0.0_wp   ! reset to zero
+    
     ! Write the max thickness (hMax)
     CALL check( nf90_put_var(ncid, hMax_varid, hmax, start=start, count=count) )
 
@@ -7215,7 +7226,7 @@ CONTAINS
        WHERE ( ( rho_m2D(:,:) * qp(1,:,:) * red_grav2D(:,:) ) /= 0.0_wp)
                  
           muEff = mu * MAX( 0.0_wp , ( 1.0_wp - MAX( 0.0_wp,                    &
-               ( qp(4+n_solid+n_add_gas+n_stoch_vars+1,:,:) - pres ) )          &
+               qp(4+n_solid+n_add_gas+n_stoch_vars+1,:,:) )                     &
                / ( rho_m2D(:,:) * qp(1,:,:) * red_grav2D(:,:) ) ) )
           
        END WHERE
@@ -7230,6 +7241,8 @@ CONTAINS
 
     ! Increment the time record counter for the next write operation
     nc_time_idx = nc_time_idx + 1
+
+    CALL check( nf90_sync(ncid) )
 
     DEALLOCATE( Ri2D , rho_m2D , red_grav2D )
     DEALLOCATE( temp_array )

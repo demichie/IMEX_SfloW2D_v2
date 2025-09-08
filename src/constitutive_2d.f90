@@ -222,6 +222,9 @@ MODULE constitutive_2d
 
   REAL(wp) :: hydraulic_permeability
 
+  REAL(wp) :: residual_alpha
+
+
   INTERFACE u_log_profile    ! Define generic function
      MODULE PROCEDURE u_log_profile_scalar
      MODULE PROCEDURE u_log_profile_array
@@ -413,7 +416,7 @@ CONTAINS
   !******************************************************************************
 
   SUBROUTINE r_phys_var(r_qj , r_h , r_u , r_v , r_alphas , r_rho_m , r_T ,     &
-       r_alphal , r_alphag , r_red_grav , p_dyn , r_Zs , r_pore_pres)
+       r_alphal , r_alphag , r_red_grav , p_dyn , r_Zs , r_exc_pore_pres)
 
     USE geometry_2d, ONLY : lambertw , lambertw0 , lambertwm1
     USE geometry_2d, ONLY : z_quad , w_quad
@@ -433,7 +436,7 @@ CONTAINS
     REAL(wp), INTENT(OUT) :: r_red_grav        !< real-value reduced gravity
     REAL(wp), INTENT(OUT) :: p_dyn
     REAL(wp), INTENT(OUT) :: r_Zs(n_stoch_vars)!< real-value stochastic variable
-    REAL(wp), INTENT(OUT) :: r_pore_pres(n_pore_vars)       !< real-value pore pressure
+    REAL(wp), INTENT(OUT) :: r_exc_pore_pres(n_pore_vars)       !< real-value pore pressure
 
     REAL(wp) :: r_inv_rhom
     REAL(wp) :: r_xs(n_solid)     !< real-value solid mass fractions
@@ -517,7 +520,7 @@ CONTAINS
        r_Zs(1:n_stoch_vars) = r_qj(5+n_solid+n_add_gas :                        &
             4+n_solid+n_add_gas+n_stoch_vars) * inv_qj1
        
-       r_pore_pres(1:n_pore_vars) = r_qj(5+n_solid+n_add_gas+n_stoch_vars :     &
+       r_exc_pore_pres(1:n_pore_vars) = r_qj(5+n_solid+n_add_gas+n_stoch_vars : &
             4+n_solid+n_add_gas+n_stoch_vars+n_pore_vars) * inv_qj1
        
     ELSE
@@ -534,7 +537,7 @@ CONTAINS
        r_rho_c = rho_a_amb
        p_dyn = 0.0_wp
        r_Zs = 0.0_wp
-       r_pore_pres = 0.0_wp
+       r_exc_pore_pres = 0.0_wp
 
        RETURN
 
@@ -996,7 +999,7 @@ CONTAINS
   !******************************************************************************
 
   SUBROUTINE c_phys_var( c_qj , h , u , v , T , rho_m , alphas , alphag ,       &
-       inv_rhom , Zs , pore_pres )
+       inv_rhom , Zs , exc_pore_pres )
 
     USE COMPLEXIFY
     USE parameters_2d, ONLY : eps_sing , eps_sing4
@@ -1011,8 +1014,8 @@ CONTAINS
     COMPLEX(wp), INTENT(OUT) :: alphas(n_solid) !< sediment volume fractions
     COMPLEX(wp), INTENT(OUT) :: alphag(n_solid) !< sediment volume fractions
     COMPLEX(wp), INTENT(OUT) :: inv_rhom        !< 1/mixture density [kg-1 m3]
-    COMPLEX(wp), INTENT(OUT) :: Zs(n_stoch_vars) !< real-value stochastic variable
-    COMPLEX(wp), INTENT(OUT) :: pore_pres(n_pore_vars)       !< real-value pore pressure
+    COMPLEX(wp), INTENT(OUT) :: Zs(n_stoch_vars) !< stochastic variable
+    COMPLEX(wp), INTENT(OUT) :: exc_pore_pres(n_pore_vars)       !< excess pore pressure
 
     COMPLEX(wp) :: xs(n_solid)             !< sediment mass fractions
     COMPLEX(wp) :: xg(n_add_gas)           !< additional gas comp. mass fractions
@@ -1037,7 +1040,7 @@ CONTAINS
        Zs(1:n_stoch_vars) = c_qj(5+n_solid+n_add_gas :                          &
             4+n_solid+n_add_gas+n_stoch_vars) * inv_cqj1
 
-       pore_pres(1:n_pore_vars) = c_qj(5+n_solid+n_add_gas+n_stoch_vars :      &
+       exc_pore_pres(1:n_pore_vars) = c_qj(5+n_solid+n_add_gas+n_stoch_vars :   &
             4+n_solid+n_add_gas+n_stoch_vars+n_pore_vars) * inv_cqj1    
        
     ELSE
@@ -1051,7 +1054,7 @@ CONTAINS
        alphag = CMPLX(0.0_wp,0.0_wp,wp)
        inv_rhom = 1.0_wp / rho_m
        Zs = 0.0_wp
-       pore_pres = 0.0_wp
+       exc_pore_pres = 0.0_wp
 
        RETURN       
 
@@ -1481,10 +1484,10 @@ CONTAINS
     REAL(wp) :: r_alphag(n_add_gas) !< real-value add. gas volume fractions
     REAL(wp) :: r_red_grav
     REAL(wp) :: r_Zs(n_stoch_vars)!< real-value stochastic variable
-    REAL(wp) :: r_pore_pres(n_pore_vars)       !< real-value pore pressure
+    REAL(wp) :: r_exc_pore_pres(n_pore_vars)  !< real-value pore pressure
 
     CALL r_phys_var( qc , r_h , r_u , r_v , r_alphas , r_rho_m , r_T ,          &
-         r_alphal , r_alphag , r_red_grav , p_dyn , r_Zs , r_pore_pres )
+         r_alphal , r_alphag , r_red_grav , p_dyn , r_Zs , r_exc_pore_pres )
 
     qp(1) = r_h
 
@@ -1511,7 +1514,7 @@ CONTAINS
          r_Zs(1:n_stoch_vars)
 
     qp(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas+n_stoch_vars+       &
-         n_pore_vars) = r_pore_pres(1:n_pore_vars)
+         n_pore_vars) = r_exc_pore_pres(1:n_pore_vars)
     
     qp(n_vars+1) = r_u
     qp(n_vars+2) = r_v
@@ -1582,7 +1585,7 @@ CONTAINS
     REAL(wp) :: r_xg(n_add_gas)   !< real-value add.gas mass fractions
 
     REAL(wp) :: r_Zs(n_stoch_vars)!< real-value stochastic variable
-    REAL(wp) :: r_pore_pres(n_pore_vars)       !< real-value pore pressure
+    REAL(wp) :: r_exc_pore_pres(n_pore_vars)    !< real-value pore pressure
     
     REAL(wp) :: r_alphas_rhos(n_solid)
     REAL(wp) :: r_alphag_rhog(n_add_gas)
@@ -1792,7 +1795,7 @@ CONTAINS
     r_Zs(1:n_stoch_vars) = qp(5+n_solid+n_add_gas:4+n_solid+n_add_gas +         &
          n_stoch_vars)
         
-    r_pore_pres(1:n_pore_vars) = qp(5+n_solid+n_add_gas+n_stoch_vars:           &
+    r_exc_pore_pres(1:n_pore_vars) = qp(5+n_solid+n_add_gas+n_stoch_vars:       &
          4+n_solid+n_add_gas+n_stoch_vars+n_pore_vars)
     
     qc(1) = r_rho_m * r_h
@@ -1948,7 +1951,7 @@ CONTAINS
          r_Zs(1:n_stoch_vars) * qc(1)
     
     qc(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas+n_stoch_vars+       &
-         n_pore_vars) =  r_pore_pres(1:n_pore_vars) * qc(1)
+         n_pore_vars) =  r_exc_pore_pres(1:n_pore_vars) * qc(1)
     
     
     IF ( gas_flag .AND. liquid_flag ) qc(n_vars) = r_xl * qc(1)
@@ -3166,7 +3169,7 @@ CONTAINS
 
     COMPLEX(wp) :: Zs(n_stoch_vars)
 
-    COMPLEX(wp) :: pore_pres(n_pore_vars)
+    COMPLEX(wp) :: exc_pore_pres(n_pore_vars)
 
     COMPLEX(wp) :: D_coeff(n_pore_vars)
     REAL(wp) :: gamma_gas
@@ -3200,7 +3203,8 @@ CONTAINS
 
     IF (rheology_flag) THEN
 
-       CALL c_phys_var(qj,h,u,v,T,rho_m,alphas,alphag,inv_rho_m,Zs,pore_pres)
+       CALL c_phys_var(qj,h,u,v,T,rho_m,alphas,alphag,inv_rho_m,Zs,             &
+            exc_pore_pres)
        
        IF ( slope_correction_flag ) THEN
 
@@ -3417,11 +3421,12 @@ CONTAINS
             gas_compressibility )
 
        ! Equation 12 from Gueugneau et al, 2017
-       IF ( ( REAL(pore_pres(1) - pres) .GT. 0.0_wp ) .AND. ( REAL(h) .GT. 0.0_wp) ) THEN
+       IF ( ( REAL(exc_pore_pres(1)) .GT. 0.0_wp )                              &
+            .AND. ( REAL(h) .GT. 0.0_wp) ) THEN
 
-          source_term(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas +       &
-               n_stoch_vars+n_pore_vars) = - rho_m * ( pi_g / 2.0_wp )**2 * D_coeff *      &
-               ( pore_pres - pres ) / MAX(h_threshold,h) 
+          source_term(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas +    &
+               n_stoch_vars+n_pore_vars) = - rho_m * ( pi_g / 2.0_wp )**2 *     &
+               D_coeff / MAX(h_threshold,h) * exc_pore_pres 
           
        END IF
           
@@ -3524,7 +3529,7 @@ CONTAINS
     REAL(wp) :: r_sp_heat_c
     REAL(wp) :: r_sp_heat_mix
 
-    REAL(wp) :: pore_pres(n_pore_vars)       !< pore pressure
+    REAL(wp) :: exc_pore_pres(n_pore_vars)       !< excess pore pressure
 
     sp_heat_flag = .FALSE.
 
@@ -3595,8 +3600,8 @@ CONTAINS
 
                 ! See Eq. (3) Xia & Liang, 2018 Eng.Geol.   
                 ! centrifugal force term: (u,v)^T*Hessian*(u,v)
-                centr_force_term = Bsecondj_xx * r_u**2 + 2.0_wp * Bsecondj_xy * r_u *   &
-                     r_v + Bsecondj_yy * r_v**2
+                centr_force_term = Bsecondj_xx * r_u**2 + 2.0_wp * Bsecondj_xy  &
+                     * r_u * r_v + Bsecondj_yy * r_v**2
 
              ELSE
 
@@ -3610,13 +3615,14 @@ CONTAINS
 
              IF ( pore_pressure_flag ) THEN
 
-                pore_pres(1:n_pore_vars) = qpj(5+n_solid+n_add_gas+n_stoch_vars:&
+                exc_pore_pres(1:n_pore_vars) =                                  &
+                     qpj(5+n_solid+n_add_gas+n_stoch_vars:                      &
                      4+n_solid+n_add_gas+n_stoch_vars+n_pore_vars)
 
                 ! See Eq. (2) Gueugneau et al. 2017, GRL
                 ! add the contribution of pore pressure ( with coeff for slope)
-                temp_term = MAX(0.0_wp, temp_term - mu * grav_coeff *           &
-                     MAX( 0.0_wp, ( pore_pres(1) - pres ) ) )
+                temp_term = MAX(0.0_wp, temp_term - mu * grav_coeff             &
+                     * exc_pore_pres(1) )
 
              END IF
 
@@ -3882,7 +3888,7 @@ CONTAINS
     REAL(wp) :: r_T          !< real-value mixture temperature [K]
     REAL(wp) :: r_rho_m      !< real-value mixture density [kg/m3]
     REAL(wp) :: r_Zs(n_stoch_vars)!< real-value stochastic variable
-    REAL(wp) :: r_pore_pres(n_pore_vars)       !< real-value pore pressure
+    REAL(wp) :: r_exc_pore_pres(n_pore_vars)       !< real-value excess p pres
 
     REAL(wp) :: tot_erosion  !< total erosion rate [m/s]
     REAL(wp) :: tot_solid_erosion !< total solid erosion rate [m/s]
@@ -3923,6 +3929,7 @@ CONTAINS
     REAL(wp) :: dep_coeff(n_solid)
 
     REAL(wp) :: pore_pressure_term
+    REAL(wp) :: alpha_g
 
     erosion_term(1:n_solid) = 0.0_wp
     deposition_term(1:n_solid) = 0.0_wp
@@ -3964,7 +3971,7 @@ CONTAINS
     r_Zs(1:n_stoch_vars) = qpj(5+n_solid+n_add_gas:4+n_solid+n_add_gas +        &
          n_stoch_vars)
     
-    r_pore_pres(1:n_pore_vars) = qpj(5+n_solid+n_add_gas+n_stoch_vars:          &
+    r_exc_pore_pres(1:n_pore_vars) = qpj(5+n_solid+n_add_gas+n_stoch_vars:      &
          4+n_solid+n_add_gas+n_stoch_vars+n_pore_vars)
 
     
@@ -4126,21 +4133,26 @@ CONTAINS
     continuous_phase_loss_term =  continuous_phase_loss_term +                  &
          coeff_porosity * SUM( deposition_term(1:n_solid) )
 
- 
     IF ( pore_pressure_flag ) THEN
+       
+       alpha_g = 1.0_wp - alphas_tot
+       
+       IF ( alpha_g .GT. residual_alpha ) THEN 
+          
+          pore_pressure_term = hydraulic_permeability /                         &
+               ( kin_visc_a * r_rho_c ) / MAX(1.e-5,r_h) * 0.5_wp * pi_g *      &
+               r_exc_pore_pres(1)
+          
+          continuous_phase_loss_term = continuous_phase_loss_term +             &
+               pore_pressure_term
+          
+       END IF
 
-       pore_pressure_term = hydraulic_permeability /                            &
-            ( kin_visc_a * r_rho_c ) / MAX(1.e-2,r_h) * 0.5_wp * pi_g *         &
-            r_pore_pres(1) 
-
-       continuous_phase_loss_term = continuous_phase_loss_term +                &
-            pore_pressure_term
-           
     END IF   
 
     ! limit the loss accountaing for available continuous phase
     continuous_phase_loss_term = MIN( continuous_phase_loss_term ,              &
-         r_h * MAX( 0.0_wp , ( 1.0_wp - SUM(r_alphas) -0.3_wp ) ) / dt )
+         r_h * MAX( 0.0_wp , ( 1.0_wp - SUM(r_alphas) - residual_alpha ) ) / dt )
 
     ! loss of continuous phase cannot 
     continuous_phase_loss_term = MIN( continuous_phase_loss_term ,              &
@@ -4242,7 +4254,7 @@ CONTAINS
          eqns_term(1) * r_Zs(1:n_stoch_vars)
     
     eqns_term(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas+n_stoch_vars+&
-         n_pore_vars) = eqns_term(1) * r_pore_pres(1:n_pore_vars)
+         n_pore_vars) = eqns_term(1) * r_exc_pore_pres(1:n_pore_vars)
           
     ! erodible layer thickness source terms [m s-1]:
     ! due to erosion and deposition of solid+continuous phase
