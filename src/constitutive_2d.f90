@@ -222,8 +222,8 @@ MODULE constitutive_2d
 
   REAL(wp) :: hydraulic_permeability
 
-  REAL(wp) :: residual_alpha
-
+  REAL(wp) :: maximum_solid_packing
+  
 
   INTERFACE u_log_profile    ! Define generic function
      MODULE PROCEDURE u_log_profile_scalar
@@ -2844,6 +2844,10 @@ CONTAINS
 
     REAL(wp) :: qp_source(n_vars+2)
 
+    REAL(wp) :: exc_pore_pres(n_pore_vars)
+
+    REAL(wp) :: q1
+    
     LOGICAL :: sp_heat_flag
 
     sp_heat_flag = .TRUE.
@@ -2860,6 +2864,8 @@ CONTAINS
     CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav,sp_heat_flag,r_sp_heat_c, &
          r_sp_heat_mix)
 
+    q1 = r_h * r_rho_m
+        
     IF ( curvature_term_flag ) THEN
 
        centr_force_term = Bsecondj_xx * r_u**2 + 2.0_wp*Bsecondj_xy*r_u * r_v + &
@@ -2985,17 +2991,20 @@ CONTAINS
 
     END IF
 
+    ! source terms for the solid equations
     expl_term(5:4+n_solid) = expl_term(5:4+n_solid) + t_coeff                   &
          * h_dot * alphas_source(1:n_solid) * rho_s(1:n_solid)
 
     r_rho_g(1:n_add_gas) = pres / ( sp_gas_const_g(1:n_add_gas) * t_source )
 
+    ! source terms for the additional gas equations
     expl_term(4+n_solid+1:4+n_solid+n_add_gas) =                                &
          expl_term(4+n_solid+1:4+n_solid+n_add_gas) + t_coeff                   &
          * h_dot * alphag_source(1:n_add_gas) * r_rho_g(1:n_add_gas)
 
     IF ( gas_flag .AND. liquid_flag ) THEN
 
+       ! source term for the liquid phase
        expl_term(n_vars) = expl_term(n_vars) + t_coeff * h_dot * alphal_source  &
             * rho_l
 
@@ -3003,12 +3012,17 @@ CONTAINS
 
     IF ( pore_pressure_flag ) THEN
 
+       exc_pore_pres(1:n_pore_vars) =                                           &
+            qpj(5+n_solid+n_add_gas+n_stoch_vars:                               &
+            4+n_solid+n_add_gas+n_stoch_vars+n_pore_vars)
+       
        ! we multiply the pore pressure inlet rate by the rate for q1
-       expl_term(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas +       &
-            n_stoch_vars+n_pore_vars) = expl_term(5+n_solid+n_add_gas +       &
-            n_stoch_vars:4+n_solid+n_add_gas + n_stoch_vars+n_pore_vars) +    &
-            t_coeff * cell_fract_jk * vel_source * r_rho_m * grav *           &
-            pore_pres_fract * ( h_dot * r_rho_m )
+       ! the units of this source term are: kg^2 m^-3 s^-3
+       expl_term(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas +        &
+            n_stoch_vars+n_pore_vars) = expl_term(5+n_solid+n_add_gas +        &
+            n_stoch_vars:4+n_solid+n_add_gas + n_stoch_vars+n_pore_vars) +     &
+            t_coeff * ( pore_pres_fract * h_dot * q1 * r_rho_m *  &
+            r_red_grav + exc_pore_pres(1) * h_dot * r_rho_m )
 
     END IF
     
@@ -3178,6 +3192,7 @@ CONTAINS
     COMPLEX(wp) :: rho_gas
 
     COMPLEX(wp) :: porosity
+    COMPLEX(wp) :: f_inhibit
     
     IF ( present(c_qj) .AND. present(c_nh_term_impl) ) THEN
 
@@ -3424,9 +3439,12 @@ CONTAINS
        IF ( ( REAL(exc_pore_pres(1)) .GT. 0.0_wp )                              &
             .AND. ( REAL(h) .GT. 0.0_wp) ) THEN
 
+          f_inhibit = MAX(0.0_wp , 1.0_wp - ( SUM(alphas) /                    &
+                CMPLX(maximum_solid_packing,0.0_wp,wp) ) )
+          
           source_term(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas +    &
                n_stoch_vars+n_pore_vars) = - rho_m * ( pi_g / 2.0_wp )**2 *     &
-               D_coeff / MAX(h_threshold,h) * exc_pore_pres 
+               D_coeff / MAX(h_threshold,h) * exc_pore_pres !* f_inhibit
           
        END IF
           
@@ -3929,7 +3947,8 @@ CONTAINS
     REAL(wp) :: dep_coeff(n_solid)
 
     REAL(wp) :: pore_pressure_term
-    REAL(wp) :: alpha_g
+    REAL(wp) :: f_inhibit
+    REAL(wp) :: vel_loss_gas
 
     erosion_term(1:n_solid) = 0.0_wp
     deposition_term(1:n_solid) = 0.0_wp
@@ -4135,13 +4154,15 @@ CONTAINS
 
     IF ( pore_pressure_flag ) THEN
        
-       alpha_g = 1.0_wp - alphas_tot
-       
-       IF ( alpha_g .GT. residual_alpha ) THEN 
+       IF ( alphas_tot .LT. maximum_solid_packing ) THEN 
           
-          pore_pressure_term = hydraulic_permeability /                         &
+          f_inhibit = 1.0_wp - ( alphas_tot / maximum_solid_packing )
+
+          vel_loss_gas =  hydraulic_permeability /                              &
                ( kin_visc_a * r_rho_c ) / MAX(1.e-5,r_h) * 0.5_wp * pi_g *      &
                r_exc_pore_pres(1)
+
+          pore_pressure_term = vel_loss_gas * f_inhibit
           
           continuous_phase_loss_term = continuous_phase_loss_term +             &
                pore_pressure_term
@@ -4150,9 +4171,9 @@ CONTAINS
 
     END IF   
 
-    ! limit the loss accountaing for available continuous phase
+    ! limit the loss accountaing for maximum solid packing
     continuous_phase_loss_term = MIN( continuous_phase_loss_term ,              &
-         r_h * MAX( 0.0_wp , ( 1.0_wp - SUM(r_alphas) - residual_alpha ) ) / dt )
+         r_h * MAX( 0.0_wp , maximum_solid_packing - SUM(r_alphas) ) / dt )
 
     ! loss of continuous phase cannot 
     continuous_phase_loss_term = MIN( continuous_phase_loss_term ,              &
@@ -4252,7 +4273,8 @@ CONTAINS
     ! (if transport flag is false nothing is done)
     eqns_term(5+n_solid+n_add_gas:4+n_solid+n_add_gas+n_stoch_vars) =           &
          eqns_term(1) * r_Zs(1:n_stoch_vars)
-    
+
+    ! Equation for q1*exc_pore_press
     eqns_term(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas+n_stoch_vars+&
          n_pore_vars) = eqns_term(1) * r_exc_pore_pres(1:n_pore_vars)
           

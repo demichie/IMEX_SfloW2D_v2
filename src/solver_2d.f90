@@ -1002,6 +1002,8 @@ CONTAINS
 
   SUBROUTINE imex_RK_solver
 
+    USE constitutive_2d, ONLY : maximum_solid_packing
+    
     USE constitutive_2d, ONLY : eval_implicit_terms
 
     USE constitutive_2d, ONLY : eval_nh_semi_impl_terms
@@ -1014,6 +1016,8 @@ CONTAINS
 
     USE geometry_2d, ONLY : B_nodata
 
+    USE parameters_2d, ONLY : alpha_flag
+    
 !!$    USE parameters_2d, ONLY : time_param , bottom_radial_source_flag
     
     IMPLICIT NONE
@@ -1025,6 +1029,8 @@ CONTAINS
 
     REAL(wp) :: p_dyn
 
+    REAL(wp) :: alpha_s
+    
     IF ( verbose_level .GE. 1 ) WRITE(*,*) 'solver, imex_RK_solver: beginning'
 
     !$OMP PARALLEL
@@ -1428,6 +1434,69 @@ CONTAINS
 
        CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
 
+       IF ( qp(1,j,k) .GT. 1.e-10_wp ) THEN
+       
+          IF ( alpha_flag ) THEN
+             
+             alpha_s = SUM(qp(5:4+n_solid,j,k))
+             
+          ELSE
+             
+             alpha_s = SUM(qp(5:4+n_solid,j,k)) / qp(1,j,k)
+             
+          END IF
+
+       ELSE
+
+          alpha_s = 0.0_wp
+
+       END IF
+          
+       IF ( alpha_s .GT. maximum_solid_packing ) THEN
+
+          IF ( ( alpha_s - maximum_solid_packing ) .LT. 1.e-4_wp ) THEN 
+
+             q(5:4+n_solid,j,k) = q(5:4+n_solid,j,k) * maximum_solid_packing / alpha_s
+                
+          ELSE
+          
+             WRITE(*,*) 'j,k',j,k
+             WRITE(*,*) 'alpha_s',alpha_s
+             
+             WRITE(*,*) 'before imex_RK_solver: qc',q0(1:n_vars,j,k)
+             WRITE(*,*) 'after imex_RK_solver: qc',q(1:n_vars,j,k)
+             
+             CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
+             WRITE(*,*) 'before imex_RK_solver: qp',qp(1:n_vars+2,j,k)
+             
+             CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
+             WRITE(*,*) 'after imex_RK_solver: qp',qp(1:n_vars+2,j,k)
+             
+             WRITE(*,*) 'H_interface(1)'
+             WRITE(*,*) H_interface_x(1,j+1,k)/dx*dt, H_interface_x(1,j,k)/dx*dt
+             WRITE(*,*) H_interface_y(1,j,k+1)/dy*dt, H_interface_y(1,j,k)/dy*dt
+             
+             WRITE(*,*) 'H_interface(5)'
+             WRITE(*,*) H_interface_x(5,j+1,k)/dx*dt, H_interface_x(5,j,k)/dx*dt
+             WRITE(*,*) H_interface_y(5,j,k+1)/dy*dt, H_interface_y(5,j,k)/dy*dt
+             
+             WRITE(*,*) 'divFlux(1)',divFlux(1,j,k,1:n_RK)
+             WRITE(*,*) 'expl_terms(1)', expl_terms(1,j,k,1:n_RK)
+             WRITE(*,*) 'NH(1)', NH(1,j,k,1:n_RK)
+             WRITE(*,*) 'SI(1)', SI_NH(1,j,k,1:n_RK) 
+             
+             WRITE(*,*) 'divFlux(5)',divFlux(5,j,k,1:n_RK)
+             WRITE(*,*) 'expl_terms(5)', expl_terms(5,j,k,1:n_RK)
+             WRITE(*,*) 'NH(5)', NH(5,j,k,1:n_RK)
+             WRITE(*,*) 'SI(5)', SI_NH(5,j,k,1:n_RK)
+             
+             READ(*,*)
+
+          END IF
+             
+       END IF
+          
+       
        IF ( qp(4,j,k) .LT. 273.0_wp ) THEN
           
           WRITE(*,*) 'temperature check'
@@ -1448,12 +1517,13 @@ CONTAINS
           READ(*,*)
 
        END IF
-       
-
+          
        IF ( SUM(q(5:4+n_solid,j,k)) .GT. q(1,j,k) ) THEN
 
           IF ( ( (SUM(q(5:4+n_solid,j,k))-q(1,j,k))/q(1,j,k) .LT. 1.0E-10_wp )  &
                .OR. ( q(1,j,k) .LT. epsilon(1.0_wp) ) ) THEN
+
+             CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
 
              q(5:4+n_solid,j,k) = q(5:4+n_solid,j,k)                            &
                   / SUM(q(5:4+n_solid,j,k)) * q(1,j,k)
@@ -1480,6 +1550,26 @@ CONTAINS
                 WRITE(*,*) 'after imex_RK_solver: qp',qp(1:n_vars+2,j,k)
 
              END IF
+
+             WRITE(*,*) 'H_interface(1)'
+             WRITE(*,*) H_interface_x(1,j+1,k)/dx*dt, H_interface_x(1,j,k)/dx*dt
+             WRITE(*,*) H_interface_y(1,j,k+1)/dy*dt, H_interface_y(1,j,k)/dy*dt
+             
+             WRITE(*,*) 'H_interface(5)'
+             WRITE(*,*) H_interface_x(5,j+1,k)/dx*dt, H_interface_x(5,j,k)/dx*dt
+             WRITE(*,*) H_interface_y(5,j,k+1)/dy*dt, H_interface_y(5,j,k)/dy*dt
+
+             WRITE(*,*) 'divFlux(1)',divFlux(1,j,k,1:n_RK)
+             WRITE(*,*) 'expl_terms(1)', expl_terms(1,j,k,1:n_RK)
+             WRITE(*,*) 'NH(1)', NH(1,j,k,1:n_RK)
+             WRITE(*,*) 'SI(1)', SI_NH(1,j,k,1:n_RK) 
+
+             WRITE(*,*) 'divFlux(5)',divFlux(5,j,k,1:n_RK)
+             WRITE(*,*) 'expl_terms(5)', expl_terms(5,j,k,1:n_RK)
+             WRITE(*,*) 'NH(5)', NH(5,j,k,1:n_RK)
+             WRITE(*,*) 'SI(5)', SI_NH(5,j,k,1:n_RK) 
+             
+
              READ(*,*)
 
           END IF
@@ -2252,7 +2342,8 @@ CONTAINS
   SUBROUTINE update_erosion_deposition_cell(dt)
 
     USE constitutive_2d, ONLY : erosion_coeff , settling_flag
-
+    USE constitutive_2d, ONLY : maximum_solid_packing
+    
     USE geometry_2d, ONLY : deposit , erosion , erodible
     USE geometry_2d, ONLY : B_zone
 
@@ -2629,13 +2720,12 @@ CONTAINS
              H_interface_x(4:n_vars,j,k) = 0.0_wp
 
           END IF
-
+               
        END DO
 
        !$OMP END PARALLEL DO
 
     END IF
-
 
     IF ( comp_cells_y .GT. 1 ) THEN
 
@@ -2679,7 +2769,7 @@ CONTAINS
              H_interface_y(4:n_vars,j,k) = 0.0_wp
 
           END IF
-
+          
        END DO
 
        !$OMP END PARALLEL DO
@@ -2747,7 +2837,8 @@ CONTAINS
                B_prime_x(MIN(j,comp_cells_x),MIN(k,comp_cells_y)) ,             &
                B_prime_y(MIN(j,comp_cells_x),MIN(k,comp_cells_y)) ,             &
                grav_coeff_stag_x(j,k) , 1 , fluxR )
-          
+
+          ! First term in Eq. 25 GMD paper
           CALL average_KT( a_interface_xNeg(:,j,k), a_interface_xPos(:,j,k) ,   &
                fluxL , fluxR , flux_avg_x )
 
@@ -2759,6 +2850,7 @@ CONTAINS
 
              ELSE
 
+                ! Eq. 25 from GMD paper
                 H_interface_x(i,j,k) = flux_avg_x(i)                            &
                      + ( a_interface_xPos(i,j,k) * a_interface_xNeg(i,j,k) )    &
                      / ( a_interface_xPos(i,j,k) - a_interface_xNeg(i,j,k) )    &
@@ -2777,14 +2869,12 @@ CONTAINS
              H_interface_x(4:n_vars,j,k) = 0.0_wp
 
           END IF
-
+          
        END DO x_interfaces_loop
-
+       
        !$OMP END DO NOWAIT
 
     END IF
-
-    
 
     IF ( comp_cells_y .GT. 1 ) THEN
 
@@ -2838,7 +2928,7 @@ CONTAINS
           END IF
 
        END DO y_interfaces_loop
-
+       
        !$OMP END DO
 
     END IF
@@ -2948,6 +3038,8 @@ CONTAINS
     USE parameters_2d, ONLY : limiter
 
     ! External variables
+    USE constitutive_2d, ONLY : maximum_solid_packing
+
     USE geometry_2d, ONLY : x_comp , x_stag , y_comp , y_stag , dx2 , dy2
 
     USE geometry_2d, ONLY : sourceW , sourceE , sourceN , sourceS
@@ -2956,6 +3048,7 @@ CONTAINS
     USE geometry_2d, ONLY : sourceN_vect_x , sourceN_vect_y
     USE geometry_2d, ONLY : sourceS_vect_x , sourceS_vect_y
 
+    USE parameters_2d, ONLY : alpha_flag
     USE parameters_2d, ONLY : reconstr_coeff
 
     USE geometry_2d, ONLY : minmod
@@ -3339,18 +3432,6 @@ CONTAINS
              
           ENDIF check_comp_cells_y
 
-!!$          IF ( ( j.EQ.100) .AND. ( k.EQ.100) ) THEN
-!!$
-!!$             WRITE(*,*) 'j,k,i',j,k,i
-!!$             WRITE(*,*) 'qrec_stencil', qrec_stencil
-!!$             WRITE(*,*) 'qrec_prime_y(i)', qrec_prime_y(i)
-!!$             WRITE(*,*) 'qrecS(i)',qrecS(i)
-!!$             WRITE(*,*) 'qrecN(i)',qrecN(i)
-!!$             WRITE(*,*) epsilon(1.0_wp)
-!!$             READ(*,*)
-!!$
-!!$          END IF
-
        ENDDO vars_loop
 
        add_vars_loop:DO i=n_vars+1,n_vars+2
@@ -3563,6 +3644,29 @@ CONTAINS
 
           END IF
 
+          ! Correction for residual volume fraction of continuous phase
+          IF ( alpha_flag ) THEN
+
+             qrecW(5:4+n_solid) = qrecW(5:4+n_solid) *                          &
+                  MIN( 1.0_wp , maximum_solid_packing /                         &
+                  SUM( qrecW(5:4+n_solid) ) )
+
+             qrecE(5:4+n_solid) = qrecE(5:4+n_solid) *                          &
+                  MIN( 1.0_wp , maximum_solid_packing /                         &
+                  SUM( qrecE(5:4+n_solid) ) )
+             
+          ELSE
+             
+             qrecW(5:4+n_solid) = qrecW(5:4+n_solid) *                          &
+                  MIN( 1.0_wp , maximum_solid_packing * qrecW(1) /              &
+                  SUM( qrecW(5:4+n_solid) ) )
+
+             qrecE(5:4+n_solid) = qrecE(5:4+n_solid) *                          &
+                  MIN( 1.0_wp , maximum_solid_packing * qrecE(1) /              &
+                  SUM( qrecE(5:4+n_solid) ) )
+             
+          END IF
+          
           CALL qp_to_qc( qrecW,q_interfaceR(:,j,k) )
           CALL qp_to_qc( qrecE,q_interfaceL(:,j+1,k) )
 
@@ -3661,6 +3765,29 @@ CONTAINS
 
           END IF
 
+          ! Correction for maximum solid packing
+          IF ( alpha_flag ) THEN
+
+             qrecS(5:4+n_solid) = qrecS(5:4+n_solid) *                          &
+                  MIN( 1.0_wp , maximum_solid_packing /                         &
+                  SUM( qrecS(5:4+n_solid) ) )
+
+             qrecN(5:4+n_solid) = qrecN(5:4+n_solid) *                          &
+                  MIN( 1.0_wp , maximum_solid_packing /                         &
+                  SUM( qrecN(5:4+n_solid) ) )
+             
+          ELSE
+             
+             qrecS(5:4+n_solid) = qrecS(5:4+n_solid) *                          &
+                  MIN( 1.0_wp , maximum_solid_packing * qrecS(1) /              &
+                  SUM( qrecS(5:4+n_solid) ) )
+
+             qrecN(5:4+n_solid) = qrecN(5:4+n_solid) *                          &
+                  MIN( 1.0_wp , maximum_solid_packing * qrecN(1) /              &
+                  SUM( qrecN(5:4+n_solid) ) )
+             
+          END IF
+             
           CALL qp_to_qc( qrecS, q_interfaceT(:,j,k) )
           CALL qp_to_qc( qrecN, q_interfaceB(:,j,k+1) )
           

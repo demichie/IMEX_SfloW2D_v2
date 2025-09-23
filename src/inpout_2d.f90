@@ -83,7 +83,8 @@ MODULE inpout_2d
   USE constitutive_2d, ONLY : erodible_fract , T_erodible
   USE constitutive_2d, ONLY : alphastot_min
   USE parameters_2d, ONLY : erodible_deposit_flag
-
+  USE constitutive_2d, ONLY : maximum_solid_packing
+  
   ! --- Variables for the namelist GAS_TRANSPORT_PARAMETERS
   USE constitutive_2d, ONLY : sp_heat_a , sp_gas_const_a , kin_visc_a , pres ,  &
        T_ambient , entrainment_flag , sp_heat_g , sp_gas_const_g , gamma_steam
@@ -109,7 +110,6 @@ MODULE inpout_2d
 
   ! --- Variables for the namelist PORE_PRESSURE_PARAMETERS
   USE constitutive_2d, ONLY : hydraulic_permeability
-  USE constitutive_2d, ONLY : residual_alpha
   USE parameters_2d, ONLY : pore_pres_fract
   
   IMPLICIT NONE
@@ -356,8 +356,7 @@ MODULE inpout_2d
        mean_field_flag, output_stoch_vars_flag, sym_noise, std_max,             &
        tau_stochastic, length_spatial_corr, noise_pow_val, stoch_transport_flag 
 
-  NAMELIST / pore_pressure_parameters / hydraulic_permeability, pore_pres_fract,&
-       residual_alpha
+  NAMELIST / pore_pressure_parameters / hydraulic_permeability, pore_pres_fract
   
 CONTAINS
 
@@ -496,7 +495,6 @@ CONTAINS
     !-- Inizialization of the Variables for the namelist PORE_PRESSURE_PARAMETERS
     hydraulic_permeability = 0.0_wp
     pore_pres_fract = -1.0_wp
-    residual_alpha = 0.3_wp
 
     !-------------- Check if input file exists ----------------------------------
     input_file = 'IMEX_SfloW2D.inp'
@@ -737,7 +735,8 @@ CONTAINS
     erodible_fract = -1.0_wp
     erodible_porosity = -1.0_wp
     alphastot_min = 0.0_wp
-
+    maximum_solid_packing = 0.64_wp
+    
     !- Variables for the namelist RHEOLOGY_PARAMETERS
     xi = -1.0_wp
     mu = -1.0_wp
@@ -823,7 +822,6 @@ CONTAINS
     !-- Variable for the namelist PORE_PRESSURE_PARAMETERS
     hydraulic_permeability = 0.0_wp
     pore_pres_fract = -1.0_wp
-    residual_alpha = 0.3_wp
 
   END SUBROUTINE init_param
 
@@ -892,7 +890,8 @@ CONTAINS
     NAMELIST / solid_transport_parameters / rho_s , diam_s , sp_heat_s ,        &
          erosion_coeff , erodible_porosity , settling_flag , T_erodible ,       &
          erodible_file , erodible_fract , alphastot_min ,                       &
-         initial_erodible_thickness , erodible_deposit_flag
+         initial_erodible_thickness , erodible_deposit_flag ,                   &
+         maximum_solid_packing
 
     NAMELIST / gas_transport_parameters / sp_heat_a, sp_gas_const_a, kin_visc_a,&
          pres , T_ambient , entrainment_flag , sp_heat_g , sp_gas_const_g ,     &
@@ -1395,7 +1394,7 @@ CONTAINS
     erodible_init(:,:) = 0.0E+0_wp
     erodible(1:n_solid,1:comp_cells_x,1:comp_cells_y) = 0.0_wp
     
-    IF ( n_solid .GE. 1 ) THEN
+    read_solid:IF ( n_solid .GE. 1 ) THEN
 
        READ(input_unit, solid_transport_parameters,IOSTAT=ios)
 
@@ -1607,12 +1606,23 @@ CONTAINS
 
        DO i_solid=1,n_solid
 
-          erodible(i_solid,:,:) = erodible_fract(i_solid) *               &
+          erodible(i_solid,:,:) = erodible_fract(i_solid) *                     &
                ( 1.0_wp - erodible_porosity ) * erodible_init(:,:)
           
        END DO
+
        
-    END IF
+       IF ( ( maximum_solid_packing .LE. 0.0_wp ) .OR.                          &
+            ( maximum_solid_packing .GE. 1.0_wp ) ) THEN
+
+          WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
+          WRITE(*,*) 'MAXIMUM_SOLID_PACKING =' , maximum_solid_packing 
+          WRITE(*,*) 'Please check the input file'
+          STOP
+
+       END IF
+       
+    END IF read_solid
 
     n_vars = n_vars + n_solid
     n_eqns = n_vars
@@ -7033,7 +7043,7 @@ CONTAINS
        
        DO j = 1,comp_cells_x
           
-          IF ( qp(1,j,k) .GT. 0.0_wp ) THEN
+          IF ( qp(1,j,k) .GT. 1.0E-10_wp ) THEN
              
              CALL mixt_var(qp(1:n_vars+2,j,k), r_Ri, r_rho_m, r_rho_c,          &
                   r_red_grav, sp_flag, r_sp_heat_c, r_sp_heat_mix)
@@ -7084,8 +7094,6 @@ CONTAINS
     CALL check( nf90_put_var(ncid, w_varid, temp_array, start=start,            &
          count=count) )
 
-    temp_array = 0.0_wp   ! inizializza a zero
-    
     ! Write the velocity x-component (u)
     CALL check( nf90_put_var(ncid, u_varid, qp(n_vars+1,:,:), start=start,      &
          count=count))
@@ -7098,18 +7106,20 @@ CONTAINS
     CALL check( nf90_put_var(ncid, Temp_varid, qp(4,:,:), start=start,          &
          count=count) )
 
+    temp_array = 0.0_wp   ! initialize to zero
+    
     ! Write solid fractions
     DO i = 1, n_solid
        
        IF ( alpha_flag ) THEN
           
-          WHERE (qp(1,:,:) /= 0.0_wp)
+          WHERE (qp(1,:,:) .GE. 1.0E-10_wp)
              temp_array = qp(4+i,:,:)
           END WHERE
           
        ELSE
           
-          WHERE (qp(1,:,:) /= 0.0_wp)
+          WHERE (qp(1,:,:) .GE. 1.0E-10_wp)
              temp_array = qp(4+i,:,:) / qp(1,:,:)
           END WHERE
           
@@ -7126,20 +7136,20 @@ CONTAINS
               
     END DO
 
-    temp_array = 0.0_wp   ! inizializza a zero
+    temp_array = 0.0_wp   ! initialize to zero
     
-    ! Write add gas fractions
+    ! Write additional gas fractions
     DO i = 1, n_add_gas
 
        IF ( alpha_flag ) THEN
-          
-          WHERE (qp(1,:,:) /= 0.0_wp)
+
+          WHERE (qp(1,:,:) .GE. 1.0E-10_wp)          
              temp_array = qp(4+n_solid+i,:,:)
           END WHERE
           
        ELSE
           
-          WHERE (qp(1,:,:) /= 0.0_wp)
+          WHERE (qp(1,:,:) .GE. 1.0E-10_wp)          
              temp_array = qp(4+n_solid+i,:,:) / qp(1,:,:)
           END WHERE
           
@@ -7149,19 +7159,19 @@ CONTAINS
             start=start, count=count) )
     END DO
 
-    temp_array = 0.0_wp   ! inizializza a zero
+    temp_array = 0.0_wp   ! initialize to zero
     
     IF ( gas_flag .AND. liquid_flag ) THEN
 
        IF ( alpha_flag ) THEN
           
-          WHERE (qp(1,:,:) /= 0.0_wp)
+          WHERE (qp(1,:,:) .GE. 1.0E-10_wp)          
              temp_array = qp(n_vars,:,:)
           END WHERE
           
        ELSE
           
-          WHERE (qp(1,:,:) /= 0.0_wp)
+          WHERE (qp(1,:,:) .GE. 1.0E-10_wp)          
              temp_array = qp(n_vars,:,:) / qp(1,:,:)
           END WHERE
           
@@ -7173,7 +7183,7 @@ CONTAINS
        
     END IF
 
-    temp_array = 0.0_wp   ! inizializza a zero
+    temp_array = 0.0_wp   ! initialize to zero
   
     ! Write stochastic variable
     DO i = 1, n_stoch_vars
@@ -7183,7 +7193,7 @@ CONTAINS
 
     temp_array = pres   ! initialize with atmospheric pressure
 
-    WHERE (qp(1,:,:) /= 0.0_wp)
+    WHERE (qp(1,:,:) .GE. 1.0E-10_wp)          
        temp_array = qp(4+n_solid+n_add_gas+n_stoch_vars+i,:,:) + pres
     END WHERE
     
@@ -7223,7 +7233,8 @@ CONTAINS
 
        muEff = 0.0_wp
           
-       WHERE ( ( rho_m2D(:,:) * qp(1,:,:) * red_grav2D(:,:) ) /= 0.0_wp)
+       WHERE ( ( ( rho_m2D(:,:) * qp(1,:,:) * red_grav2D(:,:) ) /= 0.0_wp) .AND.&
+             (qp(1,:,:) .GE. 1.0E-10_wp) )
                  
           muEff = mu * MAX( 0.0_wp , ( 1.0_wp - MAX( 0.0_wp,                    &
                qp(4+n_solid+n_add_gas+n_stoch_vars+1,:,:) )                     &
