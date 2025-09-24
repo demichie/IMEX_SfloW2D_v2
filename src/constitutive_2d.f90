@@ -3021,8 +3021,8 @@ CONTAINS
        expl_term(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas +        &
             n_stoch_vars+n_pore_vars) = expl_term(5+n_solid+n_add_gas +        &
             n_stoch_vars:4+n_solid+n_add_gas + n_stoch_vars+n_pore_vars) +     &
-            t_coeff * ( pore_pres_fract * h_dot * q1 * r_rho_m *  &
-            r_red_grav + exc_pore_pres(1) * h_dot * r_rho_m )
+            t_coeff * ( q1 * pore_pres_fract * h_dot * r_rho_m * r_red_grav +  &
+            exc_pore_pres(1) * h_dot * r_rho_m )
 
     END IF
     
@@ -3869,7 +3869,8 @@ CONTAINS
     USE geometry_2d, ONLY : pi_g
 
     USE parameters_2d, ONLY : erodible_deposit_flag , liquid_vaporization_flag ,&
-         vertical_profiles_flag , bottom_conc_flag , pore_pressure_flag
+         vertical_profiles_flag , bottom_conc_flag , pore_pressure_flag ,       &
+         gas_loss_flag
 
     IMPLICIT NONE
 
@@ -4152,11 +4153,11 @@ CONTAINS
     continuous_phase_loss_term =  continuous_phase_loss_term +                  &
          coeff_porosity * SUM( deposition_term(1:n_solid) )
 
-    IF ( pore_pressure_flag ) THEN
+    IF ( pore_pressure_flag .AND. gas_loss_flag ) THEN
        
        IF ( alphas_tot .LT. maximum_solid_packing ) THEN 
           
-          f_inhibit = 1.0_wp - ( alphas_tot / maximum_solid_packing )
+          f_inhibit = MAX(0.0_wp, 1.0_wp - ( alphas_tot / maximum_solid_packing ) )
 
           vel_loss_gas =  hydraulic_permeability /                              &
                ( kin_visc_a * r_rho_c ) / MAX(1.e-5,r_h) * 0.5_wp * pi_g *      &

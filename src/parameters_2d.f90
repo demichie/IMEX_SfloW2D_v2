@@ -259,6 +259,8 @@ MODULE parameters_2d
   REAL(wp), ALLOCATABLE :: alphas_init(:)
 
   REAL(wp) :: pore_pres_fract
+
+  LOGICAL :: gas_loss_flag
   
   INTEGER :: n_vars   !< Number of conservative variables
   INTEGER :: n_eqns   !< Number of equations

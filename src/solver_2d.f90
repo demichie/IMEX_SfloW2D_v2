@@ -1456,41 +1456,41 @@ CONTAINS
 
           IF ( ( alpha_s - maximum_solid_packing ) .LT. 1.e-4_wp ) THEN 
 
-             q(5:4+n_solid,j,k) = q(5:4+n_solid,j,k) * maximum_solid_packing / alpha_s
+             !q(5:4+n_solid,j,k) = q(5:4+n_solid,j,k) * maximum_solid_packing / alpha_s
                 
           ELSE
           
-             WRITE(*,*) 'j,k',j,k
-             WRITE(*,*) 'alpha_s',alpha_s
+             !WRITE(*,*) 'j,k',j,k
+             !WRITE(*,*) 'alpha_s',alpha_s
              
-             WRITE(*,*) 'before imex_RK_solver: qc',q0(1:n_vars,j,k)
-             WRITE(*,*) 'after imex_RK_solver: qc',q(1:n_vars,j,k)
+             !WRITE(*,*) 'before imex_RK_solver: qc',q0(1:n_vars,j,k)
+             !WRITE(*,*) 'after imex_RK_solver: qc',q(1:n_vars,j,k)
              
-             CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
-             WRITE(*,*) 'before imex_RK_solver: qp',qp(1:n_vars+2,j,k)
+             !CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
+             !WRITE(*,*) 'before imex_RK_solver: qp',qp(1:n_vars+2,j,k)
              
-             CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
-             WRITE(*,*) 'after imex_RK_solver: qp',qp(1:n_vars+2,j,k)
+             !CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
+             !WRITE(*,*) 'after imex_RK_solver: qp',qp(1:n_vars+2,j,k)
              
-             WRITE(*,*) 'H_interface(1)'
-             WRITE(*,*) H_interface_x(1,j+1,k)/dx*dt, H_interface_x(1,j,k)/dx*dt
-             WRITE(*,*) H_interface_y(1,j,k+1)/dy*dt, H_interface_y(1,j,k)/dy*dt
+             !WRITE(*,*) 'H_interface(1)'
+             !WRITE(*,*) H_interface_x(1,j+1,k)/dx*dt, H_interface_x(1,j,k)/dx*dt
+             !WRITE(*,*) H_interface_y(1,j,k+1)/dy*dt, H_interface_y(1,j,k)/dy*dt
              
-             WRITE(*,*) 'H_interface(5)'
-             WRITE(*,*) H_interface_x(5,j+1,k)/dx*dt, H_interface_x(5,j,k)/dx*dt
-             WRITE(*,*) H_interface_y(5,j,k+1)/dy*dt, H_interface_y(5,j,k)/dy*dt
+             !WRITE(*,*) 'H_interface(5)'
+             !WRITE(*,*) H_interface_x(5,j+1,k)/dx*dt, H_interface_x(5,j,k)/dx*dt
+             !WRITE(*,*) H_interface_y(5,j,k+1)/dy*dt, H_interface_y(5,j,k)/dy*dt
              
-             WRITE(*,*) 'divFlux(1)',divFlux(1,j,k,1:n_RK)
-             WRITE(*,*) 'expl_terms(1)', expl_terms(1,j,k,1:n_RK)
-             WRITE(*,*) 'NH(1)', NH(1,j,k,1:n_RK)
-             WRITE(*,*) 'SI(1)', SI_NH(1,j,k,1:n_RK) 
+             !WRITE(*,*) 'divFlux(1)',divFlux(1,j,k,1:n_RK)
+             !WRITE(*,*) 'expl_terms(1)', expl_terms(1,j,k,1:n_RK)
+             !WRITE(*,*) 'NH(1)', NH(1,j,k,1:n_RK)
+             !WRITE(*,*) 'SI(1)', SI_NH(1,j,k,1:n_RK) 
              
-             WRITE(*,*) 'divFlux(5)',divFlux(5,j,k,1:n_RK)
-             WRITE(*,*) 'expl_terms(5)', expl_terms(5,j,k,1:n_RK)
-             WRITE(*,*) 'NH(5)', NH(5,j,k,1:n_RK)
-             WRITE(*,*) 'SI(5)', SI_NH(5,j,k,1:n_RK)
+             !WRITE(*,*) 'divFlux(5)',divFlux(5,j,k,1:n_RK)
+             !WRITE(*,*) 'expl_terms(5)', expl_terms(5,j,k,1:n_RK)
+             !WRITE(*,*) 'NH(5)', NH(5,j,k,1:n_RK)
+             !WRITE(*,*) 'SI(5)', SI_NH(5,j,k,1:n_RK)
              
-             READ(*,*)
+             !READ(*,*)
 
           END IF
              
@@ -3647,23 +3647,23 @@ CONTAINS
           ! Correction for residual volume fraction of continuous phase
           IF ( alpha_flag ) THEN
 
-             qrecW(5:4+n_solid) = qrecW(5:4+n_solid) *                          &
-                  MIN( 1.0_wp , maximum_solid_packing /                         &
-                  SUM( qrecW(5:4+n_solid) ) )
+             !qrecW(5:4+n_solid) = qrecW(5:4+n_solid) *                          &
+             !     MIN( 1.0_wp , maximum_solid_packing /                         &
+             !     SUM( qrecW(5:4+n_solid) ) )
 
-             qrecE(5:4+n_solid) = qrecE(5:4+n_solid) *                          &
-                  MIN( 1.0_wp , maximum_solid_packing /                         &
-                  SUM( qrecE(5:4+n_solid) ) )
+             !qrecE(5:4+n_solid) = qrecE(5:4+n_solid) *                          &
+             !     MIN( 1.0_wp , maximum_solid_packing /                         &
+             !     SUM( qrecE(5:4+n_solid) ) )
              
           ELSE
              
-             qrecW(5:4+n_solid) = qrecW(5:4+n_solid) *                          &
-                  MIN( 1.0_wp , maximum_solid_packing * qrecW(1) /              &
-                  SUM( qrecW(5:4+n_solid) ) )
+             !qrecW(5:4+n_solid) = qrecW(5:4+n_solid) *                          &
+             !     MIN( 1.0_wp , maximum_solid_packing * qrecW(1) /              &
+             !     SUM( qrecW(5:4+n_solid) ) )
 
-             qrecE(5:4+n_solid) = qrecE(5:4+n_solid) *                          &
-                  MIN( 1.0_wp , maximum_solid_packing * qrecE(1) /              &
-                  SUM( qrecE(5:4+n_solid) ) )
+             !qrecE(5:4+n_solid) = qrecE(5:4+n_solid) *                          &
+             !     MIN( 1.0_wp , maximum_solid_packing * qrecE(1) /              &
+             !     SUM( qrecE(5:4+n_solid) ) )
              
           END IF
           
@@ -3768,23 +3768,23 @@ CONTAINS
           ! Correction for maximum solid packing
           IF ( alpha_flag ) THEN
 
-             qrecS(5:4+n_solid) = qrecS(5:4+n_solid) *                          &
-                  MIN( 1.0_wp , maximum_solid_packing /                         &
-                  SUM( qrecS(5:4+n_solid) ) )
+             !qrecS(5:4+n_solid) = qrecS(5:4+n_solid) *                          &
+             !     MIN( 1.0_wp , maximum_solid_packing /                         &
+             !     SUM( qrecS(5:4+n_solid) ) )
 
-             qrecN(5:4+n_solid) = qrecN(5:4+n_solid) *                          &
-                  MIN( 1.0_wp , maximum_solid_packing /                         &
-                  SUM( qrecN(5:4+n_solid) ) )
+             !qrecN(5:4+n_solid) = qrecN(5:4+n_solid) *                          &
+             !     MIN( 1.0_wp , maximum_solid_packing /                         &
+             !     SUM( qrecN(5:4+n_solid) ) )
              
           ELSE
              
-             qrecS(5:4+n_solid) = qrecS(5:4+n_solid) *                          &
-                  MIN( 1.0_wp , maximum_solid_packing * qrecS(1) /              &
-                  SUM( qrecS(5:4+n_solid) ) )
+             !qrecS(5:4+n_solid) = qrecS(5:4+n_solid) *                          &
+             !     MIN( 1.0_wp , maximum_solid_packing * qrecS(1) /              &
+             !     SUM( qrecS(5:4+n_solid) ) )
 
-             qrecN(5:4+n_solid) = qrecN(5:4+n_solid) *                          &
-                  MIN( 1.0_wp , maximum_solid_packing * qrecN(1) /              &
-                  SUM( qrecN(5:4+n_solid) ) )
+             !qrecN(5:4+n_solid) = qrecN(5:4+n_solid) *                          &
+             !     MIN( 1.0_wp , maximum_solid_packing * qrecN(1) /              &
+             !     SUM( qrecN(5:4+n_solid) ) )
              
           END IF
              

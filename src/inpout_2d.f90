@@ -111,6 +111,7 @@ MODULE inpout_2d
   ! --- Variables for the namelist PORE_PRESSURE_PARAMETERS
   USE constitutive_2d, ONLY : hydraulic_permeability
   USE parameters_2d, ONLY : pore_pres_fract
+  USE parameters_2d, ONLY : gas_loss_flag
   
   IMPLICIT NONE
 
@@ -356,7 +357,8 @@ MODULE inpout_2d
        mean_field_flag, output_stoch_vars_flag, sym_noise, std_max,             &
        tau_stochastic, length_spatial_corr, noise_pow_val, stoch_transport_flag 
 
-  NAMELIST / pore_pressure_parameters / hydraulic_permeability, pore_pres_fract
+  NAMELIST / pore_pressure_parameters / hydraulic_permeability, pore_pres_fract,&
+       gas_loss_flag
   
 CONTAINS
 
@@ -495,7 +497,8 @@ CONTAINS
     !-- Inizialization of the Variables for the namelist PORE_PRESSURE_PARAMETERS
     hydraulic_permeability = 0.0_wp
     pore_pres_fract = -1.0_wp
-
+    gas_loss_flag = .FALSE.
+    
     !-------------- Check if input file exists ----------------------------------
     input_file = 'IMEX_SfloW2D.inp'
 
@@ -822,7 +825,8 @@ CONTAINS
     !-- Variable for the namelist PORE_PRESSURE_PARAMETERS
     hydraulic_permeability = 0.0_wp
     pore_pres_fract = -1.0_wp
-
+    gas_loss_flag = .FALSE.
+    
   END SUBROUTINE init_param
 
   !******************************************************************************
