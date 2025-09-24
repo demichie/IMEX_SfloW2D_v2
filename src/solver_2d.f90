@@ -40,6 +40,14 @@ MODULE solver_2d
 
   USE parameters_2d, ONLY : bcW , bcE , bcS , bcN
 
+  USE parameters_2d, ONLY : idx_h, idx_hu, idx_hv, idx_T, idx_alfas_first,      &
+       idx_alfas_last, idx_addGas_first, idx_addGas_last, idx_stoch, idx_pore,  &
+       idx_u, idx_v
+
+  USE parameters_2d, ONLY : idx_totMassEqn, idx_uEqn, idx_vEqn, idx_engyEqn,    &
+       idx_solidEqn_first, idx_solidEqn_last, idx_addGasEqn_first,              &
+       idx_addGasEqn_last, idx_stochEqn, idx_poreEqn
+    
   ! external procedures
   USE geometry_2d, ONLY : limit
   USE geometry_2d, ONLY : dx , dy , one_by_dx , one_by_dy 

@@ -8,8 +8,17 @@ MODULE constitutive_2d
        n_stoch_vars , n_pore_vars
   USE parameters_2d, ONLY : rheology_flag , rheology_model , energy_flag ,      &
        liquid_flag , gas_flag , alpha_flag , slope_correction_flag ,            &
-       curvature_term_flag, stochastic_flag, mean_field_flag
+       curvature_term_flag, stochastic_flag, mean_field_flag,                   &
+       stoch_transport_flag, pore_pressure_flag
 
+  USE parameters_2d, ONLY : idx_h, idx_hu, idx_hv, idx_T, idx_alfas_first,      &
+       idx_alfas_last, idx_addGas_first, idx_addGas_last, idx_stoch, idx_pore,  &
+       idx_u, idx_v
+
+  USE parameters_2d, ONLY : idx_totMassEqn, idx_uEqn, idx_vEqn, idx_engyEqn,    &
+       idx_solidEqn_first, idx_solidEqn_last, idx_addGasEqn_first,              &
+       idx_addGasEqn_last, idx_stochEqn, idx_poreEqn
+  
   IMPLICIT none
 
   !> flag used for size of implicit non linear-system
@@ -363,12 +372,11 @@ CONTAINS
     END IF
 
     ! Solid volume fraction
-    implicit_flag(5:4+n_solid) = .FALSE.
+    implicit_flag(idx_solidEqn_first:idx_solidEqn_last) = .FALSE.
 
     IF ( pore_pressure_flag ) THEN
 
-       implicit_flag(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas +       &
-            n_stoch_vars+n_pore_vars) = .TRUE.
+       implicit_flag(idx_pore) = .TRUE.
        
     END IF
     
@@ -435,8 +443,8 @@ CONTAINS
     REAL(wp), INTENT(OUT) :: r_alphag(n_add_gas) !< real-value gas volume fracts
     REAL(wp), INTENT(OUT) :: r_red_grav        !< real-value reduced gravity
     REAL(wp), INTENT(OUT) :: p_dyn
-    REAL(wp), INTENT(OUT) :: r_Zs(n_stoch_vars)!< real-value stochastic variable
-    REAL(wp), INTENT(OUT) :: r_exc_pore_pres(n_pore_vars)       !< real-value pore pressure
+    REAL(wp), INTENT(OUT) :: r_Zs              !< real-value stochastic variable
+    REAL(wp), INTENT(OUT) :: r_exc_pore_pres   !< real-value pore pressure
 
     REAL(wp) :: r_inv_rhom
     REAL(wp) :: r_xs(n_solid)     !< real-value solid mass fractions
@@ -448,7 +456,7 @@ CONTAINS
     REAL(wp) :: r_xc            !< real-value carrier phase mass fraction
     REAL(wp) :: r_alphac        !< real-value carrier phase volume fraction
     REAL(wp) :: r_sp_heat_c     !< real-value specific heat of carrier phase
-   REAL(wp) :: r_sp_heat_mix   !< real-value specific heat of mixture
+    REAL(wp) :: r_sp_heat_mix   !< real-value specific heat of mixture
     REAL(wp) :: r_sp_gas_const_c!< real-value gas constant of carrier phase
     REAL(wp) :: r_rho_c         !< real-value carrier phase density [kg/m3]
     REAL(wp) :: r_inv_rho_c
@@ -507,21 +515,19 @@ CONTAINS
 
        inv_qj1 = 1.0_wp / r_qj(1)
 
-       r_xs(1:n_solid) = r_qj(5:4+n_solid) * inv_qj1
+       r_xs(1:n_solid) = r_qj(idx_alfas_first:idx_alfas_last) * inv_qj1
 
-       IF ( SUM( r_qj(5:4+n_solid) ) .EQ. r_qj(1) ) THEN
+       IF ( SUM( r_qj(idx_alfas_first:idx_alfas_last) ) .EQ. r_qj(1) ) THEN
 
           r_xs(1:n_solid) = r_xs(1:n_solid) / SUM( r_xs(1:n_solid) )
 
        END IF
 
-       r_xg(1:n_add_gas) = r_qj(4+n_solid+1:4+n_solid+n_add_gas) * inv_qj1
+       r_xg(1:n_add_gas) = r_qj(idx_addGas_first:idx_addGas_last) * inv_qj1
 
-       r_Zs(1:n_stoch_vars) = r_qj(5+n_solid+n_add_gas :                        &
-            4+n_solid+n_add_gas+n_stoch_vars) * inv_qj1
-       
-       r_exc_pore_pres(1:n_pore_vars) = r_qj(5+n_solid+n_add_gas+n_stoch_vars : &
-            4+n_solid+n_add_gas+n_stoch_vars+n_pore_vars) * inv_qj1
+       IF ( stoch_transport_flag ) r_Zs = r_qj(idx_stoch) * inv_qj1
+
+       IF ( pore_pressure_flag ) r_exc_pore_pres = r_qj(idx_pore) * inv_qj1
        
     ELSE
 
@@ -1014,8 +1020,8 @@ CONTAINS
     COMPLEX(wp), INTENT(OUT) :: alphas(n_solid) !< sediment volume fractions
     COMPLEX(wp), INTENT(OUT) :: alphag(n_solid) !< sediment volume fractions
     COMPLEX(wp), INTENT(OUT) :: inv_rhom        !< 1/mixture density [kg-1 m3]
-    COMPLEX(wp), INTENT(OUT) :: Zs(n_stoch_vars) !< stochastic variable
-    COMPLEX(wp), INTENT(OUT) :: exc_pore_pres(n_pore_vars)       !< excess pore pressure
+    COMPLEX(wp), INTENT(OUT) :: Zs              !< stochastic variable
+    COMPLEX(wp), INTENT(OUT) :: exc_pore_pres   !< excess pore pressure
 
     COMPLEX(wp) :: xs(n_solid)             !< sediment mass fractions
     COMPLEX(wp) :: xg(n_add_gas)           !< additional gas comp. mass fractions
@@ -1033,15 +1039,13 @@ CONTAINS
     IF ( REAL(c_qj(1)) .GT.  EPSILON(1.0_wp) ) THEN
 
        inv_cqj1 = 1.0_wp / c_qj(1)
-       xs(1:n_solid) = c_qj(5:4+n_solid) * inv_cqj1
+       xs(1:n_solid) = c_qj(idx_alfas_first:idx_alfas_last) * inv_cqj1
 
-       xg(1:n_add_gas) = c_qj(4+n_solid+1:4+n_solid+n_add_gas) * inv_cqj1
+       xg(1:n_add_gas) = c_qj(idx_addGas_first:idx_addGas_last) * inv_cqj1
 
-       Zs(1:n_stoch_vars) = c_qj(5+n_solid+n_add_gas :                          &
-            4+n_solid+n_add_gas+n_stoch_vars) * inv_cqj1
+       IF ( stoch_transport_flag ) Zs = c_qj(idx_stoch) * inv_cqj1
 
-       exc_pore_pres(1:n_pore_vars) = c_qj(5+n_solid+n_add_gas+n_stoch_vars :   &
-            4+n_solid+n_add_gas+n_stoch_vars+n_pore_vars) * inv_cqj1    
+       IF ( pore_pressure_flag) exc_pore_pres = c_qj(idx_pore) * inv_cqj1    
        
     ELSE
 
@@ -1245,19 +1249,19 @@ CONTAINS
 
     END IF
 
-    r_u = qpj(n_vars+1)
-    r_v = qpj(n_vars+2)
+    r_u = qpj(idx_u)
+    r_v = qpj(idx_v)
     r_T = qpj(4)
 
     IF ( alpha_flag ) THEN
 
-       r_alphas(1:n_solid) = qpj(5:4+n_solid)
-       r_alphag(1:n_add_gas) = qpj(4+n_solid+1:4+n_solid+n_add_gas)
+       r_alphas(1:n_solid) = qpj(idx_alfas_first:idx_alfas_last)
+       r_alphag(1:n_add_gas) = qpj(idx_addGas_first:idx_addGas_last)
 
     ELSE
 
-       r_alphas(1:n_solid) = qpj(5:4+n_solid) / qpj(1)
-       r_alphag(1:n_add_gas) = qpj(4+n_solid+1:4+n_solid+n_add_gas) / qpj(1)
+       r_alphas(1:n_solid) = qpj(idx_alfas_first:idx_alfas_last) / qpj(1)
+       r_alphag(1:n_add_gas) = qpj(idx_addGas_first:idx_addGas_first) / qpj(1)
 
     END IF
 
@@ -1447,11 +1451,11 @@ CONTAINS
   !> - qp(2) = \f$ hu \f$
   !> - qp(3) = \f$ hv \f$
   !> - qp(4) = \f$ T \f$
-  !> - qp(5:4+n_solid) = \f$ alphas(1:n_solid) \f$
-  !> - qp(4+n_solid+1:4+n_solid+n_add_gas) = \f$ alphas(1:n_add_gas) \f$
+  !> - qp(idx_alfas_first:idx_alfas_last) = \f$ alphas(1:n_solid) \f$
+  !> - qp(idx_addGas_first:idx_addGas_last) = \f$ alphas(1:n_add_gas) \f$
   !> - qp(n_vars) = \f$ alphal \f$
-  !> - qp(n_vars+1) = \f$ u \f$
-  !> - qp(n_vars+2) = \f$ v \f$
+  !> - qp(idx_u) = \f$ u \f$
+  !> - qp(idx_v) = \f$ v \f$
   !> .
   !> The physical variables are those used for the linear reconstruction at the
   !> cell interfaces. Limiters are applied to the reconstructed slopes.
@@ -1483,8 +1487,8 @@ CONTAINS
     REAL(wp) :: r_alphal          !< real-value liquid volume fraction
     REAL(wp) :: r_alphag(n_add_gas) !< real-value add. gas volume fractions
     REAL(wp) :: r_red_grav
-    REAL(wp) :: r_Zs(n_stoch_vars)!< real-value stochastic variable
-    REAL(wp) :: r_exc_pore_pres(n_pore_vars)  !< real-value pore pressure
+    REAL(wp) :: r_Zs             !< real-value stochastic variable
+    REAL(wp) :: r_exc_pore_pres  !< real-value pore pressure
 
     CALL r_phys_var( qc , r_h , r_u , r_v , r_alphas , r_rho_m , r_T ,          &
          r_alphal , r_alphag , r_red_grav , p_dyn , r_Zs , r_exc_pore_pres )
@@ -1498,26 +1502,24 @@ CONTAINS
 
     IF ( alpha_flag ) THEN
 
-       qp(5:4+n_solid) = r_alphas(1:n_solid)
-       qp(4+n_solid+1:4+n_solid+n_add_gas) = r_alphag(1:n_add_gas)
+       qp(idx_alfas_first:idx_alfas_last) = r_alphas(1:n_solid)
+       qp(idx_addGas_first:idx_addGas_last) = r_alphag(1:n_add_gas)
        IF ( gas_flag .AND. liquid_flag ) qp(n_vars) = r_alphal
 
     ELSE
 
-       qp(5:4+n_solid) = r_alphas(1:n_solid) * r_h
-       qp(4+n_solid+1:4+n_solid+n_add_gas) = r_alphag(1:n_add_gas) * r_h
+       qp(idx_alfas_first:idx_alfas_last) = r_alphas(1:n_solid) * r_h
+       qp(idx_addGas_first:idx_addGas_last) = r_alphag(1:n_add_gas) * r_h
        IF ( gas_flag .AND. liquid_flag ) qp(n_vars) = r_alphal * r_h
 
     END IF
 
-    qp(5+n_solid+n_add_gas:4+n_solid+n_add_gas+n_stoch_vars) =                  &
-         r_Zs(1:n_stoch_vars)
+    IF ( stoch_transport_flag) qp(idx_stoch) = r_Zs
 
-    qp(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas+n_stoch_vars+       &
-         n_pore_vars) = r_exc_pore_pres(1:n_pore_vars)
+    IF ( pore_pressure_flag) qp(idx_pore) = r_exc_pore_pres
     
-    qp(n_vars+1) = r_u
-    qp(n_vars+2) = r_v
+    qp(idx_u) = r_u
+    qp(idx_v) = r_v
 
     RETURN
 
@@ -1532,11 +1534,11 @@ CONTAINS
   !> - qp(2) = \f$ h*u \f$
   !> - qp(3) = \f$ h*v \f$
   !> - qp(4) = \f$ T \f$
-  !> - qp(5:4+n_s) = \f$ alphas(1:n_s) \f$
-  !> - qp(4+n_s+1:4+n_s+n_g) = \f$ alphas(1:n_g) \f$
+  !> - qp(idx_alfas_first:idx_alfas_last) = \f$ alphas(1:n_s) \f$
+  !> - qp(idx_addGas_first:idx_addGas_last) = \f$ alphas(1:n_g) \f$
   !> - qp(n_vars) = \f$ alphal \f$
-  !> - qp(n_vars+1) = \f$ u \f$
-  !> - qp(n_vars+2) = \f$ v \f$
+  !> - qp(idx_u) = \f$ u \f$
+  !> - qp(idx_v) = \f$ v \f$
   !> .
   !> \param[in]    qp      physical variables  
   !> \param[in]    B       local topography
@@ -1584,8 +1586,8 @@ CONTAINS
     REAL(wp) :: r_xs(n_solid)     !< real-value solid mass fractions
     REAL(wp) :: r_xg(n_add_gas)   !< real-value add.gas mass fractions
 
-    REAL(wp) :: r_Zs(n_stoch_vars)!< real-value stochastic variable
-    REAL(wp) :: r_exc_pore_pres(n_pore_vars)    !< real-value pore pressure
+    REAL(wp) :: r_Zs              !< real-value stochastic variable
+    REAL(wp) :: r_exc_pore_pres   !< real-value pore pressure
     
     REAL(wp) :: r_alphas_rhos(n_solid)
     REAL(wp) :: r_alphag_rhog(n_add_gas)
@@ -1637,8 +1639,8 @@ CONTAINS
        r_hu = qp(2)
        r_hv = qp(3)
 
-       r_u = qp(n_vars+1)
-       r_v = qp(n_vars+2)
+       r_u = qp(idx_u)
+       r_v = qp(idx_v)
 
     ELSE
 
@@ -1651,13 +1653,13 @@ CONTAINS
 
     IF ( alpha_flag ) THEN
 
-       r_alphas(1:n_solid) = qp(5:4+n_solid)
-       r_alphag(1:n_add_gas) = qp(4+n_solid+1:4+n_solid+n_add_gas)
+       r_alphas(1:n_solid) = qp(idx_alfas_first:idx_alfas_last)
+       r_alphag(1:n_add_gas) = qp(idx_addGas_first:idx_addGas_last)
 
     ELSE
 
-       r_alphas(1:n_solid) = qp(5:4+n_solid) / qp(1)
-       r_alphag(1:n_add_gas) = qp(4+n_solid+1:4+n_solid+n_add_gas) / qp(1)
+       r_alphas(1:n_solid) = qp(idx_alfas_first:idx_alfas_last) / qp(1)
+       r_alphag(1:n_add_gas) = qp(idx_addGas_first:idx_addGas_last) / qp(1)
 
     END IF
 
@@ -1792,11 +1794,9 @@ CONTAINS
 
     END IF
 
-    r_Zs(1:n_stoch_vars) = qp(5+n_solid+n_add_gas:4+n_solid+n_add_gas +         &
-         n_stoch_vars)
-        
-    r_exc_pore_pres(1:n_pore_vars) = qp(5+n_solid+n_add_gas+n_stoch_vars:       &
-         4+n_solid+n_add_gas+n_stoch_vars+n_pore_vars)
+    IF ( stoch_transport_flag) r_Zs = qp(idx_stoch)
+
+    IF ( pore_pressure_flag ) r_exc_pore_pres = qp(idx_pore)
     
     qc(1) = r_rho_m * r_h
 
@@ -1944,16 +1944,13 @@ CONTAINS
 
     END IF
 
-    qc(5:4+n_solid) = r_xs * qc(1)
-    qc(4+n_solid+1:4+n_solid+n_add_gas) = r_xg * qc(1)
+    qc(idx_alfas_first:idx_alfas_last) = r_xs * qc(1)
+    qc(idx_addGas_first:idx_addGas_last) = r_xg * qc(1)
     
-    qc(5+n_solid+n_add_gas:4+n_solid+n_add_gas+n_stoch_vars) =                  &
-         r_Zs(1:n_stoch_vars) * qc(1)
+    IF ( stoch_transport_flag ) qc(idx_stoch) = r_Zs * qc(1)
     
-    qc(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas+n_stoch_vars+       &
-         n_pore_vars) =  r_exc_pore_pres(1:n_pore_vars) * qc(1)
-    
-    
+    IF ( pore_pressure_flag ) qc(idx_pore) = r_exc_pore_pres * qc(1)
+        
     IF ( gas_flag .AND. liquid_flag ) qc(n_vars) = r_xl * qc(1)
 
     RETURN
@@ -2039,8 +2036,8 @@ CONTAINS
          r_sp_heat_mix)
 
     r_h = qpj(1)
-    r_u = qpj(n_vars+1)
-    r_v = qpj(n_vars+2)
+    r_u = qpj(idx_u)
+    r_v = qpj(idx_v)
 
     IF ( r_red_grav * r_h .LT. 0.0_wp ) THEN
 
@@ -2094,13 +2091,12 @@ CONTAINS
 
     sp_heat_flag = .FALSE.
 
-
     CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav,sp_heat_flag,r_sp_heat_c, &
          r_sp_heat_mix)
 
     r_h = qpj(1)
-    r_u = qpj(n_vars+1)
-    r_v = qpj(n_vars+2)
+    r_u = qpj(idx_u)
+    r_v = qpj(idx_v)
 
     IF ( r_red_grav * r_h .LT. 0.0_wp ) THEN
 
@@ -2183,8 +2179,8 @@ CONTAINS
     pos_thick:IF ( qpj(1) .GT. EPSILON(1.0_wp) ) THEN
 
        r_h = qpj(1)
-       r_u = qpj(n_vars+1)
-       r_v = qpj(n_vars+2)
+       r_u = qpj(idx_u)
+       r_v = qpj(idx_v)
 
        CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav,sp_heat_flag,          &
             r_sp_heat_c,r_sp_heat_mix)
@@ -2218,34 +2214,40 @@ CONTAINS
           END IF
 
           ! Mass flux of solid in x-direction: u * ( h * alphas * rhos )
-          flux(5:4+n_solid) = r_u * qcj(5:4+n_solid) * shape_coeff(5:4+n_solid)
+          flux(idx_solidEqn_first:idx_solidEqn_last) = r_u *                    &
+               qcj(idx_alfas_first:idx_alfas_last) *                            &
+               shape_coeff(idx_alfas_first:idx_alfas_last)
 
           ! Solid flux can't be larger than total flux
-          IF ( ( flux(1) .GT. 0.0_wp ) .AND. ( SUM(flux(5:4+n_solid)) / flux(1) &
-               .GT. 1.0_wp ) ) THEN
+          IF ( ( flux(1) .GT. 0.0_wp ) .AND.                                    &
+               ( SUM(flux(idx_solidEqn_first:idx_solidEqn_last)) / flux(1)      &
+               .GT.1.0_wp ) ) THEN
 
-             flux(5:4+n_solid) = &
-                  flux(5:4+n_solid) / SUM(flux(5:4+n_solid)) * flux(1)
+             flux(idx_solidEqn_first:idx_solidEqn_last) =                       &
+                  flux(idx_solidEqn_first:idx_solidEqn_last) /                  &
+                  SUM(flux(idx_solidEqn_first:idx_solidEqn_last)) * flux(1)
 
           END IF
 
           ! Mass flux of add.gas in x-direction: u * ( h * alphag * rhog )
-          flux(4+n_solid+1:4+n_solid+n_add_gas) = r_u *                         &
-               qcj(4+n_solid+1:4+n_solid+n_add_gas) *                           &
-               shape_coeff(4+n_solid+1:4+n_solid+n_add_gas)
+          flux(idx_addGasEqn_first:idx_addGasEqn_last) = r_u *                  &
+               qcj(idx_addGas_first:idx_addGas_last) *                          &
+               shape_coeff(idx_addGas_first:idx_addGas_last)
 
-          ! Flux of stochastic variables
-          flux(5+n_solid+n_add_gas:4+n_solid+n_add_gas+n_stoch_vars) = r_u *    &
-               qcj(5+n_solid+n_add_gas:4+n_solid+n_add_gas+n_stoch_vars) *      &
-               shape_coeff(5+n_solid+n_add_gas:4+n_solid+n_add_gas+n_stoch_vars)
+          IF ( stoch_transport_flag) THEN
+             
+             ! Flux of stochastic variables
+             flux(idx_stochEqn) = r_u * qcj(idx_stoch) * shape_coeff(idx_stoch)
 
-          ! Flux of pore pressure
-          flux(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas+n_stoch_vars&
-               + n_pore_vars) = r_u * qcj(5+n_solid+n_add_gas+n_stoch_vars:4+   &
-               n_solid+n_add_gas+n_stoch_vars+n_pore_vars) * shape_coeff(5+     &
-               n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas+n_stoch_vars+ &
-               n_pore_vars)
-          
+          END IF
+             
+          IF ( pore_pressure_flag) THEN
+
+             ! Flux of pore pressure
+             flux(idx_poreEqn) = r_u * qcj(idx_Pore) * shape_coeff(idx_Pore)
+
+          END IF
+             
           ! Mass flux of liquid in x-direction: u * ( h * alphal * rhol )
           IF ( gas_flag .AND. liquid_flag ) flux(n_vars) = r_u * qcj(n_vars) *  &
                shape_coeff(n_vars)
@@ -2274,33 +2276,39 @@ CONTAINS
           END IF
 
           ! Mass flux of solid in y-direction: v * ( h * alphas * rhos )
-          flux(5:4+n_solid) = r_v * qcj(5:4+n_solid) * shape_coeff(5:4+n_solid)
+          flux(idx_solidEqn_first:idx_solidEqn_last) = r_v *                    &
+               qcj(idx_alfas_first:idx_alfas_last) *                            &
+               shape_coeff(idx_alfas_first:idx_alfas_last)
 
           ! Solid flux can't be larger than total flux
-          IF ( ( flux(1) .GT. 0.0_wp ) .AND. ( SUM(flux(5:4+n_solid)) / flux(1) &
+          IF ( ( flux(1) .GT. 0.0_wp ) .AND.                                    &
+               ( SUM(flux(idx_solidEqn_first:idx_solidEqn_last)) / flux(1)      &
                .GT. 1.0_wp ) ) THEN
 
-             flux(5:4+n_solid) = &
-                  flux(5:4+n_solid) / SUM(flux(5:4+n_solid)) * flux(1)
+             flux(idx_solidEqn_first:idx_solidEqn_last) =                       &
+                  flux(idx_solidEqn_first:idx_solidEqn_last) /                  &
+                  SUM(flux(idx_solidEqn_first:idx_solidEqn_last)) * flux(1)
 
           END IF
 
           ! Mass flux of add.gas in x-direction: v * ( h * alphag * rhog )
-          flux(4+n_solid+1:4+n_solid+n_add_gas) = r_v *                         &
-               qcj(4+n_solid+1:4+n_solid+n_add_gas) *                           &
-               shape_coeff(4+n_solid+1:4+n_solid+n_add_gas)
+          flux(idx_addGasEqn_first:idx_addGasEqn_last) = r_v *                   &
+               qcj(idx_addGas_first:idx_addGas_last) *                           &
+               shape_coeff(idx_addGas_first:idx_addGas_last)
 
-          ! Flux of stochastic variables
-          flux(5+n_solid+n_add_gas:4+n_solid+n_add_gas+n_stoch_vars) = r_v *    &
-               qcj(5+n_solid+n_add_gas:4+n_solid+n_add_gas+n_stoch_vars) *      &
-               shape_coeff(5+n_solid+n_add_gas:4+n_solid+n_add_gas+n_stoch_vars)
-          
-          ! Flux of pore pressure
-          flux(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas+            &
-               n_stoch_vars+n_pore_vars) = r_v * qcj(5+n_solid+n_add_gas+       &
-               n_stoch_vars:4+n_solid+n_add_gas+n_stoch_vars+n_pore_vars) *     &
-               shape_coeff(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas+&
-               n_stoch_vars+n_pore_vars)
+          IF ( stoch_transport_flag) THEN
+
+             ! Flux of stochastic variables
+             flux(idx_stochEqn) = r_v * qcj(idx_stoch) * shape_coeff(idx_stoch)
+
+          END IF
+             
+          IF ( pore_pressure_flag ) THEN
+             
+             ! Flux of pore pressure
+             flux(idx_poreEqn) = r_v * qcj(idx_pore) * shape_coeff(idx_pore)
+
+          END IF
           
           ! Mass flux of liquid in x-direction: u * ( h * alphal * rhol )
           IF ( gas_flag .AND. liquid_flag ) flux(n_vars) = r_v * qcj(n_vars) *  &
@@ -2431,18 +2439,18 @@ CONTAINS
     r_h = qpj(1)
     r_hu = qpj(2)
     r_hv = qpj(3)
-    r_u = qpj(n_vars+1)
-    r_v = qpj(n_vars+2)
+    r_u = qpj(idx_u)
+    r_v = qpj(idx_v)
 
     IF ( alpha_flag ) THEN
 
-       r_alphas(1:n_solid) = qpj(5:4+n_solid)
-       r_alphag(1:n_add_gas) = qpj(4+n_solid+1:4+n_solid+n_add_gas)
+       r_alphas(1:n_solid) = qpj(idx_alfas_first:idx_alfas_last)
+       r_alphag(1:n_add_gas) = qpj(idx_addGas_first:idx_addGas_last)
 
     ELSE
 
-       r_alphas(1:n_solid) = qpj(5:4+n_solid) / qpj(1)
-       r_alphag(1:n_add_gas) = qpj(4+n_solid+1:4+n_solid+n_add_gas) / qpj(1)
+       r_alphas(1:n_solid) = qpj(idx_alfas_first:idx_alfas_last) / qpj(1)
+       r_alphag(1:n_add_gas) = qpj(idx_addGas_first:idx_addGas_last) / qpj(1)
 
     END IF
 
@@ -2610,7 +2618,8 @@ CONTAINS
     ! we assume a vertically-constant temperature profile
     shape_coeff(4) = shape_coeff(1)
 
-    shape_coeff(5:4+n_solid) = rho_u_alphas / ( rho_s * r_alphas * mod_vel )
+    shape_coeff(idx_alfas_first:idx_alfas_last) = rho_u_alphas /                &
+         ( rho_s * r_alphas * mod_vel )
 
     RETURN
 
@@ -2844,7 +2853,7 @@ CONTAINS
 
     REAL(wp) :: qp_source(n_vars+2)
 
-    REAL(wp) :: exc_pore_pres(n_pore_vars)
+    REAL(wp) :: exc_pore_pres
 
     REAL(wp) :: q1
     
@@ -2858,8 +2867,8 @@ CONTAINS
          RETURN
 
     r_h = qpj(1)
-    r_u = qpj(n_vars+1)
-    r_v = qpj(n_vars+2)
+    r_u = qpj(idx_u)
+    r_v = qpj(idx_v)
 
     CALL mixt_var(qpj,r_Ri,r_rho_m,r_rho_c,r_red_grav,sp_heat_flag,r_sp_heat_c, &
          r_sp_heat_mix)
@@ -2948,32 +2957,32 @@ CONTAINS
 
     IF ( alpha_flag ) THEN
 
-       qp_source(5:4+n_solid) = alphas_source(1:n_solid)
-       qp_source(4+n_solid+1:4+n_solid+n_add_gas) = alphag_source(1:n_add_gas)
+       qp_source(idx_alfas_first:idx_alfas_last) = alphas_source(1:n_solid)
+       qp_source(idx_addGas_first:idx_addGas_last) = alphag_source(1:n_add_gas)
        IF ( gas_flag .AND. liquid_flag ) qp_source(n_vars) = alphal_source
 
     ELSE
 
-       qp_source(5:4+n_solid) = alphas_source(1:n_solid) * qp_source(1)
-       qp_source(4+n_solid+1:4+n_solid+n_add_gas) = alphag_source(1:n_add_gas)  &
+       qp_source(idx_alfas_first:idx_alfas_last) = alphas_source(1:n_solid)     &
+            * qp_source(1)
+       qp_source(idx_addGas_first:idx_addGas_last) = alphag_source(1:n_add_gas) &
             * qp_source(1)
        IF ( gas_flag .AND. liquid_flag ) qp_source(n_vars) = alphal_source      &
             * qp_source(1)
 
     END IF
 
-    ! Source term transport stoc equation
-    qp_source(5+n_solid+n_add_gas:4+n_solid+n_add_gas+n_stoch_vars) = 0.0_wp
+    ! Source term transport stochastic equation
+    IF ( stoch_transport_flag) qp_source(idx_stoch) = 0.0_wp
 
-    qp_source(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas+n_stoch_vars+&
-         n_pore_vars) = 0.0_wp
+    IF ( pore_pressure_flag ) qp_source(idx_poreEqn) = 0.0_wp
 
-    qp_source(n_vars+1) = 0.0_wp
-    qp_source(n_vars+2) = 0.0_wp
+    qp_source(idx_u) = 0.0_wp
+    qp_source(idx_v) = 0.0_wp
 
 
-    CALL mixt_var(qp_source,r_Ri,r_rho_m,r_rho_c,r_red_grav,sp_heat_flag,r_sp_heat_c, &
-         r_sp_heat_mix)
+    CALL mixt_var(qp_source,r_Ri,r_rho_m,r_rho_c,r_red_grav,sp_heat_flag,       &
+         r_sp_heat_c,r_sp_heat_mix)
 
     expl_term(1) = expl_term(1) + t_coeff * h_dot * r_rho_m
     expl_term(2) = expl_term(2) + 0.0_wp
@@ -2992,14 +3001,15 @@ CONTAINS
     END IF
 
     ! source terms for the solid equations
-    expl_term(5:4+n_solid) = expl_term(5:4+n_solid) + t_coeff                   &
+    expl_term(idx_alfas_first:idx_alfas_last) =                                 &
+         expl_term(idx_alfas_first:idx_alfas_last) + t_coeff                   &
          * h_dot * alphas_source(1:n_solid) * rho_s(1:n_solid)
 
     r_rho_g(1:n_add_gas) = pres / ( sp_gas_const_g(1:n_add_gas) * t_source )
 
     ! source terms for the additional gas equations
-    expl_term(4+n_solid+1:4+n_solid+n_add_gas) =                                &
-         expl_term(4+n_solid+1:4+n_solid+n_add_gas) + t_coeff                   &
+    expl_term(idx_addGasEqn_first:idx_addGasEqn_last) =                         &
+         expl_term(idx_addGasEqn_first:idx_addGasEqn_last) + t_coeff            &
          * h_dot * alphag_source(1:n_add_gas) * r_rho_g(1:n_add_gas)
 
     IF ( gas_flag .AND. liquid_flag ) THEN
@@ -3012,17 +3022,13 @@ CONTAINS
 
     IF ( pore_pressure_flag ) THEN
 
-       exc_pore_pres(1:n_pore_vars) =                                           &
-            qpj(5+n_solid+n_add_gas+n_stoch_vars:                               &
-            4+n_solid+n_add_gas+n_stoch_vars+n_pore_vars)
+       exc_pore_pres = qpj(idx_pore)
        
        ! we multiply the pore pressure inlet rate by the rate for q1
        ! the units of this source term are: kg^2 m^-3 s^-3
-       expl_term(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas +        &
-            n_stoch_vars+n_pore_vars) = expl_term(5+n_solid+n_add_gas +        &
-            n_stoch_vars:4+n_solid+n_add_gas + n_stoch_vars+n_pore_vars) +     &
+       expl_term(idx_poreEqn) = expl_term(idx_poreEqn) +                       &
             t_coeff * ( q1 * pore_pres_fract * h_dot * r_rho_m * r_red_grav +  &
-            exc_pore_pres(1) * h_dot * r_rho_m )
+            exc_pore_pres * h_dot * r_rho_m )
 
     END IF
     
@@ -3068,8 +3074,8 @@ CONTAINS
     
     r_h = r_qp(1)
 
-    r_u = r_qp(n_vars+1)
-    r_v = r_qp(n_vars+2)
+    r_u = r_qp(idx_u)
+    r_v = r_qp(idx_v)
 
     mod_vel0 = SQRT( r_u**2 + r_v**2 )
 
@@ -3081,8 +3087,8 @@ CONTAINS
     r_qp(2) = r_h*r_u
     r_qp(3) = r_h*r_v
 
-    r_qp(n_vars+1) = r_u
-    r_qp(n_vars+2) = r_v
+    r_qp(idx_u) = r_u
+    r_qp(idx_v) = r_v
 
     CALL qp_to_qc(r_qp,r_qj)
 
@@ -3181,11 +3187,11 @@ CONTAINS
 
     COMPLEX(wp) :: c_tau
 
-    COMPLEX(wp) :: Zs(n_stoch_vars)
+    COMPLEX(wp) :: Zs
 
-    COMPLEX(wp) :: exc_pore_pres(n_pore_vars)
+    COMPLEX(wp) :: exc_pore_pres
 
-    COMPLEX(wp) :: D_coeff(n_pore_vars)
+    COMPLEX(wp) :: D_coeff
     REAL(wp) :: gamma_gas
     COMPLEX(wp) :: gas_compressibility
 
@@ -3436,14 +3442,13 @@ CONTAINS
             gas_compressibility )
 
        ! Equation 12 from Gueugneau et al, 2017
-       IF ( ( REAL(exc_pore_pres(1)) .GT. 0.0_wp )                              &
+       IF ( ( REAL(exc_pore_pres) .GT. 0.0_wp )                                 &
             .AND. ( REAL(h) .GT. 0.0_wp) ) THEN
 
-          f_inhibit = MAX(0.0_wp , 1.0_wp - ( SUM(alphas) /                    &
+          f_inhibit = MAX(0.0_wp , 1.0_wp - ( SUM(alphas) /                     &
                 CMPLX(maximum_solid_packing,0.0_wp,wp) ) )
           
-          source_term(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas +    &
-               n_stoch_vars+n_pore_vars) = - rho_m * ( pi_g / 2.0_wp )**2 *     &
+          source_term(idx_poreEqn) = - rho_m * ( pi_g / 2.0_wp )**2 *           &
                D_coeff / MAX(h_threshold,h) * exc_pore_pres !* f_inhibit
           
        END IF
@@ -3547,7 +3552,7 @@ CONTAINS
     REAL(wp) :: r_sp_heat_c
     REAL(wp) :: r_sp_heat_mix
 
-    REAL(wp) :: exc_pore_pres(n_pore_vars)       !< excess pore pressure
+    REAL(wp) :: exc_pore_pres       !< excess pore pressure
 
     sp_heat_flag = .FALSE.
 
@@ -3558,18 +3563,18 @@ CONTAINS
     rheology_if:IF (rheology_flag) THEN
 
        r_h = qpj(1)
-       r_u = qpj(n_vars+1)
-       r_v = qpj(n_vars+2)
+       r_u = qpj(idx_u)
+       r_v = qpj(idx_v)
 
        IF ( alpha_flag ) THEN
 
-          r_alphas(1:n_solid) = qpj(5:4+n_solid)
-          r_alphag(1:n_add_gas) = qpj(4+n_solid+1:4+n_solid+n_add_gas)
+          r_alphas(1:n_solid) = qpj(idx_alfas_first:idx_alfas_last)
+          r_alphag(1:n_add_gas) = qpj(idx_addGas_first:idx_addGas_last)
 
        ELSE
 
-          r_alphas(1:n_solid) = qpj(5:4+n_solid) / qpj(1)
-          r_alphag(1:n_add_gas) = qpj(4+n_solid+1:4+n_solid+n_add_gas) / qpj(1)
+          r_alphas(1:n_solid) = qpj(idx_alfas_first:idx_alfas_last) / qpj(1)
+          r_alphag(1:n_add_gas) = qpj(idx_addGas_first:idx_addGas_last) / qpj(1)
 
        END IF
 
@@ -3633,14 +3638,12 @@ CONTAINS
 
              IF ( pore_pressure_flag ) THEN
 
-                exc_pore_pres(1:n_pore_vars) =                                  &
-                     qpj(5+n_solid+n_add_gas+n_stoch_vars:                      &
-                     4+n_solid+n_add_gas+n_stoch_vars+n_pore_vars)
+                exc_pore_pres = qpj(idx_pore)
 
                 ! See Eq. (2) Gueugneau et al. 2017, GRL
                 ! add the contribution of pore pressure ( with coeff for slope)
                 temp_term = MAX(0.0_wp, temp_term - mu * grav_coeff             &
-                     * exc_pore_pres(1) )
+                     * exc_pore_pres )
 
              END IF
 
@@ -3906,8 +3909,8 @@ CONTAINS
     REAL(wp) :: r_rho_c      !< real-value carrier phase density [kg/m3]
     REAL(wp) :: r_T          !< real-value mixture temperature [K]
     REAL(wp) :: r_rho_m      !< real-value mixture density [kg/m3]
-    REAL(wp) :: r_Zs(n_stoch_vars)!< real-value stochastic variable
-    REAL(wp) :: r_exc_pore_pres(n_pore_vars)       !< real-value excess p pres
+    REAL(wp) :: r_Zs         !< real-value stochastic variable
+    REAL(wp) :: r_exc_pore_pres   !< real-value excess p pres
 
     REAL(wp) :: tot_erosion  !< total erosion rate [m/s]
     REAL(wp) :: tot_solid_erosion !< total solid erosion rate [m/s]
@@ -3971,29 +3974,26 @@ CONTAINS
     IF ( qpj(1) .LE. EPSILON(1.0_wp) ) RETURN
 
     r_h = qpj(1)
-    r_u = qpj(n_vars+1)
-    r_v = qpj(n_vars+2)
+    r_u = qpj(idx_u)
+    r_v = qpj(idx_v)
 
     IF ( alpha_flag ) THEN
 
-       r_alphas(1:n_solid) = qpj(5:4+n_solid)
-       r_alphag(1:n_add_gas) = qpj(4+n_solid+1:4+n_solid+n_add_gas)
+       r_alphas(1:n_solid) = qpj(idx_alfas_first:idx_alfas_last)
+       r_alphag(1:n_add_gas) = qpj(idx_addGas_first:idx_addGas_last)
 
     ELSE
 
-       r_alphas(1:n_solid) = qpj(5:4+n_solid) / qpj(1)
-       r_alphag(1:n_add_gas) = qpj(4+n_solid+1:4+n_solid+n_add_gas) / qpj(1)
+       r_alphas(1:n_solid) = qpj(idx_alfas_first:idx_alfas_last) / qpj(1)
+       r_alphag(1:n_add_gas) = qpj(idx_addGas_first:idx_addGas_last) / qpj(1)
 
     END IF
 
     alphas_tot = SUM(r_alphas)
 
-    r_Zs(1:n_stoch_vars) = qpj(5+n_solid+n_add_gas:4+n_solid+n_add_gas +        &
-         n_stoch_vars)
+    IF ( stoch_transport_flag ) r_Zs = qpj(idx_stoch)
     
-    r_exc_pore_pres(1:n_pore_vars) = qpj(5+n_solid+n_add_gas+n_stoch_vars:      &
-         4+n_solid+n_add_gas+n_stoch_vars+n_pore_vars)
-
+    IF ( pore_pressure_flag ) r_exc_pore_pres = qpj(idx_pore)
     
     IF ( slope_correction_flag ) THEN
 
@@ -4161,7 +4161,7 @@ CONTAINS
 
           vel_loss_gas =  hydraulic_permeability /                              &
                ( kin_visc_a * r_rho_c ) / MAX(1.e-5,r_h) * 0.5_wp * pi_g *      &
-               r_exc_pore_pres(1)
+               r_exc_pore_pres
 
           pore_pressure_term = vel_loss_gas * f_inhibit
           
@@ -4249,8 +4249,8 @@ CONTAINS
 
     ! solid phase mass equation source term [kg m-2 s-1]:
     ! due to solid erosion and deposition
-    eqns_term(5:4+n_solid) = rho_s(1:n_solid) * ( erosion_term(1:n_solid)       &
-         - deposition_term(1:n_solid) )
+    eqns_term(idx_solidEqn_first:idx_solidEqn_last) = rho_s(1:n_solid) *        &
+         ( erosion_term(1:n_solid) - deposition_term(1:n_solid) )
 
     IF ( gas_flag .AND. liquid_vaporization_flag .AND. ( B_zone .NE. 0 ) ) THEN
 
@@ -4270,15 +4270,21 @@ CONTAINS
 
     END IF
 
-    ! Evaluate the equation term related to the noise transport equation
-    ! (if transport flag is false nothing is done)
-    eqns_term(5+n_solid+n_add_gas:4+n_solid+n_add_gas+n_stoch_vars) =           &
-         eqns_term(1) * r_Zs(1:n_stoch_vars)
+    IF ( stoch_transport_flag) THEN
+    
+       ! Evaluate the equation term related to the noise transport equation
+       ! (if transport flag is false nothing is done)
+       eqns_term(idx_stochEqn) = eqns_term(1) * r_Zs
 
-    ! Equation for q1*exc_pore_press
-    eqns_term(5+n_solid+n_add_gas+n_stoch_vars:4+n_solid+n_add_gas+n_stoch_vars+&
-         n_pore_vars) = eqns_term(1) * r_exc_pore_pres(1:n_pore_vars)
-          
+    END IF
+       
+    IF ( pore_pressure_flag ) THEN
+       
+       ! Equation for q1*exc_pore_press
+       eqns_term(idx_poreEqn) = eqns_term(1) * r_exc_pore_pres
+
+    END IF
+       
     ! erodible layer thickness source terms [m s-1]:
     ! due to erosion and deposition of solid+continuous phase
     topo_term = ( dep_tot - ers_tot ) / ( 1.0_wp - erodible_porosity ) 
@@ -4330,7 +4336,7 @@ CONTAINS
        source_bdry(2) = 0.0_wp
        source_bdry(3) = 0.0_wp
        source_bdry(4) = T_source
-       source_bdry(5:4+n_solid) = 0.0_wp
+       source_bdry(idx_solidEqn_first:idx_solidEqn_last) = 0.0_wp
 
        IF ( gas_flag .AND. liquid_flag ) THEN
 
@@ -4338,8 +4344,8 @@ CONTAINS
 
        END IF
 
-       source_bdry(n_vars+1) = 0.0_wp
-       source_bdry(n_vars+2) = 0.0_wp
+       source_bdry(idx_u) = 0.0_wp
+       source_bdry(idx_v) = 0.0_wp
 
        RETURN
 
@@ -4380,8 +4386,10 @@ CONTAINS
 
     IF ( alpha_flag ) THEN
 
-       source_bdry(5:4+n_solid) = alphas_source(1:n_solid)
-       source_bdry(4+n_solid+1:4+n_solid+n_add_gas) = alphag_source(1:n_add_gas)
+       source_bdry(idx_solidEqn_first:idx_solidEqn_last) =                      &
+            alphas_source(1:n_solid)
+       source_bdry(idx_addGasEqn_first:idx_addGasEqn_last) =                    &
+            alphag_source(1:n_add_gas)
 
        IF ( gas_flag .AND. liquid_flag ) THEN
 
@@ -4391,9 +4399,11 @@ CONTAINS
 
     ELSE
 
-       source_bdry(5:4+n_solid) = t_coeff * h_source * alphas_source(1:n_solid)
-       source_bdry(4+n_solid+1:4+n_solid+n_add_gas) = t_coeff * h_source *      &
-            alphag_source(1:n_add_gas)
+       source_bdry(idx_solidEqn_first:idx_solidEqn_last) =                      &
+            t_coeff * h_source * alphas_source(1:n_solid)
+
+       source_bdry(idx_addGasEqn_first:idx_addGasEqn_last) =                    &
+            t_coeff * h_source * alphag_source(1:n_add_gas)
 
        IF ( gas_flag .AND. liquid_flag ) THEN
 
@@ -4403,8 +4413,8 @@ CONTAINS
 
     END IF
 
-    source_bdry(n_vars+1) = t_coeff**0.5_wp * vel_source * vect_x
-    source_bdry(n_vars+2) = t_coeff**0.5_wp * vel_source * vect_y 
+    source_bdry(idx_u) = t_coeff**0.5_wp * vel_source * vect_x
+    source_bdry(idx_v) = t_coeff**0.5_wp * vel_source * vect_y 
 
     RETURN
 

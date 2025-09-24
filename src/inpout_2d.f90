@@ -14,6 +14,15 @@ MODULE inpout_2d
 
   USE parameters_2d, ONLY : wp
 
+
+  USE parameters_2d, ONLY : idx_h, idx_hu, idx_hv, idx_T, idx_alfas_first,      &
+       idx_alfas_last, idx_addGas_first, idx_addGas_last, idx_stoch, idx_pore,  &
+       idx_u, idx_v
+
+  USE parameters_2d, ONLY : idx_totMassEqn, idx_uEqn, idx_vEqn, idx_engyEqn,    &
+       idx_solidEqn_first, idx_solidEqn_last, idx_addGasEqn_first,              &
+       idx_addGasEqn_last, idx_stochEqn, idx_poreEqn
+  
   ! -- Variables for the namelist RUN_PARAMETERS
   USE parameters_2d, ONLY : t_start , t_end , t_output , dt_output 
 
@@ -539,6 +548,12 @@ CONTAINS
 
        END IF
 
+       idx_alfas_first = 5
+       idx_alfas_last = 4 + n_solid
+       
+       idx_solidEqn_first = 5
+       idx_solidEqn_last = 4 + n_solid
+       
        ALLOCATE ( alphas_bcW(n_solid) )
        ALLOCATE ( alphas_bcE(n_solid) )
        ALLOCATE ( alphas_bcS(n_solid) )
@@ -566,6 +581,12 @@ CONTAINS
 
        END IF
 
+       idx_addGas_first = 5 + n_solid
+       idx_addGas_last = 4 + n_solid + n_add_gas
+       
+       idx_addGasEqn_first = 5 + n_solid
+       idx_addGasEqn_last = 4 + n_solid + n_add_gas     
+       
        ALLOCATE ( alphag_bcW(n_add_gas) )
        ALLOCATE ( alphag_bcE(n_add_gas) )
        ALLOCATE ( alphag_bcS(n_add_gas) )
@@ -586,7 +607,9 @@ CONTAINS
           REWIND(input_unit)
 
           IF (stoch_transport_flag) n_stoch_vars = 1
-
+          idx_stoch = 5+n_solid+n_add_gas
+          idx_stochEqn = idx_stoch
+          
        END IF
        
        IF ( pore_pressure_flag ) THEN
@@ -595,6 +618,9 @@ CONTAINS
           REWIND(input_unit)
           n_pore_vars = 1
 
+          idx_pore = 5+n_solid+n_add_gas+n_stoch_vars
+          idx_poreEqn = idx_pore
+          
           IF ( radial_source_flag .OR. bottom_radial_source_flag ) THEN
 
              IF ( ( pore_pres_fract .LE. 0.0_wp ) .OR.                          &
@@ -1631,6 +1657,9 @@ CONTAINS
     n_vars = n_vars + n_solid
     n_eqns = n_vars
 
+    idx_u = n_vars + 1
+    idx_v = n_vars + 2 
+    
     WRITE(*,*) 'Model variables = ',n_vars
 
     alphas_bcW(1:n_solid)%flag = -1

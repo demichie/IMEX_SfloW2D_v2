@@ -271,6 +271,30 @@ MODULE parameters_2d
 
   INTEGER :: n_stoch_vars
   INTEGER :: n_pore_vars
+
+  INTEGER :: idx_h
+  INTEGER :: idx_hu
+  INTEGER :: idx_hv
+  INTEGER :: idx_T
+  INTEGER :: idx_alfas_first
+  INTEGER :: idx_alfas_last
+  INTEGER :: idx_addGas_first
+  INTEGER :: idx_addGas_last
+  INTEGER :: idx_stoch
+  INTEGER :: idx_pore
+  INTEGER :: idx_u
+  INTEGER :: idx_v
+
+  INTEGER :: idx_totMassEqn
+  INTEGER :: idx_uEqn
+  INTEGER :: idx_vEqn
+  INTEGER :: idx_engyEqn
+  INTEGER :: idx_solidEqn_first
+  INTEGER :: idx_solidEqn_last
+  INTEGER :: idx_addGasEqn_first
+  INTEGER :: idx_addGasEqn_last
+  INTEGER :: idx_stochEqn
+  INTEGER :: idx_poreEqn
   
   INTEGER :: n_nh     !< Number of non-hyperbolic terms
 
