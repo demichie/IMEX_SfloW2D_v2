@@ -274,8 +274,8 @@ CONTAINS
     REAL(wp) :: r_alphag(n_add_gas)
     REAL(wp) :: r_red_grav
     REAL(wp) :: R_ri
-    REAL(wp) :: r_Zs(n_stoch_vars)
-    REAL(wp) :: r_pore_pres(n_pore_vars)
+    REAL(wp) :: r_Zs
+    REAL(wp) :: r_pore_pres
     REAL(wp) :: p_dyn
     
     ! check that the thickness and velocity are > 0
@@ -314,8 +314,8 @@ CONTAINS
   REAL(wp) :: r_alphag(n_add_gas)
   REAL(wp) :: r_red_grav
   REAL(wp) :: R_ri
-  REAL(wp) :: r_Zs(n_stoch_vars)
-  REAL(wp) :: r_pore_pres(n_pore_vars)
+  REAL(wp) :: r_Zs
+  REAL(wp) :: r_pore_pres
   REAL(wp) :: p_dyn
   
   ! check that the thickness and velocity are > 0
