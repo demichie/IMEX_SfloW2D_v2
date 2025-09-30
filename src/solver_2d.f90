@@ -2868,6 +2868,17 @@ CONTAINS
 
           ENDDO eqns_loop
 
+          ! Fix to avoid sum of solid fluxes larger tham flux for mixture
+          IF ( ( SUM(H_interface_y(idx_solidEqn_first:idx_solidEqn_last,j,k)) / &
+               H_interface_y(1,j,k) ) .GT. 1.0_wp ) THEN
+
+             H_interface_y(idx_solidEqn_first:idx_solidEqn_last,j,k) =          &
+                  H_interface_y(idx_solidEqn_first:idx_solidEqn_last,j,k) /     &
+                  ( SUM(H_interface_y(idx_solidEqn_first:idx_solidEqn_last,j,k))&
+                  / H_interface_y(1,j,k) )
+
+          END IF
+          
           ! In the equation for mass and for trasnport (T,alphas) if the 
           ! velocities at the interfaces are null, then the flux is null
           IF ( (  qp_interfaceL(2,j,k) .EQ. 0.0_wp ) .AND.                      &
@@ -2925,6 +2936,17 @@ CONTAINS
 
           END DO
 
+          ! Fix to avoid sum of solid fluxes larger tham flux for mixture
+          IF ( ( SUM(H_interface_y(idx_solidEqn_first:idx_solidEqn_last,j,k)) / &
+               H_interface_y(1,j,k) ) .GT. 1.0_wp ) THEN
+
+             H_interface_y(idx_solidEqn_first:idx_solidEqn_last,j,k) =          &
+                  H_interface_y(idx_solidEqn_first:idx_solidEqn_last,j,k) /     &
+                  ( SUM(H_interface_y(idx_solidEqn_first:idx_solidEqn_last,j,k))&
+                  / H_interface_y(1,j,k) )
+
+          END IF
+          
           ! In the equation for mass and for trasnport (T,alphas) if the 
           ! velocities at the interfaces are null, then the flux is null
           IF ( (  q_interfaceB(3,j,k) .EQ. 0.0_wp ) .AND.                       &
