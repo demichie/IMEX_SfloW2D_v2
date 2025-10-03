@@ -510,6 +510,8 @@ CONTAINS
 
     REAL(wp) :: u_log_avg
 
+    REAL(wp) :: r_sp_heat_c_by_xc     
+
     ! compute solid mass fractions
     IF ( r_qj(1) .GT. EPSILON(1.0_wp) ) THEN
 
@@ -523,7 +525,8 @@ CONTAINS
 
        END IF
 
-       r_xg(1:n_add_gas) = r_qj(idx_addGas_first:idx_addGas_last) * inv_qj1
+       IF ( n_add_gas .GT. 0 ) r_xg(1:n_add_gas) =                              &
+            r_qj(idx_addGas_first:idx_addGas_last) * inv_qj1
 
        IF ( stoch_transport_flag ) r_Zs = r_qj(idx_stoch) * inv_qj1
 
@@ -561,12 +564,12 @@ CONTAINS
 
        ! compute specific heat of gas phase (weighted average of specific heat
        ! of gas components, with weights given by mass fractions)
-       r_sp_heat_c = ( ( r_xc - SUM( r_xg(1:n_add_gas) ) ) * sp_heat_a +        &
-            DOT_PRODUCT( r_xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / r_xc
+       r_sp_heat_c_by_xc = ( ( r_xc - SUM( r_xg(1:n_add_gas) ) ) * sp_heat_a +  &
+            DOT_PRODUCT( r_xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) )
 
        ! specific heat of the mixutre: mass average of sp. heat pf phases
        r_sp_heat_mix = DOT_PRODUCT( r_xs(1:n_solid) , sp_heat_s(1:n_solid) )    &
-            + r_xl * sp_heat_l + r_xc * r_sp_heat_c
+            + r_xl * sp_heat_l + r_xc * r_sp_heat_c_by_xc
 
     ELSE
 
@@ -575,18 +578,18 @@ CONTAINS
 
        IF ( gas_flag ) THEN
 
-          r_sp_heat_c = ( ( r_xc - SUM( r_xg(1:n_add_gas) ) ) * sp_heat_a +     &
-               DOT_PRODUCT( r_xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / r_xc
+          r_sp_heat_c_by_xc = ( ( r_xc - SUM( r_xg(1:n_add_gas) ) ) * sp_heat_a &
+               + DOT_PRODUCT( r_xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) )
 
        ELSE
 
-          r_sp_heat_c = sp_heat_l
+          r_sp_heat_c_by_xc = sp_heat_l * r_xc
 
        END IF
 
        ! specific heaf of the mixutre: mass average of sp. heat pf phases
        r_sp_heat_mix = DOT_PRODUCT( r_xs(1:n_solid) , sp_heat_s(1:n_solid) )    &
-            + r_xc * r_sp_heat_c
+            + r_sp_heat_c_by_xc
 
     END IF
 
@@ -615,9 +618,18 @@ CONTAINS
     IF ( gas_flag ) THEN
 
        ! carrier phase is gas
-       r_sp_gas_const_c = ( ( r_xc - SUM( r_xg(1:n_add_gas) ) ) * sp_gas_const_a&
-            + DOT_PRODUCT( r_xg(1:n_add_gas) , sp_gas_const_g(1:n_add_gas) ) )  &
-            / r_xc
+       IF ( r_xc .GT. EPSILON(1.0_wp) ) THEN
+          
+          r_sp_gas_const_c = ( ( r_xc - SUM( r_xg(1:n_add_gas) ) ) * sp_gas_const_a&
+               + DOT_PRODUCT( r_xg(1:n_add_gas) , sp_gas_const_g(1:n_add_gas) ) )  &
+               / r_xc
+
+       ELSE
+
+          r_sp_gas_const_c = sp_gas_const_a
+
+       END IF
+       
        r_rho_c =  pres / ( r_sp_gas_const_c * r_T )
        r_inv_rho_c = r_sp_gas_const_c * r_T * inv_pres
 
@@ -1401,9 +1413,18 @@ CONTAINS
        r_xc = 1.0_wp - ( r_xl + SUM(r_xs(1:n_solid) ) )
 
        ! specific heat of gas (mass. avg. of sp.heat of gas components)
-       r_sp_heat_c = ( ( r_xc - SUM( r_xg(1:n_add_gas) ) ) * sp_heat_a +        &
-            DOT_PRODUCT( r_xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / r_xc
 
+       IF ( r_xc .GT. EPSILON(1.0_wp) ) THEN
+        
+          r_sp_heat_c = ( ( r_xc - SUM( r_xg(1:n_add_gas) ) ) * sp_heat_a +        &
+               DOT_PRODUCT( r_xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / r_xc
+
+       ELSE
+
+          r_sp_heat_c = sp_heat_a
+
+       END IF
+          
        ! mass averaged mixture specific heat
        r_sp_heat_mix =  DOT_PRODUCT( r_xs , sp_heat_s ) + r_xl * sp_heat_l      &
             + r_xc * r_sp_heat_c
@@ -1424,9 +1445,17 @@ CONTAINS
 
        IF ( gas_flag ) THEN
 
-          r_sp_heat_c = ( ( r_xc - SUM( r_xg(1:n_add_gas) ) ) * sp_heat_a +     &
-               DOT_PRODUCT( r_xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / r_xc
+          IF ( r_xc .GT. EPSILON(1.0_wp) ) THEN
+ 
+             r_sp_heat_c = ( ( r_xc - SUM( r_xg(1:n_add_gas) ) ) * sp_heat_a +     &
+                  DOT_PRODUCT( r_xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / r_xc
 
+          ELSE
+
+             r_sp_heat_c = sp_heat_a
+
+          END IF
+             
        ELSE
 
           r_sp_heat_c = sp_heat_l
@@ -1739,9 +1768,17 @@ CONTAINS
        r_xc = r_alphac * r_rho_c * r_inv_rhom
 
        ! specific heat of gas (mass. avg. of sp.heat of gas components)
-       r_sp_heat_c = ( ( r_xc - SUM( r_xg(1:n_add_gas) ) ) * sp_heat_a +        &
-            DOT_PRODUCT( r_xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / r_xc
+       IF ( r_xc .GT. EPSILON(1.0_wp) ) THEN
 
+          r_sp_heat_c = ( ( r_xc - SUM( r_xg(1:n_add_gas) ) ) * sp_heat_a +        &
+               DOT_PRODUCT( r_xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / r_xc
+
+       ELSE
+
+          r_sp_heat_c = sp_heat_a
+
+       END IF
+          
        ! mass averaged mixture specific heat
        r_sp_heat_mix =  DOT_PRODUCT( r_xs , sp_heat_s ) + r_xl * sp_heat_l      &
             + r_xc * r_sp_heat_c
@@ -1780,9 +1817,17 @@ CONTAINS
 
        IF ( gas_flag ) THEN
 
-          r_sp_heat_c = ( ( r_xc - SUM( r_xg(1:n_add_gas) ) ) * sp_heat_a +     &
-               DOT_PRODUCT( r_xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / r_xc
+          IF ( r_xc .GT. EPSILON(1.0_wp) ) THEN
+          
+             r_sp_heat_c = ( ( r_xc - SUM( r_xg(1:n_add_gas) ) ) * sp_heat_a +     &
+                  DOT_PRODUCT( r_xg(1:n_add_gas) , sp_heat_g(1:n_add_gas) ) ) / r_xc
 
+          ELSE
+
+             r_sp_heat_c = sp_heat_a
+
+          END IF
+             
        ELSE
 
           r_sp_heat_c = sp_heat_l

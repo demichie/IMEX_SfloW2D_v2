@@ -1363,6 +1363,24 @@ CONTAINS
           q(1:n_vars,j,k) = q0(1:n_vars,j,k) - dt*residual_term(1:n_vars,j,k)
 
        END IF
+
+       IF ( ANY(ISNAN(q(:,j,k))) ) THEN
+          
+          WRITE(*,*) 'j,k,n_RK',j,k,n_RK
+          WRITE(*,*) 'dt',dt
+          WRITE(*,*) 'before imex_RK_solver: qc',q0(1:n_vars,j,k)
+          IF ( q0(1,j,k) .GT. 0.0_wp ) THEN
+             
+             CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
+             WRITE(*,*) 'before imex_RK_solver: qp',qp(1:n_vars+2,j,k)
+             
+          END IF
+          WRITE(*,*) 'after imex_RK_solver: qc',q(1:n_vars,j,k)
+          
+          READ(*,*)
+          
+       END IF
+       
        
        ! negative_thickness_check:IF ( q(1,j,k) .LT. 0.0_wp ) THEN
        negative_thickness_check:IF ( q(1,j,k) .LT. EPSILON(1.0_wp) ) THEN

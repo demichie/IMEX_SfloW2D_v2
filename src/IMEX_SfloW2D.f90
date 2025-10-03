@@ -26,6 +26,9 @@
 !> \brief Main Program 
 PROGRAM IMEX_SfloW2D
 
+  USE, intrinsic :: iso_fortran_env
+  USE, intrinsic :: ieee_arithmetic  
+
   USE constitutive_2d, ONLY : init_problem_param , T_ambient
 
 
@@ -129,6 +132,8 @@ PROGRAM IMEX_SfloW2D
   REAL(wp) :: ans1
 
   REAL(wp) :: mod_vel , mod_vel2, r_u, r_v
+
+  REAL(wp) :: vol
 
   WRITE(*,*) '---------------------'
   WRITE(*,*) 'IMEX_SfloW2D 2.0'
@@ -307,8 +312,8 @@ PROGRAM IMEX_SfloW2D
 
   IF ( output_runout_flag ) CALL output_runout(t,stop_flag)
 
-  IF ( output_cons_flag .OR. output_esri_flag .OR. output_phys_flag .OR. output_netcdf_flag )           &
-       CALL output_solution(t)
+  IF ( output_cons_flag .OR. output_esri_flag .OR. output_phys_flag .OR.        &
+       output_netcdf_flag ) CALL output_solution(t)
 
   IF ( n_probes .GT. 0 ) CALL output_probes(t)
 
@@ -443,6 +448,32 @@ PROGRAM IMEX_SfloW2D
 
      IF ( verbose_level .GE. 0 ) THEN
 
+        vol = SUM(qp(1,:,:))
+
+        !IF ( IEEE_IS_NAN(vol) .OR. ( t.GE. 50.54) ) THEN
+
+        !   WRITE(*,*) 'WARNING: volume = ',dx*dy*SUM(qp(1,:,:))
+
+        !   DO l = 1,solve_cells
+              
+        !      j = j_cent(l)
+        !      k = k_cent(l)
+
+        !      IF ( (j.EQ.1270) .AND. (k.EQ.1317) ) THEN
+              
+        !         WRITE(*,*) 'j,k',j,k,qp(1,j,k)
+        !         WRITE(*,*) 'qc: ',q(1:n_vars,j,k)
+        !         WRITE(*,*) 'qp: ',qp(1:n_vars+2,j,k)
+
+        !      END IF
+                 
+        !   END DO
+           
+        !   READ(*,*) 
+           
+        !END IF
+  
+        
         WRITE(*,FMT="(A3,F11.4,A5,F9.5,A9,ES11.3E3,A11,ES11.3E3,A9,ES11.3E3,A15,   &
              &ES11.3E3)")                                                          &
              't =',t,'dt =',dt,                                                    &
