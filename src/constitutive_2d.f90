@@ -9,7 +9,7 @@ MODULE constitutive_2d
   USE parameters_2d, ONLY : rheology_flag , rheology_model , energy_flag ,      &
        liquid_flag , gas_flag , alpha_flag , slope_correction_flag ,            &
        curvature_term_flag, stochastic_flag, mean_field_flag,                   &
-       stoch_transport_flag, pore_pressure_flag
+       stoch_transport_flag, pore_pressure_flag , sutherland_flag
 
   USE parameters_2d, ONLY : idx_h, idx_hu, idx_hv, idx_T, idx_alfas_first,      &
        idx_alfas_last, idx_addGas_first, idx_addGas_last, idx_stoch, idx_pore,  &
@@ -155,6 +155,15 @@ MODULE constitutive_2d
   !> Kinematic viscosity of carrier phase (units: m2 s-1)
   REAL(wp) :: kin_visc_c
 
+  !> Reference temperature for Sutherland’s law (units: K)
+  REAL(wp) :: Tref_Suth
+
+  !> Reference viscosity for Sutherland's law (units: kg m-1 s-1)
+  REAL(wp) :: muRef_Suth
+
+  !> Sutherland constant for Sutherland’s law (units: K) 
+  REAL(wp) :: S_mu
+  
   !> Temperature of ambient air (units: K)
   REAL(wp) :: T_ambient
 
@@ -510,7 +519,9 @@ CONTAINS
 
     REAL(wp) :: u_log_avg
 
-    REAL(wp) :: r_sp_heat_c_by_xc     
+    REAL(wp) :: r_sp_heat_c_by_xc
+
+    REAL(wp) :: dyn_visc_c
 
     ! compute solid mass fractions
     IF ( r_qj(1) .GT. EPSILON(1.0_wp) ) THEN
@@ -684,6 +695,15 @@ CONTAINS
 
        rhos_alfas(1:n_solid) = r_alphas(1:n_solid) * rho_s(1:n_solid)
 
+       IF ( gas_flag .AND. sutherland_flag ) THEN
+          
+          dyn_visc_c = muRef_Suth * ( r_T / Tref_Suth )**1.5_wp *               &
+               ( Tref_Suth + S_mu ) / ( r_T + S_mu )
+
+          kin_visc_c = dyn_visc_c * r_inv_rho_c
+
+       END IF
+                 
        ! Viscosity read from input file [m2 s-1]
        inv_kin_visc = 1.0_wp / kin_visc_c
 
@@ -1661,6 +1681,8 @@ CONTAINS
 
     REAL(wp) :: u_log_avg
 
+    REAL(wp) :: dyn_visc_c
+
     r_h = qp(1)
 
     IF ( r_h .GT. EPSILON(1.0_wp) ) THEN
@@ -1853,6 +1875,15 @@ CONTAINS
 
        shear_vel = SQRT( friction_factor ) * mod_vel
 
+       IF ( gas_flag .AND. sutherland_flag ) THEN
+          
+          dyn_visc_c = muRef_Suth * ( r_T / Tref_Suth )**1.5_wp *               &
+               ( Tref_Suth + S_mu ) / ( r_T + S_mu )
+
+          kin_visc_c = dyn_visc_c / r_rho_c
+
+       END IF
+                     
        ! Viscosity read from input file [m2 s-1]
        inv_kin_visc = 1.0_wp / kin_visc_c
        
@@ -2421,6 +2452,7 @@ CONTAINS
     REAL(wp) :: r_w          !< real-value z-velocity [m s-1]
     REAL(wp) :: r_alphas(n_solid) !< real-value solid volume fractions
     REAL(wp) :: r_alphag(1:n_add_gas)
+    REAL(wp) :: r_T
 
     REAL(wp) :: mod_hvel
 
@@ -2478,12 +2510,15 @@ CONTAINS
     REAL(wp) :: int_hvel_vel
     REAL(wp) :: int_rhom_hvel_vel
     REAL(wp) :: rhom_vel_vel
+    REAL(wp) :: dyn_visc_c
+    REAL(wp) :: r_inv_rho_c
 
     shape_coeff(1:n_eqns) = 1.0_wp
 
     r_h = qpj(1)
     r_hu = qpj(2)
     r_hv = qpj(3)
+    r_T = qpj(4)
     r_u = qpj(idx_u)
     r_v = qpj(idx_v)
 
@@ -2518,6 +2553,16 @@ CONTAINS
 
     shear_vel = SQRT( friction_factor ) * mod_vel
 
+    IF ( gas_flag .AND. sutherland_flag ) THEN
+          
+       dyn_visc_c = muRef_Suth * ( r_T / Tref_Suth )**1.5_wp *               &
+            ( Tref_Suth + S_mu ) / ( r_T + S_mu )
+
+       r_inv_rho_c = sp_gas_const_a * r_T * inv_pres       
+       kin_visc_c = dyn_visc_c * r_inv_rho_c
+       
+    END IF
+                  
     ! Viscosity read from input file [m2 s-1]
     inv_kin_visc = 1.0_wp / kin_visc_c
 
@@ -2711,6 +2756,7 @@ CONTAINS
     REAL(wp) :: Rouse_no(n_solid)
 
     REAL(wp) :: r_h          !< real-value flow thickness [m]
+    REAL(wp) :: r_T
 
     REAL(wp) :: shear_vel    !< shear velocity
 
@@ -2737,13 +2783,24 @@ CONTAINS
 
     REAL(wp) :: z(n_quad)
     REAL(wp) :: w(n_quad)
+    REAL(wp) :: dyn_visc_c
 
     dep_coeff(1:n_eqns) = 1.0_wp
 
     r_h = qpj(1)
+    r_T = qpj(4)
 
     shear_vel = SQRT( friction_factor ) * mod_vel
 
+    IF ( gas_flag .AND. sutherland_flag ) THEN
+          
+       dyn_visc_c = muRef_Suth * ( r_T / Tref_Suth )**1.5_wp *               &
+            ( Tref_Suth + S_mu ) / ( r_T + S_mu )
+
+       kin_visc_c = dyn_visc_c / r_rho_c
+       
+    END IF
+    
     ! Viscosity read from input file [m2 s-1]
     inv_kin_visc = 1.0_wp / kin_visc_c
 
@@ -3203,6 +3260,7 @@ CONTAINS
     COMPLEX(wp) :: gamma
     COMPLEX(wp) :: rho_g(n_add_gas)
     REAL(wp) :: h_threshold
+    COMPLEX(wp) :: rho_c
 
     INTEGER :: i
 
@@ -3244,6 +3302,7 @@ CONTAINS
 
     COMPLEX(wp) :: porosity
     COMPLEX(wp) :: f_inhibit
+    COMPLEX(wp) :: dyn_visc_c
     
     IF ( present(c_qj) .AND. present(c_nh_term_impl) ) THEN
 
@@ -3481,9 +3540,18 @@ CONTAINS
        rho_gas = pres / ( sp_gas_const_a * T )
 
        porosity = 1.0_wp - SUM(alphas)
+
+       IF ( gas_flag .AND. sutherland_flag ) THEN
+          
+          dyn_visc_c = muRef_Suth * ( T / Tref_Suth )**1.5_wp *                 &
+               ( Tref_Suth + S_mu ) / ( T + S_mu )
+
+          kin_visc_c = dyn_visc_c / rho_gas
+       
+       END IF
        
        ! Eq. 7 from Gueugneau et al, 2017 
-       D_coeff = hydraulic_permeability / ( porosity * kin_visc_a * rho_gas *   &
+       D_coeff = hydraulic_permeability / ( porosity * kin_visc_c * rho_gas *   &
             gas_compressibility )
 
        ! Equation 12 from Gueugneau et al, 2017
@@ -3999,6 +4067,9 @@ CONTAINS
     REAL(wp) :: f_inhibit
     REAL(wp) :: vel_loss_gas
 
+    REAL(wp) :: dyn_visc_c
+    REAL(wp) :: rho_c
+
     erosion_term(1:n_solid) = 0.0_wp
     deposition_term(1:n_solid) = 0.0_wp
     continuous_phase_erosion_term = 0.0_wp
@@ -4130,6 +4201,16 @@ CONTAINS
 
     ELSE
 
+       IF ( gas_flag .AND. sutherland_flag ) THEN
+          
+          dyn_visc_c = muRef_Suth * ( r_T / Tref_Suth )**1.5_wp *               &
+               ( Tref_Suth + S_mu ) / ( r_T + S_mu )
+
+          rho_c = pres / ( sp_gas_const_a * r_T )
+          kin_visc_c = dyn_visc_c / rho_c
+       
+       END IF
+       
        ! Viscosity read from input file [m2 s-1]
        inv_kin_visc = 1.0_wp / kin_visc_c
        ! Continuous phase density used for the settling velocity
@@ -4204,8 +4285,18 @@ CONTAINS
           
           f_inhibit = MAX(0.0_wp, 1.0_wp - ( alphas_tot / maximum_solid_packing ) )
 
+          IF ( gas_flag .AND. sutherland_flag ) THEN
+             
+             dyn_visc_c = muRef_Suth * ( r_T / Tref_Suth )**1.5_wp *            &
+                  ( Tref_Suth + S_mu ) / ( r_T + S_mu )
+             
+             rho_c = pres / ( sp_gas_const_a * r_T )
+             kin_visc_c = dyn_visc_c / rho_c
+             
+          END IF
+                 
           vel_loss_gas =  hydraulic_permeability /                              &
-               ( kin_visc_a * r_rho_c ) / MAX(1.e-5,r_h) * 0.5_wp * pi_g *      &
+               ( kin_visc_c * r_rho_c ) / MAX(1.e-5,r_h) * 0.5_wp * pi_g *      &
                r_exc_pore_pres
 
           pore_pressure_term = vel_loss_gas * f_inhibit

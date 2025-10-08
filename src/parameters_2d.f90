@@ -155,6 +155,13 @@ MODULE parameters_2d
   !> .
   LOGICAL :: output_stoch_vars_flag
 
+
+  !> Flag to use the Sutherland's law for gas viscosity
+  !> - T     => use Sutherland's law
+  !> - F     => do not use 
+  !> .
+  LOGICAL :: sutherland_flag
+  
   !> Scale of spatial correlation for stochastic model
   REAL(wp) :: length_spatial_corr
 

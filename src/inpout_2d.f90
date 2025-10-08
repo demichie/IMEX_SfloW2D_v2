@@ -96,9 +96,11 @@ MODULE inpout_2d
   
   ! --- Variables for the namelist GAS_TRANSPORT_PARAMETERS
   USE constitutive_2d, ONLY : sp_heat_a , sp_gas_const_a , kin_visc_a , pres ,  &
-       T_ambient , entrainment_flag , sp_heat_g , sp_gas_const_g , gamma_steam
+       T_ambient , entrainment_flag , sp_heat_g , sp_gas_const_g , gamma_steam ,&
+       Tref_Suth , muRef_Suth , S_mu
 
-  USE parameters_2d, ONLY : liquid_vaporization_flag , water_level
+  USE parameters_2d, ONLY : liquid_vaporization_flag , sutherland_flag ,        &
+       water_level
 
   ! --- Variables for the namelist LIQUID_TRANSPORT_PARAMETERS
   USE constitutive_2d, ONLY : sp_heat_l , rho_l , kin_visc_l , loss_rate
@@ -785,6 +787,10 @@ CONTAINS
     liquid_vaporization_flag = .FALSE.
     water_level = -1.0E7_wp
     gamma_steam = -1.0_wp
+    sutherland_flag = .FALSE.
+    Tref_Suth = -1.0_wp
+    muRef_Suth = -1.0_wp
+    S_mu = -1.0_wp
 
     !- Variables for the namelist LIQUID_TRANSPORT_PARAMETERS
     sp_heat_l = -1.0_wp
@@ -925,8 +931,9 @@ CONTAINS
 
     NAMELIST / gas_transport_parameters / sp_heat_a, sp_gas_const_a, kin_visc_a,&
          pres , T_ambient , entrainment_flag , sp_heat_g , sp_gas_const_g ,     &
-         liquid_vaporization_flag , water_level , gamma_steam
-
+         liquid_vaporization_flag , water_level , gamma_steam , sutherland_flag,&
+         Tref_Suth , muRef_Suth , S_mu
+  
 
     REAL(wp) :: max_cfl
 
@@ -979,6 +986,9 @@ CONTAINS
 
     ! parameter for elliptical source
     REAL(wp) :: h_ell
+
+    REAL(wp) :: rho_a
+    REAL(wp) :: dyn_visc_c
     
     OPEN(input_unit,FILE=input_file,STATUS='old')
 
@@ -1096,15 +1106,97 @@ CONTAINS
 
     END IF
 
-    IF ( kin_visc_a .EQ. -1.0_wp ) THEN
+    IF ( sutherland_flag ) THEN
 
-       WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
-       WRITE(*,*) 'KIN_VISC_CONST_a =' , kin_visc_a
-       WRITE(*,*) 'Please check the input file'
-       STOP
+       IF ( Tref_Suth .EQ. -1.0_wp ) THEN
+          
+          WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
+          WRITE(*,*) 'Tref_Suth =' , Tref_Suth
+          WRITE(*,*) 'Please check the input file'
+          STOP
 
+       END IF
+
+        IF ( muRef_Suth .EQ. -1.0_wp ) THEN
+          
+          WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
+          WRITE(*,*) 'muRef_Suth =' , muRef_Suth
+          WRITE(*,*) 'Please check the input file'
+          STOP
+
+       END IF
+
+        IF ( S_mu .EQ. -1.0_wp ) THEN
+          
+          WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
+          WRITE(*,*) 'S_mu =' , S_mu
+          WRITE(*,*) 'Please check the input file'
+          STOP
+
+       END IF
+
+       IF ( kin_visc_a .NE. -1.0_wp ) THEN
+          
+          WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
+          WRITE(*,*) 'KIN_VISC_CONST_A =' , kin_visc_a
+          WRITE(*,*) 'sutherland_flag =' , sutherland_flag
+          WRITE(*,*) 'Please check the input file'
+          WRITE(*,*) 'KIN_VISC_CONST_a should no be given'
+          STOP
+
+       END IF       
+                 
+       dyn_visc_c = muRef_Suth * ( T_ambient / Tref_Suth )**1.5_wp *               &
+            ( Tref_Suth + S_mu ) / ( T_ambient + S_mu )
+
+       rho_a = pres / ( sp_gas_const_a * T_ambient ) 
+       
+       kin_visc_c = dyn_visc_c / rho_a
+
+       WRITE(*,*) 'kinematic viscosity at ambient conditions =',kin_visc_c 
+       
     ELSE
 
+
+       IF ( Tref_Suth .NE. -1.0_wp ) THEN
+          
+          WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
+          WRITE(*,*) 'Tref_Suth =' , Tref_Suth
+          WRITE(*,*) 'It should not be defined when SUTHERLAND_FLAG = T'
+          WRITE(*,*) 'Please check the input file'
+          STOP
+
+       END IF
+       
+        IF ( muRef_Suth .NE. -1.0_wp ) THEN
+          
+          WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
+          WRITE(*,*) 'muRef_Suth =' , muRef_Suth
+          WRITE(*,*) 'It should not be defined when SUTHERLAND_FLAG = T'
+          WRITE(*,*) 'Please check the input file'
+          STOP
+
+       END IF
+
+        IF ( S_mu .NE. -1.0_wp ) THEN
+          
+          WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
+          WRITE(*,*) 'S_mu =' , S_mu
+          WRITE(*,*) 'It should not be defined when SUTHERLAND_FLAG = T'
+          WRITE(*,*) 'Please check the input file'
+          STOP
+
+       END IF
+
+       IF ( kin_visc_a .EQ. -1.0_wp ) THEN
+          
+          WRITE(*,*) 'ERROR: problem with namelist GAS_TRANSPORT_PARAMETERS'
+          WRITE(*,*) 'KIN_VISC_CONST_a =' , kin_visc_a
+          WRITE(*,*) 'Please check the input file'
+          STOP
+
+       END IF
+          
        IF ( gas_flag ) THEN
 
           IF ( VERBOSE_LEVEL .GE. 0 ) THEN
@@ -4041,12 +4133,13 @@ CONTAINS
                 IF ( gas_flag ) THEN
 
                    ! carrier phase is gas
-                   sp_gas_const_c = ( ( xc - SUM( xg_source(1:n_add_gas) ) ) * sp_gas_const_a      &
-                        + DOT_PRODUCT( xg_source(1:n_add_gas) , sp_gas_const_g(1:n_add_gas) ) )    &
-                        / xc
+                   sp_gas_const_c = ( ( xc - SUM( xg_source(1:n_add_gas) ) ) *  &
+                        sp_gas_const_a + DOT_PRODUCT( xg_source(1:n_add_gas) ,  &
+                        sp_gas_const_g(1:n_add_gas) ) ) / xc
 
                    inv_rho_c = sp_gas_const_c * T_source * inv_pres
-                   inv_rho_g(1:n_add_gas) = sp_gas_const_g(1:n_add_gas) * T_source * inv_pres
+                   inv_rho_g(1:n_add_gas) = sp_gas_const_g(1:n_add_gas) *       &
+                        T_source * inv_pres
 
                 ELSE
 
@@ -4054,18 +4147,21 @@ CONTAINS
 
                 END IF
 
-                inv_rhom = DOT_PRODUCT( xs_source(1:n_solid) , inv_rho_s(1:n_solid) )            &
-                     + xc * inv_rho_c
+                inv_rhom = DOT_PRODUCT( xs_source(1:n_solid) ,                  &
+                     inv_rho_s(1:n_solid) ) + xc * inv_rho_c
 
-                IF ( gas_flag .AND. liquid_flag ) inv_rhom = inv_rhom + xl_source * inv_rho_l
+                IF ( gas_flag .AND. liquid_flag ) inv_rhom = inv_rhom           &
+                     + xl_source * inv_rho_l
 
                 rho_m = 1.0_wp / inv_rhom
 
                 ! convert from mass fraction to volume fraction
-                alphas_source(1:n_solid) = rho_m * xs_source(1:n_solid) * inv_rho_s(1:n_solid)
+                alphas_source(1:n_solid) = rho_m * xs_source(1:n_solid) *       &
+                     inv_rho_s(1:n_solid)
 
                 ! convert from mass fraction to volume fraction
-                alphag_source(1:n_add_gas) = rho_m * xg_source(1:n_solid) * inv_rho_g(1:n_add_gas)
+                alphag_source(1:n_add_gas) = rho_m * xg_source(1:n_solid) *     &
+                     inv_rho_g(1:n_add_gas)
 
                 IF ( liquid_flag ) THEN
 
@@ -5437,7 +5533,7 @@ CONTAINS
 
     ! external variables
 
-    USE constitutive_2d, ONLY : kin_visc_c
+    USE constitutive_2d, ONLY : kin_visc_c , inv_pres
 
     USE geometry_2d, ONLY : comp_cells_x , B_cent , comp_cells_y , x_comp,      &
          y_comp , deposit , erosion , erodible , B_prime_x , B_prime_y 
@@ -5490,6 +5586,8 @@ CONTAINS
     REAL(wp) :: Rouse_no(n_solid)
 
     REAL(wp) :: mu_eff
+    REAL(wp) :: dyn_visc_c
+    REAL(wp) :: r_inv_rho_c
     
     sp_flag = .FALSE.
 
@@ -5668,7 +5766,17 @@ CONTAINS
                 shear_stress = r_rho_m * friction_factor * mod_vel2
 
                 shear_vel = SQRT( shear_stress / r_rho_m ) 
-
+                
+                IF ( gas_flag .AND. sutherland_flag ) THEN
+                   
+                   dyn_visc_c = muRef_Suth * ( r_T / Tref_Suth )**1.5_wp *      &
+                        ( Tref_Suth + S_mu ) / ( r_T + S_mu )
+                   
+                   r_inv_rho_c = sp_gas_const_a * r_T * inv_pres
+                   kin_visc_c = dyn_visc_c * r_inv_rho_c
+                   
+                END IF
+                                
                 ! Viscosity read from input file [m2 s-1]
                 inv_kin_visc = 1.0_wp / kin_visc_c
 
