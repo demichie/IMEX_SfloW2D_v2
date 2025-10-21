@@ -14,7 +14,6 @@ MODULE inpout_2d
 
   USE parameters_2d, ONLY : wp
 
-
   USE parameters_2d, ONLY : idx_h, idx_hu, idx_hv, idx_T, idx_alfas_first,      &
        idx_alfas_last, idx_addGas_first, idx_addGas_last, idx_stoch, idx_pore,  &
        idx_u, idx_v
@@ -625,8 +624,7 @@ CONTAINS
           
           IF ( radial_source_flag .OR. bottom_radial_source_flag ) THEN
 
-             IF ( ( pore_pres_fract .LE. 0.0_wp ) .OR.                          &
-                  ( pore_pres_fract .LE. 0.0_wp ) ) THEN
+             IF ( pore_pres_fract .LE. 0.0_wp ) THEN
                 
                 WRITE(*,*) 'ERROR: problem with namelist PORE_PRESSURE_PARAMETERS'
                 WRITE(*,*) 'pore_pres_fract =' , pore_pres_fract
@@ -634,7 +632,19 @@ CONTAINS
                 STOP
 
              END IF
-                           
+
+          ELSE
+             
+             IF ( pore_pres_fract .GT. 0.0_wp ) THEN
+                
+                WRITE(*,*) 'ERROR: problem with namelist PORE_PRESSURE_PARAMETERS'
+                WRITE(*,*) 'pore_pres_fract =' , pore_pres_fract
+                WRITE(*,*) 'It should not be defined unless RADIAL_SOURCE_FLAG=T'
+                WRITE(*,*) 'or BOTTOM_RADIAL_SOURCE_FLAG=T'
+                WRITE(*,*) 'Please check the input file'
+                STOP
+
+             END IF             
           END IF
 
        ELSE
