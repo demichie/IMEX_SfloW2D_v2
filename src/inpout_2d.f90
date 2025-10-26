@@ -1848,11 +1848,10 @@ CONTAINS
 
                 IF ( TRIM(restart_files(i_file)) .EQ. '' ) THEN
 
-                   WRITE(*,*) 'ERROR: problem with namelist RESTART_PARAMETERS'
+                   WRITE(*,*) 'WARNING: problem with namelist RESTART_PARAMETERS'
                    WRITE(*,*) 'n_restart_files',n_restart_files
                    WRITE(*,*) 'restart_files ',restart_files
                    WRITE(*,*) 'Please check the input file'
-                   STOP                    
 
                 END IF
 
