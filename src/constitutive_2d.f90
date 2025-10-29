@@ -3764,6 +3764,9 @@ CONTAINS
              ! add the contribution of centr. force (with coeff for slope)
              temp_term = temp_term + r_rho_m *  mu * r_h * grav_coeff *         &
                   centr_force_term
+
+             ! Friction terms cannot accelerate the flow
+             temp_term = MAX(0.0_wp,temp_term)
              
              ! units of dqc(2)/dt=d(rho h v)/dt (kg m-1 s-2)
              source_term(2) = source_term(2) - temp_term * r_u / mod_hor_vel
