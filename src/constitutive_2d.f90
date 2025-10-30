@@ -3749,8 +3749,9 @@ CONTAINS
              ! add the contribution on mu (with coeff for large slope)
              ! and the contribution of centr. force (with coeff for slope)
              ! a = grav_coeff * ( r_red_grav + centr_force_term )
+             ! phi = SQRT(1.0_wp/grav_coeff)
              temp_term = mu * ( grav_coeff * ( r_red_grav + centr_force_term ) )&
-                  * r_h * SQRT(1/grav_coeff)
+                  * r_h * SQRT(1.0_wp/grav_coeff) * r_rho_m
 
              temp_term = MAX(0.0_wp, temp_term)
              
