@@ -3752,7 +3752,7 @@ CONTAINS
              temp_term = mu * ( grav_coeff * ( r_red_grav + centr_force_term ) )&
                   * r_h * SQRT(1/grav_coeff)
 
-             term_term = MAX(0.0_wp, temp_term)
+             temp_term = MAX(0.0_wp, temp_term)
              
              IF ( pore_pressure_flag ) THEN
 
