@@ -3745,10 +3745,15 @@ CONTAINS
 
              END IF
 
-             ! See Eq. (3,5) Xia & Liang, 2018 Eng.Geol.  
+             ! See Eq. (3,4) Xia & Liang, 2018 Eng.Geol.  
              ! add the contribution on mu (with coeff for large slope)
-             temp_term = mu * ( r_rho_m * r_red_grav * r_h ) * grav_coeff
+             ! and the contribution of centr. force (with coeff for slope)
+             ! a = grav_coeff * ( r_red_grav + centr_force_term )
+             temp_term = mu * ( grav_coeff * ( r_red_grav + centr_force_term ) )&
+                  * r_h * SQRT(1/grav_coeff)
 
+             term_term = MAX(0.0_wp, temp_term)
+             
              IF ( pore_pressure_flag ) THEN
 
                 exc_pore_pres = qpj(idx_pore)
@@ -3760,19 +3765,15 @@ CONTAINS
 
              END IF
 
-             ! See Eq. (3) Xia & Liang, 2018 Eng.Geol.   
-             ! add the contribution of centr. force (with coeff for slope)
-             temp_term = temp_term + r_rho_m *  mu * r_h * grav_coeff *         &
-                  centr_force_term
-
              ! Friction terms cannot accelerate the flow
+             ! this term is parallel to the full vel vector (u,v,w)
              temp_term = MAX(0.0_wp,temp_term)
-             
-             ! units of dqc(2)/dt=d(rho h v)/dt (kg m-1 s-2)
-             source_term(2) = source_term(2) - temp_term * r_u / mod_hor_vel
+
+             ! units of dqc(2)/dt=d(rho h v)/dt (kg m-1 s-2)             
+             source_term(2) = source_term(2) - temp_term * r_u / mod_vel
 
              ! units of dqc(3)/dt=d(rho h v)/dt (kg m-1 s-2)
-             source_term(3) = source_term(3) - temp_term * r_v / mod_hor_vel
+             source_term(3) = source_term(3) - temp_term * r_v / mod_vel
 
           END IF
 
