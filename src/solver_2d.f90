@@ -19,9 +19,14 @@ MODULE solver_2d
   USE geometry_2d, ONLY : comp_cells_x,comp_cells_y,comp_cells_xy
   USE geometry_2d, ONLY : comp_interfaces_x,comp_interfaces_y
 
-  USE geometry_2d, ONLY : B_cent , B_prime_x , B_prime_y
-  
+  USE geometry_2d, ONLY : B_cent
+
+  USE geometry_2d, ONLY : B_prime_x , B_prime_y  
   USE geometry_2d, ONLY : B_second_xx , B_second_xy , B_second_yy
+
+  USE geometry_2d, ONLY : B_prime_x_geom , B_prime_y_geom  
+  USE geometry_2d, ONLY : B_second_xx_geom , B_second_xy_geom , B_second_yy_geom
+
   USE geometry_2d, ONLY : grav_coeff
   USE geometry_2d, ONLY : grav_coeff_stag_x , grav_coeff_stag_y
   
