@@ -1150,8 +1150,9 @@ CONTAINS
 
                 ! Eval the semi-implicit terms
                 ! (terms which non depend on velocity magnitude)
-                CALL eval_nh_semi_impl_terms( B_prime_x(j,k) , B_prime_y(j,k) , &
-                     B_second_xx(j,k) , B_second_xy(j,k) , B_second_yy(j,k) ,   &
+                CALL eval_nh_semi_impl_terms( B_prime_x_geom(j,k) ,             &
+                     B_prime_y_geom(j,k) , B_second_xx_geom(j,k) ,              &
+                     B_second_xy_geom(j,k) , B_second_yy_geom(j,k) ,            &
                      grav_coeff(j,k) , q_fv( 1:n_vars , j , k ) ,               &
                      qp( 1:n_vars , j , k ) , SI_NH(1:n_eqns,j,k,i_RK) ,        &
                      Z(j,k), fric_array(j,k) )
@@ -1201,10 +1202,10 @@ CONTAINS
                 CALL solve_rk_step( q_guess(1:n_vars) , q0(1:n_vars,j,k ) ,     &
                      a_tilde , a_dirk , a_diag , Rj_not_impl ,                  &
                      divFlux( 1:n_eqns , j , k , 1:n_RK ) ,                     &
-                      expl_terms( 1:n_eqns,j,k,1:n_RK ) ,                       &
-                      NH( 1:n_eqns , j , k , 1:n_RK ) , B_prime_x(j,k) ,        &
-                      B_prime_y(j,k), Z(j,k), fric_array(j,k)  )
-
+                     expl_terms( 1:n_eqns,j,k,1:n_RK ) ,                        &
+                     NH( 1:n_eqns , j , k , 1:n_RK ) , B_prime_x_geom(j,k) ,    &
+                     B_prime_y_geom(j,k), Z(j,k), fric_array(j,k)  )
+                
                 IF ( comp_cells_y .EQ. 1 ) THEN
 
                    q_guess(3) = 0.0_wp
@@ -1225,9 +1226,9 @@ CONTAINS
                 ELSE
                    
                    ! Eval and store the implicit term at the i_RK step
-                   CALL eval_implicit_terms( B_prime_x(j,k) , B_prime_y(j,k) ,  &
-                        Z(j,k), fric_array(j,k), r_qj = q_guess ,               &
-                        r_nh_term_impl = NH(1:n_eqns,j,k,i_RK) )
+                   CALL eval_implicit_terms( B_prime_x_geom(j,k) ,              &
+                        B_prime_y_geom(j,k) , Z(j,k), fric_array(j,k),          &
+                        r_qj = q_guess , r_nh_term_impl = NH(1:n_eqns,j,k,i_RK) )
                    
                    IF ( q_si(2)**2 + q_si(3)**2 .EQ. 0.0_wp ) THEN
                       
@@ -1304,11 +1305,12 @@ CONTAINS
              END IF
 
              ! Eval gravity term and radial bottom source terms
-             CALL eval_expl_terms( B_prime_x(j,k) , B_prime_y(j,k) ,            &
-                  B_second_xx(j,k) , B_second_xy(j,k) , B_second_yy(j,k) ,      &
-                  grav_coeff(j,k), d_grav_coeff_dx(j,k) , d_grav_coeff_dx(j,k) ,&
-                  source_xy(j,k), qp_rk(1:n_vars+2,j,k,i_RK),                   &
-                  expl_terms(1:n_eqns,j,k,i_RK), t, cell_source_fractions(j,k) )
+             CALL eval_expl_terms( B_prime_x_geom(j,k) , B_prime_y_geom(j,k) ,  &
+                  B_second_xx_geom(j,k) , B_second_xy_geom(j,k) ,               &
+                  B_second_yy_geom(j,k) , grav_coeff(j,k), d_grav_coeff_dx(j,k),&
+                  d_grav_coeff_dx(j,k) , source_xy(j,k),                        &
+                  qp_rk(1:n_vars+2,j,k,i_RK), expl_terms(1:n_eqns,j,k,i_RK), t, &
+                  cell_source_fractions(j,k) )
   
           END IF
 
@@ -2438,8 +2440,8 @@ CONTAINS
        END IF
 
        CALL eval_mass_exchange_terms( qp(1:n_vars+2,j,k) , B_zone(j,k) ,           &
-            B_prime_x(j,k) , B_prime_y(j,k) , erodible(1:n_solid,j,k) , dt ,       &
-            erosion_term , deposition_term , continuous_phase_erosion_term ,       &
+            B_prime_x_geom(j,k) , B_prime_y_geom(j,k) , erodible(1:n_solid,j,k) ,  &
+            dt , erosion_term , deposition_term , continuous_phase_erosion_term ,  &
             continuous_phase_loss_term , eqns_term , topo_term  )
           
        IF ( bottom_radial_source_flag ) THEN
@@ -2721,12 +2723,12 @@ CONTAINS
           k = k_stag_x(l)
 
           CALL eval_fluxes( q_interfaceL(1:n_vars,j,k) ,                        &
-               qp_interfaceL(1:n_vars+2,j,k) , B_prime_x(j-1,k) ,               &
-               B_prime_y(j-1,k) , grav_coeff_stag_x(j,k) , 1 , fluxL )
+               qp_interfaceL(1:n_vars+2,j,k) , B_prime_x_geom(j-1,k) ,          &
+               B_prime_y_geom(j-1,k) , grav_coeff_stag_x(j,k) , 1 , fluxL )
 
           CALL eval_fluxes( q_interfaceR(1:n_vars,j,k) ,                        &
-               qp_interfaceR(1:n_vars+2,j,k) , B_prime_x(j,k) ,                 &
-               B_prime_y(j,k) , grav_coeff_stag_x(j,k) , 1 , fluxR )
+               qp_interfaceR(1:n_vars+2,j,k) , B_prime_x_geom(j,k) ,            &
+               B_prime_y_geom(j,k) , grav_coeff_stag_x(j,k) , 1 , fluxR )
 
           IF ( ( qp_interfaceL(n_vars+1,j,k) .GT. 0.0_wp ) .AND.                &
                ( qp_interfaceR(n_vars+1,j,k) .GE. 0.0_wp ) ) THEN
@@ -2768,12 +2770,12 @@ CONTAINS
           k = k_stag_y(l)
 
           CALL eval_fluxes( q_interfaceB(1:n_vars,j,k) ,                        &
-               qp_interfaceB(1:n_vars+2,j,k) , B_prime_x(j,k-1) ,               &
-               B_prime_y(j,k-1) , grav_coeff_stag_y(j,k) , 2 , fluxB )
+               qp_interfaceB(1:n_vars+2,j,k) , B_prime_x_geom(j,k-1) ,          &
+               B_prime_y_geom(j,k-1) , grav_coeff_stag_y(j,k) , 2 , fluxB )
 
           CALL eval_fluxes( q_interfaceT(1:n_vars,j,k) ,                        &
-               qp_interfaceT(1:n_vars+2,j,k) , B_prime_x(j,k) ,                 &
-               B_prime_y(j,k) , grav_coeff_stag_y(j,k) , 2 , fluxT )
+               qp_interfaceT(1:n_vars+2,j,k) , B_prime_x_geom(j,k) ,            &
+               B_prime_y_geom(j,k) , grav_coeff_stag_y(j,k) , 2 , fluxT )
 
           IF ( ( q_interfaceB(3,j,k) .GT. 0.0_wp ) .AND.                        &
                ( q_interfaceT(3,j,k) .GE. 0.0_wp ) ) THEN
@@ -2859,14 +2861,14 @@ CONTAINS
 
           CALL eval_fluxes( q_interfaceL(1:n_vars,j,k) ,                        &
                qp_interfaceL(1:n_vars+2,j,k) ,                                  &
-               B_prime_x(MAX(1,j-1),MIN(k,comp_cells_y)) ,                      &
-               B_prime_y(MAX(1,j-1),MIN(k,comp_cells_y)) ,                      &
+               B_prime_x_geom(MAX(1,j-1),MIN(k,comp_cells_y)) ,                 &
+               B_prime_y_geom(MAX(1,j-1),MIN(k,comp_cells_y)) ,                 &
                grav_coeff_stag_x(j,k) , 1 , fluxL )
 
           CALL eval_fluxes( q_interfaceR(1:n_vars,j,k) ,                        &
                qp_interfaceR(1:n_vars+2,j,k) ,                                  &
-               B_prime_x(MIN(j,comp_cells_x),MIN(k,comp_cells_y)) ,             &
-               B_prime_y(MIN(j,comp_cells_x),MIN(k,comp_cells_y)) ,             &
+               B_prime_x_geom(MIN(j,comp_cells_x),MIN(k,comp_cells_y)) ,        &
+               B_prime_y_geom(MIN(j,comp_cells_x),MIN(k,comp_cells_y)) ,        &
                grav_coeff_stag_x(j,k) , 1 , fluxR )
 
           ! First term in Eq. 25 GMD paper
@@ -2929,14 +2931,14 @@ CONTAINS
 
           CALL eval_fluxes( q_interfaceB(1:n_vars,j,k) ,                        &
                qp_interfaceB(1:n_vars+2,j,k) ,                                  &
-               B_prime_x(MIN(j,comp_cells_x),MAX(1,k-1)) ,                      &
-               B_prime_y(MIN(j,comp_cells_x),MAX(1,k-1)) ,                      &
+               B_prime_x_geom(MIN(j,comp_cells_x),MAX(1,k-1)) ,                 &
+               B_prime_y_geom(MIN(j,comp_cells_x),MAX(1,k-1)) ,                 &
                grav_coeff_stag_y(j,k) , 2 , fluxB )
 
           CALL eval_fluxes( q_interfaceT(1:n_vars,j,k) ,                        &
                qp_interfaceT(1:n_vars+2,j,k) ,                                  &
-               B_prime_x(MIN(j,comp_cells_x),MIN(k,comp_cells_y)) ,             &
-               B_prime_y(MIN(j,comp_cells_x),MIN(k,comp_cells_y)) ,             &
+               B_prime_x_geom(MIN(j,comp_cells_x),MIN(k,comp_cells_y)) ,        &
+               B_prime_y_geom(MIN(j,comp_cells_x),MIN(k,comp_cells_y)) ,        &
                grav_coeff_stag_y(j,k) , 2 , fluxT )
           
           CALL average_KT( a_interface_yNeg(:,j,k) ,                            &
