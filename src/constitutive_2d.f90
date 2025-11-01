@@ -3167,7 +3167,7 @@ CONTAINS
     REAL(wp) :: r_u
     REAL(wp) :: r_v
 
-    REAL(wp) :: mod_vel0
+    REAL(wp) :: mod_vel_hor
     REAL(wp) :: mod_vel
 
     IF ( r_qj(1) .EQ. 0.0_wp ) RETURN
@@ -3179,12 +3179,12 @@ CONTAINS
     r_u = r_qp(idx_u)
     r_v = r_qp(idx_v)
 
-    mod_vel0 = SQRT( r_u**2 + r_v**2 )
+    mod_vel_hor = SQRT( r_u**2 + r_v**2 )
 
-    mod_vel = 1.0_wp / ( 1.0_wp  / mod_vel0 + friction_factor / r_h * dt )
+    mod_vel = 1.0_wp / ( 1.0_wp  / mod_vel_hor + friction_factor / r_h * dt )
 
-    r_u = r_u * ( mod_vel / mod_vel0 )
-    r_v = r_v * ( mod_vel / mod_vel0 )
+    r_u = r_u * ( mod_vel / mod_vel_hor )
+    r_v = r_v * ( mod_vel / mod_vel_hor )
 
     r_qp(2) = r_h*r_u
     r_qp(3) = r_h*r_v
@@ -3218,8 +3218,8 @@ CONTAINS
   !
   !******************************************************************************
 
-  SUBROUTINE eval_implicit_terms( Bprimej_x, Bprimej_y, Zij, fric_val,          &
-       c_qj, c_nh_term_impl, r_qj , r_nh_term_impl )
+  SUBROUTINE eval_implicit_terms( Bprimej_x, Bprimej_y, Zij, fric_val, c_qj,    &
+       c_nh_term_impl, r_qj , r_nh_term_impl )
 
     USE COMPLEXIFY
 
@@ -3255,7 +3255,7 @@ CONTAINS
     COMPLEX(wp) :: source_term(n_eqns)
 
     COMPLEX(wp) :: mod_vel
-    COMPLEX(wp) :: mod_vel0
+    COMPLEX(wp) :: mod_vel_hor
     COMPLEX(wp) :: mod_vel2
     COMPLEX(wp) :: gamma
     COMPLEX(wp) :: rho_g(n_add_gas)
@@ -3303,6 +3303,9 @@ CONTAINS
     COMPLEX(wp) :: porosity
     COMPLEX(wp) :: f_inhibit
     COMPLEX(wp) :: dyn_visc_c
+    COMPLEX(wp) :: red_grav
+
+    COMPLEX(wp) :: turb_stress
     
     IF ( present(c_qj) .AND. present(c_nh_term_impl) ) THEN
 
@@ -3330,6 +3333,8 @@ CONTAINS
 
        CALL c_phys_var(qj,h,u,v,T,rho_m,alphas,alphag,inv_rho_m,Zs,             &
             exc_pore_pres)
+
+       red_grav = ( rho_m - rho_a_amb ) / rho_m * grav
        
        IF ( slope_correction_flag ) THEN
 
@@ -3343,7 +3348,7 @@ CONTAINS
 
        mod_vel2 = u**2 + v**2 + w**2
        mod_vel = SQRT( mod_vel2 )
-       mod_vel0 = SQRT( u**2 + v**2 )
+       mod_vel_hor = SQRT( u**2 + v**2 )
 
        IF ( rheology_model .EQ. 1 ) THEN
           ! Voellmy Salm rheology
@@ -3363,12 +3368,10 @@ CONTAINS
              ! Store stoch value of xi
              fric_val = xi_temp
 
-             ! IMPORTANT: grav3_surf is always negative 
-             source_term(2) = source_term(2) - rho_m * ( u / mod_vel0 ) *        &
-                  ( grav / xi ) * mod_vel2
+             turb_stress = rho_m * red_grav / xi_temp * mod_vel2
 
-             source_term(3) = source_term(3) - rho_m * ( v / mod_vel0 ) *        &
-                  ( grav / xi ) * mod_vel2
+             source_term(2) = source_term(2) - turb_stress * ( u / mod_vel )
+             source_term(3) = source_term(3) - turb_stress * ( v / mod_vel )
 
           ENDIF
 
@@ -3377,9 +3380,9 @@ CONTAINS
           ! Plastic rheology
           IF ( REAL(mod_vel) .NE. 0.0_wp ) THEN 
 
-             source_term(2) = source_term(2) - rho_m * tau * ( u / mod_vel0 )
+             source_term(2) = source_term(2) - rho_m * tau * ( u / mod_vel )
 
-             source_term(3) = source_term(3) - rho_m * tau * ( v / mod_vel0 )
+             source_term(3) = source_term(3) - rho_m * tau * ( v / mod_vel )
 
           ENDIF
 
@@ -3490,7 +3493,7 @@ CONTAINS
 
           IF ( REAL(mod_vel) .GT. 0.0_wp ) THEN
 
-             temp_term = grav * rho_m * h * s_f / mod_vel0
+             temp_term = grav * rho_m * h * s_f / mod_vel_hor
 
              ! same units of dqc(2)/dt: kg m-1 s-2
              source_term(2) = source_term(2) - u * temp_term
@@ -3506,8 +3509,8 @@ CONTAINS
 
           IF ( REAL(mod_vel) .NE. 0.0_wp ) THEN
 
-             source_term(2) = source_term(2) - rho_m * c_tau * ( u / mod_vel0 )
-             source_term(3) = source_term(3) - rho_m * c_tau * ( v / mod_vel0 )
+             source_term(2) = source_term(2) - rho_m * c_tau * ( u/mod_vel_hor )
+             source_term(3) = source_term(3) - rho_m * c_tau * ( v/mod_vel_hor )
 
           END IF
 
@@ -3516,10 +3519,10 @@ CONTAINS
 
           IF ( REAL(mod_vel) .NE. 0.0_wp ) THEN 
 
-             source_term(2) = source_term(2) - rho_m * ( u / mod_vel0 ) *       &
+             source_term(2) = source_term(2) - rho_m * ( u / mod_vel_hor ) *    &
                   friction_factor * mod_vel2
 
-             source_term(3) = source_term(3) - rho_m * ( v / mod_vel0 ) *       &
+             source_term(3) = source_term(3) - rho_m * ( v / mod_vel_hor ) *    &
                   friction_factor * mod_vel2
 
           ENDIF
@@ -3749,9 +3752,9 @@ CONTAINS
              ! add the contribution on mu (with coeff for large slope)
              ! and the contribution of centr. force (with coeff for slope)
              ! a = grav_coeff * ( r_red_grav + centr_force_term )
-             ! phi = SQRT(1.0_wp/grav_coeff)
-             temp_term = mu * ( grav_coeff * ( r_red_grav + centr_force_term ) )&
-                  * r_h * SQRT(1.0_wp/grav_coeff) * r_rho_m
+             ! 1/phi = SQRT(grav_coeff) 
+             temp_term = mu * r_rho_m * ( r_red_grav + centr_force_term ) * r_h&
+                  * SQRT(grav_coeff)
 
              temp_term = MAX(0.0_wp, temp_term)
              
@@ -3761,18 +3764,19 @@ CONTAINS
 
                 ! See Eq. (2) Gueugneau et al. 2017, GRL
                 ! add the contribution of pore pressure ( with coeff for slope)
-                temp_term = MAX(0.0_wp, temp_term - mu * grav_coeff             &
+                temp_term = MAX(0.0_wp, temp_term - mu * SQRT(grav_coeff)       &
                      * exc_pore_pres )
 
              END IF
 
              ! Friction terms cannot accelerate the flow
              ! this term is parallel to the full vel vector (u,v,w)
+             ! tangential to the topography
              temp_term = MAX(0.0_wp,temp_term)
 
-             ! units of dqc(2)/dt=d(rho h v)/dt (kg m-1 s-2)             
+             ! horizontal terms
+             ! units of dqc(2)/dt=d(rho h u)/dt (kg m-1 s-2)             
              source_term(2) = source_term(2) - temp_term * r_u / mod_vel
-
              ! units of dqc(3)/dt=d(rho h v)/dt (kg m-1 s-2)
              source_term(3) = source_term(3) - temp_term * r_v / mod_vel
 
