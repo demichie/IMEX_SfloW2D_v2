@@ -80,10 +80,13 @@ MODULE inpout_2d
   ! -- Variables for the namelist RHEOLOGY_PARAMETERS
   USE parameters_2d, ONLY : rheology_model
   USE constitutive_2d, ONLY : mu , xi , tau , nu_ref , visc_par , T_ref,        &
-                               mu_0, mu_inf, Fr_0, U_w
+                               mu_0, mu_inf, Fr_0, U_w, mu_s, mu_2, I_0,        &
+                               muI_inf, I_transition
   USE constitutive_2d, ONLY : alpha2 , beta2 , alpha1_coeff , beta1 , Kappa ,n_td
   USE constitutive_2d, ONLY : friction_factor
   USE constitutive_2d, ONLY : tau0
+  ! -- Functions used in the rheology calculations
+   USE constitutive_2d, ONLY : sauter_diameter, average_density_solids, precompute_pascal_coefficient
 
   ! --- Variables for the namelist SOLID_TRANSPORT_PARAMETERS
   USE constitutive_2d, ONLY : rho_s , diam_s , sp_heat_s
@@ -119,7 +122,8 @@ MODULE inpout_2d
   USE parameters_2d, ONLY : output_stoch_vars_flag, length_spatial_corr   
 
   ! --- Variables for the namelist PORE_PRESSURE_PARAMETERS
-  USE constitutive_2d, ONLY : hydraulic_permeability
+  USE constitutive_2d, ONLY : hydraulic_permeability, dynamic_permeability_flag
+  USE constitutive_2d, ONLY : alpha_trans, N_inh, f_inhibit_mode, pascal_coeff_precomputed ! for f_inhibit
   USE parameters_2d, ONLY : pore_pres_fract
   USE parameters_2d, ONLY : gas_loss_flag
   
@@ -349,8 +353,8 @@ MODULE inpout_2d
        T_ground
 
   NAMELIST / rheology_parameters / rheology_model , mu , xi , tau , nu_ref ,    &
-       visc_par , T_ref , alpha2 , beta2 , alpha1_ref , beta1 , Kappa , n_td ,  &
-       friction_factor , tau0, mu_0, mu_inf, Fr_0, U_w
+     visc_par , T_ref , alpha2 , beta2 , alpha1_ref , beta1 , Kappa , n_td ,    &
+     friction_factor , tau0, mu_0, mu_inf, Fr_0, U_w, mu_s, mu_2, I_0, muI_inf
 
   NAMELIST / runout_parameters / x0_runout , y0_runout , dt_runout ,            &
        eps_stop
@@ -368,7 +372,8 @@ MODULE inpout_2d
        tau_stochastic, length_spatial_corr, noise_pow_val, stoch_transport_flag 
 
   NAMELIST / pore_pressure_parameters / hydraulic_permeability, pore_pres_fract,&
-       gas_loss_flag
+       gas_loss_flag, alpha_trans, N_inh, f_inhibit_mode,                       &
+       dynamic_permeability_flag
   
 CONTAINS
 
@@ -486,6 +491,12 @@ CONTAINS
     mu_inf = -1.0_wp
     Fr_0 = -1.0_wp
     U_w = -1.0_wp
+    mu_s = -1.0_wp
+    mu_2 = -1.0_wp
+    I_0 = -1.0_wp
+    muI_inf = -1.0_wp
+     
+    
 
     !-- Inizialization of the Variables for the namelist RUNOUT_PARAMETERS
     x0_runout = -1
@@ -508,6 +519,11 @@ CONTAINS
     hydraulic_permeability = 0.0_wp
     pore_pres_fract = -1.0_wp
     gas_loss_flag = .FALSE.
+    alpha_trans = 0.0_wp
+    f_inhibit_mode = 'OFF'
+    dynamic_permeability_flag = .FALSE.
+    pascal_coeff_precomputed = .FALSE.
+   
     
     !-------------- Check if input file exists ----------------------------------
     input_file = 'IMEX_SfloW2D.inp'
@@ -633,7 +649,7 @@ CONTAINS
 
              END IF
 
-          ELSE
+           ELSE
              
              IF ( pore_pres_fract .GT. 0.0_wp ) THEN
                 
@@ -643,13 +659,52 @@ CONTAINS
                 WRITE(*,*) 'or BOTTOM_RADIAL_SOURCE_FLAG=T'
                 WRITE(*,*) 'Please check the input file'
                 STOP
+	      END IF             
+	   END IF
 
-             END IF             
+
+
+	IF ( alpha_trans .LE. 0.0_wp ) THEN
+             WRITE(*,*) 'ERROR: problem with namelist PORE_PRESSURE_PARAMETERS'
+             WRITE(*,*) 'alpha_trans =' , alpha_trans
+             WRITE(*,*) 'Please check the alpha_trans is > 0.0'
+             STOP
           END IF
+
+
+         ! Normalize and validate f_inhibit_mode (require uppercase tokens in input)
+         f_inhibit_mode = trim(adjustl(f_inhibit_mode))
+         IF ( .NOT. ( f_inhibit_mode == 'OFF' .OR. f_inhibit_mode == 'STEP' .OR.  &
+                     f_inhibit_mode == 'STATIC' .OR. f_inhibit_mode == 'DYNAMIC' ) ) THEN
+            WRITE(*,*) 'ERROR: invalid F_INHIBIT_MODE in RHEOLOGY_PARAMETERS: ', f_inhibit_mode
+            WRITE(*,*) 'Allowed values: OFF, STEP, STATIC, DYNAMIC (use upper case)'
+            STOP
+         ELSEIF ( f_inhibit_mode == 'STATIC' .OR. f_inhibit_mode == 'DYNAMIC' ) THEN
+            ! only compute once
+            IF ( .NOT. pascal_coeff_precomputed ) THEN
+               CALL precompute_pascal_coefficient(N_inh)   
+               !pascal_coeff_precomputed = .TRUE.
+               WRITE(*,*) 'f_inhibit_mode = ', f_inhibit_mode
+               WRITE(*,*) 'Precomputed Pascal coefficients for N_INH = ', N_inh
+               WRITE(*,*) 'pascal_coeff_precomputed = ', pascal_coeff_precomputed
+            END IF
+            
+            IF ( N_inh <= 0 ) THEN
+               WRITE(*,*) 'ERROR: N_INH must be > 0 when F_INHIBIT_MODE is STATIC or DYNAMIC'
+               STOP
+            END IF
+            
+         END IF
+
+
 
        ELSE
 
           n_pore_vars = 0
+
+          WRITE(*,*) 'NOTE: PORE_PRESSURE_FLAG is FALSE. Pore pressure equation will not be solved.'
+          WRITE(*,*) '      HYDRAULIC_PERMEABILITY, F_INHIBIT_MODE, ALPHA_TRANS, and PORE_PRESSURE_FRACTION will not be accounted for.'
+          WRITE(*,*) '      GAS_LOSS_FLAG and DYNAMIC_PERMEABILITY_FLAG will be set to FALSE.'
 
        END IF
           
@@ -738,6 +793,10 @@ CONTAINS
     mu_inf = -1
     Fr_0 = -1
     U_w = -1
+    mu_s = -1
+    mu_2 = -1
+    I_0 = -1
+    muI_inf = -1
 
     alpha2 = -1.0_wp
     beta2 = -1.0_wp
@@ -785,6 +844,10 @@ CONTAINS
     mu_inf = -1.0_wp
     Fr_0 = -1.0_wp
     U_w = -1.0_wp
+    mu_s = -1.0_wp
+    mu_2 = -1.0_wp
+    I_0 = -1.0_wp
+    muI_inf = -1.0_wp  
 
     !- Variables for the namelist GAS_TRANSPORT_PARAMETERS
     sp_heat_a = -1.0_wp
@@ -868,6 +931,10 @@ CONTAINS
     hydraulic_permeability = 0.0_wp
     pore_pres_fract = -1.0_wp
     gas_loss_flag = .FALSE.
+    alpha_trans = 0.0_wp
+    f_inhibit_mode = 'OFF'
+    dynamic_permeability_flag = .FALSE.
+    pascal_coeff_precomputed = .FALSE.
     
   END SUBROUTINE init_param
 
@@ -1753,6 +1820,18 @@ CONTAINS
           STOP
 
        END IF
+
+       ! If alpha_trans was provided earlier in the pore-pressure namelist,
+       ! ensure it does not exceed the maximum solid packing read here.
+       
+      IF ( maximum_solid_packing .LT. alpha_trans ) THEN
+         WRITE(*,*) 'ERROR: inconsistency between SOLID_TRANSPORT and PORE_PRESSURE parameters'
+         WRITE(*,*) 'maximum_solid_packing =', maximum_solid_packing
+         WRITE(*,*) 'alpha_trans =', alpha_trans
+         WRITE(*,*) 'Please check that MAXIMUM_SOLID_PACKING >= ALPHA_TRANS'
+         STOP
+      END IF
+       
        
     END IF read_solid
 
@@ -2995,11 +3074,14 @@ CONTAINS
 
     IF ( rheology_flag ) THEN
 
+       REWIND(input_unit)
        READ(input_unit, rheology_parameters,IOSTAT=ios)
 
        IF ( ios .NE. 0 ) THEN
 
           WRITE(*,*) 'IOSTAT=',ios
+          WRITE(*,*) 'RHEOLOGY_FLAG' , rheology_flag , 'RHEOLOGY_MODEL =' ,     &
+               rheology_model
           WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
           WRITE(*,*) 'Please check the input file'
           STOP
@@ -3309,8 +3391,29 @@ CONTAINS
              WRITE(*,*) 'MU_0 =' , mu_0 ,' MU_inf =' , mu_inf, 'U_w = ', U_w
              WRITE(*,*) 'mu_0 > mu_inf required (mu(U) should be decreasing)! Please correct the input file!'
              STOP
-          END IF          
-          
+          END IF
+
+       ELSEIF ( rheology_model .EQ. 11 ) THEN
+          WRITE(*,*) 'RHEOLOGY_MODEL =' , rheology_model
+          WRITE(*,*) 'MU(I) RHEOLOGY FOR DENSE GRANULAR FLOWS'
+          WRITE(*,*) 'MU_S =' , mu_s ,' MU_2 =' , mu_2, 'I_0 = ', I_0, 'MU_I_INF = ', muI_inf
+          IF (muI_inf .EQ. 0.0_wp) THEN
+             WRITE(*,*) 'Note that MU_I_INF = 0, and therefore the classical mu(I) rheology is used.'
+          END IF
+
+          ! Require mu(I) parameters to be provided by the user
+          IF ( (mu_s .LT. 0.0_wp) .OR. (mu_2 .LT. 0.0_wp) .OR.                &
+     &         (I_0  .LT. 0.0_wp)  .OR. (muI_inf .LT. 0.0_wp)) THEN
+             WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
+             WRITE(*,*) 'RHEOLOGY_MODEL =', rheology_model
+             WRITE(*,*) 'MU_S =', mu_s, ' MU_2 =', mu_2, ' I_0 =', I_0, ' MU_I_INF =', muI_inf
+             WRITE(*,*) 'For mu(I) rheology (model 11), you must set MU_S, MU_2, I_0 and MU_I_INF (>=0)!'
+             WRITE(*,*) 'Example:'
+             WRITE(*,*) '  &RHEOLOGY_PARAMETERS rheology_model=11,'
+             WRITE(*,*) '     mu_s=0.48, mu_2=0.73, I_0=0.279, muI_inf=0.005 /'
+             STOP
+          END IF
+
        ELSE
 
           WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
@@ -5573,7 +5676,7 @@ CONTAINS
     REAL(wp) :: pore_pres(n_pore_vars)
 
     REAL(wp) :: r_w          !< vertical component of the velocity
-    REAL(wp) :: mod_vel , mod_vel2
+    REAL(wp) :: mod_vel , mod_vel2, mod_hor_vel
     REAL(wp) :: shear_stress
     REAL(wp) :: shear_vel    !< shear velocity
 
@@ -5594,9 +5697,21 @@ CONTAINS
 
     REAL(wp) :: Rouse_no(n_solid)
 
+    ! mu: coefficient of friction
     REAL(wp) :: mu_eff
     REAL(wp) :: dyn_visc_c
     REAL(wp) :: r_inv_rho_c
+
+
+    ! mu(I) rheology variables
+    REAL(wp) :: diam_characteristic !< area weighted mean diameter of particles
+    REAL(wp) :: rho_particle !< volume weighted mean density of particles
+    REAL(wp) :: inertial_number !< inertial number
+    REAL(wp) :: shear_rate !< shear rate using horizontal velocity only
+    REAL(wp) :: vert_stress_eff !< effective vertical stress
+    REAL(wp) :: exc_pore_pres !< excess pore pressure
+    REAL(wp) :: grav_coeff !< correction for slope in vertical stress
+    REAL(wp) :: eff_normal_stress !< effective normal stress
     
     sp_flag = .FALSE.
 
@@ -5743,9 +5858,15 @@ CONTAINS
 
        r_alphal = 0.0_wp
 
+         
+
        DO k = 1,comp_cells_y
 
           DO j = 1,comp_cells_x
+
+             ! Initialize variables for each cell
+             mu_eff = 0.0_wp
+             inertial_number = 0.0_wp
 
              CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2) , p_dyn )
 
@@ -5760,15 +5881,19 @@ CONTAINS
              IF ( slope_correction_flag ) THEN
 
                 r_w = r_u * B_prime_x(j,k) + r_v * B_prime_y(j,k)
+                grav_coeff = 1.0_wp / ( 1.0_wp + B_prime_x(j,k)**2 +          &
+                              B_prime_y(j,k)**2 )
 
              ELSE
 
                 r_w = 0.0_wp
+                grav_coeff = 1.0_wp
 
              END IF
 
              mod_vel2 = r_u**2 + r_v**2 + r_w**2
              mod_vel = SQRT( mod_vel2 )
+             mod_hor_vel = SQRT( r_u**2 + r_v**2 )
              
              IF ( rheology_model .EQ. 8 ) THEN
 
@@ -5859,6 +5984,75 @@ CONTAINS
                    mu_eff = 0.0_wp
                    
                 END IF
+
+                ! mu(I) rheology
+                IF ( (rheology_flag) .AND. ( rheology_model .EQ. 11 ) ) THEN
+
+
+                  ! if time = 0 print excess pore pressure 
+                  IF ( time .LT. 1.0E-10_wp ) THEN
+                     IF ( pore_pressure_flag ) THEN
+                        exc_pore_pres = qp(idx_pore)
+                     ELSE
+                        exc_pore_pres = 0.0_wp
+                     END IF
+                     
+                  END IF
+
+                  IF ( mod_hor_vel .LT. EPSILON(1.0_wp) ) THEN ! v = 0
+                     mu_eff = mu_s
+                     inertial_number = 0.0_wp
+                  
+                  ELSE ! v > 0
+
+                     ! flow thickness (avoid div by 0)
+                     IF (r_h .LT. EPSILON(1.0_wp)) THEN
+                        r_h = EPSILON(1.0_wp)
+                     END IF
+                     
+                     ! effective vertical stress 
+                     IF ( pore_pressure_flag ) THEN
+                        ! pore pressure at the base (See Eq. (2) Gueugneau et al. 2017, GRL)
+                        exc_pore_pres = qp(idx_pore)
+                        vert_stress_eff = r_rho_m * r_red_grav * r_h -     &
+                                          exc_pore_pres
+                     ELSE
+                        vert_stress_eff = r_rho_m * r_red_grav * r_h
+                     END IF
+
+                     ! diameter and density of particles 
+                     IF ( n_solid .GT. 1) THEN ! if more than one solid phase
+                        ! Sauter diameter
+                        diam_characteristic = sauter_diameter( r_alphas )
+                        ! Particle density
+                        rho_particle = average_density_solids( r_alphas )
+                     ELSE ! if only one solid phase
+                        diam_characteristic = diam_s(1)
+                        rho_particle = rho_s(1)
+                     END IF
+
+                     ! shear rate at the base (Eqn. 2.15 from Bouchut et al. 2021)
+                     shear_rate = 5.0_wp/2.0_wp * mod_hor_vel / r_h
+
+                     ! pressure
+                     eff_normal_stress = MAX(0.0_wp,vert_stress_eff * SQRT(grav_coeff))
+
+                     ! inertial number
+                     IF (eff_normal_stress .LT. EPSILON(1.0_wp)) THEN
+                        eff_normal_stress = EPSILON(1.0_wp)
+                     END IF
+                     inertial_number = diam_characteristic * shear_rate /  & 
+                                       SQRT(eff_normal_stress &
+                                       / rho_particle )
+                   
+                     !coefficient of friction -> accounting for regularisation
+                     mu_eff = (mu_s * I_0 + mu_2 * inertial_number + muI_inf * inertial_number**2) / ( I_0 + inertial_number )
+                    
+
+                  END IF
+
+
+                END IF
                 
              ELSE
 
@@ -5869,6 +6063,7 @@ CONTAINS
                 Zs(1:n_stoch_vars) = 0.0_wp
                 pore_pres(1:n_pore_vars) = pres
                 mu_eff = 0.0_wp
+                inertial_number = 0.0_wp
                 
              END IF
 
@@ -5900,6 +6095,8 @@ CONTAINS
              IF ( ABS( r_red_grav ) .LT. 1.0E-20_wp ) r_red_grav = 0.0_wp
 
              IF ( ABS( r_alphal ) .LT. 1.0E-20_wp ) r_alphal = 0.0_wp
+             IF ( ABS( mu_eff ) .LT. 1.0E-20_wp ) mu_eff = 0.0_wp
+             IF ( ABS( inertial_number ) .LT. 1.0E-20_wp ) inertial_number = 0.0_wp
                             
              WRITE(output_unit_2d,1010) x_comp(j), y_comp(k), r_h , r_u , r_v , &
                   B_out , r_h + B_out , r_alphas , r_alphag , r_T , r_rho_m ,   &
@@ -5907,7 +6104,7 @@ CONTAINS
                   SUM(ERODIBLE(1:n_solid,j,k)) / ( 1.0_wp - erodible_porosity ),&
                   r_alphal , shear_vel , r_Ri , Rouse_no(1:n_solid),            &
                   Zs(1:n_stoch_vars) , pore_pres(1:n_pore_vars) , mu_eff,       &     
-                  hmax(j,k) , pdynmax(j,k) , mod_vel_max(j,k)
+                  hmax(j,k) , pdynmax(j,k) , mod_vel_max(j,k), inertial_number
 
           END DO
 

@@ -45,6 +45,18 @@ MODULE constitutive_2d
   REAL(wp) :: Fr_0
   REAL(wp) :: U_w
 
+  !> mu(I) rheology parameters
+  REAL(wp) :: I_0 !< reference inertial number
+  REAL(wp) :: mu_2 !< friction at high inertial number above which flow accelerates
+  REAL(wp) :: mu_s !< static friction coefficient
+  REAL(wp) :: muI_inf !< friction at high I to avoid plateau (Barker et al. 2017) 
+  REAL(wp) :: I_transition = 4.0d-3 !< transition inertial number
+
+   !> f_inhibit
+   REAL(wp) :: alpha_trans !< solid volume fraction at which f_inhibit starts decreasing
+   INTEGER :: N_inh = 2 !< 2N+1 determines order of the smoothstep function for f_inhibit 
+   CHARACTER(LEN=8) :: f_inhibit_mode = 'OFF'  ! options: 'OFF','STATIC','DYNAMIC'
+
   !> drag coefficients (B&W model)
   REAL(wp) :: friction_factor
 
@@ -238,9 +250,17 @@ MODULE constitutive_2d
 
   REAL(wp) :: z_dyn
 
-  REAL(wp) :: hydraulic_permeability
+  !> Hydraulic permeability (units: m2)
+  REAL(wp) :: hydraulic_permeability 
+  !> Flag to activate dynamic permeability
+  LOGICAL :: dynamic_permeability_flag
 
-  REAL(wp) :: maximum_solid_packing
+  !> Maximum solid packing fraction
+  REAL(wp) :: maximum_solid_packing 
+
+  ! store combined pascal coefficients: coeff(n) = pascal1(n) * pascal2(n)
+  REAL(wp), ALLOCATABLE :: pascal_coeff(:)   ! index with 0..N_inh
+  LOGICAL :: pascal_coeff_precomputed 
   
 
   INTERFACE u_log_profile    ! Define generic function
@@ -350,6 +370,89 @@ CONTAINS
     dynamic_pressure = 0.5_wp * rhom_z * u_z**2
 
   END FUNCTION dynamic_pressure
+
+  !> Function that calculates the Sauter diameter
+  FUNCTION sauter_diameter(alpha_solids)
+      !> Sauter diameter
+      REAL(wp) :: sauter_diameter
+      
+      !> depth-averaged volumetric fractions of solid phases
+      REAL(wp), INTENT(IN) :: alpha_solids(n_solid)
+
+      IF ( SUM( alpha_solids ) .LT. EPSILON(1.0_wp) ) THEN
+         sauter_diameter = SUM( diam_s ) / n_solid
+      ELSE
+         sauter_diameter = SUM( alpha_solids ) / SUM( alpha_solids /  diam_s )
+      END IF
+
+  END FUNCTION sauter_diameter
+
+   !> Function that calculates the average density of solid phases
+  FUNCTION average_density_solids(alpha_solids)
+      !> Average density
+      REAL(wp) :: average_density_solids
+      
+      !> depth-averaged volumetric fractions of solid phases
+      REAL(wp), INTENT(IN) :: alpha_solids(n_solid)
+
+      IF ( SUM( alpha_solids ) .LT. EPSILON(1.0_wp) ) THEN
+         average_density_solids = SUM( rho_s ) / n_solid
+      ELSE
+         average_density_solids = SUM( alpha_solids * rho_s ) / SUM( alpha_solids )
+      END IF
+
+  END FUNCTION average_density_solids  
+
+  !> Function that calculates the pascal coefficients for the smooth transition of f_inhibit
+  SUBROUTINE precompute_pascal_coefficient(N_order) 
+    !! Computes the two Pascal-like coefficients for each n = 0..N
+    !! Returns coeff(2, N+1)
+    IMPLICIT NONE
+    INTEGER, INTENT(IN) :: N_order
+    INTEGER :: n, k
+    REAL(wp) :: pascal1, pascal2
+
+    ! allocate or reallocate pascal_coeff with 0-based indices
+   IF ( ALLOCATED(pascal_coeff) ) THEN
+      IF ( LBOUND(pascal_coeff,1) /= 0 .OR. UBOUND(pascal_coeff,1) /= N_order ) THEN
+         DEALLOCATE(pascal_coeff)
+         ALLOCATE(pascal_coeff(0:N_order))
+      END IF
+   ELSE
+      ALLOCATE(pascal_coeff(0:N_order))
+   END IF
+
+    ! Validate input
+    IF (N_order < 0) THEN
+        WRITE(*,*) 'ERROR: N must be >= 0. N =', N_order
+        STOP
+    END IF
+
+    ! Loop over n = 0..N and compute the two coefficients
+    DO n = 0, N_order
+        ! ----- First coefficient: pascal_triangle(-N-1, n) -----
+        pascal1 = 1.0_wp
+        IF (n > 0) THEN
+            DO k = 0, n-1
+               pascal1 = pascal1 * ( -REAL(N_order,kind=wp) - 1.0_wp - &
+                              REAL(k, kind=wp) ) / REAL(k+1,kind=wp)
+            END DO
+        END IF
+        ! ----- Second coefficient: pascal_triangle(2N+1, N-n) -----
+        pascal2 = 1.0_wp
+        IF (N_order - n > 0) THEN
+            DO k = 0, N_order - n - 1
+               pascal2 = pascal2 * (2.0_wp*REAL(N_order,kind=wp)+1.0_wp- &
+                              REAL(k,kind=wp) ) / REAL(k+1,kind=wp)
+            END DO
+        END IF
+        
+        pascal_coeff(n) = pascal1 * pascal2
+    END DO
+
+      pascal_coeff_precomputed = .TRUE.
+
+ END SUBROUTINE precompute_pascal_coefficient
   
   
   !******************************************************************************
@@ -3299,13 +3402,28 @@ CONTAINS
     COMPLEX(wp) :: gas_compressibility
 
     COMPLEX(wp) :: rho_gas
-
+    
+    COMPLEX(wp) :: coeff_porosity
+    
     COMPLEX(wp) :: porosity
     COMPLEX(wp) :: f_inhibit
     COMPLEX(wp) :: dyn_visc_c
     COMPLEX(wp) :: red_grav
 
+   
+    !> calculation of permeability 
+    REAL(wp) :: diam_sauter ! Sauter mean diameter [m]
+   
+   !> Inhibit factor for friction term
+   COMPLEX(wp) :: x  ! local complex variable for f_inhibit calculation
+   COMPLEX(wp) :: s ! local complex variable for f_inhibit calculation
+   INTEGER :: n ! summation index for f_inhibit calculation
+   REAL(wp) :: tt, term, width
+   REAL(wp) :: alpha_trans_dynamic ! changes with height 
+
+
     COMPLEX(wp) :: turb_stress
+
     
     IF ( present(c_qj) .AND. present(c_nh_term_impl) ) THEN
 
@@ -3543,6 +3661,21 @@ CONTAINS
        rho_gas = pres / ( sp_gas_const_a * T )
 
        porosity = 1.0_wp - SUM(alphas)
+       
+       ! ---------------------------------------------------------
+       IF (dynamic_permeability_flag) THEN
+         
+         ! diameter and density of particles 
+         IF ( n_solid .GT. 1) THEN ! if more than one solid phase
+            ! Sauter diameter
+            diam_sauter = sauter_diameter( real(alphas) )
+         ELSE ! if only one solid phase
+            diam_sauter = diam_s(1)
+         END IF
+         ! calculating permeability using Carman-Kozeny equation
+         hydraulic_permeability = ( porosity**3.0_wp * diam_sauter**2.0_wp ) /    &
+                  ( 150.0_wp * (1.0_wp - porosity)**2.0_wp )
+       END IF
 
        IF ( gas_flag .AND. sutherland_flag ) THEN
           
@@ -3550,7 +3683,7 @@ CONTAINS
                ( Tref_Suth + S_mu ) / ( T + S_mu )
 
           kin_visc_c = dyn_visc_c / rho_gas
-       
+  
        END IF
        
        ! Eq. 7 from Gueugneau et al, 2017 
@@ -3561,11 +3694,101 @@ CONTAINS
        IF ( ( REAL(exc_pore_pres) .GT. 0.0_wp )                                 &
             .AND. ( REAL(h) .GT. 0.0_wp) ) THEN
 
-          f_inhibit = MAX(0.0_wp , 1.0_wp - ( SUM(alphas) /                     &
-                CMPLX(maximum_solid_packing,0.0_wp,wp) ) )
-          
-          source_term(idx_poreEqn) = - rho_m * ( pi_g / 2.0_wp )**2 *           &
-               D_coeff / MAX(h_threshold,h) * exc_pore_pres !* f_inhibit
+         
+         select case ( trim(adjustl(f_inhibit_mode)) )
+         
+         case ( 'OFF' )
+            f_inhibit = 1.0_wp
+
+         case ('STEP')
+            !-------------------------------------------------------------------!
+            ! Calculate f_inhibit based on SOLID FRACTION 
+            ! for STEP function case
+            !-------------------------------------------------------------------!
+            if ( SUM(alphas) .LT. maximum_solid_packing ) then
+               f_inhibit = 1.0_wp
+            else
+               f_inhibit = 0.0_wp
+            end if
+         
+         case ('STATIC')
+
+            !f_inhibit = MAX(0.0_wp , 1.0_wp - (SUM(alphas) /                     &
+            !CMPLX(maximum_solid_packing,0.0_wp,wp))**alpha_trans )
+
+            !-------------------------------------------------------------------!
+            ! Calculate f_inhibit based on SOLID FRACTION 
+            ! for COMPLEX input
+            ! Generalized smoothstep S_N(x) for compx input
+            !-------------------------------------------------------------------!
+        
+            ! Validate N_inh read from namelist (should be non-negative integer)
+            if (N_inh < 0) then
+               WRITE(*,*) 'ERROR: N_inh must be >= 0. N_inh=', N_inh
+               STOP
+            end if
+            ! use solid volume fraction source for x
+            x = SUM(alphas) 
+            ! Normalize x to [0,1] using real part (or use abs(x) for magnitude)
+            width = maximum_solid_packing - alpha_trans ! right_limit - left_limit
+            tt = (real(x) - alpha_trans) / width
+            if (tt < 0.0_wp) tt = 0.0_wp
+            if (tt > 1.0_wp) tt = 1.0_wp
+            ! Initialize smoothstep sum
+            s = CMPLX(0.0_wp,0.0_wp,wp)
+            ! call the precomputed pascal triangle coefficients  
+            do n = 0, N_inh
+               term = pascal_coeff(n)  * tt**(N_inh + n + 1.0_wp)
+               s = s + term
+            end do
+            ! flip result: [0→1] becomes [1→0]
+            s = 1.0_wp - s
+            f_inhibit = s
+         
+         case ('DYNAMIC')
+            !-------------------------------------------------------------------!
+            ! Calculate f_inhibit based on SOLID FRACTION and HEIGHT of the flow
+            ! for COMPLEX input
+            ! Generalized smoothstep S_N(x) for compx input, 
+            !-------------------------------------------------------------------!
+
+            ! Calcualte dynamic alpha_trans based on height (from empirical fit)
+            alpha_trans_dynamic = 10_wp ** (-0.28_wp) * h ** 0.12_wp
+
+            ! Correct for alpha_trans_dynamic exceeding maximum_solid_packing
+            if ( real(alpha_trans_dynamic) .GE. maximum_solid_packing ) then  
+                alpha_trans_dynamic = 0.99_wp * maximum_solid_packing 
+            end if
+
+            ! Validate N_inh read from namelist (should be non-negative integer)
+            if (N_inh < 0) then
+               WRITE(*,*) 'ERROR: N_inh must be >= 0. N_inh=', N_inh
+               STOP
+            end if
+            ! use solid volume fraction source for x
+            x = SUM(alphas) 
+            ! Normalize x to [0,1] using real part (or use abs(x) for magnitude)
+            width = maximum_solid_packing - alpha_trans_dynamic ! right_limit - left_limit
+            tt = (real(x) - alpha_trans_dynamic) / width
+            if (tt < 0.0_wp) tt = 0.0_wp
+            if (tt > 1.0_wp) tt = 1.0_wp
+            ! Initialize smoothstep sum
+            s = CMPLX(0.0_wp,0.0_wp,wp)
+            ! call the precomputed pascal triangle coefficients   
+            do n = 0, N_inh
+               term = pascal_coeff(n)  * tt**(N_inh + n + 1.0_wp)
+               s = s + term
+            end do
+            ! flip result: [0→1] becomes [1→0]
+            s = 1.0_wp - s
+            f_inhibit = s
+         
+         end select
+         ! -------------------------------------------------------------------!
+         
+	 ! calculate source term for pore pressure equatio
+	 source_term(idx_poreEqn) = - rho_m * ( pi_g / 2.0_wp )**2 *           &
+               D_coeff / MAX(h_threshold,h) * exc_pore_pres * f_inhibit
           
        END IF
           
@@ -3660,6 +3883,16 @@ CONTAINS
     ! REAL(wp) :: Fr_y                !< Froude number
     ! REAL(wp) :: mu_Fr_x             !< mu(fr)_x
     ! REAL(wp) :: mu_Fr_y             !< mu(fr)_y
+
+    ! mu(I) rheology variables
+    REAL(wp) :: diam_characteristic !< area weighted mean diameter of particles
+    REAL(wp) :: rho_particle !< volume weighted mean density of particles
+    REAL(wp) :: I !< inertial number
+    REAL(wp) :: mu_I !< mu(I)
+    REAL(wp) :: shear_rate !< shear rate using horizontal velocity only
+    REAL(wp) :: tau_cosA !< shear stress projected to horizontal plane
+    REAL(wp) :: vert_stress_eff !< effective vertical stress
+    REAL(wp) :: eff_normal_stress !< effective normal stress
 
     REAL(wp) :: temp_term
     REAL(wp) :: centr_force_term
@@ -3950,6 +4183,81 @@ CONTAINS
 
           ! Set value friction to output variable (so that it can be saved!)
           fric_val = muF
+
+      ELSEIF ( rheology_model .EQ. 11 ) THEN
+         !    mu(I) rheology for dense granular flows   !
+         ! -------------------------------------------- !
+         ! from https://doi.org/10.1016/j.jnnfm.2015.02.006 
+            !mu_s = 0.48_wp         ! static friction coefficient
+            !mu_2 = 0.73_wp         ! friction at high inertial number above which flow accelerates
+            !muI_inf = 1.2_wp        ! friction at high I to avoid plateau (Barker et al. 2017) doi:10.1017/jfm.2017.428
+            !I_0 = 0.279_wp         ! reference inertial
+           
+         IF ( mod_hor_vel .GT. EPSILON(1.0_wp) ) THEN ! v>0 (avoid div by 0)
+
+            ! flow thickness (avoid div by 0)
+            IF (r_h .LT. EPSILON(1.0_wp)) THEN
+               r_h = EPSILON(1.0_wp)
+            END IF
+
+            ! effective vertical stress 
+            IF ( pore_pressure_flag ) THEN
+               ! pore pressure at the base (See Eq. (2) Gueugneau et al. 2017, GRL)
+               exc_pore_pres = qpj(idx_pore)
+               vert_stress_eff = r_rho_m * r_red_grav * r_h - exc_pore_pres
+            ELSE
+               vert_stress_eff = r_rho_m * r_red_grav * r_h
+            END IF
+
+            ! diameter and density of particles 
+            IF ( n_solid .GT. 1) THEN ! if more than one solid phase
+               ! Sauter diameter
+               diam_characteristic = sauter_diameter( r_alphas )
+               ! Particle density
+               rho_particle = average_density_solids( r_alphas )
+            ELSE ! if only one solid phase
+               diam_characteristic = diam_s(1)
+               rho_particle = rho_s(1)
+            END IF
+
+            ! shear rate at the base (Eqn. 2.15 from Bouchut et al. 2021)
+            shear_rate = 5.0_wp/2.0_wp * mod_hor_vel / r_h
+
+            ! pressure
+            eff_normal_stress = MAX(0.0_wp,vert_stress_eff * SQRT(grav_coeff))
+
+            ! inertial number
+            IF (eff_normal_stress .LT. EPSILON(1.0_wp)) THEN
+               eff_normal_stress = EPSILON(1.0_wp)
+            END IF
+            I = diam_characteristic * shear_rate /  & 
+                              SQRT(eff_normal_stress &
+                              / rho_particle )
+
+            !coefficient of friction -> accounting for regularisation 
+            mu_I = (mu_s * I_0 + mu_2 * I + muI_inf * I**2) / ( I_0 + I )
+            
+            ! Base friction force projected back to horizontal plane: tau*cos(A)
+            tau_cosA = mu_I * MAX(0.0_wp, vert_stress_eff) * grav_coeff
+
+            ! Add centrifugal force contribution if curvature terms are enabled
+            IF ( curvature_term_flag ) THEN
+               ! See Eq. (3) Xia & Liang, 2018 Eng.Geol.   
+               ! centrifugal force term: (u,v)^T*Hessian*(u,v)
+               centr_force_term = Bsecondj_xx * r_u**2 + 2.0_wp * Bsecondj_xy  &
+                                  * r_u * r_v + Bsecondj_yy * r_v**2
+               ! Add centrifugal contribution to total friction force
+               tau_cosA = tau_cosA + r_rho_m * mu_I * r_h * grav_coeff *       &
+                           centr_force_term
+            END IF
+
+            ! Apply friction force to momentum equations (only if there's velocity)
+            ! Friction force projected onto x direction, opposite to motion
+            source_term(2) = source_term(2) - tau_cosA * (r_u / mod_hor_vel)
+            ! Friction force projected onto y direction, opposite to motion  
+            source_term(3) = source_term(3) - tau_cosA * (r_v / mod_hor_vel)
+
+         END IF
           
        ENDIF rheology_model_if
        
@@ -4075,6 +4383,16 @@ CONTAINS
     REAL(wp) :: pore_pressure_term
     REAL(wp) :: f_inhibit
     REAL(wp) :: vel_loss_gas
+
+   !> permeability calculationn 
+    REAL(wp) :: diam_sauter ! < Sauter mean diameter
+   !> Inhibit factor for friction term
+    REAL(wp) :: x  !< local variable for f_inhibit calculation
+    REAL(wp) :: s !< local variable for f_inhibit calculation
+    INTEGER :: n !< local variable for f_inhibit summation
+    REAL(wp) :: tt, term, width !< local variables for f_inhibit
+    REAL(wp) :: alpha_trans_dynamic !< dynamic transition solid fraction
+
 
     REAL(wp) :: dyn_visc_c
     REAL(wp) :: rho_c
@@ -4291,9 +4609,117 @@ CONTAINS
     IF ( pore_pressure_flag .AND. gas_loss_flag ) THEN
        
        IF ( alphas_tot .LT. maximum_solid_packing ) THEN 
-          
-          f_inhibit = MAX(0.0_wp, 1.0_wp - ( alphas_tot / maximum_solid_packing ) )
 
+         ! compute f_inhibit based on the selected model
+         select case (trim(adjustl(f_inhibit_mode)))
+         case ('OFF')
+            f_inhibit = 1.0_wp ! no inhibition (pure diffusion)
+
+         case ('STEP')
+            !-------------------------------------------------------------------!
+            ! Calculate f_inhibit based on SOLID FRACTION 
+            ! for STEP function case
+            !-------------------------------------------------------------------!
+            if ( alphas_tot .LT. maximum_solid_packing ) then
+               f_inhibit = 1.0_wp
+            else
+               f_inhibit = 0.0_wp
+            end if
+
+         case ('STATIC')
+            !-------------------------------------------------------------------!
+            ! Calculate f_inhibit based on SOLID FRACTION 
+            ! for REAL case
+            ! Generalized smoothstep S_N(x) for real input, result flipped [1→0]
+            !-------------------------------------------------------------------!
+            ! Validate N_inh read from namelist (should be non-negative integer)
+            if (N_inh < 0) then
+               WRITE(*,*) 'ERROR: N_inh must be >= 0. N_inh=', N_inh
+               STOP
+            end if
+            ! use solid volume fraction source for x
+            x = alphas_tot                  
+            ! Normalize x to [0,1]
+            width = maximum_solid_packing - alpha_trans ! right limit - left limit
+            tt = (x - alpha_trans) / width
+            if (tt < 0.0_wp) tt = 0.0_wp
+            if (tt > 1.0_wp) tt = 1.0_wp
+            ! Initialize smoothstep sum
+            s = 0.0_wp
+            ! call the precomputed pascal triangle coefficients   
+            do n = 0, N_inh
+               term = pascal_coeff(n)  * tt**(N_inh + n + 1.0_wp)
+               s = s + term
+            end do
+            ! Flip the smoothstep to start at 1 → 0
+            s = 1.0_wp - s
+            ! Assign to f_inhibit (convert real-like complex value)
+            f_inhibit = s
+
+         case ('DYNAMIC')
+            !-------------------------------------------------------------------!
+            ! Calculate f_inhibit based on SOLID FRACTION and FLOW HEIGHT
+            ! For a REAL case
+            ! Generalized smoothstep S_N(x) for real input, result flipped [1→0]
+            !-------------------------------------------------------------------!
+            ! Calculate the alpha_trans_dynamic based on flow height
+            IF (r_h .LT. EPSILON(1.0_wp)) THEN 
+               r_h = EPSILON(1.0_wp) ! avoid multiplying by something lower than working precision
+            END IF
+
+            alpha_trans_dynamic = 10_wp ** (-0.28_wp) * r_h ** 0.12_wp
+
+
+            ! Correct for alpha_trans_dynamic exceeding maximum_solid_packing
+            if ( alpha_trans_dynamic .GE. maximum_solid_packing ) then  
+                alpha_trans_dynamic = 0.99_wp * maximum_solid_packing 
+            end if
+            ! Validate N_inh read from namelist (should be non-negative integer)
+            if (N_inh < 0) then
+               WRITE(*,*) 'ERROR: N_inh must be >= 0. N_inh=', N_inh
+               STOP
+            end if
+            ! use solid volume fraction source for x
+            x = alphas_tot                  
+            ! Normalize x to [0,1]
+            width = maximum_solid_packing - alpha_trans_dynamic ! right limit - left limit
+            tt = (x - alpha_trans_dynamic) / width
+            if (tt < 0.0_wp) tt = 0.0_wp
+            if (tt > 1.0_wp) tt = 1.0_wp
+            ! Initialize smoothstep sum
+            s = 0.0_wp
+            ! call the precomputed pascal triangle coefficients 
+            do n = 0, N_inh
+               term = pascal_coeff(n)  * tt**(N_inh + n + 1.0_wp)
+               s = s + term
+            end do
+   
+           ! Flip the smoothstep to start at 1 → 0
+            s = 1.0_wp - s
+            ! Assign to f_inhibit (convert real-like complex value)
+            f_inhibit = s
+         
+         end select 
+         ! ------------------------------------------------------------------- !
+
+         ! ------------------------------------------------------------------- !
+          IF (dynamic_permeability_flag) THEN
+         
+            ! diameter and density of particles 
+            IF ( n_solid .GT. 1) THEN ! if more than one solid phase
+            diam_sauter = sauter_diameter( r_alphas)   
+            ELSE ! if only one solid phase
+            diam_sauter = diam_s(1)
+            END IF
+            ! calculating permeability using Carman-Kozeny equation
+            hydraulic_permeability = ( (1-alphas_tot)**3.0_wp                  &
+                                    * diam_sauter**2.0_wp ) /                  &
+                                    (150.0_wp * (alphas_tot)**2.0_wp)
+          END IF
+	! -------------------------------------------------------------------- !
+
+	! -------------------------------------------------------------------- !
+	 ! kinetic viscosity
           IF ( gas_flag .AND. sutherland_flag ) THEN
              
              dyn_visc_c = muRef_Suth * ( r_T / Tref_Suth )**1.5_wp *            &
@@ -4303,14 +4729,17 @@ CONTAINS
              kin_visc_c = dyn_visc_c / rho_c
              
           END IF
-                 
-          vel_loss_gas =  hydraulic_permeability /                              &
+	! -------------------------------------------------------------------- !
+
+        ! velocity of gas loss due to pore pressure gradient
+        vel_loss_gas =  hydraulic_permeability /                              &
                ( kin_visc_c * r_rho_c ) / MAX(1.e-5,r_h) * 0.5_wp * pi_g *      &
                r_exc_pore_pres
 
-          pore_pressure_term = vel_loss_gas * f_inhibit
-          
-          continuous_phase_loss_term = continuous_phase_loss_term +             &
+	! add pore pressure driven gas loss term, inhibited by f_inhibit
+         pore_pressure_term = vel_loss_gas * f_inhibit
+
+         continuous_phase_loss_term = continuous_phase_loss_term +             &
                pore_pressure_term
           
        END IF
