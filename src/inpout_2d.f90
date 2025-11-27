@@ -703,8 +703,8 @@ CONTAINS
           n_pore_vars = 0
 
           WRITE(*,*) 'NOTE: PORE_PRESSURE_FLAG is FALSE. Pore pressure equation will not be solved.'
-          WRITE(*,*) '      HYDRAULIC_PERMEABILITY, F_INHIBIT_MODE, ALPHA_TRANS, and PORE_PRESSURE_FRACTION will not be accounted for.'
-          WRITE(*,*) '      GAS_LOSS_FLAG and DYNAMIC_PERMEABILITY_FLAG will be set to FALSE.'
+          WRITE(*,*) 'HYDRAULIC_PERMEABILITY, F_INHIBIT_MODE, ALPHA_TRANS, and PORE_PRESSURE_FRACTION will not be accounted for.'
+          WRITE(*,*) 'GAS_LOSS_FLAG and DYNAMIC_PERMEABILITY_FLAG will be set to FALSE.'
 
        END IF
           
