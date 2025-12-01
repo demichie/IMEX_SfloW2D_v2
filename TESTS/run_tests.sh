@@ -82,6 +82,35 @@ else
 fi
 cd ..
 
+# run tests in TEST_DAMBREAK
+cd TEST_DAMBREAK
+echo ""
+for DIR in */ ; do
+    # Skip if not a directory
+    [ -d "$DIR" ] || continue
+    echo "Running test in: $DIR"
+    cd "$DIR"
+    # Clean the folder
+    ./cleanFolder.sh
+    # Run the executable
+    ../../../bin/IMEX_SfloW2D
+
+    FILE="dambreak2D_0001.p_2d"
+    if [ -f "$FILE" ]; then
+        ./cleanFolder.sh
+        echo "$DIR successfully run"
+    else
+        ./cleanFolder.sh
+        echo "Problems with $DIR"
+        cd ..
+        exit 1
+    fi
+    cd ..
+done
+echo "All TEST_DAMBREAK tests completed."
+cd ..
+
+
 
 exit 0
 
