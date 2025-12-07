@@ -89,7 +89,7 @@ MODULE inpout_2d
    USE constitutive_2d, ONLY : sauter_diameter, average_density_solids, precompute_pascal_coefficient
 
   ! --- Variables for the namelist SOLID_TRANSPORT_PARAMETERS
-  USE constitutive_2d, ONLY : rho_s , diam_s , sp_heat_s
+  USE constitutive_2d, ONLY : rho_s , diam_s , sphericity_s , sp_heat_s
   USE constitutive_2d, ONLY : settling_flag , erosion_coeff , erodible_porosity
   USE constitutive_2d, ONLY : erodible_fract , T_erodible
   USE constitutive_2d, ONLY : alphastot_min
@@ -122,7 +122,7 @@ MODULE inpout_2d
   USE parameters_2d, ONLY : output_stoch_vars_flag, length_spatial_corr   
 
   ! --- Variables for the namelist PORE_PRESSURE_PARAMETERS
-  USE constitutive_2d, ONLY : hydraulic_permeability, dynamic_permeability_flag
+  USE constitutive_2d, ONLY : hydraulic_permeability, dynamic_permeability_flag, initial_permeability_flag
   USE constitutive_2d, ONLY : alpha_trans, N_inh, f_inhibit_mode, pascal_coeff_precomputed ! for f_inhibit
   USE parameters_2d, ONLY : pore_pres_fract
   USE parameters_2d, ONLY : gas_loss_flag
@@ -373,7 +373,7 @@ MODULE inpout_2d
 
   NAMELIST / pore_pressure_parameters / hydraulic_permeability, pore_pres_fract,&
        gas_loss_flag, alpha_trans, N_inh, f_inhibit_mode,                       &
-       dynamic_permeability_flag
+       dynamic_permeability_flag, initial_permeability_flag
   
 CONTAINS
 
@@ -522,6 +522,7 @@ CONTAINS
     alpha_trans = 0.0_wp
     f_inhibit_mode = 'OFF'
     dynamic_permeability_flag = .FALSE.
+    initial_permeability_flag = .FALSE.
     pascal_coeff_precomputed = .FALSE.
    
     
@@ -586,6 +587,7 @@ CONTAINS
 
        ALLOCATE( rho_s(n_solid) )
        ALLOCATE( diam_s(n_solid) )
+       ALLOCATE( sphericity_s(n_solid) )
        ALLOCATE( sp_heat_s(n_solid) )
        ALLOCATE( erodible_fract(n_solid) )
 
@@ -704,7 +706,7 @@ CONTAINS
 
           WRITE(*,*) 'NOTE: PORE_PRESSURE_FLAG is FALSE. Pore pressure equation will not be solved.'
           WRITE(*,*) 'HYDRAULIC_PERMEABILITY, F_INHIBIT_MODE, ALPHA_TRANS, and PORE_PRESSURE_FRACTION will not be accounted for.'
-          WRITE(*,*) 'GAS_LOSS_FLAG and DYNAMIC_PERMEABILITY_FLAG will be set to FALSE.'
+          WRITE(*,*) 'GAS_LOSS_FLAG, DYNAMIC_PERMEABILITY_FLAG, and INITIAL_PERMEABILITY_FLAG will be set to FALSE.'
 
        END IF
           
@@ -805,6 +807,7 @@ CONTAINS
     Kappa = -1.0_wp
     n_td = -1.0_wp
     rho_s = -1.0_wp
+    sphericity_s = 1.0_wp
     initial_erodible_thickness = -1.0_wp
     erodible_deposit_flag = .FALSE.
 
@@ -826,6 +829,7 @@ CONTAINS
     !- Variables for the namelist SOLID_TRANSPORT_PARAMETERS
     rho_s = -1.0_wp
     diam_s = -1.0_wp
+    sphericity_s = 1.0_wp
     sp_heat_s = -1.0_wp
     settling_flag = .FALSE.
     erosion_coeff = -1.0_wp
@@ -1000,9 +1004,9 @@ CONTAINS
          alphas_bcN , halphas_bcN , T_bcN , alphag_bcN , halphag_bcN ,          &
          alphal_bcN , halphal_bcN , stoch_bcN , pore_bcN
 
-    NAMELIST / solid_transport_parameters / rho_s , diam_s , sp_heat_s ,        &
-         erosion_coeff , erodible_porosity , settling_flag , T_erodible ,       &
-         erodible_file , erodible_fract , alphastot_min ,                       &
+    NAMELIST / solid_transport_parameters / rho_s , diam_s , sphericity_s ,     &
+         sp_heat_s , erosion_coeff , erodible_porosity , settling_flag ,        &
+         T_erodible , erodible_file , erodible_fract , alphastot_min ,          &
          initial_erodible_thickness , erodible_deposit_flag ,                   &
          maximum_solid_packing
 
@@ -1624,6 +1628,18 @@ CONTAINS
 
           WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
           WRITE(*,*) 'DIAM_s =' , diam_s(1:n_solid)
+          WRITE(*,*) 'Please check the input file'
+          STOP
+
+       END IF
+      
+       IF ( ANY( ( sphericity_s(1:n_solid) .LE. 0.0_wp ) .OR. &
+                 ( sphericity_s(1:n_solid) .GT. 1.0_wp ) ) ) THEN
+
+          WRITE(*,*) 'ERROR: problem with namelist SOLID_TRANSPORT_PARAMETERS'
+          WRITE(*,*) 'Sphericity must be between 0 (exclusive) and 1 (inclusive)'
+          WRITE(*,*) 'SPHERICITY_S =' , sphericity_s(1:n_solid)
+          WRITE(*,*) 'Default value is 1.0 (perfect sphere)'
           WRITE(*,*) 'Please check the input file'
           STOP
 
@@ -3396,9 +3412,9 @@ CONTAINS
        ELSEIF ( rheology_model .EQ. 11 ) THEN
           WRITE(*,*) 'RHEOLOGY_MODEL =' , rheology_model
           WRITE(*,*) 'MU(I) RHEOLOGY FOR DENSE GRANULAR FLOWS'
-          WRITE(*,*) 'MU_S =' , mu_s ,' MU_2 =' , mu_2, 'I_0 = ', I_0, 'MU_I_INF = ', muI_inf
+          WRITE(*,*) 'MU_S =' , mu_s ,' MU_2 =' , mu_2, 'I_0 = ', I_0, 'MUI_INF = ', muI_inf
           IF (muI_inf .EQ. 0.0_wp) THEN
-             WRITE(*,*) 'Note that MU_I_INF = 0, and therefore the classical mu(I) rheology is used.'
+             WRITE(*,*) 'Note that MUI_INF = 0, and therefore the classical mu(I) rheology is used.'
           END IF
 
           ! Require mu(I) parameters to be provided by the user
@@ -3406,11 +3422,39 @@ CONTAINS
      &         (I_0  .LT. 0.0_wp)  .OR. (muI_inf .LT. 0.0_wp)) THEN
              WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
              WRITE(*,*) 'RHEOLOGY_MODEL =', rheology_model
-             WRITE(*,*) 'MU_S =', mu_s, ' MU_2 =', mu_2, ' I_0 =', I_0, ' MU_I_INF =', muI_inf
-             WRITE(*,*) 'For mu(I) rheology (model 11), you must set MU_S, MU_2, I_0 and MU_I_INF (>=0)!'
+             WRITE(*,*) 'MU_S =', mu_s, ' MU_2 =', mu_2, ' I_0 =', I_0, ' MUI_INF =', muI_inf
+             WRITE(*,*) 'For mu(I) rheology (model 11), you must set MU_S, MU_2, I_0 and MUI_INF (>=0)!'
              WRITE(*,*) 'Example:'
              WRITE(*,*) '  &RHEOLOGY_PARAMETERS rheology_model=11,'
              WRITE(*,*) '     mu_s=0.48, mu_2=0.73, I_0=0.279, muI_inf=0.005 /'
+             STOP
+          END IF
+
+       ELSEIF ( rheology_model .EQ. 12 ) THEN
+          WRITE(*,*) 'RHEOLOGY_MODEL =' , rheology_model
+          WRITE(*,*) 'COMBINED MU(I) + VOELLMY RHEOLOGY'
+          WRITE(*,*) 'MU_S =' , mu_s ,' MU_2 =' , mu_2, 'I_0 = ', I_0, 'MUI_INF = ', muI_inf
+          WRITE(*,*) 'XI =' , xi
+          IF (muI_inf .EQ. 0.0_wp) THEN
+             WRITE(*,*) 'Note that MUI_INF = 0, and therefore the classical mu(I) rheology is used.'
+          END IF
+
+          ! Require mu(I) parameters to be provided by the user
+          IF ( (mu_s .LT. 0.0_wp) .OR. (mu_2 .LT. 0.0_wp) .OR.                &
+     &         (I_0  .LT. 0.0_wp)  .OR. (muI_inf .LT. 0.0_wp)) THEN
+             WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
+             WRITE(*,*) 'RHEOLOGY_MODEL =', rheology_model
+             WRITE(*,*) 'MU_S =', mu_s, ' MU_2 =', mu_2, ' I_0 =', I_0, ' MUI_INF =', muI_inf
+             WRITE(*,*) 'For combined rheology (model 12), you must set MU_S, MU_2, I_0 and MUI_INF (>=0)!'
+             STOP
+          END IF
+
+          ! Require XI (turbulent friction) from Voellmy
+          IF ( xi .EQ. -1.0_wp ) THEN
+             WRITE(*,*) 'ERROR: problem with namelist RHEOLOGY_PARAMETERS'
+             WRITE(*,*) 'RHEOLOGY_MODEL =', rheology_model
+             WRITE(*,*) 'XI =', xi
+             WRITE(*,*) 'For combined rheology (model 12), you must set XI!'
              STOP
           END IF
 
@@ -5986,7 +6030,7 @@ CONTAINS
                 END IF
 
                 ! mu(I) rheology
-                IF ( (rheology_flag) .AND. ( rheology_model .EQ. 11 ) ) THEN
+                IF ( (rheology_flag) .AND. ( (rheology_model .EQ. 11) .OR. (rheology_model .EQ. 12) ) ) THEN
 
 
                   ! if time = 0 print excess pore pressure 

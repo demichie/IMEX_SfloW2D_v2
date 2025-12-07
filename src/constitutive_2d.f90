@@ -191,6 +191,9 @@ MODULE constitutive_2d
   !> Diameter of sediments ( units: m )
   REAL(wp), ALLOCATABLE :: diam_s(:)
 
+  !> Sphericity of sediments (dimensionless, default 1.0)
+  REAL(wp), ALLOCATABLE :: sphericity_s(:)
+
   !> Specific heat of solids (units: J K-1 kg-1)
   REAL(wp), ALLOCATABLE :: sp_heat_s(:)
 
@@ -254,6 +257,8 @@ MODULE constitutive_2d
   REAL(wp) :: hydraulic_permeability 
   !> Flag to activate dynamic permeability
   LOGICAL :: dynamic_permeability_flag
+  !> Flag to activate permeability calculation at the initial timestep 
+  LOGICAL :: initial_permeability_flag
 
   !> Maximum solid packing fraction
   REAL(wp) :: maximum_solid_packing 
@@ -509,6 +514,13 @@ CONTAINS
     END DO
 
     WRITE(*,*) 'Implicit equations =',n_nh
+
+    ! Initialize permeability flags
+    ! If initial_permeability_flag is true, we will calculate permeability once and then turn off dynamic
+    IF ( initial_permeability_flag ) THEN
+       dynamic_permeability_flag = .TRUE.
+       WRITE(*,*) 'Permeability will be calculated once at t=0 using initial conditions'
+    END IF
 
     RETURN
 
@@ -3413,7 +3425,7 @@ CONTAINS
    
     !> calculation of permeability 
     REAL(wp) :: diam_sauter ! Sauter mean diameter [m]
-   
+    REAL(wp) :: sphericity_mean ! < Surface-area-weighted mean sphericity
    !> Inhibit factor for friction term
    COMPLEX(wp) :: x  ! local complex variable for f_inhibit calculation
    COMPLEX(wp) :: s ! local complex variable for f_inhibit calculation
@@ -3468,7 +3480,7 @@ CONTAINS
        mod_vel = SQRT( mod_vel2 )
        mod_vel_hor = SQRT( u**2 + v**2 )
 
-       IF ( rheology_model .EQ. 1 ) THEN
+       IF ( rheology_model .EQ. 1 .OR. rheology_model .EQ. 12 ) THEN
           ! Voellmy Salm rheology
 
           IF ( REAL(mod_vel) .NE. 0.0_wp ) THEN 
@@ -3662,20 +3674,53 @@ CONTAINS
 
        porosity = 1.0_wp - SUM(alphas)
        
-       ! ---------------------------------------------------------
+ ! ---------------------------------------------------------
        IF (dynamic_permeability_flag) THEN
          
          ! diameter and density of particles 
          IF ( n_solid .GT. 1) THEN ! if more than one solid phase
             ! Sauter diameter
             diam_sauter = sauter_diameter( real(alphas) )
+            ! Surface-area-weighted mean sphericity (consistent with Sauter diameter)
+            ! Sphericity is weighted by alpha_i * d_i^2 (proportional to surface area)
+            sphericity_mean = DOT_PRODUCT( real(alphas) * diam_s**2 , sphericity_s ) / &
+                              DOT_PRODUCT( real(alphas) , diam_s**2 )
          ELSE ! if only one solid phase
             diam_sauter = diam_s(1)
+            sphericity_mean = sphericity_s(1)
          END IF
-         ! calculating permeability using Carman-Kozeny equation
-         hydraulic_permeability = ( porosity**3.0_wp * diam_sauter**2.0_wp ) /    &
-                  ( 150.0_wp * (1.0_wp - porosity)**2.0_wp )
+         ! calculating permeability using Carman-Kozeny equation with sphericity
+         hydraulic_permeability = ( porosity**3.0_wp * &
+                                   ( diam_sauter * sphericity_mean )**2.0_wp ) / &
+                                   ( 150.0_wp * (1.0_wp - porosity)**2.0_wp )
+         
+         ! If initial_permeability_flag is true, this is the first calculation
+         ! Turn off dynamic_permeability_flag so we don't recalculate
+         ! Calculate D_coeff using ambient conditions for display purposes
+         IF ( initial_permeability_flag ) THEN
+            gamma_gas = sp_heat_a / ( sp_heat_a - sp_gas_const_a )
+            gas_compressibility = 1.0_wp / ( gamma_gas * pres )
+            rho_gas = pres / ( sp_gas_const_a * T_ambient )
+            
+            D_coeff = hydraulic_permeability / ( porosity * kin_visc_c * rho_gas * &
+                 gas_compressibility )
+                 
+            dynamic_permeability_flag = .FALSE.
+            WRITE(*,*) '========================================='
+            WRITE(*,*) 'Initial permeability calculated'
+            WRITE(*,'(A,ES15.6)') ' Hydraulic permeability (m2):', REAL(hydraulic_permeability)
+            WRITE(*,'(A,ES15.6)') ' Sauter mean diameter (m):', REAL(diam_sauter)
+            WRITE(*,'(A,F8.4)')   ' Surface-area-weighted mean sphericity (-):', REAL(sphericity_mean)
+            WRITE(*,'(A,F8.4)')   ' Porosity (-):', REAL(porosity)
+            WRITE(*,'(A,ES15.6)') ' Diffusion coefficient (m2/s) at T_ambient:', REAL(D_coeff)
+            WRITE(*,*) '========================================='
+            WRITE(*,*) 'Dynamic permeability flag now turned OFF'
+            WRITE(*,*) 'Using constant permeability value'
+            WRITE(*,*) '========================================='
+         END IF
+         
        END IF
+       ! ---------------------------------------------------------
 
        IF ( gas_flag .AND. sutherland_flag ) THEN
           
@@ -4234,9 +4279,14 @@ CONTAINS
                               SQRT(eff_normal_stress &
                               / rho_particle )
 
+         
+
             !coefficient of friction -> accounting for regularisation 
             mu_I = (mu_s * I_0 + mu_2 * I + muI_inf * I**2) / ( I_0 + I )
             
+           ! WRITE(*,'(5(A10,ES12.4))') 'I=',I,'d=',diam_characteristic,'shearrate=',shear_rate, &
+     !'P=',eff_normal_stress,'rho_p=',rho_particle, 'mu_I',mu_I
+
             ! Base friction force projected back to horizontal plane: tau*cos(A)
             tau_cosA = mu_I * MAX(0.0_wp, vert_stress_eff) * grav_coeff
 
@@ -4258,6 +4308,116 @@ CONTAINS
             source_term(3) = source_term(3) - tau_cosA * (r_v / mod_hor_vel)
 
          END IF
+
+       ELSEIF ( rheology_model .EQ. 12 ) THEN
+
+          IF ( mod_vel .GT. 0.0_wp ) THEN
+
+             IF ( curvature_term_flag ) THEN
+
+                ! See Eq. (3) Xia & Liang, 2018 Eng.Geol.   
+                ! centrifugal force term: (u,v)^T*Hessian*(u,v)
+                centr_force_term = Bsecondj_xx * r_u**2 + 2.0_wp * Bsecondj_xy  &
+                     * r_u * r_v + Bsecondj_yy * r_v**2
+
+             ELSE
+
+                centr_force_term = 0.0_wp 
+
+             END IF
+
+!    mu(I) rheology for dense granular flows   !
+         ! -------------------------------------------- !
+         ! from https://doi.org/10.1016/j.jnnfm.2015.02.006 
+           ! mu_s = 0.7_wp         ! static friction coefficient
+           ! mu_2 = 1.4_wp         ! friction at high inertial number above which flow accelerates
+           ! muI_inf = 0.05_wp        ! friction at high I to avoid plateau (Barker et al. 2017) doi:10.1017/jfm.2017.428
+           ! I_0 = 0.3_wp         ! reference inertial
+           
+         IF ( mod_hor_vel .GT. EPSILON(1.0_wp) ) THEN ! v>0 (avoid div by 0)
+
+            ! flow thickness (avoid div by 0)
+            IF (r_h .LT. EPSILON(1.0_wp)) THEN
+               r_h = EPSILON(1.0_wp)
+            END IF
+
+            ! effective vertical stress 
+            IF ( pore_pressure_flag ) THEN
+               ! pore pressure at the base (See Eq. (2) Gueugneau et al. 2017, GRL)
+               exc_pore_pres = qpj(idx_pore)
+               vert_stress_eff = r_rho_m * r_red_grav * r_h - exc_pore_pres
+            ELSE
+               vert_stress_eff = r_rho_m * r_red_grav * r_h
+            END IF
+
+            ! diameter and density of particles 
+            IF ( n_solid .GT. 1) THEN ! if more than one solid phase
+               ! Sauter diameter
+               diam_characteristic = sauter_diameter( r_alphas )
+               ! Particle density
+               rho_particle = average_density_solids( r_alphas )
+            ELSE ! if only one solid phase
+               diam_characteristic = diam_s(1)
+               rho_particle = rho_s(1)
+            END IF
+
+            ! shear rate at the base (Eqn. 2.15 from Bouchut et al. 2021)
+            shear_rate = 5.0_wp/2.0_wp * mod_hor_vel / r_h
+
+            ! pressure
+            eff_normal_stress = MAX(0.0_wp,vert_stress_eff * SQRT(grav_coeff))
+
+            ! inertial number
+            IF (eff_normal_stress .LT. EPSILON(1.0_wp)) THEN
+               eff_normal_stress = EPSILON(1.0_wp)
+            END IF
+            I = diam_characteristic * shear_rate /  & 
+                              SQRT(eff_normal_stress &
+                              / rho_particle )
+
+         
+
+            !coefficient of friction -> accounting for regularisation 
+            mu_I = (mu_s * I_0 + mu_2 * I + muI_inf * I**2) / ( I_0 + I )
+            mu = mu_I
+
+
+         ENDIF   ! division by zero prevention
+
+
+             ! See Eq. (3,4) Xia & Liang, 2018 Eng.Geol.  
+             ! add the contribution on mu (with coeff for large slope)
+             ! and the contribution of centr. force (with coeff for slope)
+             ! a = grav_coeff * ( r_red_grav + centr_force_term )
+             ! 1/phi = SQRT(grav_coeff) 
+             temp_term = mu * r_rho_m * ( r_red_grav + centr_force_term ) * r_h &
+                  * SQRT(grav_coeff)
+
+             temp_term = MAX(0.0_wp, temp_term)
+             
+             IF ( pore_pressure_flag ) THEN
+
+                exc_pore_pres = qpj(idx_pore)
+
+                ! See Eq. (2) Gueugneau et al. 2017, GRL
+                ! add the contribution of pore pressure ( with coeff for slope)
+                temp_term = MAX(0.0_wp, temp_term - mu * SQRT(grav_coeff)       &
+                     * exc_pore_pres )
+
+             END IF
+
+             ! Friction terms cannot accelerate the flow
+             ! this term is parallel to the full vel vector (u,v,w)
+             ! tangential to the topography
+             temp_term = MAX(0.0_wp,temp_term)
+
+             ! horizontal terms
+             ! units of dqc(2)/dt=d(rho h u)/dt (kg m-1 s-2)             
+             source_term(2) = source_term(2) - temp_term * r_u / mod_vel
+             ! units of dqc(3)/dt=d(rho h v)/dt (kg m-1 s-2)
+             source_term(3) = source_term(3) - temp_term * r_v / mod_vel
+
+          END IF
           
        ENDIF rheology_model_if
        
@@ -4386,6 +4546,7 @@ CONTAINS
 
    !> permeability calculationn 
     REAL(wp) :: diam_sauter ! < Sauter mean diameter
+    REAL(wp) :: sphericity_mean ! < Surface-area-weighted mean sphericity
    !> Inhibit factor for friction term
     REAL(wp) :: x  !< local variable for f_inhibit calculation
     REAL(wp) :: s !< local variable for f_inhibit calculation
@@ -4702,19 +4863,31 @@ CONTAINS
          end select 
          ! ------------------------------------------------------------------- !
 
-         ! ------------------------------------------------------------------- !
+   ! -------------------------------------------------------------------- !
           IF (dynamic_permeability_flag) THEN
          
             ! diameter and density of particles 
             IF ( n_solid .GT. 1) THEN ! if more than one solid phase
-            diam_sauter = sauter_diameter( r_alphas)   
+               diam_sauter = sauter_diameter( r_alphas )
+               ! Surface-area-weighted mean sphericity (consistent with Sauter diameter)
+               ! Sphericity is weighted by alpha_i * d_i^2 (proportional to surface area)
+               sphericity_mean = DOT_PRODUCT( r_alphas * diam_s**2 , sphericity_s ) / &
+                                 DOT_PRODUCT( r_alphas , diam_s**2 )
             ELSE ! if only one solid phase
-            diam_sauter = diam_s(1)
+               diam_sauter = diam_s(1)
+               sphericity_mean = sphericity_s(1)
             END IF
-            ! calculating permeability using Carman-Kozeny equation
-            hydraulic_permeability = ( (1-alphas_tot)**3.0_wp                  &
-                                    * diam_sauter**2.0_wp ) /                  &
-                                    (150.0_wp * (alphas_tot)**2.0_wp)
+            ! calculating permeability using Carman-Kozeny equation with sphericity
+            hydraulic_permeability = ( (1.0_wp - alphas_tot)**3.0_wp * &
+                                      ( diam_sauter * sphericity_mean )**2.0_wp ) / &
+                                      ( 150.0_wp * (alphas_tot)**2.0_wp )
+            
+            ! If initial_permeability_flag is true, this is the first calculation
+            ! Turn off dynamic_permeability_flag so we don't recalculate
+            IF ( initial_permeability_flag ) THEN
+               dynamic_permeability_flag = .FALSE.
+            END IF
+            
           END IF
 	! -------------------------------------------------------------------- !
 
