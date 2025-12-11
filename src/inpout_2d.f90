@@ -519,7 +519,7 @@ CONTAINS
     hydraulic_permeability = 0.0_wp
     pore_pres_fract = -1.0_wp
     gas_loss_flag = .FALSE.
-    alpha_trans = 1.0_wp
+    alpha_trans = 0.0_wp
     f_inhibit_mode = 'OFF'
     dynamic_permeability_flag = .FALSE.
     initial_permeability_flag = .FALSE.
