@@ -519,7 +519,7 @@ CONTAINS
     hydraulic_permeability = 0.0_wp
     pore_pres_fract = -1.0_wp
     gas_loss_flag = .FALSE.
-    alpha_trans = 0.0_wp
+    alpha_trans = 1.0_wp
     f_inhibit_mode = 'OFF'
     dynamic_permeability_flag = .FALSE.
     initial_permeability_flag = .FALSE.
@@ -663,16 +663,6 @@ CONTAINS
                 STOP
 	      END IF             
 	   END IF
-
-
-
-	IF ( alpha_trans .LE. 0.0_wp ) THEN
-             WRITE(*,*) 'ERROR: problem with namelist PORE_PRESSURE_PARAMETERS'
-             WRITE(*,*) 'alpha_trans =' , alpha_trans
-             WRITE(*,*) 'Please check the alpha_trans is > 0.0'
-             STOP
-          END IF
-
 
          ! Normalize and validate f_inhibit_mode (require uppercase tokens in input)
          f_inhibit_mode = trim(adjustl(f_inhibit_mode))
