@@ -122,7 +122,7 @@ MODULE inpout_2d
   USE parameters_2d, ONLY : output_stoch_vars_flag, length_spatial_corr   
 
   ! --- Variables for the namelist PORE_PRESSURE_PARAMETERS
-  USE constitutive_2d, ONLY : hydraulic_permeability, dynamic_permeability_flag, initial_permeability_flag
+  USE constitutive_2d, ONLY : hydraulic_permeability, dynamic_permeability_flag
   USE constitutive_2d, ONLY : alpha_trans, N_inh, f_inhibit_mode, pascal_coeff_precomputed ! for f_inhibit
   USE parameters_2d, ONLY : pore_pres_fract
   USE parameters_2d, ONLY : gas_loss_flag
@@ -373,7 +373,7 @@ MODULE inpout_2d
 
   NAMELIST / pore_pressure_parameters / hydraulic_permeability, pore_pres_fract,&
        gas_loss_flag, alpha_trans, N_inh, f_inhibit_mode,                       &
-       dynamic_permeability_flag, initial_permeability_flag
+       dynamic_permeability_flag
   
 CONTAINS
 
@@ -522,7 +522,6 @@ CONTAINS
     alpha_trans = 0.0_wp
     f_inhibit_mode = 'OFF'
     dynamic_permeability_flag = .FALSE.
-    initial_permeability_flag = .FALSE.
     pascal_coeff_precomputed = .FALSE.
    
     
@@ -664,7 +663,7 @@ CONTAINS
 	      END IF             
 	   END IF
 
-         ! Normalize and validate f_inhibit_mode (require uppercase tokens in input)
+           ! Normalize and validate f_inhibit_mode (require uppercase tokens in input)
          f_inhibit_mode = trim(adjustl(f_inhibit_mode))
          IF ( .NOT. ( f_inhibit_mode == 'OFF' .OR. f_inhibit_mode == 'STEP' .OR.  &
                      f_inhibit_mode == 'STATIC' .OR. f_inhibit_mode == 'DYNAMIC' ) ) THEN
@@ -686,9 +685,18 @@ CONTAINS
                STOP
             END IF
             
+            IF ( alpha_trans .LE. 0.0_wp ) THEN
+               WRITE(*,*) 'ERROR: problem with namelist PORE_PRESSURE_PARAMETERS'
+               WRITE(*,*) 'alpha_trans =' , alpha_trans
+               WRITE(*,*) 'Please check that alpha_trans is > 0.0 when F_INHIBIT_MODE is STATIC or DYNAMIC'
+               STOP
+            END IF
+
          END IF
 
-
+          
+         
+         
 
        ELSE
 
@@ -696,7 +704,7 @@ CONTAINS
 
           WRITE(*,*) 'NOTE: PORE_PRESSURE_FLAG is FALSE. Pore pressure equation will not be solved.'
           WRITE(*,*) 'HYDRAULIC_PERMEABILITY, F_INHIBIT_MODE, ALPHA_TRANS, and PORE_PRESSURE_FRACTION will not be accounted for.'
-          WRITE(*,*) 'GAS_LOSS_FLAG, DYNAMIC_PERMEABILITY_FLAG, and INITIAL_PERMEABILITY_FLAG will be set to FALSE.'
+          WRITE(*,*) 'GAS_LOSS_FLAG and DYNAMIC_PERMEABILITY_FLAG will be set to FALSE.'
 
        END IF
           

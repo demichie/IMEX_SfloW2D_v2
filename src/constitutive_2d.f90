@@ -257,9 +257,7 @@ MODULE constitutive_2d
   REAL(wp) :: hydraulic_permeability 
   !> Flag to activate dynamic permeability
   LOGICAL :: dynamic_permeability_flag
-  !> Flag to activate permeability calculation at the initial timestep 
-  LOGICAL :: initial_permeability_flag
-
+  
   !> Maximum solid packing fraction
   REAL(wp) :: maximum_solid_packing 
 
@@ -515,14 +513,7 @@ CONTAINS
 
     WRITE(*,*) 'Implicit equations =',n_nh
 
-    ! Initialize permeability flags
-    ! If initial_permeability_flag is true, we will calculate permeability once and then turn off dynamic
-    IF ( initial_permeability_flag ) THEN
-       dynamic_permeability_flag = .TRUE.
-       WRITE(*,*) 'Permeability will be calculated once at t=0 using initial conditions'
-    END IF
-
-    RETURN
+  RETURN
 
   END SUBROUTINE init_problem_param
 
@@ -3694,32 +3685,8 @@ CONTAINS
                                    ( diam_sauter * sphericity_mean )**2.0_wp ) / &
                                    ( 150.0_wp * (1.0_wp - porosity)**2.0_wp )
          
-         ! If initial_permeability_flag is true, this is the first calculation
-         ! Turn off dynamic_permeability_flag so we don't recalculate
-         ! Calculate D_coeff using ambient conditions for display purposes
-         IF ( initial_permeability_flag ) THEN
-            gamma_gas = sp_heat_a / ( sp_heat_a - sp_gas_const_a )
-            gas_compressibility = 1.0_wp / ( gamma_gas * pres )
-            rho_gas = pres / ( sp_gas_const_a * T_ambient )
-            
-            D_coeff = hydraulic_permeability / ( porosity * kin_visc_c * rho_gas * &
-                 gas_compressibility )
-                 
-            dynamic_permeability_flag = .FALSE.
-            WRITE(*,*) '========================================='
-            WRITE(*,*) 'Initial permeability calculated'
-            WRITE(*,'(A,ES15.6)') ' Hydraulic permeability (m2):', REAL(hydraulic_permeability)
-            WRITE(*,'(A,ES15.6)') ' Sauter mean diameter (m):', REAL(diam_sauter)
-            WRITE(*,'(A,F8.4)')   ' Surface-area-weighted mean sphericity (-):', REAL(sphericity_mean)
-            WRITE(*,'(A,F8.4)')   ' Porosity (-):', REAL(porosity)
-            WRITE(*,'(A,ES15.6)') ' Diffusion coefficient (m2/s) at T_ambient:', REAL(D_coeff)
-            WRITE(*,*) '========================================='
-            WRITE(*,*) 'Dynamic permeability flag now turned OFF'
-            WRITE(*,*) 'Using constant permeability value'
-            WRITE(*,*) '========================================='
-         END IF
-         
-       END IF
+       END IF          
+       
        ! ---------------------------------------------------------
 
        IF ( gas_flag .AND. sutherland_flag ) THEN
@@ -4882,12 +4849,7 @@ CONTAINS
                                       ( diam_sauter * sphericity_mean )**2.0_wp ) / &
                                       ( 150.0_wp * (alphas_tot)**2.0_wp )
             
-            ! If initial_permeability_flag is true, this is the first calculation
-            ! Turn off dynamic_permeability_flag so we don't recalculate
-            IF ( initial_permeability_flag ) THEN
-               dynamic_permeability_flag = .FALSE.
-            END IF
-            
+                        
           END IF
 	! -------------------------------------------------------------------- !
 
