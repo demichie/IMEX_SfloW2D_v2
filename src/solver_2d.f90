@@ -516,9 +516,10 @@ CONTAINS
     
     ! Allocate array containing the friction values if needed
     IF ((rheology_model .EQ. 9) .OR. (rheology_model .EQ. 1)                    &
-         .OR. (rheology_model .EQ. 10)) THEN
-       ALLOCATE (fric_array(comp_cells_x , comp_cells_y))
-       fric_array(1:comp_cells_x,1:comp_cells_y) = 0.0_wp
+      .OR. (rheology_model .EQ. 10) .OR. (rheology_model .EQ. 11)            &
+      .OR. (rheology_model .EQ. 12)) THEN
+      ALLOCATE (fric_array(comp_cells_x , comp_cells_y))
+      fric_array(1:comp_cells_x,1:comp_cells_y) = 0.0_wp
     END IF
     
     WRITE(*,*) 'ALLOCATION OF ARRAYS COMPLETED'
@@ -635,10 +636,14 @@ CONTAINS
        END IF
     END IF
     
-    IF ((rheology_model .EQ. 9) .OR. (rheology_model .EQ. 1)                    &
-         .OR. (rheology_model .EQ. 10)) THEN
-       DEALLOCATE(fric_array) ! friction term  
+    IF ( (rheology_model .EQ. 1)  .OR. &
+     (rheology_model .EQ. 9)  .OR. &
+     (rheology_model .EQ. 10) .OR. &
+     (rheology_model .EQ. 11) .OR. &
+     (rheology_model .EQ. 12) ) THEN
+     DEALLOCATE(fric_array)  ! friction term
     END IF
+
     
     RETURN
     
