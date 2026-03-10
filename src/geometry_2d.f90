@@ -49,8 +49,8 @@ MODULE geometry_2d
   !> Topography 2nd xy-derivative at the centers of the control volumes 
   REAL(wp), ALLOCATABLE :: B_second_xy(:,:)
 
- ! TERMS FOR SLOPE AND AND CURVATURE CORRECTIONS
-  
+  ! TERMS FOR SLOPE AND AND CURVATURE CORRECTIONS
+
   !> Topography slope (x direction) at the centers of the control volumes 
   REAL(wp), ALLOCATABLE :: B_prime_x_geom(:,:)
 
@@ -66,7 +66,7 @@ MODULE geometry_2d
   !> Topography 2nd xy-derivative at the centers of the control volumes 
   REAL(wp), ALLOCATABLE :: B_second_xy_geom(:,:)
 
-  
+
   !> Solution in ascii grid format (ESRI)
   REAL(wp), ALLOCATABLE :: grid_output(:,:)
 
@@ -160,7 +160,7 @@ MODULE geometry_2d
 
   REAL(wp), ALLOCATABLE :: z_quad(:)
   REAL(wp), ALLOCATABLE :: w_quad(:)
-  
+
 CONTAINS
 
   !******************************************************************************
@@ -234,7 +234,7 @@ CONTAINS
     ALLOCATE( B_second_yy_geom(comp_cells_x,comp_cells_y) )
     ALLOCATE( B_second_xy_geom(comp_cells_x,comp_cells_y) )
 
-    
+
     ALLOCATE( grid_output(comp_cells_x,comp_cells_y) )
     ALLOCATE( grid_output_int(comp_cells_x,comp_cells_y) )
 
@@ -552,20 +552,20 @@ CONTAINS
     REAL(wp), PARAMETER :: c1(5) = [ -2.0_wp, -1.0_wp, 0.0_wp, 1.0_wp, 2.0_wp ]
     REAL(wp) :: norm1_x
     REAL(wp) :: norm1_y
-    
+
     ! 1D Coefficients for 2nd derivative: [2, -1, -2, -1, 2]
     REAL(wp), PARAMETER :: c2(5) = [ 2.0_wp, -1.0_wp, -2.0_wp, -1.0_wp, 2.0_wp ]    
     REAL(wp) :: norm2_x
     REAL(wp) :: norm2_y
-    
+
     REAL(wp) :: norm_xy
-    
+
     norm1_x = 10.0_wp * dx
     norm1_y = 10.0_wp * dy
     norm2_x = 7.0_wp * dx**2
     norm2_y = 7.0_wp * dy**2
     norm_xy = (10.0_wp * dx) * (10.0_wp * dy)
-    
+
     ! centered approximation for the topography slope
     limiterB = MAX(limiter(1),1)
     limiterB = 5
@@ -696,10 +696,39 @@ CONTAINS
 
     END DO y_loop
 
-    DO k = 3, comp_cells_y - 2
-       
+    IF ( comp_cells_y .EQ. 1 ) THEN
+
+       k = 1
+
        DO j = 3, comp_cells_x - 2
-          
+
+          B_prime_x_geom(j,k)   = 0.0_wp
+          B_prime_y_geom(j,k)   = 0.0_wp
+          B_second_xx_geom(j,k) = 0.0_wp
+          B_second_yy_geom(j,k) = 0.0_wp
+
+          DO kj = 1, 5 ! Stencil in x-direction
+
+             B_prime_x_geom(j,k)   = B_prime_x_geom(j,k)   + c1(kj) * B_cent(j + kj - 3, k)
+             B_second_xx_geom(j,k) = B_second_xx_geom(j,k) + c2(kj) * B_cent(j + kj - 3, k)
+
+          END DO
+
+          B_prime_x_geom(j,k)   = B_prime_x_geom(j,k)   / norm1_x
+          B_prime_y_geom(j,k)   = B_prime_y_geom(j,k)   / norm1_y
+          B_second_xx_geom(j,k) = B_second_xx_geom(j,k) / norm2_x
+          B_second_yy_geom(j,k) = B_second_yy_geom(j,k) / norm2_y
+
+          B_second_xy_geom(j,k) = 0.0_wp
+
+       END DO
+
+    END IF
+
+    DO k = 3, comp_cells_y - 2
+
+       DO j = 3, comp_cells_x - 2
+
           ! --- Pure derivatives (xx and yy) ---
           B_prime_x_geom(j,k)   = 0.0_wp
           B_prime_y_geom(j,k)   = 0.0_wp
@@ -708,17 +737,18 @@ CONTAINS
           DO kj = 1, 5 ! Stencil in x-direction
              B_prime_x_geom(j,k)   = B_prime_x_geom(j,k)   + c1(kj) * B_cent(j + kj - 3, k)
              B_second_xx_geom(j,k) = B_second_xx_geom(j,k) + c2(kj) * B_cent(j + kj - 3, k)
+
           END DO
           DO kk = 1, 5 ! Stencil in y-direction
              B_prime_y_geom(j,k)   = B_prime_y_geom(j,k)   + c1(kk) * B_cent(j, k + kk - 3)
              B_second_yy_geom(j,k) = B_second_yy_geom(j,k) + c2(kk) * B_cent(j, k + kk - 3)
           END DO
-          
+
           B_prime_x_geom(j,k)   = B_prime_x_geom(j,k)   / norm1_x
           B_prime_y_geom(j,k)   = B_prime_y_geom(j,k)   / norm1_y
           B_second_xx_geom(j,k) = B_second_xx_geom(j,k) / norm2_x
           B_second_yy_geom(j,k) = B_second_yy_geom(j,k) / norm2_y
-          
+
           ! --- Mixed derivative (xy) using a 2D kernel ---
           ! The kernel is the outer product of the 1D first derivative kernels.
           weighted_sum = 0.0_wp
@@ -728,7 +758,7 @@ CONTAINS
              END DO
           END DO
           B_second_xy_geom(j,k) = weighted_sum / norm_xy
-          
+
        END DO
     END DO
 
@@ -767,58 +797,43 @@ CONTAINS
        B_second_xy_geom(comp_cells_x,k)   = B_second_xy_geom(comp_cells_x-2,k)
     END DO
 
-    ! --- Handle top and bottom boundaries (rows k=1, 2, comp_cells_y-1, comp_cells_y) ---
-    DO j = 1, comp_cells_x ! Loop over all columns
-       ! Top boundary
-       B_prime_x_geom(j,1)   = B_prime_x_geom(j,3)
-       B_prime_x_geom(j,2)   = B_prime_x_geom(j,3)
-       B_prime_y_geom(j,1)   = B_prime_y_geom(j,3)
-       B_prime_y_geom(j,2)   = B_prime_y_geom(j,3)
-       B_second_xx_geom(j,1) = B_second_xx_geom(j,3)
-       B_second_xx_geom(j,2) = B_second_xx_geom(j,3)
-       B_second_yy_geom(j,1) = B_second_yy_geom(j,3)
-       B_second_yy_geom(j,2) = B_second_yy_geom(j,3)
-       B_second_xy_geom(j,1) = B_second_xy_geom(j,3)
-       B_second_xy_geom(j,2) = B_second_xy_geom(j,3)
+    IF ( comp_cells_y .GT. 1 ) THEN
 
-       ! Bottom boundary
-       B_prime_x_geom(j,comp_cells_y-1) = B_prime_x_geom(j,comp_cells_y-2)
-       B_prime_x_geom(j,comp_cells_y)   = B_prime_x_geom(j,comp_cells_y-2)
-       B_prime_y_geom(j,comp_cells_y-1) = B_prime_y_geom(j,comp_cells_y-2)
-       B_prime_y_geom(j,comp_cells_y)   = B_prime_y_geom(j,comp_cells_y-2)
-       B_second_xx_geom(j,comp_cells_y-1) = B_second_xx_geom(j,comp_cells_y-2)
-       B_second_xx_geom(j,comp_cells_y)   = B_second_xx_geom(j,comp_cells_y-2)
-       B_second_yy_geom(j,comp_cells_y-1) = B_second_yy_geom(j,comp_cells_y-2)
-       B_second_yy_geom(j,comp_cells_y)   = B_second_yy_geom(j,comp_cells_y-2)
-       B_second_xy_geom(j,comp_cells_y-1) = B_second_xy_geom(j,comp_cells_y-2)
-       B_second_xy_geom(j,comp_cells_y)   = B_second_xy_geom(j,comp_cells_y-2)
-    END DO
-        
-    
+       ! --- Handle top and bottom boundaries (rows k=1, 2, comp_cells_y-1, comp_cells_y) ---
+       DO j = 1, comp_cells_x ! Loop over all columns
+          ! Top boundary
+          B_prime_x_geom(j,1)   = B_prime_x_geom(j,3)
+          B_prime_x_geom(j,2)   = B_prime_x_geom(j,3)
+          B_prime_y_geom(j,1)   = B_prime_y_geom(j,3)
+          B_prime_y_geom(j,2)   = B_prime_y_geom(j,3)
+          B_second_xx_geom(j,1) = B_second_xx_geom(j,3)
+          B_second_xx_geom(j,2) = B_second_xx_geom(j,3)
+          B_second_yy_geom(j,1) = B_second_yy_geom(j,3)
+          B_second_yy_geom(j,2) = B_second_yy_geom(j,3)
+          B_second_xy_geom(j,1) = B_second_xy_geom(j,3)
+          B_second_xy_geom(j,2) = B_second_xy_geom(j,3)
+
+          ! Bottom boundary
+          B_prime_x_geom(j,comp_cells_y-1) = B_prime_x_geom(j,comp_cells_y-2)
+          B_prime_x_geom(j,comp_cells_y)   = B_prime_x_geom(j,comp_cells_y-2)
+          B_prime_y_geom(j,comp_cells_y-1) = B_prime_y_geom(j,comp_cells_y-2)
+          B_prime_y_geom(j,comp_cells_y)   = B_prime_y_geom(j,comp_cells_y-2)
+          B_second_xx_geom(j,comp_cells_y-1) = B_second_xx_geom(j,comp_cells_y-2)
+          B_second_xx_geom(j,comp_cells_y)   = B_second_xx_geom(j,comp_cells_y-2)
+          B_second_yy_geom(j,comp_cells_y-1) = B_second_yy_geom(j,comp_cells_y-2)
+          B_second_yy_geom(j,comp_cells_y)   = B_second_yy_geom(j,comp_cells_y-2)
+          B_second_xy_geom(j,comp_cells_y-1) = B_second_xy_geom(j,comp_cells_y-2)
+          B_second_xy_geom(j,comp_cells_y)   = B_second_xy_geom(j,comp_cells_y-2)
+       END DO
+
+    END IF
+
     B_second_xy = ( B_cent_extended(3:comp_cells_x+2,3:comp_cells_y+2)          &
          - B_cent_extended(3:comp_cells_x+2,1:comp_cells_y)                     &
          - B_cent_extended(1:comp_cells_x,3:comp_cells_y+2)                     &
          + B_cent_extended(1:comp_cells_x,1:comp_cells_y) ) / ( 4.0_wp*dx*dy )
 
     IF ( slope_correction_flag ) THEN
-
-!!$       grav_coeff = 1.0_wp / ( 1.0_wp + B_prime_x**2 + B_prime_y**2 )
-!!$
-!!$       d_grav_coeff_dx = - 2.0_wp * grav_coeff**2 * ( B_prime_x * B_second_xx   &
-!!$            + B_prime_y * B_second_xy ) 
-!!$
-!!$       d_grav_coeff_dy = - 2.0_wp * grav_coeff**2 * ( B_prime_x * B_second_xy   &
-!!$            + B_prime_y * B_second_yy ) 
-!!$
-!!$       grav_coeff_stag_x(1,:) = grav_coeff(1,:)
-!!$       grav_coeff_stag_x(2:comp_interfaces_x-1,:) = 0.5_wp *                    &
-!!$            ( grav_coeff(1:comp_cells_x-1,:) + grav_coeff(2:comp_cells_x,:) )
-!!$       grav_coeff_stag_x(comp_interfaces_x,:) = grav_coeff(comp_cells_x,:)
-!!$
-!!$       grav_coeff_stag_y(:,1) = grav_coeff(:,1)
-!!$       grav_coeff_stag_y(:,2:comp_interfaces_y-1) = 0.5_wp *                    &
-!!$            ( grav_coeff(:,1:comp_cells_y-1) + grav_coeff(:,2:comp_cells_y) )
-!!$       grav_coeff_stag_y(:,comp_interfaces_y) = grav_coeff(:,comp_cells_y)
 
        ! Calculate grav_coeff using the ROBUST 1st derivatives.
        grav_coeff = 1.0_wp / ( 1.0_wp + B_prime_x_geom**2 + B_prime_y_geom**2 )
@@ -842,7 +857,7 @@ CONTAINS
        grav_coeff_stag_y(:,2:comp_interfaces_y-1) = 0.5_wp *                    &
             ( grav_coeff(:,1:comp_cells_y-1) + grav_coeff(:,2:comp_cells_y) )
        grav_coeff_stag_y(:,comp_interfaces_y) = grav_coeff(:,comp_cells_y)
-       
+
     ELSE
 
        grav_coeff = 1.0_wp
@@ -877,7 +892,7 @@ CONTAINS
     USE parameters_2d, ONLY : x1_source , x2_source
     USE parameters_2d, ONLY : y1_source , y2_source
     USE parameters_2d, ONLY : lateral_source_flag
-    
+
     IMPLICIT NONE
 
     INTEGER :: j,k
@@ -903,31 +918,31 @@ CONTAINS
     IF ( lateral_source_flag ) THEN
 
        IF ( source_side .EQ. 'W' ) THEN
-          
+
           DO k = 2,comp_cells_y-1
 
              IF ( ( y_stag(k) .LE. y2_source ) .AND. ( y_stag(k+1) .GE.         &
                   y1_source ) ) THEN
-                
+
                 source_cell(1,k) = 2
                 sourceW(1,k) = .TRUE.
-                
+
                 side_fract = MIN ( MIN( (y_stag(k+1) - y1_source) , ( y2_source -     &
                      y_stag(k) ) ) , ( y2_source - y1_source ) , dy ) / dy
 
                 WRITE(*,*) 'side_fract',side_fract
-                
+
                 sourceW_vect_x(1,k) = side_fract
                 sourceW_vect_y(1,k) = 0.0_wp
-                
+
                 total_source = total_source + dy * side_fract
-                
+
              END IF
-             
+
           END DO
-          
+
        END IF
-          
+
        IF ( source_side .EQ. 'E' ) THEN
 
           DO k = 2,comp_cells_y-1
@@ -940,7 +955,7 @@ CONTAINS
 
                 side_fract = MIN ( MIN( (y_stag(k+1) - y1_source) , ( y2_source -     &
                      y_stag(k) ) ) , ( y2_source - y1_source ) , dy ) / dy
-                                
+
                 sourceE_vect_x(comp_cells_x,k) = -side_fract
                 sourceE_vect_y(comp_cells_x,k) = 0.0_wp
 
@@ -964,7 +979,7 @@ CONTAINS
 
                 side_fract = MIN ( MIN( (x_stag(j+1) - x1_source) , ( x2_source -     &
                      x_stag(j) ) ) , ( x2_source - x1_source ) , dx ) / dx
-                
+
                 sourceS_vect_x(j,1) = 0.0_wp
                 sourceS_vect_y(j,1) = side_fract
 
@@ -988,7 +1003,7 @@ CONTAINS
 
                 side_fract = MIN ( MIN( (x_stag(j+1) - x1_source) , ( x2_source -     &
                      x_stag(j) ) ) , ( x2_source - x1_source ) , dx ) / dx
-                
+
                 sourceS_vect_x(j,1) = 0.0_wp
                 sourceS_vect_y(j,1) = - side_fract
 
@@ -1001,11 +1016,11 @@ CONTAINS
        END IF
 
        WRITE(*,*) 'Total source length (m) = ',total_source
-       
+
        RETURN
-       
+
     END IF
-    
+
     DO k = 2,comp_cells_y-1
 
        DO j = 2,comp_cells_x-1
@@ -1206,7 +1221,7 @@ CONTAINS
        alfa_y = 0.0_wp
 
     END IF
-    
+
     IF ( size(x1,1) .EQ. 1 ) THEN
 
        f2 = alfa_y * f1(ix,iy) + ( 1.0_wp - alfa_y ) * f1(ix,iy+1)
@@ -1698,7 +1713,7 @@ CONTAINS
     ang_rad = angles / 180.0_wp * ATAN(1.0_wp)*4.0_wp
 
     WRITE(*,*) 'ang_rad',ang_rad
-    
+
     n_points = 200
     n_points2 = n_points**2
 
@@ -1738,10 +1753,10 @@ CONTAINS
              check_subgrid = 0
 
              WHERE ( ( ( ( x_comp(j) + x_subgrid - xs )*COS(ang_rad) +          &
-                   ( y_comp(k) + y_subgrid - ys )*SIN(ang_rad) )**2 / rs**2 +   &
-                   ( - ( x_comp(j) + x_subgrid - xs )*SIN(ang_rad) +            &
-                   ( y_comp(k) + y_subgrid - ys )*COS(ang_rad) )**2 / r2s**2 )  &
-                   .LE. 1.0_wp )
+                  ( y_comp(k) + y_subgrid - ys )*SIN(ang_rad) )**2 / rs**2 +   &
+                  ( - ( x_comp(j) + x_subgrid - xs )*SIN(ang_rad) +            &
+                  ( y_comp(k) + y_subgrid - ys )*COS(ang_rad) )**2 / r2s**2 )  &
+                  .LE. 1.0_wp )
 
                 check_subgrid = 1
 
@@ -1804,7 +1819,7 @@ CONTAINS
     parameter (P19=0.000086650358052081271660E0_wp)
     parameter (P20=-0.000058113607504413816772E0_wp)
     !
-    
+
     IF (abs(p).lt.0.01159E0_wp) THEN
 
        lambertws=-1.E0_wp+p*(1.E0_wp+p*(P2+p*(P3+p*(P4+p*(P5+p*P6)))))
@@ -1821,7 +1836,7 @@ CONTAINS
             (P17+p*(P18+p*(P19+p*P20)))))))))))))))))))
 
     END IF
-    
+
     RETURN
 
   END function lambertws
@@ -2400,12 +2415,12 @@ CONTAINS
     end if
 
     result = ei
-    
+
     return
   end subroutine calcei
 
   subroutine gaulegf(x1, x2, x, w, n)
-    
+
     ! adapted from www.cs.umbbc.edu/~squire/download/gauleg.f90
     ! gauleg.f90     P145 Numerical Recipes in Fortran
 
@@ -2424,7 +2439,7 @@ CONTAINS
     pi_g = 4.0_wp*ATAN(1.0_wp)
     do i=1,m
 
-      
+
        z = cos(pi_g*(i-0.25_wp)/(n+0.5_wp))
        z1 = 0.0_wp
        pp = 0.0_wp
@@ -2439,7 +2454,7 @@ CONTAINS
           pp = n*(z*p1-p2)/(z*z-1.0_wp)
           z1 = z
           z = z1 - p1/pp
-         
+
        end do
        x(i) = xm - xl*z
        x(n+1-i) = xm + xl*z

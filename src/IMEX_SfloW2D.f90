@@ -1,19 +1,19 @@
 !********************************************************************************
 !> \mainpage IMEX_SfloW2D - Shallow Water Finite volume solver
-!> IMEX_SfloW2D is a FORTRAN90 code designed to solve an hyperbolic 
+!> IMEX_SfloW2D is a FORTRAN90 code designed to solve an hyperbolic
 !> system of partial differential equations with relaxation and source
-!> terms.\n 
+!> terms.\n
 !> The model is discretized in time with an explicit-implicit Runge-Kutta
 !> method where the hyperbolic part is solved explicetely and the other
 !> terms (relaxation and surce) are treated implicitely.\n
 !> The finite volume solver for the hyperbolic part of the system is based
-!> on a semidiscrete central scheme and it is not tied on the specific 
+!> on a semidiscrete central scheme and it is not tied on the specific
 !> eigenstructure of the model.\n
-!> The implicit part is solved with a Newton-Raphson method where the 
-!> elements of the Jacobian of the nonlinear system are evaluated 
+!> The implicit part is solved with a Newton-Raphson method where the
+!> elements of the Jacobian of the nonlinear system are evaluated
 !> numerically with a complex step derivative technique.\n
 !> Version 1.0:\n
-!> \n 
+!> \n
 !> Github project page: http://demichie.github.io/IMEX_SfloW2D/
 !> \n
 !> \authors Mattia de' Michieli Vitturi (*)
@@ -23,156 +23,164 @@
 !>     E-mail: mattia.demichielivitturi@ingv.it \n
 !********************************************************************************
 
-!> \brief Main Program 
+!> \brief Main Program
 PROGRAM IMEX_SfloW2D
 
-  USE, intrinsic :: iso_fortran_env
-  USE, intrinsic :: ieee_arithmetic  
+   USE, intrinsic :: iso_fortran_env
+   USE, intrinsic :: ieee_arithmetic
 
-  USE constitutive_2d, ONLY : init_problem_param , T_ambient
-
-
-  USE geometry_2d, ONLY : init_grid
-  USE geometry_2d, ONLY : init_source
-  USE geometry_2d, ONLY : topography_reconstruction
-
-  USE geometry_2d, ONLY : dx,dy,B_cent
-  ! USE geometry_2d, ONLY : comp_cells_x,comp_cells_y
-
-  USE init_2d, ONLY : collapsing_volume
-  USE init_2d, ONLY : init_empty
-  
-  USE inpout_2d, ONLY : init_param
-  USE inpout_2d, ONLY : read_param
-  USE inpout_2d, ONLY : update_param
-  USE inpout_2d, ONLY : output_solution
-  USE inpout_2d, ONLY : output_runout
-  USE inpout_2d, ONLY : read_solution
-  USE inpout_2d, ONLY : close_units
-  USE inpout_2d, ONLY : n_probes
-  USE inpout_2d, ONLY : output_probes
-
-  USE inpout_2d, ONLY : init_netcdf_output
-  USE inpout_2d, ONLY : close_netcdf
-  
-
-  USE inpout_2d, ONLY : output_runout_flag
-  USE inpout_2d, ONLY : output_cons_flag
-  USE inpout_2d, ONLY : output_esri_flag
-  USE inpout_2d, ONLY : output_phys_flag
-  USE inpout_2d, ONLY : output_netcdf_flag
-
-  USE solver_2d, ONLY : allocate_solver_variables
-  USE solver_2d, ONLY : deallocate_solver_variables
-  USE solver_2d, ONLY : imex_RK_solver
-  USE solver_2d, ONLY : update_erosion_deposition_cell
-  USE solver_2d, ONLY : timestep
-  USE solver_2d, ONLY : check_solve
-
-  USE inpout_2d, ONLY : restart
-
-  USE parameters_2d, ONLY : wp
-
-  USE parameters_2d, ONLY : t_start
-  USE parameters_2d, ONLY : t_end
-  USE parameters_2d, ONLY : t_output
-  USE parameters_2d, ONLY : t_runout
-  USE parameters_2d, ONLY : t_probes
-  USE parameters_2d, ONLY : t_steady
-  USE parameters_2d, ONLY : dt0
-  USE parameters_2d, ONLY : topo_change_flag
-  USE parameters_2d, ONLY : verbose_level
-  USE parameters_2d, ONLY : n_solid
-  USE parameters_2d, ONLY : n_vars
-  USE parameters_2d, ONLY : radial_source_flag
-  USE parameters_2d, ONLY : lateral_source_flag
-  USE parameters_2d, ONLY : collapsing_volume_flag
-  USE parameters_2d, ONLY : serial_flag
-
-  USE parameters_2d, ONLY : n_thickness_levels , n_dyn_pres_levels ,          &
-       thickness_levels , dyn_pres_levels
-
-  USE solver_2d, ONLY : q , qp , t, dt
-  USE solver_2d, ONLY : hmax , pdynmax , mod_vel_max
-  USE solver_2d, ONLY : thck_table ,  pdyn_table , vuln_table
-
-  USE constitutive_2d, ONLY : qc_to_qp
-
-  USE solver_2d, ONLY : solve_mask , solve_cells
-  USE solver_2d, ONLY : j_cent , k_cent
-
-  USE constitutive_2d, ONLY : avg_profiles_mix
-
-  USE OMP_LIB
-
-  IMPLICIT NONE
-
-  REAL(wp) :: t1 , t2 , t3
-
-  REAL(wp) :: rate
-  INTEGER :: st1 , st2 , st3 , cr , cm
-
-  REAL(wp) :: dt_old , dt_old_old
-  LOGICAL :: stop_flag
-  LOGICAL :: stop_flag_old
-
-  INTEGER :: j,k,l
-
-  INTEGER :: i_pdyn_lev , i_thk_lev , i_table
-
-  INTEGER n_threads
-
-  LOGICAL :: use_openmp = .false.
-
-  !> Dynamic pressure
-  REAL(wp) :: p_dyn
-
-  REAL(wp) :: w , z, u1,u2,u
-
-  REAL(wp) :: ans1
-
-  REAL(wp) :: mod_vel , mod_vel2, r_u, r_v
-
-  REAL(wp) :: vol
-
-  WRITE(*,*) '---------------------'
-  WRITE(*,*) 'IMEX_SfloW2D 2.0'
-  WRITE(*,*) '---------------------'
-
-  ! First initialize the system_clock
-  CALL system_clock(count_rate=cr)
-  CALL system_clock(count_max=cm)
-  rate = DBLE(cr)
-
-  CALL cpu_time(t1)
-  CALL system_clock (st1)
-
-  CALL init_param
-
-  CALL read_param
+   USE constitutive_2d, ONLY : init_problem_param , T_ambient
 
 
-  !$ use_openmp = .true.
-  !$ print *, "OpenMP program"
+   USE geometry_2d, ONLY : init_grid
+   USE geometry_2d, ONLY : init_source
+   USE geometry_2d, ONLY : topography_reconstruction
 
-  IF ( .NOT. use_openmp) THEN
+   USE geometry_2d, ONLY : dx,dy,B_cent, cell_size
+   ! USE geometry_2d, ONLY : comp_cells_x,comp_cells_y
 
-     PRINT *, "Non-OpenMP simulation"
+   USE init_2d, ONLY : collapsing_volume
+   USE init_2d, ONLY : init_empty
 
-  ELSE
+   USE inpout_2d, ONLY : init_param
+   USE inpout_2d, ONLY : read_param
+   USE inpout_2d, ONLY : update_param
+   USE inpout_2d, ONLY : output_solution
+   USE inpout_2d, ONLY : output_runout
+   USE inpout_2d, ONLY : read_solution
+   USE inpout_2d, ONLY : close_units
+   USE inpout_2d, ONLY : n_probes
+   USE inpout_2d, ONLY : output_probes
 
-     ! Check the serial flag
-     IF (serial_flag) THEN
-        CALL omp_set_num_threads(1)  ! Use only 1 thread
-        WRITE(*,*) 'Serial run'
-     END IF
-             
-     !$ n_threads = omp_get_max_threads()
-     !$ CALL OMP_SET_NUM_THREADS(n_threads)
-     WRITE(*,*) 'Parallel run: number of threads used',n_threads
+   USE inpout_2d, ONLY : init_netcdf_output
+   USE inpout_2d, ONLY : close_netcdf
+   USE inpout_2d, ONLY : restart, restart_file
+   USE inpout_2d, ONLY : read_restart_file, write_restart_file
+   USE inpout_2d, ONLY : output_runout_flag
+   USE inpout_2d, ONLY : output_cons_flag
+   USE inpout_2d, ONLY : output_esri_flag
+   USE inpout_2d, ONLY : output_phys_flag
+   USE inpout_2d, ONLY : output_netcdf_flag
 
-  END IF
-  
+   USE solver_2d, ONLY : allocate_solver_variables
+   USE solver_2d, ONLY : deallocate_solver_variables
+   USE solver_2d, ONLY : imex_RK_solver
+   USE solver_2d, ONLY : update_erosion_deposition_cell
+   USE solver_2d, ONLY : timestep
+   USE solver_2d, ONLY : check_solve
+
+   USE inpout_2d, ONLY : restart
+
+   USE parameters_2d, ONLY : wp
+
+   USE parameters_2d, ONLY : t_start
+   USE parameters_2d, ONLY : t_end
+   USE parameters_2d, ONLY : t_output
+   USE parameters_2d, ONLY : t_runout
+   USE parameters_2d, ONLY : t_probes
+   USE parameters_2d, ONLY : t_steady
+   USE parameters_2d, ONLY : dt0
+   USE parameters_2d, ONLY : topo_change_flag
+   USE parameters_2d, ONLY : verbose_level
+   USE parameters_2d, ONLY : n_solid
+   USE parameters_2d, ONLY : n_vars
+   USE parameters_2d, ONLY : radial_source_flag
+   USE parameters_2d, ONLY : lateral_source_flag
+   USE parameters_2d, ONLY : collapsing_volume_flag
+   USE parameters_2d, ONLY : serial_flag
+
+   USE parameters_2d, ONLY : stochastic_flag, length_spatial_corr
+
+   USE parameters_2d, ONLY : n_thickness_levels , n_dyn_pres_levels ,          &
+      thickness_levels , dyn_pres_levels
+
+   USE solver_2d, ONLY : q , qp , t, dt
+   USE solver_2d, ONLY : hmax , pdynmax , mod_vel_max
+   USE solver_2d, ONLY : thck_table ,  pdyn_table , vuln_table
+
+   USE constitutive_2d, ONLY : qc_to_qp
+
+   USE solver_2d, ONLY : solve_mask , solve_cells
+   USE solver_2d, ONLY : j_cent , k_cent
+
+   USE constitutive_2d, ONLY : avg_profiles_mix
+
+   USE stochastic_module, ONLY : genConvolutionKernel, getSteadyStateZ
+
+   USE OMP_LIB
+
+   IMPLICIT NONE
+
+   REAL(wp) :: t1 , t2 , t3
+
+   REAL(wp) :: rate
+   INTEGER :: st1 , st2 , st3 , cr , cm
+
+   REAL(wp) :: dt_old , dt_old_old
+   LOGICAL :: stop_flag
+   LOGICAL :: stop_flag_old
+
+   INTEGER :: j,k,l
+
+   INTEGER :: i_pdyn_lev , i_thk_lev , i_table
+
+   INTEGER n_threads
+
+   LOGICAL :: use_openmp = .false.
+
+   !> Dynamic pressure
+   REAL(wp) :: p_dyn
+
+   REAL(wp) :: w , z, u1,u2,u
+
+   REAL(wp) :: ans1
+
+   REAL(wp) :: mod_vel , mod_vel2, r_u, r_v
+
+   REAL(wp) :: vol
+
+   INTEGER :: len_fname
+   CHARACTER(LEN=4) :: ext
+   LOGICAL :: is_binary_restart
+
+   WRITE(*,*) '---------------------'
+   WRITE(*,*) 'IMEX_SfloW2D 2.0'
+   WRITE(*,*) '---------------------'
+
+   ! First initialize the system_clock
+   CALL system_clock(count_rate=cr)
+   CALL system_clock(count_max=cm)
+   rate = DBLE(cr)
+
+   CALL cpu_time(t1)
+   CALL system_clock (st1)
+
+   CALL init_param
+
+   CALL read_param
+
+
+!$ use_openmp = .true.
+!$ print *, "OpenMP program"
+
+   IF ( .NOT. use_openmp) THEN
+
+      PRINT *, "Non-OpenMP simulation"
+
+   ELSE
+
+      ! Check the serial flag
+      IF (serial_flag) THEN
+         CALL omp_set_num_threads(1)  ! Use only 1 thread
+         WRITE(*,*) 'Serial run'
+      END IF
+
+!$    n_threads = omp_get_max_threads()
+!$    CALL OMP_SET_NUM_THREADS(n_threads)
+      WRITE(*,*) 'Parallel run: number of threads used',n_threads
+
+   END IF
+
 !!$
 !!$  !avg_profiles_mix( h , settling_vel , rho_alphas_avg,&
 !!$  !      u_guess , h0 , b , u_coeff , u_rel0 , rho_c , uRho_avg_new )
@@ -186,361 +194,409 @@ PROGRAM IMEX_SfloW2D
 !!$
 !!$  STOP
 
-  CALL init_grid
-
-  CALL init_problem_param
-
-  CALL allocate_solver_variables
-
-  IF ( restart ) THEN
-
-     CALL read_solution
-
-  ELSE
-
-     IF ( collapsing_volume_flag ) THEN
-
-        CALL collapsing_volume
-
-     ELSE
-
-        CALL init_empty
-        
-     END IF
-
-  END IF
-
-  IF ( output_netcdf_flag ) CALL init_netcdf_output
-  
-  IF ( radial_source_flag .OR. lateral_source_flag ) CALL init_source
-
-  t = t_start
-
-  CALL check_solve(.TRUE.)
-
-  IF ( topo_change_flag ) CALL topography_reconstruction
-
-  IF ( verbose_level .GE. 0 ) THEN
-
-     WRITE(*,*) 
-     WRITE(*,*) '******** START COMPUTATION *********'
-     WRITE(*,*)
-
-  END IF
-
-  IF ( verbose_level .GE. 1 ) THEN
-
-     WRITE(*,*) 'Min q(1,:,:)=',MINVAL(q(1,:,:))
-     WRITE(*,*) 'Max q(1,:,:)=',MAXVAL(q(1,:,:))
-
-     WRITE(*,*) 'Min B(:,:)=',MINVAL(B_cent(:,:))
-     WRITE(*,*) 'Max B(:,:)=',MAXVAL(B_cent(:,:))
-
-
-     WRITE(*,*) 'size B_cent',size(B_cent,1),size(B_cent,2)
-
-     WRITE(*,*) 'SUM(q(1,:,:)=',SUM(q(1,:,:))
-     WRITE(*,*) 'SUM(B_cent(:,:)=',SUM(B_cent(:,:))
-
-  END IF
-
-
-  dt_old = dt0
-  dt_old_old = dt_old
-  t_steady = t_end
-  stop_flag = .FALSE.
-
-  vuln_table = .FALSE.
-
-  !$OMP PARALLEL DO private(j,k,p_dyn,i_table,i_thk_lev,i_pdyn_lev,mod_vel2,    &
-  !$OMP & mod_vel)
-
-  DO l = 1,solve_cells
-
-     j = j_cent(l)
-     k = k_cent(l)
-
-     IF ( q(1,j,k) .GT. 0.0_wp ) THEN
-
-        CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
-
-        hmax(j,k) = qp(1,j,k)
-
-        r_u = qp(n_vars+1,j,k)
-        r_v = qp(n_vars+2,j,k)
-        
-        mod_vel2 = r_u**2 + r_v**2
-        mod_vel = SQRT( mod_vel2 )
-        
-        IF ( qp(1,j,k) .GT. 0.001_wp ) THEN
-           
-           pdynmax(j,k) = p_dyn
-           mod_vel_max(j,k) = mod_vel
-
-        END IF
-           
-        i_table = 0
-        
-        DO i_thk_lev=1,n_thickness_levels
-
-           thck_table(j,k) = ( qp(1,j,k) .GE. thickness_levels(i_thk_lev) )
-
-           DO i_pdyn_lev=1,n_dyn_pres_levels
-
-              pdyn_table(j,k) = ( p_dyn .GE. dyn_pres_levels(i_pdyn_lev) ) 
-
-              i_table = i_table + 1
-
-              vuln_table(i_table,j,k) = ( thck_table(j,k) .AND. pdyn_table(j,k) )
-
-           END DO
-
-        END DO
-
-     ELSE
-
-        qp(1:n_vars,j,k) = 0.0_wp
-        qp(4,j,k) = T_ambient
-        hmax(j,k) = 0.0_wp
-        pdynmax(j,k) = 0.0_wp
-
-     END IF
-
-  END DO
-
-  !$OMP END PARALLEL DO
-
-  IF ( output_runout_flag ) CALL output_runout(t,stop_flag)
-
-  IF ( output_cons_flag .OR. output_esri_flag .OR. output_phys_flag .OR.        &
-       output_netcdf_flag ) CALL output_solution(t)
-
-  IF ( n_probes .GT. 0 ) CALL output_probes(t)
-
-  IF ( SUM(q(1,:,:)) .EQ. 0.0_wp ) t_steady = t_end
-
-  IF ( verbose_level .GE. 0 ) THEN
-
-     WRITE(*,FMT="(A3,F11.4,A5,F9.5,A9,ES11.3E3,A11,ES11.3E3,A9,ES11.3E3,A15,   &
-          &ES11.3E3)")                                                          &
-          't =',t,'dt =',dt0,                                                   &
-          ' mass = ',dx*dy*SUM(q(1,:,:)) ,                                      &
-          ' volume = ',dx*dy*SUM(qp(1,:,:)) ,                                   &
-          ' area = ',dx*dy*COUNT(q(1,:,:).GT.1.D-5) ,                           &
-          ' solid mass = ',dx*dy*SUM(q(5:4+n_solid,:,:))
-
-  END IF
-
-  CALL cpu_time(t2)
-  CALL system_clock (st2)
- 
-  DO WHILE ( ( t .LT. t_end ) .AND. ( t .LT. t_steady ) )
-
-     CALL update_param
-
-     IF ( t.EQ. t_start ) THEN
-
-        CALL check_solve(.FALSE.)
-
-     ELSE
-
-        CALL check_solve(.FALSE.)
-
-     END IF
-        
-     IF ( verbose_level .GE. 1 ) THEN
-
-        WRITE(*,*) 'cells to solve and reconstruct:' , COUNT(solve_mask)
-
-     END IF
-
-     CALL timestep
-
-     IF ( t_end - t_output < 1.0E-7_WP ) t_output = t_end
-     IF ( t_end - t_runout < 1.0E-7_WP ) t_runout = t_end
-     IF ( t_end - t_probes < 1.0E-7_WP ) t_probes = t_end
-     
-     IF ( t+dt .GT. t_end ) dt = t_end - t
-     IF ( t+dt .GT. t_output ) dt = t_output - t
-
-     IF ( output_runout_flag ) THEN
-
-        IF ( t+dt .GT. t_runout ) dt = t_runout - t
-
-     END IF
-
-     IF ( n_probes .GT. 0 ) THEN
-
-        IF ( t+dt .GT. t_probes ) dt = t_probes - t
-
-     END IF
-
-     dt = MIN(dt,1.1_wp * 0.5_wp * ( dt_old + dt_old_old ) )
-
-     dt_old_old = dt_old
-     dt_old = dt
-
-     CALL imex_RK_solver
-
-     CALL update_erosion_deposition_cell(dt)
-     
-     IF ( topo_change_flag ) CALL topography_reconstruction
-
-     t = t+dt
-
-     !$OMP PARALLEL DO private(j,k,p_dyn,i_table,i_thk_lev,i_pdyn_lev,mod_vel2,    &
-     !$OMP & mod_vel)
-
-     
-     DO l = 1,solve_cells
-
-        j = j_cent(l)
-        k = k_cent(l)
-
-        IF ( q(1,j,k) .GT. 0.0_wp ) THEN
-
-           CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
-
-           hmax(j,k) = MAX( hmax(j,k) , qp(1,j,k) )
-
-           r_u = qp(n_vars+1,j,k)
-           r_v = qp(n_vars+2,j,k)
-        
-           mod_vel2 = r_u**2 + r_v**2
-           mod_vel = SQRT( mod_vel2 )
-        
-           IF ( qp(1,j,k) .GT. 0.001_wp ) THEN
-
-              pdynmax(j,k) = MAX( pdynmax(j,k) , p_dyn )
-              mod_vel_max(j,k) = MAX( mod_vel_max(j,k) , mod_vel )
-
-           END IF
-              
-           i_table = 0
-           
-           DO i_thk_lev=1,n_thickness_levels
-
-              thck_table(j,k) = ( qp(1,j,k) .GE. thickness_levels(i_thk_lev) )
-
-              DO i_pdyn_lev=1,n_dyn_pres_levels
-
-                 pdyn_table(j,k) = ( p_dyn .GE. dyn_pres_levels(i_pdyn_lev) ) 
-
-                 i_table = i_table + 1
-
-                 vuln_table(i_table,j,k) = vuln_table(i_table,j,k) .OR.            &
-                      ( thck_table(j,k) .AND. pdyn_table(j,k) )
-
-              END DO
-
-           END DO
-
-        ELSE
-
-           qp(1:n_vars+2,j,k) = 0.0_wp
-           qp(4,j,k) = T_ambient
-
-        END IF
-
-     END DO
-
-     !$OMP END PARALLEL DO
-
-     IF ( verbose_level .GE. 0 ) THEN
-
-        vol = SUM(qp(1,:,:))
-
-        !IF ( IEEE_IS_NAN(vol) .OR. ( t.GE. 50.54) ) THEN
-
-        !   WRITE(*,*) 'WARNING: volume = ',dx*dy*SUM(qp(1,:,:))
-
-        !   DO l = 1,solve_cells
-              
-        !      j = j_cent(l)
-        !      k = k_cent(l)
-
-        !      IF ( (j.EQ.1270) .AND. (k.EQ.1317) ) THEN
-              
-        !         WRITE(*,*) 'j,k',j,k,qp(1,j,k)
-        !         WRITE(*,*) 'qc: ',q(1:n_vars,j,k)
-        !         WRITE(*,*) 'qp: ',qp(1:n_vars+2,j,k)
-
-        !      END IF
-                 
-        !   END DO
-           
-        !   READ(*,*) 
-           
-        !END IF
-  
-        
-        WRITE(*,FMT="(A3,F11.4,A5,F9.5,A9,ES11.3E3,A11,ES11.3E3,A9,ES11.3E3,A15,   &
-             &ES11.3E3)")                                                          &
-             't =',t,'dt =',dt,                                                    &
-             ' mass = ',dx*dy*SUM(q(1,:,:)) ,                                      &
-             ' volume = ',dx*dy*SUM(qp(1,:,:)) ,                                   &
-             ' area = ',dx*dy*COUNT(q(1,:,:).GT.1.D-7) ,                           &
-             ' solid mass = ',dx*dy*SUM(q(5:4+n_solid,:,:)) 
-
-     END IF
-
-     IF ( output_runout_flag ) THEN
-
-        IF ( ( t .GE. t_runout ) .OR. ( t .GE. t_steady ) ) THEN
-
-           stop_flag_old = stop_flag
-
-           IF ( output_runout_flag ) CALL output_runout(t,stop_flag)
-
-           IF ( ( stop_flag ) .AND. (.NOT.stop_flag_old) ) THEN
-
-              t_steady = MIN(t_end,t_output)
-
-           END IF
-
-        END IF
+   CALL init_grid
+
+   CALL init_problem_param
+
+   CALL allocate_solver_variables
+
+   is_binary_restart = .FALSE.
+   t = t_start
+
+   IF ( restart ) THEN
+
+      ! Calculate string length and extract the last 4 characters
+      len_fname = LEN_TRIM(restart_file)
+      IF (len_fname >= 4) THEN
+         ext = restart_file(len_fname-3:len_fname)
+      ELSE
+         ext = '    '
+      END IF
+
+      IF ( ext .EQ. '.bin' ) THEN
+         ! ---------------------------------------------------------
+         ! CASE 1: BINARY RESTART (Exact)
+         ! ---------------------------------------------------------
+         WRITE(*,*) 'Binary file (.bin) detected: Performing full restart.'
+         CALL read_restart_file(TRIM(restart_file))
+
+         is_binary_restart = .TRUE.
+
+         ! In a binary restart, Z is already loaded, but we need to allocate the kernel
+         ! if spatial correlation is active
+         IF (stochastic_flag .AND. length_spatial_corr > cell_size) THEN
+            CALL genConvolutionKernel()
+         END IF
+
+      ELSE
+         ! ---------------------------------------------------------
+         ! CASE 2: CLASSIC INITIALIZATION (Python / ASCII)
+         ! ---------------------------------------------------------
+         WRITE(*,*) 'Standard format detected: Executing read_solution.'
+         CALL read_solution
+
+         ! In the old procedure, Z is not read, so it must be initialized
+         ! and a burn-in is needed (getSteadyStateZ does both kernel and burn-in)
+         IF ( stochastic_flag ) THEN
+            CALL getSteadyStateZ
+         END IF
 
       END IF
-     
-     IF ( n_probes .GT. 0 ) THEN
 
-        IF ( t .GE. t_probes ) CALL output_probes(t)
+   ELSE
 
-     END IF
-     
-     IF ( ( t .GE. t_output ) .OR. ( t .GE. t_end ) ) THEN
+      IF ( collapsing_volume_flag ) THEN
 
-        CALL cpu_time(t3)
-        CALL system_clock(st3)
+         CALL collapsing_volume
 
-        IF ( verbose_level .GE. 0 ) THEN
+      ELSE
 
-           WRITE(*,*) 'Time taken by iterations is',t3-t2,'seconds'
-           WRITE(*,*) 'Elapsed real time = ', DBLE( st3 - st2 ) / rate,'seconds'
+         CALL init_empty
 
-        END IF
+      END IF
 
-        IF ( output_cons_flag .OR. output_esri_flag .OR. output_phys_flag .OR. output_netcdf_flag ) THEN
+   END IF
 
-           CALL output_solution(t)
-                     
-        END IF
+   IF ( output_netcdf_flag ) CALL init_netcdf_output
 
-     END IF
+   IF ( radial_source_flag .OR. lateral_source_flag ) CALL init_source
 
-  END DO
+   CALL check_solve(.TRUE.)
 
-  CALL deallocate_solver_variables
+   IF ( topo_change_flag ) CALL topography_reconstruction
 
-  IF ( output_netcdf_flag ) CALL close_netcdf
-  
-  CALL close_units
+   IF ( verbose_level .GE. 0 ) THEN
 
-  CALL cpu_time(t3)
-  CALL system_clock(st3)
+      WRITE(*,*)
+      WRITE(*,*) '******** START COMPUTATION *********'
+      WRITE(*,*)
 
-  WRITE(*,*) 'Total time taken by the code is',t3-t1,'seconds'
-  WRITE(*,*) 'Total elapsed real time is', DBLE( st3 - st1 ) / rate,'seconds'
+   END IF
+
+   IF ( verbose_level .GE. 1 ) THEN
+
+      WRITE(*,*) 'Min q(1,:,:)=',MINVAL(q(1,:,:))
+      WRITE(*,*) 'Max q(1,:,:)=',MAXVAL(q(1,:,:))
+
+      WRITE(*,*) 'Min B(:,:)=',MINVAL(B_cent(:,:))
+      WRITE(*,*) 'Max B(:,:)=',MAXVAL(B_cent(:,:))
+
+
+      WRITE(*,*) 'size B_cent',size(B_cent,1),size(B_cent,2)
+
+      WRITE(*,*) 'SUM(q(1,:,:)=',SUM(q(1,:,:))
+      WRITE(*,*) 'SUM(B_cent(:,:)=',SUM(B_cent(:,:))
+
+   END IF
+
+
+   IF ( is_binary_restart ) THEN
+      ! If it is a binary restart, 'dt' has already been loaded by read_restart_file.
+      ! We initialize the history with the last valid dt for continuity.
+      dt_old = dt
+      dt_old_old = dt
+      WRITE(*,*) 'Restarting with saved timestep dt =', dt
+   ELSE
+      ! If it is a new simulation or a legacy restart, we use dt0 from the input
+      dt = dt0
+      dt_old = dt0
+      dt_old_old = dt0
+   END IF
+
+   t_steady = t_end
+   stop_flag = .FALSE.
+
+   vuln_table = .FALSE.
+
+   !$OMP PARALLEL DO private(j,k,p_dyn,i_table,i_thk_lev,i_pdyn_lev,mod_vel2,    &
+   !$OMP & mod_vel)
+
+   DO l = 1,solve_cells
+
+      j = j_cent(l)
+      k = k_cent(l)
+
+      IF ( q(1,j,k) .GT. 0.0_wp ) THEN
+
+         CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
+
+         hmax(j,k) = qp(1,j,k)
+
+         r_u = qp(n_vars+1,j,k)
+         r_v = qp(n_vars+2,j,k)
+
+         mod_vel2 = r_u**2 + r_v**2
+         mod_vel = SQRT( mod_vel2 )
+
+         IF ( qp(1,j,k) .GT. 0.001_wp ) THEN
+
+            pdynmax(j,k) = p_dyn
+            mod_vel_max(j,k) = mod_vel
+
+         END IF
+
+         i_table = 0
+
+         DO i_thk_lev=1,n_thickness_levels
+
+            thck_table(j,k) = ( qp(1,j,k) .GE. thickness_levels(i_thk_lev) )
+
+            DO i_pdyn_lev=1,n_dyn_pres_levels
+
+               pdyn_table(j,k) = ( p_dyn .GE. dyn_pres_levels(i_pdyn_lev) )
+
+               i_table = i_table + 1
+
+               vuln_table(i_table,j,k) = ( thck_table(j,k) .AND. pdyn_table(j,k) )
+
+            END DO
+
+         END DO
+
+      ELSE
+
+         qp(1:n_vars,j,k) = 0.0_wp
+         qp(4,j,k) = T_ambient
+         hmax(j,k) = 0.0_wp
+         pdynmax(j,k) = 0.0_wp
+
+      END IF
+
+   END DO
+
+   !$OMP END PARALLEL DO
+
+   IF ( output_runout_flag ) CALL output_runout(t,stop_flag)
+
+   IF ( output_cons_flag .OR. output_esri_flag .OR. output_phys_flag .OR.        &
+      output_netcdf_flag ) CALL output_solution(t)
+
+   IF ( n_probes .GT. 0 ) CALL output_probes(t)
+
+   IF ( SUM(q(1,:,:)) .EQ. 0.0_wp ) t_steady = t_end
+
+   IF ( verbose_level .GE. 0 ) THEN
+
+      WRITE(*,FMT="(A3,F11.4,A5,F9.5,A9,ES11.3E3,A11,ES11.3E3,A9,ES11.3E3,A15,   &
+      &ES11.3E3)")                                                          &
+         't =',t,'dt =',dt,                                                    &
+         ' mass = ',dx*dy*SUM(q(1,:,:)) ,                                      &
+         ' volume = ',dx*dy*SUM(qp(1,:,:)) ,                                   &
+         ' area = ',dx*dy*COUNT(q(1,:,:).GT.1.D-5) ,                           &
+         ' solid mass = ',dx*dy*SUM(q(5:4+n_solid,:,:))
+
+   END IF
+
+   CALL cpu_time(t2)
+   CALL system_clock (st2)
+
+   DO WHILE ( ( t .LT. t_end ) .AND. ( t .LT. t_steady ) )
+
+      CALL update_param
+
+      IF ( t.EQ. t_start ) THEN
+
+         CALL check_solve(.FALSE.)
+
+      ELSE
+
+         CALL check_solve(.FALSE.)
+
+      END IF
+
+      IF ( verbose_level .GE. 1 ) THEN
+
+         WRITE(*,*) 'cells to solve and reconstruct:' , COUNT(solve_mask)
+
+      END IF
+
+      CALL timestep
+
+      IF ( t_end - t_output < 1.0E-7_WP ) t_output = t_end
+      IF ( t_end - t_runout < 1.0E-7_WP ) t_runout = t_end
+      IF ( t_end - t_probes < 1.0E-7_WP ) t_probes = t_end
+
+      IF ( t+dt .GT. t_end ) dt = t_end - t
+      IF ( t+dt .GT. t_output ) dt = t_output - t
+
+      IF ( output_runout_flag ) THEN
+
+         IF ( t+dt .GT. t_runout ) dt = t_runout - t
+
+      END IF
+
+      IF ( n_probes .GT. 0 ) THEN
+
+         IF ( t+dt .GT. t_probes ) dt = t_probes - t
+
+      END IF
+
+      dt = MIN(dt,1.1_wp * 0.5_wp * ( dt_old + dt_old_old ) )
+
+      dt_old_old = dt_old
+      dt_old = dt
+
+      CALL imex_RK_solver
+
+      CALL update_erosion_deposition_cell(dt)
+
+      IF ( topo_change_flag ) CALL topography_reconstruction
+
+      t = t+dt
+
+      !$OMP PARALLEL DO private(j,k,p_dyn,i_table,i_thk_lev,i_pdyn_lev,mod_vel2,    &
+      !$OMP & mod_vel)
+
+
+      DO l = 1,solve_cells
+
+         j = j_cent(l)
+         k = k_cent(l)
+
+         IF ( q(1,j,k) .GT. 0.0_wp ) THEN
+
+            CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
+
+            hmax(j,k) = MAX( hmax(j,k) , qp(1,j,k) )
+
+            r_u = qp(n_vars+1,j,k)
+            r_v = qp(n_vars+2,j,k)
+
+            mod_vel2 = r_u**2 + r_v**2
+            mod_vel = SQRT( mod_vel2 )
+
+            IF ( qp(1,j,k) .GT. 0.001_wp ) THEN
+
+               pdynmax(j,k) = MAX( pdynmax(j,k) , p_dyn )
+               mod_vel_max(j,k) = MAX( mod_vel_max(j,k) , mod_vel )
+
+            END IF
+
+            i_table = 0
+
+            DO i_thk_lev=1,n_thickness_levels
+
+               thck_table(j,k) = ( qp(1,j,k) .GE. thickness_levels(i_thk_lev) )
+
+               DO i_pdyn_lev=1,n_dyn_pres_levels
+
+                  pdyn_table(j,k) = ( p_dyn .GE. dyn_pres_levels(i_pdyn_lev) )
+
+                  i_table = i_table + 1
+
+                  vuln_table(i_table,j,k) = vuln_table(i_table,j,k) .OR.            &
+                     ( thck_table(j,k) .AND. pdyn_table(j,k) )
+
+               END DO
+
+            END DO
+
+         ELSE
+
+            qp(1:n_vars+2,j,k) = 0.0_wp
+            qp(4,j,k) = T_ambient
+
+         END IF
+
+      END DO
+
+      !$OMP END PARALLEL DO
+
+      IF ( verbose_level .GE. 0 ) THEN
+
+         vol = SUM(qp(1,:,:))
+
+         !IF ( IEEE_IS_NAN(vol) .OR. ( t.GE. 50.54) ) THEN
+
+         !   WRITE(*,*) 'WARNING: volume = ',dx*dy*SUM(qp(1,:,:))
+
+         !   DO l = 1,solve_cells
+
+         !      j = j_cent(l)
+         !      k = k_cent(l)
+
+         !      IF ( (j.EQ.1270) .AND. (k.EQ.1317) ) THEN
+
+         !         WRITE(*,*) 'j,k',j,k,qp(1,j,k)
+         !         WRITE(*,*) 'qc: ',q(1:n_vars,j,k)
+         !         WRITE(*,*) 'qp: ',qp(1:n_vars+2,j,k)
+
+         !      END IF
+
+         !   END DO
+
+         !   READ(*,*)
+
+         !END IF
+
+
+         WRITE(*,FMT="(A3,F11.4,A5,F9.5,A9,ES11.3E3,A11,ES11.3E3,A9,ES11.3E3,A15,   &
+         &ES11.3E3)")                                                          &
+            't =',t,'dt =',dt,                                                    &
+            ' mass = ',dx*dy*SUM(q(1,:,:)) ,                                      &
+            ' volume = ',dx*dy*SUM(qp(1,:,:)) ,                                   &
+            ' area = ',dx*dy*COUNT(q(1,:,:).GT.1.D-7) ,                           &
+            ' solid mass = ',dx*dy*SUM(q(5:4+n_solid,:,:))
+
+      END IF
+
+      IF ( output_runout_flag ) THEN
+
+         IF ( ( t .GE. t_runout ) .OR. ( t .GE. t_steady ) ) THEN
+
+            stop_flag_old = stop_flag
+
+            IF ( output_runout_flag ) CALL output_runout(t,stop_flag)
+
+            IF ( ( stop_flag ) .AND. (.NOT.stop_flag_old) ) THEN
+
+               t_steady = MIN(t_end,t_output)
+
+            END IF
+
+         END IF
+
+      END IF
+
+      IF ( n_probes .GT. 0 ) THEN
+
+         IF ( t .GE. t_probes ) CALL output_probes(t)
+
+      END IF
+
+      IF ( ( t .GE. t_output ) .OR. ( t .GE. t_end ) ) THEN
+
+         CALL cpu_time(t3)
+         CALL system_clock(st3)
+
+         IF ( verbose_level .GE. 0 ) THEN
+
+            WRITE(*,*) 'Time taken by iterations is',t3-t2,'seconds'
+            WRITE(*,*) 'Elapsed real time = ', DBLE( st3 - st2 ) / rate,'seconds'
+
+         END IF
+
+         IF ( output_cons_flag .OR. output_esri_flag .OR. output_phys_flag .OR. output_netcdf_flag ) THEN
+
+            CALL output_solution(t)
+            CALL write_restart_file('restart.bin')
+
+         END IF
+
+      END IF
+
+   END DO
+
+   CALL deallocate_solver_variables
+
+   IF ( output_netcdf_flag ) CALL close_netcdf
+
+   CALL close_units
+
+   CALL cpu_time(t3)
+   CALL system_clock(st3)
+
+   WRITE(*,*) 'Total time taken by the code is',t3-t1,'seconds'
+   WRITE(*,*) 'Total elapsed real time is', DBLE( st3 - st1 ) / rate,'seconds'
 
 END PROGRAM IMEX_SfloW2D
-
