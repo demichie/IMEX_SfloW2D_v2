@@ -5174,7 +5174,7 @@ CONTAINS
 
     END IF
 
-    const_part =  SQRT( 0.75_wp * ( rhos / rhoc - 1.0_wp ) * diam * grav )
+    const_part =  SQRT( (4.0_wp/3.0_wp) * ( rhos / rhoc - 1.0_wp ) * diam * grav )
 
     settling_velocity = const_part * inv_sqrt_C_D
 
