@@ -4205,21 +4205,7 @@ CONTAINS
             !muI_inf = 1.2_wp        ! friction at high I to avoid plateau (Barker et al. 2017) doi:10.1017/jfm.2017.428
             !I_0 = 0.279_wp         ! reference inertial
            
-         IF ( mod_hor_vel .GT. EPSILON(1.0_wp) ) THEN ! v>0 (avoid div by 0)
-
-            ! flow thickness (avoid div by 0)
-            IF (r_h .LT. EPSILON(1.0_wp)) THEN
-               r_h = EPSILON(1.0_wp)
-            END IF
-
-            ! effective vertical stress 
-            IF ( pore_pressure_flag ) THEN
-               ! pore pressure at the base (See Eq. (2) Gueugneau et al. 2017, GRL)
-               exc_pore_pres = qpj(idx_pore)
-               vert_stress_eff = r_rho_m * r_red_grav * r_h - exc_pore_pres
-            ELSE
-               vert_stress_eff = r_rho_m * r_red_grav * r_h
-            END IF
+         IF ( mod_vel .GT. 0.0_wp ) THEN ! v>0 (avoid div by 0)
 
             ! diameter and density of particles 
             IF ( n_solid .GT. 1) THEN ! if more than one solid phase
@@ -4232,90 +4218,76 @@ CONTAINS
                rho_particle = rho_s(1)
             END IF
 
-            ! shear rate at the base (Eqn. 2.15 from Bouchut et al. 2021)
-            shear_rate = 5.0_wp/2.0_wp * mod_hor_vel / r_h
+            ! flow thickness (avoid div by 0)
+            IF (r_h .LT. EPSILON(1.0_wp)) THEN
+               r_h = EPSILON(1.0_wp)
+            END IF
+            ! IF (r_h .LT. diam_characteristic) THEN
+            !    r_h = diam_characteristic
+            ! END IF
 
-            ! pressure
-            eff_normal_stress = MAX(0.0_wp,vert_stress_eff * SQRT(grav_coeff))
+            ! Centrifugal force contribution (computed once, used consistently below).
+            ! See Eq. (3) Xia & Liang, 2018 Eng.Geol.
+            ! centrifugal force term: (u,v)^T*Hessian*(u,v)
+            IF ( curvature_term_flag ) THEN
+               centr_force_term = Bsecondj_xx * r_u**2 + 2.0_wp * Bsecondj_xy * r_u * r_v + &
+                                 Bsecondj_yy * r_v**2
+            ELSE
+               centr_force_term = 0.0_wp
+            END IF
 
-            ! inertial number
+            ! Effective vertical stress: gravity + centrifugal − pore pressure
+            ! See Eq. (2) Gueugneau et al. 2017, GRL for pore pressure contribution 
+            IF ( pore_pressure_flag ) THEN
+               ! pore pressure at the base (See Eq. (2) Gueugneau et al. 2017, GRL)
+               exc_pore_pres = qpj(idx_pore)
+               vert_stress_eff = r_rho_m * ( r_red_grav + centr_force_term ) * r_h &
+                           - exc_pore_pres
+            ELSE
+               vert_stress_eff = r_rho_m * ( r_red_grav + centr_force_term ) * r_h
+            END IF
+            vert_stress_eff = MAX(vert_stress_eff, 0.0_wp)
+
+           ! Effective normal stress — computed unconditionally; independent of shear rate
+            eff_normal_stress = MAX(0.0_wp, vert_stress_eff * SQRT(grav_coeff))
             IF (eff_normal_stress .LT. EPSILON(1.0_wp)) THEN
                eff_normal_stress = EPSILON(1.0_wp)
             END IF
-            I = diam_characteristic * shear_rate /  & 
-                              SQRT(eff_normal_stress &
-                              / rho_particle )
+       
+            ! Shear rate at the base (Bouchut et al. 2021, Eqn. 2.15)
+            shear_rate = 5.0_wp/2.0_wp * mod_vel / (r_h * SQRT(grav_coeff))
 
-         
+            ! Inertial number
+            I = diam_characteristic * shear_rate / SQRT(eff_normal_stress / rho_particle)
 
-            !coefficient of friction -> accounting for regularisation 
-            mu_I = (mu_s * I_0 + mu_2 * I + muI_inf * I**2) / ( I_0 + I )
-            
-           ! WRITE(*,'(5(A10,ES12.4))') 'I=',I,'d=',diam_characteristic,'shearrate=',shear_rate, &
-     !'P=',eff_normal_stress,'rho_p=',rho_particle, 'mu_I',mu_I
-
-            ! Base friction force projected back to horizontal plane: tau*cos(A)
-            tau_cosA = mu_I * MAX(0.0_wp, vert_stress_eff) * grav_coeff
-
-            ! Add centrifugal force contribution if curvature terms are enabled
-            IF ( curvature_term_flag ) THEN
-               ! See Eq. (3) Xia & Liang, 2018 Eng.Geol.   
-               ! centrifugal force term: (u,v)^T*Hessian*(u,v)
-               centr_force_term = Bsecondj_xx * r_u**2 + 2.0_wp * Bsecondj_xy  &
-                                  * r_u * r_v + Bsecondj_yy * r_v**2
-               ! Add centrifugal contribution to total friction force
-               tau_cosA = tau_cosA + r_rho_m * mu_I * r_h * grav_coeff *       &
-                           centr_force_term
-            END IF
+            ! mu(I) with regularisation
+            mu_I = (mu_s * I_0 + mu_2 * I + muI_inf * I**2) / (I_0 + I)
+                       
+            ! Friction force per unit horizontal area, parallel to full velocity
+            ! vector (u,v,w), tangential to the topography.
+            temp_term = mu_I * eff_normal_stress
 
             ! Apply friction force to momentum equations (only if there's velocity)
             ! Friction force projected onto x direction, opposite to motion
-            source_term(2) = source_term(2) - tau_cosA * (r_u / mod_hor_vel)
+            source_term(2) = source_term(2) - temp_term * (r_u / mod_vel)
             ! Friction force projected onto y direction, opposite to motion  
-            source_term(3) = source_term(3) - tau_cosA * (r_v / mod_hor_vel)
+            source_term(3) = source_term(3) - temp_term * (r_v / mod_vel)
 
          END IF
 
+
        ELSEIF ( rheology_model .EQ. 12 ) THEN
 
-          IF ( mod_vel .GT. 0.0_wp ) THEN
+         !    mu(I) rheology with Voellmy-Salm style projection        !
+         ! ----------------------------------------------------------- !
+         ! mu(I) rheology for dense granular flows:
+         ! from https://doi.org/10.1016/j.jnnfm.2015.02.006
+         !mu_s = 0.7_wp          ! static friction coefficient
+         !mu_2 = 1.4_wp          ! friction at high inertial number
+         !muI_inf = 0.05_wp      ! friction at high I (Barker et al. 2017)
+         !I_0 = 0.3_wp           ! reference inertial number
 
-             IF ( curvature_term_flag ) THEN
-
-                ! See Eq. (3) Xia & Liang, 2018 Eng.Geol.   
-                ! centrifugal force term: (u,v)^T*Hessian*(u,v)
-                centr_force_term = Bsecondj_xx * r_u**2 + 2.0_wp * Bsecondj_xy  &
-                     * r_u * r_v + Bsecondj_yy * r_v**2
-
-             ELSE
-
-                centr_force_term = 0.0_wp 
-
-             END IF
-
-!    mu(I) rheology for dense granular flows   !
-         ! -------------------------------------------- !
-         ! from https://doi.org/10.1016/j.jnnfm.2015.02.006 
-           ! mu_s = 0.7_wp         ! static friction coefficient
-           ! mu_2 = 1.4_wp         ! friction at high inertial number above which flow accelerates
-           ! muI_inf = 0.05_wp        ! friction at high I to avoid plateau (Barker et al. 2017) doi:10.1017/jfm.2017.428
-           ! I_0 = 0.3_wp         ! reference inertial
-           
-         IF ( mod_hor_vel .GT. EPSILON(1.0_wp) ) THEN ! v>0 (avoid div by 0)
-
-            ! flow thickness (avoid div by 0)
-            IF (r_h .LT. EPSILON(1.0_wp)) THEN
-               r_h = EPSILON(1.0_wp)
-            END IF
-
-            ! effective vertical stress 
-            IF ( pore_pressure_flag ) THEN
-               ! pore pressure at the base (See Eq. (2) Gueugneau et al. 2017, GRL)
-               exc_pore_pres = qpj(idx_pore)
-               vert_stress_eff = r_rho_m * r_red_grav * r_h - exc_pore_pres
-            ELSE
-               vert_stress_eff = r_rho_m * r_red_grav * r_h
-            END IF
+         IF ( mod_vel .GT. 0.0_wp ) THEN
 
             ! diameter and density of particles 
             IF ( n_solid .GT. 1) THEN ! if more than one solid phase
@@ -4328,64 +4300,62 @@ CONTAINS
                rho_particle = rho_s(1)
             END IF
 
-            ! shear rate at the base (Eqn. 2.15 from Bouchut et al. 2021)
-            shear_rate = 5.0_wp/2.0_wp * mod_hor_vel / r_h
+            !Flow thickness (avoid div by 0)
+            IF (r_h .LT. EPSILON(1.0_wp)) THEN
+               r_h = EPSILON(1.0_wp) 
+            END IF
+            
+            ! Centrifugal force contribution (computed once, used consistently below).
+            ! See Eq. (3) Xia & Liang, 2018 Eng.Geol.
+            ! centrifugal force term: (u,v)^T * Hessian * (u,v)
+            IF ( curvature_term_flag ) THEN
+               centr_force_term = Bsecondj_xx * r_u**2 + 2.0_wp * Bsecondj_xy  &
+                     * r_u * r_v + Bsecondj_yy * r_v**2
+            ELSE
+                centr_force_term = 0.0_wp 
+            END IF
 
-            ! pressure
-            eff_normal_stress = MAX(0.0_wp,vert_stress_eff * SQRT(grav_coeff))
+            ! Effective vertical stress: gravity + centrifugal − pore pressure.
+            ! See Eq. (2) Gueugneau et al. 2017, GRL for pore pressure contribution.
+            IF ( pore_pressure_flag ) THEN
+               exc_pore_pres = qpj(idx_pore)
+               vert_stress_eff = r_rho_m * ( r_red_grav + centr_force_term ) * r_h &
+                                 - exc_pore_pres
+            ELSE
+               vert_stress_eff = r_rho_m * ( r_red_grav + centr_force_term ) * r_h
+            END IF
 
-            ! inertial number
+            vert_stress_eff = MAX(vert_stress_eff, 0.0_wp)
+
+            !Effective normal stress at the base (clamped at 0, then floored above 0)
+            eff_normal_stress = MAX(0.0_wp, vert_stress_eff * SQRT(grav_coeff))
             IF (eff_normal_stress .LT. EPSILON(1.0_wp)) THEN
                eff_normal_stress = EPSILON(1.0_wp)
             END IF
-            I = diam_characteristic * shear_rate /  & 
-                              SQRT(eff_normal_stress &
-                              / rho_particle )
+           
 
-         
+            !Shear rate at the base (Eqn. 2.15 from Bouchut et al. 2021)
+            shear_rate = 5.0_wp/2.0_wp * mod_vel / (r_h * SQRT(grav_coeff))
 
-            !coefficient of friction -> accounting for regularisation 
+            !Inertial number
+            I = diam_characteristic*shear_rate/SQRT(eff_normal_stress/rho_particle)
+
+            !Coefficient of friction -> accounting for regularisation 
             mu_I = (mu_s * I_0 + mu_2 * I + muI_inf * I**2) / ( I_0 + I )
-            mu = mu_I
+                              
+      
+            ! Friction force per unit horizontal area, parallel to full velocity
+            ! vector (u,v,w), tangential to the topography.
+            temp_term = mu_I * eff_normal_stress
 
+            ! horizontal terms
+            ! units of dqc(2)/dt=d(rho h u)/dt (kg m-1 s-2)
+            source_term(2) = source_term(2) - temp_term * (r_u / mod_vel)
+            ! units of dqc(3)/dt=d(rho h v)/dt (kg m-1 s-2)
+            source_term(3) = source_term(3) - temp_term * (r_v / mod_vel)
 
-         ENDIF   ! division by zero prevention
+         END IF
 
-
-             ! See Eq. (3,4) Xia & Liang, 2018 Eng.Geol.  
-             ! add the contribution on mu (with coeff for large slope)
-             ! and the contribution of centr. force (with coeff for slope)
-             ! a = grav_coeff * ( r_red_grav + centr_force_term )
-             ! 1/phi = SQRT(grav_coeff) 
-             temp_term = mu * r_rho_m * ( r_red_grav + centr_force_term ) * r_h &
-                  * SQRT(grav_coeff)
-
-             temp_term = MAX(0.0_wp, temp_term)
-             
-             IF ( pore_pressure_flag ) THEN
-
-                exc_pore_pres = qpj(idx_pore)
-
-                ! See Eq. (2) Gueugneau et al. 2017, GRL
-                ! add the contribution of pore pressure ( with coeff for slope)
-                temp_term = MAX(0.0_wp, temp_term - mu * SQRT(grav_coeff)       &
-                     * exc_pore_pres )
-
-             END IF
-
-             ! Friction terms cannot accelerate the flow
-             ! this term is parallel to the full vel vector (u,v,w)
-             ! tangential to the topography
-             temp_term = MAX(0.0_wp,temp_term)
-
-             ! horizontal terms
-             ! units of dqc(2)/dt=d(rho h u)/dt (kg m-1 s-2)             
-             source_term(2) = source_term(2) - temp_term * r_u / mod_vel
-             ! units of dqc(3)/dt=d(rho h v)/dt (kg m-1 s-2)
-             source_term(3) = source_term(3) - temp_term * r_v / mod_vel
-
-          END IF
-          
        ENDIF rheology_model_if
        
     ENDIF rheology_if
