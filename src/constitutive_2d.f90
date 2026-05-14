@@ -2891,7 +2891,7 @@ CONTAINS
     REAL(wp) :: w(n_quad)
     REAL(wp) :: dyn_visc_c
 
-    dep_coeff(1:n_eqns) = 1.0_wp
+    dep_coeff(1:n_solid) = 1.0_wp
 
     r_h = qpj(1)
     r_T = qpj(4)
