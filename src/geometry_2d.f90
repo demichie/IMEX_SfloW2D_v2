@@ -863,7 +863,7 @@ CONTAINS
        grav_coeff = 1.0_wp
 
        d_grav_coeff_dx = 0.0_wp
-       d_grav_coeff_dx = 0.0_wp
+       d_grav_coeff_dy = 0.0_wp
 
        grav_coeff_stag_x = 1.0_wp
        grav_coeff_stag_y = 1.0_wp
