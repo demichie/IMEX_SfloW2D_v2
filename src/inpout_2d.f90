@@ -1648,6 +1648,10 @@ CONTAINS
         IF (erosion_coeff .EQ. 0.0_wp) THEN
 
           erodible_porosity = 0.0_wp
+          ! derived from erodible_porosity; without this it stays
+          ! undefined and is still used by the deposition and
+          ! continuous-phase loss terms
+          coeff_porosity = 0.0_wp
           erodible_fract(1:n_solid) = 1.0_wp/n_solid
           T_erodible = 300.0_wp
           !subtract_init_flag = .FALSE.
@@ -2021,9 +2025,22 @@ CONTAINS
     IF ((solver_scheme .NE. 'LxF') .AND. (solver_scheme .NE. 'KT') .AND. &
         (solver_scheme .NE. 'GFORCE') .AND. (solver_scheme .NE. 'UP')) THEN
 
-      WRITE (*, *) 'WARNING: no correct solver scheme selected', solver_scheme
+      WRITE (*, *) 'ERROR: no correct solver scheme selected', solver_scheme
       WRITE (*, *) 'Chose between: LxF, GFORCE or KT'
-      STOP
+      ERROR STOP 1
+
+    END IF
+
+    ! eval_flux_LxF and eval_flux_GFORCE are empty stubs: they print a
+    ! message and return without filling the interface flux arrays, so a
+    ! run would continue on uninitialised fluxes. Reject them at input
+    ! until they are implemented.
+    IF ((solver_scheme .EQ. 'LxF') .OR. (solver_scheme .EQ. 'GFORCE')) THEN
+
+      WRITE (*, *) 'ERROR: solver scheme ', TRIM(solver_scheme),              &
+           ' is not implemented in the 2-d case'
+      WRITE (*, *) 'Use SOLVER_SCHEME = "KT"'
+      ERROR STOP 1
 
     END IF
 
@@ -3769,6 +3786,12 @@ CONTAINS
                      .OR. (lateral_source_flag)) THEN
 
       alphal_source = -1.0_wp
+
+      ! Rewind first: the preceding reads leave the file positioned
+      ! wherever they finished, and an absent optional group scans to
+      ! end of file, which made this read return IOSTAT = -1 for a
+      ! source namelist that is present.
+      REWIND (input_unit)
 
       IF (lateral_source_flag) THEN
 
@@ -7074,7 +7097,12 @@ WRITE (*, *) 'Setting <std_min> and <std_slope_factor> in function of the rheolo
 
       vel_radial_growth = ABS(SQRT(area) - SQRT(area_old))/dt_runout
 
-      area_new_rel = dx*dy*COUNT(hpos .AND. (.NOT. hpos_old))/COUNT(hpos)
+      IF ( COUNT(hpos) .GT. 0 ) THEN
+        area_new_rel = dx*dy*COUNT(hpos .AND. (.NOT. hpos_old))/COUNT(hpos)
+      ELSE
+        ! empty domain: nothing inundated, so no new fraction to report
+        area_new_rel = 0.0_wp
+      END IF
 
       x_mass_center_old = x_mass_center
       y_mass_center_old = y_mass_center
