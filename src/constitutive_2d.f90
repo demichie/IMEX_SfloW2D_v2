@@ -1399,7 +1399,8 @@ CONTAINS
     ELSE
 
        r_alphas(1:n_solid) = qpj(idx_alfas_first:idx_alfas_last) / qpj(1)
-       r_alphag(1:n_add_gas) = qpj(idx_addGas_first:idx_addGas_first) / qpj(1)
+       IF ( n_add_gas .GT. 0 ) r_alphag(1:n_add_gas) =                       &
+            qpj(idx_addGas_first:idx_addGas_last) / qpj(1)
 
     END IF
 
@@ -2400,14 +2401,20 @@ CONTAINS
                qcj(idx_alfas_first:idx_alfas_last) *                            &
                shape_coeff(idx_alfas_first:idx_alfas_last)
 
-          ! Solid flux can't be larger than total flux
-          IF ( ( flux(1) .GT. 0.0_wp ) .AND.                                    &
-               ( SUM(flux(idx_solidEqn_first:idx_solidEqn_last)) / flux(1)      &
-               .GT.1.0_wp ) ) THEN
+          ! Solid flux can't be larger than total flux.
+          ! Nested IF and a division-free comparison: Fortran does not
+          ! guarantee short-circuit .AND., so the combined test could
+          ! still evaluate the quotient when flux(1) = 0.
+          IF ( flux(1) .GT. 0.0_wp ) THEN
 
-             flux(idx_solidEqn_first:idx_solidEqn_last) =                       &
-                  flux(idx_solidEqn_first:idx_solidEqn_last) /                  &
-                  SUM(flux(idx_solidEqn_first:idx_solidEqn_last)) * flux(1)
+             IF ( SUM(flux(idx_solidEqn_first:idx_solidEqn_last))               &
+                  .GT. flux(1) ) THEN
+
+                flux(idx_solidEqn_first:idx_solidEqn_last) =                    &
+                     flux(idx_solidEqn_first:idx_solidEqn_last) /               &
+                     SUM(flux(idx_solidEqn_first:idx_solidEqn_last)) * flux(1)
+
+             END IF
 
           END IF
 
@@ -2462,14 +2469,20 @@ CONTAINS
                qcj(idx_alfas_first:idx_alfas_last) *                            &
                shape_coeff(idx_alfas_first:idx_alfas_last)
 
-          ! Solid flux can't be larger than total flux
-          IF ( ( flux(1) .GT. 0.0_wp ) .AND.                                    &
-               ( SUM(flux(idx_solidEqn_first:idx_solidEqn_last)) / flux(1)      &
-               .GT. 1.0_wp ) ) THEN
+          ! Solid flux can't be larger than total flux.
+          ! Nested IF and a division-free comparison: Fortran does not
+          ! guarantee short-circuit .AND., so the combined test could
+          ! still evaluate the quotient when flux(1) = 0.
+          IF ( flux(1) .GT. 0.0_wp ) THEN
 
-             flux(idx_solidEqn_first:idx_solidEqn_last) =                       &
-                  flux(idx_solidEqn_first:idx_solidEqn_last) /                  &
-                  SUM(flux(idx_solidEqn_first:idx_solidEqn_last)) * flux(1)
+             IF ( SUM(flux(idx_solidEqn_first:idx_solidEqn_last))               &
+                  .GT. flux(1) ) THEN
+
+                flux(idx_solidEqn_first:idx_solidEqn_last) =                    &
+                     flux(idx_solidEqn_first:idx_solidEqn_last) /               &
+                     SUM(flux(idx_solidEqn_first:idx_solidEqn_last)) * flux(1)
+
+             END IF
 
           END IF
 
@@ -3287,6 +3300,10 @@ CONTAINS
 
     mod_vel_hor = SQRT( r_u**2 + r_v**2 )
 
+    ! A cell at rest has no velocity for the friction to damp, and the
+    ! reciprocal below would divide by zero.
+    IF ( mod_vel_hor .LE. EPSILON(1.0_wp) ) RETURN
+
     mod_vel = 1.0_wp / ( 1.0_wp  / mod_vel_hor + friction_factor / r_h * dt )
 
     r_u = r_u * ( mod_vel / mod_vel_hor )
@@ -3917,6 +3934,16 @@ CONTAINS
 
     sp_heat_flag = .FALSE.
 
+    ! Set both INTENT(OUT) arguments up front: several rheology
+    ! branches never assign fric_val, leaving it undefined on return.
+    nh_semi_impl_term(1:n_eqns) = 0.0_wp
+    fric_val = 0.0_wp
+
+    ! A dry cell carries no friction source, and the
+    ! alpha_flag = .FALSE. branch below divides the solid and
+    ! additional-gas fractions by qpj(1). Without this guard a dry or
+    ! vanishing cell divides by zero.
+    IF ( qpj(1) .LE. EPSILON(1.0_wp) ) RETURN
 
     ! initialize and evaluate the forces terms
     source_term(1:n_eqns) = 0.0_wp
@@ -4801,15 +4828,22 @@ CONTAINS
          ! ------------------------------------------------------------------- !
 
    ! -------------------------------------------------------------------- !
-          IF (dynamic_permeability_flag) THEN
+          ! Guard on alphas_tot: Carman-Kozeny below divides by
+          ! alphas_tot**2, and the surface-area weights divide by a sum
+          ! that vanishes with it, so a gas-only or numerically depleted
+          ! cell would divide by zero.
+          IF (dynamic_permeability_flag .AND.                                  &
+              ( alphas_tot .GT. EPSILON(1.0_wp) )) THEN
          
             ! diameter and density of particles 
             IF ( n_solid .GT. 1) THEN ! if more than one solid phase
                diam_sauter = sauter_diameter( r_alphas )
-               ! Surface-area-weighted mean sphericity (consistent with Sauter diameter)
-               ! Sphericity is weighted by alpha_i * d_i^2 (proportional to surface area)
-               sphericity_mean = DOT_PRODUCT( r_alphas * diam_s**2 , sphericity_s ) / &
-                                 DOT_PRODUCT( r_alphas , diam_s**2 )
+               ! Surface-area-weighted mean sphericity, consistent with the
+               ! Sauter diameter used beside it: the surface area of class i
+               ! per unit bulk volume scales as alpha_i/d_i, not
+               ! alpha_i*d_i^2, which over-weights the coarse classes.
+               sphericity_mean = DOT_PRODUCT( r_alphas / diam_s , sphericity_s ) / &
+                                 SUM( r_alphas / diam_s )
             ELSE ! if only one solid phase
                diam_sauter = diam_s(1)
                sphericity_mean = sphericity_s(1)

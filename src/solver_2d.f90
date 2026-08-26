@@ -508,19 +508,20 @@ CONTAINS
     ALLOCATE( j_stag_y( comp_cells_x * comp_interfaces_y ) )
     ALLOCATE( k_stag_y( comp_cells_x * comp_interfaces_y ) )
 
-    ! Allocate array containing the stochastic noise
-    IF (stochastic_flag) THEN
-       ALLOCATE ( Z(comp_cells_x , comp_cells_y) )
-       Z(1:comp_cells_x,1:comp_cells_y) = 0.0_wp
-    END IF
+    ! Allocate array containing the stochastic noise.
+    ! Allocated unconditionally: Z(j,k) is passed as a scalar actual
+    ! argument to the semi-implicit and implicit routines whatever
+    ! stochastic_flag is, so leaving it unallocated is invalid. With the
+    ! flag off the values stay zero and have no effect.
+    ALLOCATE ( Z(comp_cells_x , comp_cells_y) )
+    Z(1:comp_cells_x,1:comp_cells_y) = 0.0_wp
     
-    ! Allocate array containing the friction values if needed
-    IF ((rheology_model .EQ. 9) .OR. (rheology_model .EQ. 1)                    &
-      .OR. (rheology_model .EQ. 10) .OR. (rheology_model .EQ. 11)            &
-      .OR. (rheology_model .EQ. 12)) THEN
-      ALLOCATE (fric_array(comp_cells_x , comp_cells_y))
-      fric_array(1:comp_cells_x,1:comp_cells_y) = 0.0_wp
-    END IF
+    ! Allocate array containing the friction values.
+    ! Allocated unconditionally for the same reason as Z above:
+    ! fric_array(j,k) is passed as a scalar actual argument for every
+    ! rheology model, not only those that populate it.
+    ALLOCATE (fric_array(comp_cells_x , comp_cells_y))
+    fric_array(1:comp_cells_x,1:comp_cells_y) = 0.0_wp
     
     WRITE(*,*) 'ALLOCATION OF ARRAYS COMPLETED'
     
@@ -2898,14 +2899,20 @@ CONTAINS
 
           ENDDO eqns_loop
 
-          ! Fix to avoid sum of solid fluxes larger tham flux for mixture
-          IF ( ( SUM(H_interface_x(idx_solidEqn_first:idx_solidEqn_last,j,k)) / &
-               H_interface_x(1,j,k) ) .GE. 1.0_wp ) THEN
+          ! Fix to avoid sum of solid fluxes larger tham flux for mixture.
+          ! Guarded: H_interface_x(1,j,k) is zero at dry or zero-flux
+          ! interfaces and the test used to divide by it unconditionally.
+          IF ( H_interface_x(1,j,k) .GT. 0.0_wp ) THEN
 
-             H_interface_x(idx_solidEqn_first:idx_solidEqn_last,j,k) =          &
-                  H_interface_x(idx_solidEqn_first:idx_solidEqn_last,j,k) /     &
-                  ( SUM(H_interface_x(idx_solidEqn_first:idx_solidEqn_last,j,k) &
-                  / H_interface_x(1,j,k) ) )
+             IF ( SUM(H_interface_x(idx_solidEqn_first:idx_solidEqn_last,j,k))  &
+                  .GE. H_interface_x(1,j,k) ) THEN
+
+                H_interface_x(idx_solidEqn_first:idx_solidEqn_last,j,k) =       &
+                     H_interface_x(idx_solidEqn_first:idx_solidEqn_last,j,k) /  &
+                     ( SUM(H_interface_x(idx_solidEqn_first:idx_solidEqn_last,  &
+                     j,k)) / H_interface_x(1,j,k) )
+
+             END IF
 
           END IF
           
@@ -2966,14 +2973,19 @@ CONTAINS
 
           END DO
 
-          ! Fix to avoid sum of solid fluxes larger tham flux for mixture
-          IF ( ( SUM(H_interface_y(idx_solidEqn_first:idx_solidEqn_last,j,k)) / &
-               H_interface_y(1,j,k) ) .GT. 1.0_wp ) THEN
+          ! Fix to avoid sum of solid fluxes larger tham flux for mixture.
+          ! Guarded: see the x-interface limiter above.
+          IF ( H_interface_y(1,j,k) .GT. 0.0_wp ) THEN
 
-             H_interface_y(idx_solidEqn_first:idx_solidEqn_last,j,k) =          &
-                  H_interface_y(idx_solidEqn_first:idx_solidEqn_last,j,k) /     &
-                  ( SUM(H_interface_y(idx_solidEqn_first:idx_solidEqn_last,j,k))&
-                  / H_interface_y(1,j,k) )
+             IF ( SUM(H_interface_y(idx_solidEqn_first:idx_solidEqn_last,j,k))  &
+                  .GT. H_interface_y(1,j,k) ) THEN
+
+                H_interface_y(idx_solidEqn_first:idx_solidEqn_last,j,k) =       &
+                     H_interface_y(idx_solidEqn_first:idx_solidEqn_last,j,k) /  &
+                     ( SUM(H_interface_y(idx_solidEqn_first:idx_solidEqn_last,  &
+                     j,k)) / H_interface_y(1,j,k) )
+
+             END IF
 
           END IF
           

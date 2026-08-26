@@ -16,8 +16,8 @@ MODULE parameters_2d
 
   REAL(wp), PARAMETER :: xinf = HUGE(0.0_wp)
   
-  REAL(wp), PARAMETER :: four_thirds = 1.0_wp / 3.0_wp
-  REAL(wp), PARAMETER :: neg_four_thirds = -1.0_wp / 3.0_wp
+  REAL(wp), PARAMETER :: four_thirds = 4.0_wp / 3.0_wp
+  REAL(wp), PARAMETER :: neg_four_thirds = -4.0_wp / 3.0_wp
 
   REAL(wp), PARAMETER :: tolh = 10.0_wp * EPSILON(1.0_wp)
 

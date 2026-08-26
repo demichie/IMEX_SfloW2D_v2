@@ -432,8 +432,12 @@ subroutine convolve_2d(input_signal, kernel, result)
       ! Loop to convolve values around the current cell
       do idx_k_x = 1, len_kernel_x
         do idx_k_y = 1, len_kernel_y
-          shift_x = -idx_k_x + half_len_k_x + 2 !check idx
-          shift_y = -idx_k_y + half_len_k_y + 2 !check idx
+          ! Convolution offset: for kernel index k the flipped shift is
+          ! -(k - 1 - half_len_k) = -k + half_len_k + 1. The previous +2
+          ! overran the padded array by one, which is what tripped the
+          ! bound checks below on an identity kernel.
+          shift_x = -idx_k_x + half_len_k_x + 1
+          shift_y = -idx_k_y + half_len_k_y + 1
           ! sum_at_position = 0.1_wp
 
           ! here there may be a bug in the indexing (segmentation fault-invalid memory reference) 
@@ -449,7 +453,7 @@ subroutine convolve_2d(input_signal, kernel, result)
             print*,idx_centre_y + shift_y
             STOP
           END if
-          if ((idx_centre_x + shift_x .LT. 1) .or.  (idx_centre_x + shift_x .GT. size(padded_signal,1))) THEN
+          if ((idx_centre_x + shift_x .LT. 1) .or.  (idx_centre_x + shift_x .GT. size(padded_signal,2))) THEN
             print*,"problem x idx"
             print*,shape(kernel)
             print*,shape(input_signal)
@@ -591,7 +595,10 @@ integer function partition(Array1d, start_idx, end_idx)
     implicit none
     real(wp), intent(in out) :: Array1d(:)
     integer, intent(in) :: start_idx, end_idx
-    integer :: pi, pivot, i, temp, j
+    integer :: pi, i, j
+    ! pivot and temp hold elements of the REAL array Array1d; declaring
+    ! them INTEGER truncated every value that passed through them
+    real(wp) :: pivot, temp
 
     ! Get the pivot element 
     pivot = Array1d(end_idx)
