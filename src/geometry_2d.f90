@@ -1762,7 +1762,8 @@ CONTAINS
 
              END WHERE
 
-             cell_fract(j,k) = REAL(SUM(check_subgrid))/n_points2
+             cell_fract(j,k) = REAL(SUM(check_subgrid),wp) / &
+                  REAL(n_points2,wp)
 
           END IF
 
@@ -2167,6 +2168,8 @@ CONTAINS
     !  Machine-dependent constants
     !
     data xmax/716.351d0/,xbig/701.84d0/
+
+    xinf = HUGE(1.0_wp)
     !
     ! Coefficients  for -1.0 <= X < 0.0
     !

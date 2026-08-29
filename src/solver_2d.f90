@@ -13,7 +13,7 @@ MODULE solver_2d
 
   ! external variables
 
-  USE constitutive_2d, ONLY : implicit_flag, rheology_model
+  USE constitutive_2d, ONLY : implicit_flag, implicit_map, rheology_model
   USE constitutive_2d, ONLY : T_ambient
     
   USE geometry_2d, ONLY : comp_cells_x,comp_cells_y,comp_cells_xy
@@ -543,9 +543,6 @@ CONTAINS
 
   SUBROUTINE deallocate_solver_variables
 
-    USE geometry_2d, ONLY: cell_size
-    USE parameters_2d, ONLY: length_spatial_corr
-    
     DEALLOCATE( q , q0 , hpos , hpos_old )
 
     DEALLOCATE( hmax , pdynmax , mod_vel_max )
@@ -628,22 +625,11 @@ CONTAINS
     DEALLOCATE ( j_stag_x , k_stag_x )
     DEALLOCATE ( j_stag_y , k_stag_y )
 
-    ! should use allocated(...) to see if arrays are allocated!
-    IF ( stochastic_flag ) THEN
-       DEALLOCATE( Z ) ! Stochastic noise
-       ! Deallocated kernel if activated before
-       IF (length_spatial_corr .GT. cell_size) THEN 
-          DEALLOCATE(conv_kernel)
-       END IF
-    END IF
-    
-    IF ( (rheology_model .EQ. 1)  .OR. &
-     (rheology_model .EQ. 9)  .OR. &
-     (rheology_model .EQ. 10) .OR. &
-     (rheology_model .EQ. 11) .OR. &
-     (rheology_model .EQ. 12) ) THEN
-     DEALLOCATE(fric_array)  ! friction term
-    END IF
+    IF ( ALLOCATED(implicit_flag) ) DEALLOCATE(implicit_flag)
+    IF ( ALLOCATED(implicit_map) ) DEALLOCATE(implicit_map)
+    IF ( ALLOCATED(Z) ) DEALLOCATE(Z)
+    IF ( ALLOCATED(conv_kernel) ) DEALLOCATE(conv_kernel)
+    IF ( ALLOCATED(fric_array) ) DEALLOCATE(fric_array)
 
     
     RETURN
@@ -2111,6 +2097,8 @@ CONTAINS
     END IF
 
     alam = 1.0_wp
+    alam2 = alam
+    scal_f2 = scal_f_old
 
     scal_f_min = scal_f_old
 

@@ -571,7 +571,7 @@ contains
 ! LOG10
   complex(wp) function log10_c(z)
     complex(wp), intent(in) :: z
-    log10_c=log(z)/log((10.0,0.0))
+    log10_c = log(z) / log(CMPLX(10.0_wp,0.0_wp,wp))
   end function log10_c
 
 ! NINT

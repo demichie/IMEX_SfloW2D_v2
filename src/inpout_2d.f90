@@ -5031,6 +5031,14 @@ WRITE (*, *) 'Setting <std_min> and <std_slope_factor> in function of the rheolo
 
     restart_file = restart_files(1)
 
+    dot_idx = SCAN(restart_file, ".", .TRUE.)
+
+    IF ((dot_idx .EQ. 0) .OR. (dot_idx + 3 .GT. LEN_TRIM(restart_file))) THEN
+      WRITE (*, *) 'ERROR: restart file has no valid extension: ', &
+        TRIM(restart_file)
+      STOP
+    END IF
+
     check_file = restart_file(dot_idx + 1:dot_idx + 3)
 
     IF (check_file .EQ. 'asc') THEN

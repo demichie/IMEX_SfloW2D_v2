@@ -145,6 +145,7 @@ CONTAINS
       y_center = x_center 
 
       ! Allocate the output array
+      IF (ALLOCATED(conv_kernel)) DEALLOCATE(conv_kernel)
       ALLOCATE(conv_kernel(n_nodes_per_dim, n_nodes_per_dim))
 
       ! Compute 2D Gaussian values (at centers of cells)

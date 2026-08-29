@@ -628,6 +628,15 @@ CONTAINS
     REAL(wp) :: r_sp_heat_c_by_xc
 
     REAL(wp) :: dyn_visc_c
+    REAL(wp) :: kin_visc_c_local
+
+    ! Optional transported quantities must have a defined value even when
+    ! their corresponding model is disabled.
+    r_alphal = 0.0_wp
+    r_alphag = 0.0_wp
+    r_Zs = 0.0_wp
+    r_exc_pore_pres = 0.0_wp
+    r_xl = 0.0_wp
 
     ! compute solid mass fractions
     IF ( r_qj(1) .GT. EPSILON(1.0_wp) ) THEN
@@ -794,6 +803,8 @@ CONTAINS
     ! reduced gravity
     r_red_grav = ( r_rho_m - rho_a_amb ) * r_inv_rhom * grav
 
+    kin_visc_c_local = kin_visc_c
+
     IF ( vertical_profiles_flag ) THEN
 
        rhos_alfas_tot_u = r_xs_tot * r_qj(2) / r_h  
@@ -806,12 +817,12 @@ CONTAINS
           dyn_visc_c = muRef_Suth * ( r_T / Tref_Suth )**1.5_wp *               &
                ( Tref_Suth + S_mu ) / ( r_T + S_mu )
 
-          kin_visc_c = dyn_visc_c * r_inv_rho_c
+          kin_visc_c_local = dyn_visc_c * r_inv_rho_c
 
        END IF
                  
        ! Viscosity read from input file [m2 s-1]
-       inv_kin_visc = 1.0_wp / kin_visc_c
+       inv_kin_visc = 1.0_wp / kin_visc_c_local
 
        DO i_solid=1,n_solid
 
@@ -1156,7 +1167,7 @@ CONTAINS
     COMPLEX(wp), INTENT(OUT) :: T               !< temperature [K]
     COMPLEX(wp), INTENT(OUT) :: rho_m           !< mixture density [kg m-3]
     COMPLEX(wp), INTENT(OUT) :: alphas(n_solid) !< sediment volume fractions
-    COMPLEX(wp), INTENT(OUT) :: alphag(n_solid) !< sediment volume fractions
+    COMPLEX(wp), INTENT(OUT) :: alphag(n_add_gas) !< additional-gas volume fractions
     COMPLEX(wp), INTENT(OUT) :: inv_rhom        !< 1/mixture density [kg-1 m3]
     COMPLEX(wp), INTENT(OUT) :: Zs              !< stochastic variable
     COMPLEX(wp), INTENT(OUT) :: exc_pore_pres   !< excess pore pressure
@@ -1172,6 +1183,9 @@ CONTAINS
     COMPLEX(wp) :: inv_cqj1                !< reciprocal of 1st cons. variable
     COMPLEX(wp) :: inv_rho_c               !< carrier phase density reciprocal
     COMPLEX(wp) :: inv_rho_g(n_add_gas)    !< add. gas density reciprocal
+
+    Zs = CMPLX(0.0_wp,0.0_wp,wp)
+    exc_pore_pres = CMPLX(0.0_wp,0.0_wp,wp)
 
     ! compute solid mass fractions
     IF ( REAL(c_qj(1)) .GT.  EPSILON(1.0_wp) ) THEN
@@ -1789,6 +1803,11 @@ CONTAINS
     REAL(wp) :: u_log_avg
 
     REAL(wp) :: dyn_visc_c
+    REAL(wp) :: kin_visc_c_local
+
+    r_xl = 0.0_wp
+    r_Zs = 0.0_wp
+    r_exc_pore_pres = 0.0_wp
 
     r_h = qp(1)
 
@@ -1982,17 +2001,19 @@ CONTAINS
 
        shear_vel = SQRT( friction_factor ) * mod_vel
 
+       kin_visc_c_local = kin_visc_c
+
        IF ( gas_flag .AND. sutherland_flag ) THEN
           
           dyn_visc_c = muRef_Suth * ( r_T / Tref_Suth )**1.5_wp *               &
                ( Tref_Suth + S_mu ) / ( r_T + S_mu )
 
-          kin_visc_c = dyn_visc_c / r_rho_c
+          kin_visc_c_local = dyn_visc_c / r_rho_c
 
        END IF
                      
        ! Viscosity read from input file [m2 s-1]
-       inv_kin_visc = 1.0_wp / kin_visc_c
+       inv_kin_visc = 1.0_wp / kin_visc_c_local
        
        DO i_solid=1,n_solid
 
@@ -2631,6 +2652,7 @@ CONTAINS
     REAL(wp) :: rhom_vel_vel
     REAL(wp) :: dyn_visc_c
     REAL(wp) :: r_inv_rho_c
+    REAL(wp) :: kin_visc_c_local
 
     shape_coeff(1:n_eqns) = 1.0_wp
 
@@ -2672,18 +2694,20 @@ CONTAINS
 
     shear_vel = SQRT( friction_factor ) * mod_vel
 
+    kin_visc_c_local = kin_visc_c
+
     IF ( gas_flag .AND. sutherland_flag ) THEN
           
        dyn_visc_c = muRef_Suth * ( r_T / Tref_Suth )**1.5_wp *               &
             ( Tref_Suth + S_mu ) / ( r_T + S_mu )
 
        r_inv_rho_c = sp_gas_const_a * r_T * inv_pres       
-       kin_visc_c = dyn_visc_c * r_inv_rho_c
+       kin_visc_c_local = dyn_visc_c * r_inv_rho_c
        
     END IF
                   
     ! Viscosity read from input file [m2 s-1]
-    inv_kin_visc = 1.0_wp / kin_visc_c
+    inv_kin_visc = 1.0_wp / kin_visc_c_local
 
     DO i_solid=1,n_solid
 
@@ -2903,6 +2927,7 @@ CONTAINS
     REAL(wp) :: z(n_quad)
     REAL(wp) :: w(n_quad)
     REAL(wp) :: dyn_visc_c
+    REAL(wp) :: kin_visc_c_local
 
     dep_coeff(1:n_solid) = 1.0_wp
 
@@ -2911,17 +2936,19 @@ CONTAINS
 
     shear_vel = SQRT( friction_factor ) * mod_vel
 
+    kin_visc_c_local = kin_visc_c
+
     IF ( gas_flag .AND. sutherland_flag ) THEN
           
        dyn_visc_c = muRef_Suth * ( r_T / Tref_Suth )**1.5_wp *               &
             ( Tref_Suth + S_mu ) / ( r_T + S_mu )
 
-       kin_visc_c = dyn_visc_c / r_rho_c
+       kin_visc_c_local = dyn_visc_c / r_rho_c
        
     END IF
     
     ! Viscosity read from input file [m2 s-1]
-    inv_kin_visc = 1.0_wp / kin_visc_c
+    inv_kin_visc = 1.0_wp / kin_visc_c_local
 
     DO i_solid=1,n_solid
 
@@ -3370,7 +3397,7 @@ CONTAINS
     COMPLEX(wp) :: T                       !< temperature [K]
     COMPLEX(wp) :: rho_m                   !< mixture density [kg/m3]
     COMPLEX(wp) :: alphas(n_solid)         !< sediment volume fractions
-    COMPLEX(wp) :: alphag(n_solid)         !< add. gas volume fractions
+    COMPLEX(wp) :: alphag(n_add_gas)       !< add. gas volume fractions
     COMPLEX(wp) :: inv_rho_m               !< 1/mixture density [kg-1 m3]
 
     COMPLEX(wp) :: qj(n_vars)
@@ -3429,6 +3456,8 @@ CONTAINS
     COMPLEX(wp) :: f_inhibit
     COMPLEX(wp) :: dyn_visc_c
     COMPLEX(wp) :: red_grav
+    COMPLEX(wp) :: hydraulic_permeability_local
+    COMPLEX(wp) :: kin_visc_c_local
 
    
     !> calculation of permeability 
@@ -3466,6 +3495,7 @@ CONTAINS
 
     ! initialize the source terms
     source_term(1:n_eqns) = CMPLX(0.0_wp,0.0_wp,wp)
+    f_inhibit = CMPLX(1.0_wp,0.0_wp,wp)
 
     IF (rheology_flag) THEN
 
@@ -3675,6 +3705,8 @@ CONTAINS
     IF ( pore_pressure_flag ) THEN
 
        h_threshold = 1.0E-10_wp
+       hydraulic_permeability_local = CMPLX(hydraulic_permeability,0.0_wp,wp)
+       kin_visc_c_local = CMPLX(kin_visc_c,0.0_wp,wp)
 
        gamma_gas = sp_heat_a / ( sp_heat_a - sp_gas_const_a )
        gas_compressibility = 1.0_wp / ( gamma_gas * pres )
@@ -3698,7 +3730,7 @@ CONTAINS
             sphericity_mean = sphericity_s(1)
          END IF
          ! calculating permeability using Carman-Kozeny equation with sphericity
-         hydraulic_permeability = ( porosity**3.0_wp * &
+         hydraulic_permeability_local = ( porosity**3.0_wp * &
                                    ( diam_sauter * sphericity_mean )**2.0_wp ) / &
                                    ( 150.0_wp * (1.0_wp - porosity)**2.0_wp )
          
@@ -3711,12 +3743,13 @@ CONTAINS
           dyn_visc_c = muRef_Suth * ( T / Tref_Suth )**1.5_wp *                 &
                ( Tref_Suth + S_mu ) / ( T + S_mu )
 
-          kin_visc_c = dyn_visc_c / rho_gas
+          kin_visc_c_local = dyn_visc_c / rho_gas
   
        END IF
        
        ! Eq. 7 from Gueugneau et al, 2017 
-       D_coeff = hydraulic_permeability / ( porosity * kin_visc_c * rho_gas *   &
+       D_coeff = hydraulic_permeability_local /                                &
+            ( porosity * kin_visc_c_local * rho_gas *                         &
             gas_compressibility )
 
        ! Equation 12 from Gueugneau et al, 2017
@@ -3782,7 +3815,8 @@ CONTAINS
             !-------------------------------------------------------------------!
 
             ! Calcualte dynamic alpha_trans based on height (from empirical fit)
-            alpha_trans_dynamic = 10_wp ** (-0.28_wp) * h ** 0.12_wp
+            alpha_trans_dynamic = 10.0_wp ** (-0.28_wp) *                       &
+                 REAL(h,wp) ** 0.12_wp
 
             ! Correct for alpha_trans_dynamic exceeding maximum_solid_packing
             if ( real(alpha_trans_dynamic) .GE. maximum_solid_packing ) then  
@@ -3947,6 +3981,7 @@ CONTAINS
 
     ! initialize and evaluate the forces terms
     source_term(1:n_eqns) = 0.0_wp
+    centr_force_term = 0.0_wp
 
     rheology_if:IF (rheology_flag) THEN
 
@@ -4521,6 +4556,8 @@ CONTAINS
 
     REAL(wp) :: dyn_visc_c
     REAL(wp) :: rho_c
+    REAL(wp) :: hydraulic_permeability_local
+    REAL(wp) :: kin_visc_c_local
 
     erosion_term(1:n_solid) = 0.0_wp
     deposition_term(1:n_solid) = 0.0_wp
@@ -4528,6 +4565,12 @@ CONTAINS
     continuous_phase_loss_term = 0.0_wp
     eqns_term(1:n_eqns) = 0.0_wp
     topo_term = 0.0_wp
+    hydraulic_permeability_local = hydraulic_permeability
+    kin_visc_c_local = kin_visc_c
+    r_Zs = 0.0_wp
+    r_exc_pore_pres = 0.0_wp
+    f_inhibit = 1.0_wp
+    pore_pressure_term = 0.0_wp
 
     IF ( qpj(1) .LE. epsilon(1.0_wp) ) THEN
 
@@ -4659,12 +4702,12 @@ CONTAINS
                ( Tref_Suth + S_mu ) / ( r_T + S_mu )
 
           rho_c = pres / ( sp_gas_const_a * r_T )
-          kin_visc_c = dyn_visc_c / rho_c
+          kin_visc_c_local = dyn_visc_c / rho_c
        
        END IF
        
        ! Viscosity read from input file [m2 s-1]
-       inv_kin_visc = 1.0_wp / kin_visc_c
+       inv_kin_visc = 1.0_wp / kin_visc_c_local
        ! Continuous phase density used for the settling velocity
        rhoc = r_rho_c
 
@@ -4792,7 +4835,7 @@ CONTAINS
                r_h = EPSILON(1.0_wp) ! avoid multiplying by something lower than working precision
             END IF
 
-            alpha_trans_dynamic = 10_wp ** (-0.28_wp) * r_h ** 0.12_wp
+            alpha_trans_dynamic = 10.0_wp ** (-0.28_wp) * r_h ** 0.12_wp
 
 
             ! Correct for alpha_trans_dynamic exceeding maximum_solid_packing
@@ -4849,7 +4892,7 @@ CONTAINS
                sphericity_mean = sphericity_s(1)
             END IF
             ! calculating permeability using Carman-Kozeny equation with sphericity
-            hydraulic_permeability = ( (1.0_wp - alphas_tot)**3.0_wp * &
+            hydraulic_permeability_local = ( (1.0_wp - alphas_tot)**3.0_wp * &
                                       ( diam_sauter * sphericity_mean )**2.0_wp ) / &
                                       ( 150.0_wp * (alphas_tot)**2.0_wp )
             
@@ -4865,14 +4908,15 @@ CONTAINS
                   ( Tref_Suth + S_mu ) / ( r_T + S_mu )
              
              rho_c = pres / ( sp_gas_const_a * r_T )
-             kin_visc_c = dyn_visc_c / rho_c
+             kin_visc_c_local = dyn_visc_c / rho_c
              
           END IF
 	! -------------------------------------------------------------------- !
 
         ! velocity of gas loss due to pore pressure gradient
-        vel_loss_gas =  hydraulic_permeability /                              &
-               ( kin_visc_c * r_rho_c ) / MAX(1.e-5,r_h) * 0.5_wp * pi_g *      &
+        vel_loss_gas = hydraulic_permeability_local /                         &
+               ( kin_visc_c_local * r_rho_c ) / MAX(1.0e-5_wp,r_h) *          &
+               0.5_wp * pi_g *                                                &
                r_exc_pore_pres
 
 	! add pore pressure driven gas loss term, inhibited by f_inhibit
@@ -5218,5 +5262,3 @@ CONTAINS
   END FUNCTION settling_velocity
 
 END MODULE constitutive_2d
-
-

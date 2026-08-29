@@ -235,12 +235,6 @@ PROGRAM IMEX_SfloW2D
          WRITE(*,*) 'Standard format detected: Executing read_solution.'
          CALL read_solution
 
-         ! In the old procedure, Z is not read, so it must be initialized
-         ! and a burn-in is needed (getSteadyStateZ does both kernel and burn-in)
-         IF ( stochastic_flag ) THEN
-            CALL getSteadyStateZ
-         END IF
-
       END IF
 
    ELSE
@@ -262,6 +256,11 @@ PROGRAM IMEX_SfloW2D
    IF ( radial_source_flag .OR. lateral_source_flag ) CALL init_source
 
    CALL check_solve(.TRUE.)
+
+   ! For a new run or a classic restart, initialize the stochastic field only
+   ! after check_solve has populated solve_cells, j_cent and k_cent. A binary
+   ! restart already contains Z and only needs its convolution kernel above.
+   IF ( stochastic_flag .AND. (.NOT. is_binary_restart) ) CALL getSteadyStateZ
 
    IF ( topo_change_flag ) CALL topography_reconstruction
 
