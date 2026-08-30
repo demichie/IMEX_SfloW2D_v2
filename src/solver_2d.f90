@@ -195,15 +195,6 @@ MODULE solver_2d
   !> Intermediate explicit terms of the Runge-Kutta scheme
   REAL(wp), ALLOCATABLE :: expl_terms(:,:,:,:)
 
-  !> Flag for the normalization of the array q in the implicit solution scheme
-  LOGICAL :: normalize_q
-
-  !> Flag for the normalization of the array f in the implicit solution scheme
-  LOGICAL :: normalize_f
-
-  !> Flag for the search of optimal step size in the implicit solution scheme
-  LOGICAL :: opt_search_NL
-
   INTEGER, ALLOCATABLE :: j_cent(:)
   INTEGER, ALLOCATABLE :: k_cent(:)
 
@@ -1159,10 +1150,7 @@ CONTAINS
                 ! Solve the implicit system to find the solution at the 
                 ! i_RK step of the IMEX RK procedure
                 CALL solve_rk_step( q_guess(1:n_vars) , q0(1:n_vars,j,k ) ,     &
-                     a_tilde , a_dirk , a_diag , Rj_not_impl ,                  &
-                     divFlux( 1:n_eqns , j , k , 1:n_RK ) ,                     &
-                     expl_terms( 1:n_eqns,j,k,1:n_RK ) ,                        &
-                     NH( 1:n_eqns , j , k , 1:n_RK ) , B_prime_x_geom(j,k) ,    &
+                     a_diag , Rj_not_impl , B_prime_x_geom(j,k) ,               &
                      B_prime_y_geom(j,k), Z(j,k), fric_array(j,k),              &
                      newton_iterations, newton_converged, newton_linear_info )
 
@@ -1645,13 +1633,8 @@ CONTAINS
   !
   !> \param[in,out] qj        conservative variables 
   !> \param[in]     qj_old    conservative variables at the old time step
-  !> \param[in]     a_tilde   explicit coefficents for the fluxes
-  !> \param[in]     a_dirk    explicit coefficient for the non-hyperbolic terms
   !> \param[in]     a_diag    implicit coefficient for the non-hyperbolic terms 
   !> \param[in]     Rj_not_impl
-  !> \param[in]     divFluxj
-  !> \param[in]     Expl_terms_j
-  !> \param[in]     NHj
   !
   !> \date 2019/12/16
   !> @author 
@@ -1659,8 +1642,8 @@ CONTAINS
   !
   !******************************************************************************
 
-  SUBROUTINE solve_rk_step( qj, qj_old, a_tilde, a_dirk, a_diag, Rj_not_impl,   &
-       divFluxj, Expl_terms_j, NHj, Bprimej_x, Bprimej_y, Zij, fric_val,        &
+  SUBROUTINE solve_rk_step( qj, qj_old, a_diag, Rj_not_impl, Bprimej_x,         &
+       Bprimej_y, Zij, fric_val,                                               &
        iterations_used, converged, linear_info )
 
     USE parameters_2d, ONLY : max_nl_iter , tol_rel , tol_abs
@@ -1673,13 +1656,8 @@ CONTAINS
 
     REAL(wp), INTENT(INOUT) :: qj(n_vars)
     REAL(wp), INTENT(IN) :: qj_old(n_vars)
-    REAL(wp), INTENT(IN) :: a_tilde(n_RK)
-    REAL(wp), INTENT(IN) :: a_dirk(n_RK)
     REAL(wp), INTENT(IN) :: a_diag
     REAL(wp), INTENT(IN) :: Rj_not_impl(n_eqns)
-    REAL(wp), INTENT(IN) :: divFluxj(n_eqns,n_RK)
-    REAL(wp), INTENT(IN) :: expl_terms_j(n_eqns,n_RK)
-    REAL(wp), INTENT(IN) :: NHj(n_eqns,n_RK)
     REAL(wp), INTENT(IN) :: Bprimej_x
     REAL(wp), INTENT(IN) :: Bprimej_y
     REAL(wp), INTENT(IN):: Zij ! value stochastic process
@@ -1750,62 +1728,15 @@ CONTAINS
        
     END IF
 
-    normalize_q = .TRUE.
-    normalize_f = .FALSE.
-    opt_search_NL = .TRUE.
-
     coeff_f(1:n_eqns) = 1.0_wp
 
     grad_f(1:n_eqns) = 0.0_wp
 
     qj_init = qj
 
-    ! normalize the functions of the nonlinear system
-    IF ( normalize_f ) THEN
-
-       qj = qj_old - dt * ( MATMUL( divFluxj - expl_terms_j,a_tilde)            &
-            - MATMUL(NHj,a_dirk) )
-
-       CALL eval_f( qj , qj_old , a_diag , coeff_f , Rj_not_impl , Bprimej_x ,  &
-            Bprimej_y , right_term , scal_f, Zij, fric_val )
-
-       IF ( verbose_level .GE. 3 ) THEN
-
-          WRITE(*,*) 'solve_rk_step: non-normalized right_term'
-          WRITE(*,*) right_term
-          WRITE(*,*) 'scal_f',scal_f
-
-       END IF
-
-       DO i=1,n_eqns
-
-          IF ( ABS(right_term(i)) .GE. 1.0_wp ) coeff_f(i) = 1.0_wp/right_term(i)
-
-       END DO
-
-       right_term = coeff_f * right_term
-
-       scal_f = 0.5_wp * DOT_PRODUCT( right_term , right_term )
-
-       IF ( verbose_level .GE. 3 ) THEN                    
-          WRITE(*,*) 'solve_rk_step: after normalization',scal_f
-       END IF
-
-    END IF
-
     !---- normalize the conservative variables ------
 
-    IF ( normalize_q ) THEN
-
-       qj_org = qj
-
-       qj_org = MAX( ABS(qj_org) , 1.0E-3_wp )
-
-    ELSE 
-
-       qj_org(1:n_vars) = 1.0_wp
-
-    END IF
+    qj_org = MAX( ABS(qj) , 1.0E-3_wp )
 
     qj_rel = qj / qj_org
     check = .FALSE.
@@ -1839,14 +1770,6 @@ CONTAINS
        IF ( MAXVAL( ABS( right_term(:) ) ) < TOLF ) THEN
 
           IF ( verbose_level .GE. 3 ) WRITE(*,*) '1: check',check
-          converged = .TRUE.
-          EXIT newton_raphson_loop
-
-       END IF
-
-       IF ( ( normalize_f ) .AND. ( scal_f < 1.0E-6_wp ) ) THEN
-
-          IF ( verbose_level .GE. 3 ) WRITE(*,*) 'check scal_f',check
           converged = .TRUE.
           EXIT newton_raphson_loop
 
@@ -1968,7 +1891,7 @@ CONTAINS
        qj_rel_NR_old = qj_rel
        scal_f_old = scal_f
 
-       IF ( ( opt_search_NL ) .AND. ( nl_iter .GT. 1 ) ) THEN
+       IF ( nl_iter .GT. 1 ) THEN
           ! Search for the step lambda giving a suffic. decrease in the solution 
 
           stpmax = STPMX * MAX( SQRT( DOT_PRODUCT(qj_rel,qj_rel) ) ,            &
