@@ -986,6 +986,21 @@ CONTAINS
 
     REAL(wp) :: alpha_s
     LOGICAL :: solid_excess_roundoff
+
+    INTEGER :: newton_iterations
+    INTEGER :: newton_linear_info
+    LOGICAL :: newton_converged
+    INTEGER :: newton_calls_step
+    INTEGER :: newton_iterations_step
+    INTEGER :: newton_iterations_max_step
+    INTEGER :: newton_failures_step
+    INTEGER :: newton_linear_failures_step
+
+    newton_calls_step = 0
+    newton_iterations_step = 0
+    newton_iterations_max_step = 0
+    newton_failures_step = 0
+    newton_linear_failures_step = 0
     
     IF ( verbose_level .GE. 1 ) WRITE(*,*) 'solver, imex_RK_solver: beginning'
 
@@ -1038,7 +1053,8 @@ CONTAINS
        a_diag = a_dirk_ij(i_RK,i_RK)
 
        !$OMP PARALLEL 
-       !$OMP DO private(j,k,q_guess,q_si,q_fv_cell,Rj_not_impl,p_dyn)
+       !$OMP DO private(j,k,q_guess,q_si,q_fv_cell,Rj_not_impl,p_dyn,           &
+       !$OMP & newton_iterations,newton_linear_info,newton_converged)
 
        solve_cells_loop:DO l = 1,solve_cells
 
@@ -1147,7 +1163,36 @@ CONTAINS
                      divFlux( 1:n_eqns , j , k , 1:n_RK ) ,                     &
                      expl_terms( 1:n_eqns,j,k,1:n_RK ) ,                        &
                      NH( 1:n_eqns , j , k , 1:n_RK ) , B_prime_x_geom(j,k) ,    &
-                     B_prime_y_geom(j,k), Z(j,k), fric_array(j,k)  )
+                     B_prime_y_geom(j,k), Z(j,k), fric_array(j,k),              &
+                     newton_iterations, newton_converged, newton_linear_info )
+
+                IF ( ( verbose_level .GE. 1 ) .OR.                             &
+                     ( .NOT. newton_converged ) ) THEN
+
+                   !$OMP CRITICAL(newton_diagnostics)
+
+                   IF ( verbose_level .GE. 1 ) THEN
+                      newton_calls_step = newton_calls_step + 1
+                      newton_iterations_step = newton_iterations_step          &
+                           + newton_iterations
+                      newton_iterations_max_step = MAX(                        &
+                           newton_iterations_max_step, newton_iterations )
+                      IF ( .NOT. newton_converged )                            &
+                           newton_failures_step = newton_failures_step + 1
+                      IF ( newton_linear_info .NE. 0 )                         &
+                           newton_linear_failures_step =                       &
+                           newton_linear_failures_step + 1
+                   END IF
+
+                   IF ( .NOT. newton_converged ) THEN
+                      WRITE(*,*) 'WARNING: Newton solve did not converge'
+                      WRITE(*,*) 'cell, RK stage, iterations, linear info:',    &
+                           j, k, i_RK, newton_iterations, newton_linear_info
+                   END IF
+
+                   !$OMP END CRITICAL(newton_diagnostics)
+
+                END IF
                 
                 IF ( comp_cells_y .EQ. 1 ) THEN
 
@@ -1574,6 +1619,15 @@ CONTAINS
     END DO assemble_sol
 
     !$OMP END PARALLEL DO
+
+    IF ( ( verbose_level .GE. 1 ) .AND. ( newton_calls_step .GT. 0 ) ) THEN
+       WRITE(*,*) 'Newton solves:',newton_calls_step
+       WRITE(*,*) 'Newton iterations average/max:',                            &
+            REAL(newton_iterations_step,wp) / REAL(newton_calls_step,wp),       &
+            newton_iterations_max_step
+       WRITE(*,*) 'Newton failures / linear failures:',                        &
+            newton_failures_step,newton_linear_failures_step
+    END IF
      
     RETURN
 
@@ -1606,7 +1660,8 @@ CONTAINS
   !******************************************************************************
 
   SUBROUTINE solve_rk_step( qj, qj_old, a_tilde, a_dirk, a_diag, Rj_not_impl,   &
-       divFluxj, Expl_terms_j, NHj, Bprimej_x, Bprimej_y, Zij, fric_val )
+       divFluxj, Expl_terms_j, NHj, Bprimej_x, Bprimej_y, Zij, fric_val,        &
+       iterations_used, converged, linear_info )
 
     USE parameters_2d, ONLY : max_nl_iter , tol_rel , tol_abs
 
@@ -1629,6 +1684,9 @@ CONTAINS
     REAL(wp), INTENT(IN) :: Bprimej_y
     REAL(wp), INTENT(IN):: Zij ! value stochastic process
     REAL(wp), INTENT(OUT) :: fric_val ! to save the value of the friction
+    INTEGER, INTENT(OUT) :: iterations_used
+    LOGICAL, INTENT(OUT) :: converged
+    INTEGER, INTENT(OUT) :: linear_info
 
     REAL(wp) :: qj_init(n_vars)
 
@@ -1678,10 +1736,16 @@ CONTAINS
 
     REAL(wp) :: sol_small(2)
     REAL(wp) :: inv_det
+    REAL(wp) :: det_small
+
+    iterations_used = 0
+    converged = .FALSE.
+    linear_info = 0
 
     IF ( rheology_model .EQ. 8 ) THEN
 
        CALL integrate_friction_term( qj , dt )
+       converged = .TRUE.
        RETURN
        
     END IF
@@ -1749,6 +1813,8 @@ CONTAINS
     ! -----------------------------------------------
     newton_raphson_loop:DO nl_iter=1,max_nl_iter
 
+       iterations_used = nl_iter
+
        TOLX = epsilon(qj_rel)
        
        IF ( verbose_level .GE. 2 ) WRITE(*,*) 'solve_rk_step: nl_iter',nl_iter
@@ -1773,6 +1839,7 @@ CONTAINS
        IF ( MAXVAL( ABS( right_term(:) ) ) < TOLF ) THEN
 
           IF ( verbose_level .GE. 3 ) WRITE(*,*) '1: check',check
+          converged = .TRUE.
           EXIT newton_raphson_loop
 
        END IF
@@ -1780,6 +1847,7 @@ CONTAINS
        IF ( ( normalize_f ) .AND. ( scal_f < 1.0E-6_wp ) ) THEN
 
           IF ( verbose_level .GE. 3 ) WRITE(*,*) 'check scal_f',check
+          converged = .TRUE.
           EXIT newton_raphson_loop
 
        END IF
@@ -1805,6 +1873,12 @@ CONTAINS
             
           END IF
 
+          IF ( ok .NE. 0 ) THEN
+             linear_info = ok
+             qj = qj_init
+             RETURN
+          END IF
+
           desc_dir = desc_dir_temp
 
        ELSE
@@ -1827,6 +1901,12 @@ CONTAINS
 
           DO i=1,n_vars-n_nh
 
+             IF ( ABS(left_matrix_small11(i,i)) .LE. TINY(1.0_wp) ) THEN
+                linear_info = i
+                qj = qj_init
+                RETURN
+             END IF
+
              desc_dir_small1(i) = desc_dir_small1(i) / left_matrix_small11(i,i)
 
           END DO
@@ -1836,10 +1916,17 @@ CONTAINS
           
           
           IF ( COUNT( implicit_flag ) .EQ. 2 ) THEN
-             
-             inv_det = 1.0_wp /                                                 &
-                  ( left_matrix_small22(1,1) * left_matrix_small22(2,2) -       &
-                  left_matrix_small22(2,1) * left_matrix_small22(1,2) ) 
+
+             det_small = left_matrix_small22(1,1) * left_matrix_small22(2,2)   &
+                  - left_matrix_small22(2,1) * left_matrix_small22(1,2)
+
+             IF ( ABS(det_small) .LE. TINY(1.0_wp) ) THEN
+                linear_info = 1
+                qj = qj_init
+                RETURN
+             END IF
+
+             inv_det = 1.0_wp / det_small
              
              sol_small(1) = ( desc_dir_small2(1) * left_matrix_small22(2,2) -   &
                   desc_dir_small2(2) * left_matrix_small22(1,2) ) * inv_det
@@ -1861,6 +1948,12 @@ CONTAINS
                 CALL DGESV(n_nh,1, left_matrix_small22 , n_nh , pivot_small2 ,  &
                      desc_dir_small2 , n_nh, ok)
                 
+             END IF
+
+             IF ( ok .NE. 0 ) THEN
+                linear_info = ok
+                qj = qj_init
+                RETURN
              END IF
              
           END IF
@@ -1914,6 +2007,7 @@ CONTAINS
 
           IF ( verbose_level .GE. 3 ) WRITE(*,*) '1: check',check
           check= .FALSE.
+          converged = .TRUE.
           EXIT newton_raphson_loop
 
        END IF
@@ -1932,6 +2026,7 @@ CONTAINS
             1.0_wp ) ) < TOLX ) THEN
 
           IF ( verbose_level .GE. 3 ) WRITE(*,*) 'check',check
+          converged = .TRUE.
           EXIT newton_raphson_loop
 
        END IF
