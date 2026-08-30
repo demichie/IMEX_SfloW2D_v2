@@ -114,12 +114,6 @@ MODULE solver_2d
 
   LOGICAL, ALLOCATABLE :: pdyn_table(:,:)
 
-  !> Max local speeds at the x-interface
-  REAL(wp), ALLOCATABLE :: a_interface_x_max(:,:,:)
-  !> Max local speeds at the y-interface
-  REAL(wp), ALLOCATABLE :: a_interface_y_max(:,:,:)
-
-
   !> Local speeds at the left of the x-interface
   REAL(wp), ALLOCATABLE :: a_interface_xNeg(:,:,:)
   !> Local speeds at the right of the x-interface
@@ -293,9 +287,6 @@ CONTAINS
     ALLOCATE( diverg_interfaceB( comp_cells_x, comp_interfaces_y ) )
     ALLOCATE( diverg_interfaceT( comp_cells_x, comp_interfaces_y ) )
     
-    ALLOCATE ( a_interface_x_max(n_eqns,comp_interfaces_x,comp_cells_y) )
-    ALLOCATE ( a_interface_y_max(n_eqns,comp_cells_x,comp_interfaces_y) )
-
     ALLOCATE( solve_mask_time( comp_cells_x , comp_cells_y ) )
     ALLOCATE( solve_mask( comp_cells_x , comp_cells_y ) )
     ALLOCATE( solve_mask_temp( comp_cells_x , comp_cells_y ) )
@@ -524,9 +515,6 @@ CONTAINS
     DEALLOCATE( a_interface_xPos )
     DEALLOCATE( a_interface_yNeg )
     DEALLOCATE( a_interface_yPos )
-
-    DEALLOCATE( a_interface_x_max )
-    DEALLOCATE( a_interface_y_max )
 
     DEALLOCATE( H_interface_x )
     DEALLOCATE( H_interface_y )
@@ -805,13 +793,10 @@ CONTAINS
 
     IMPLICIT none
 
-    REAL(wp) :: dt_cfl        !< local time step
+    INTEGER :: j,k,l          !< loop counter
 
-    REAL(wp) :: dt_interface_x, dt_interface_y
-
-    INTEGER :: i,j,k,l          !< loop counter
-
-    REAL(wp) :: max_a
+    REAL(wp) :: max_a_x
+    REAL(wp) :: max_a_y
     REAL(wp) p_dyn
 
     dt = max_dt
@@ -849,80 +834,36 @@ CONTAINS
        ! Compute the max/min eigenvalues at the interfaces
        CALL eval_speeds
 
-       !$OMP PARALLEL
-       !$OMP DO private(j,k,i)
-       DO l = 1,solve_interfaces_x
+       max_a_x = 0.0_wp
+       max_a_y = 0.0_wp
 
-          j = j_stag_x(l)
-          k = k_stag_x(l)
-
-          DO i=1,n_vars
-
-             a_interface_x_max(i,j,k) =                                         &
-                  MAX( a_interface_xPos(i,j,k) , -a_interface_xNeg(i,j,k) )
- 
-          END DO
-
-       END DO
-       !$OMP END DO NOWAIT
-    
-       !$OMP DO private(j,k,i)
-       DO l = 1,solve_interfaces_y
-
-          j = j_stag_y(l)
-          k = k_stag_y(l)
-
-          DO i=1,n_vars
-
-             a_interface_y_max(i,j,k) =                                         &
-                  MAX( a_interface_yPos(i,j,k) , -a_interface_yNeg(i,j,k) )
-
- 
-          END DO
-
-       END DO
-       !$OMP END DO
-
-       !$OMP DO private(j,k,max_a,dt_interface_x,dt_interface_y,dt_cfl)       
+       ! The minimum CFL step over all active cells is determined by the
+       ! maximum characteristic speed on their adjacent interfaces.  Compute
+       ! those two maxima directly, avoiding full-domain scratch arrays and
+       ! an atomic update of dt for every cell.
+       !$OMP PARALLEL DO private(j,k) reduction(max:max_a_x,max_a_y)
        DO l = 1,solve_cells
 
           j = j_cent(l)
           k = k_cent(l)
 
-          max_a =  MAX( MAXVAL(a_interface_x_max(:,j,k)) ,                      &
-               MAXVAL(a_interface_x_max(:,j+1,k)) )
+          max_a_x = MAX( max_a_x,                                               &
+               MAXVAL(a_interface_xPos(1:n_vars,j,k)),                         &
+               MAXVAL(-a_interface_xNeg(1:n_vars,j,k)),                        &
+               MAXVAL(a_interface_xPos(1:n_vars,j+1,k)),                       &
+               MAXVAL(-a_interface_xNeg(1:n_vars,j+1,k)) )
 
-          IF ( max_a .GT. 0.0_wp ) THEN
-
-             dt_interface_x = cfl * dx / max_a
-
-          ELSE
-
-             dt_interface_x = dt
-
-          END IF
-
-          max_a =  MAX( MAXVAL(a_interface_y_max(:,j,k)) ,                      &
-               MAXVAL(a_interface_y_max(:,j,k+1)) )
-
-          IF ( max_a .GT. 0.0_wp ) THEN
-
-             dt_interface_y = cfl * dy / max_a
-
-          ELSE
-
-             dt_interface_y = dt
-
-          END IF
-
-          dt_cfl = MIN( dt_interface_x , dt_interface_y )
-
-          !$OMP ATOMIC
-          dt = MIN(dt,dt_cfl)
+          max_a_y = MAX( max_a_y,                                               &
+               MAXVAL(a_interface_yPos(1:n_vars,j,k)),                         &
+               MAXVAL(-a_interface_yNeg(1:n_vars,j,k)),                        &
+               MAXVAL(a_interface_yPos(1:n_vars,j,k+1)),                       &
+               MAXVAL(-a_interface_yNeg(1:n_vars,j,k+1)) )
 
        END DO
-       !$OMP END DO
-       !$OMP END PARALLEL
+       !$OMP END PARALLEL DO
+
+       IF ( max_a_x .GT. 0.0_wp ) dt = MIN(dt,cfl*dx/max_a_x)
+       IF ( max_a_y .GT. 0.0_wp ) dt = MIN(dt,cfl*dy/max_a_y)
 
     END IF
 
