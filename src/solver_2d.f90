@@ -68,9 +68,6 @@ MODULE solver_2d
   REAL(wp), ALLOCATABLE :: q(:,:,:)        
   !> Conservative variables at previous time step
   REAL(wp), ALLOCATABLE :: q0(:,:,:)        
-  !> Solution of the finite-volume semidiscrete cheme
-  REAL(wp), ALLOCATABLE :: q_fv(:,:,:)     
-
   !> Map of positive thickness 
   LOGICAL, ALLOCATABLE :: hpos(:,:)        
   !> Map of positive thickness at previous output step
@@ -94,24 +91,6 @@ MODULE solver_2d
   REAL(wp), ALLOCATABLE :: qp_interfaceB(:,:,:)        
   !> Reconstructed physical value at the top of the y-interface
   REAL(wp), ALLOCATABLE :: qp_interfaceT(:,:,:)
-
-  !> Reconstructed value at the NW corner of cell
-  REAL(wp), ALLOCATABLE :: q_cellNW(:,:,:)        
-  !> Reconstructed value at the NE corner of cell
-  REAL(wp), ALLOCATABLE :: q_cellNE(:,:,:)
-  !> Reconstructed value at the SW corner of cell
-  REAL(wp), ALLOCATABLE :: q_cellSW(:,:,:)        
-  !> Reconstructed value at the SE corner of cell
-  REAL(wp), ALLOCATABLE :: q_cellSE(:,:,:)
-
-  !> Reconstructed physical value at the NW corner of cell
-  REAL(wp), ALLOCATABLE :: qp_cellNW(:,:,:)        
-  !> Reconstructed physical value at the NE corner of cell
-  REAL(wp), ALLOCATABLE :: qp_cellNE(:,:,:)
-  !> Reconstructed physical value at the SW corner of cell
-  REAL(wp), ALLOCATABLE :: qp_cellSW(:,:,:)        
-  !> Reconstructed physical value at the SE corner of cell
-  REAL(wp), ALLOCATABLE :: qp_cellSE(:,:,:)
 
   LOGICAL, ALLOCATABLE :: diverg_interfaceL(:,:)
   LOGICAL, ALLOCATABLE :: diverg_interfaceR(:,:)
@@ -225,9 +204,6 @@ MODULE solver_2d
   !> Flag for the search of optimal step size in the implicit solution scheme
   LOGICAL :: opt_search_NL
 
-  !> Sum of all the terms of the equations except the transient term
-  REAL(wp), ALLOCATABLE :: residual_term(:,:,:)
-
   INTEGER, ALLOCATABLE :: j_cent(:)
   INTEGER, ALLOCATABLE :: k_cent(:)
 
@@ -296,8 +272,6 @@ CONTAINS
 
     ALLOCATE( pdyn_table(comp_cells_x , comp_cells_y) )
 
-    ALLOCATE( q_fv( n_vars , comp_cells_x , comp_cells_y ) )
-
     ALLOCATE( q_interfaceL( n_vars , comp_interfaces_x, comp_cells_y ) )
     ALLOCATE( q_interfaceR( n_vars , comp_interfaces_x, comp_cells_y ) )
     ALLOCATE( a_interface_xNeg( n_eqns , comp_interfaces_x, comp_cells_y ) )
@@ -322,16 +296,6 @@ CONTAINS
     ALLOCATE( qp_interfaceR( n_vars+2 , comp_interfaces_x, comp_cells_y ) )
     ALLOCATE( qp_interfaceB( n_vars+2 , comp_cells_x, comp_interfaces_y ) )
     ALLOCATE( qp_interfaceT( n_vars+2 , comp_cells_x, comp_interfaces_y ) )
-
-    ALLOCATE( q_cellNW( n_vars , comp_cells_x , comp_cells_y ) )
-    ALLOCATE( q_cellNE( n_vars , comp_cells_x , comp_cells_y ) )
-    ALLOCATE( q_cellSW( n_vars , comp_cells_x , comp_cells_y ) )
-    ALLOCATE( q_cellSE( n_vars , comp_cells_x , comp_cells_y ) )
-
-    ALLOCATE( qp_cellNW( n_vars+2 , comp_cells_x , comp_cells_y ) )
-    ALLOCATE( qp_cellNE( n_vars+2 , comp_cells_x , comp_cells_y ) )
-    ALLOCATE( qp_cellSW( n_vars+2 , comp_cells_x , comp_cells_y ) )
-    ALLOCATE( qp_cellSE( n_vars+2 , comp_cells_x , comp_cells_y ) )
 
     ALLOCATE( diverg_interfaceL( comp_interfaces_x, comp_cells_y ) )
     ALLOCATE( diverg_interfaceR( comp_interfaces_x, comp_cells_y ) )
@@ -495,8 +459,6 @@ CONTAINS
     ALLOCATE( SI_NH( n_eqns , comp_cells_x , comp_cells_y , n_RK ) )
     ALLOCATE( expl_terms( n_eqns , comp_cells_x , comp_cells_y , n_RK ) )
 
-    ALLOCATE( residual_term( n_vars , comp_cells_x , comp_cells_y ) )
-
     comp_cells_xy = comp_cells_x * comp_cells_y
 
     ALLOCATE( j_cent( comp_cells_xy ) )
@@ -551,27 +513,15 @@ CONTAINS
 
     DEALLOCATE( thck_table ,  pdyn_table )
 
-    DEALLOCATE( q_fv )
-
     DEALLOCATE( q_interfaceL )
     DEALLOCATE( q_interfaceR )
     DEALLOCATE( q_interfaceB )
     DEALLOCATE( q_interfaceT )
 
-    DEALLOCATE( q_cellNW )
-    DEALLOCATE( q_cellNE )
-    DEALLOCATE( q_cellSW )
-    DEALLOCATE( q_cellSE )
-
     DEALLOCATE( qp_interfaceL )
     DEALLOCATE( qp_interfaceR )
     DEALLOCATE( qp_interfaceB )
     DEALLOCATE( qp_interfaceT )
-
-    DEALLOCATE( qp_cellNW )
-    DEALLOCATE( qp_cellNE )
-    DEALLOCATE( qp_cellSW )
-    DEALLOCATE( qp_cellSE )
 
     DEALLOCATE( diverg_interfaceL )
     DEALLOCATE( diverg_interfaceR )
@@ -618,8 +568,6 @@ CONTAINS
     DEALLOCATE( expl_terms )
 
     DEALLOCATE( mask22 , mask21 , mask11 , mask12 )
-
-    DEALLOCATE( residual_term )
 
     DEALLOCATE( j_cent , k_cent )
     DEALLOCATE ( j_stag_x , k_stag_x )
@@ -1029,12 +977,15 @@ CONTAINS
 
     REAL(wp) :: q_si(n_vars) !< solution after the semi-implicit step
     REAL(wp) :: q_guess(n_vars) !< initial guess for the solution of the RK step
+    REAL(wp) :: q_fv_cell(n_vars) !< finite-volume state for the current cell
+    REAL(wp) :: residual_cell(n_vars) !< final RK residual for the current cell
     INTEGER :: j,k,l            !< loop counter over the grid volumes
     REAL(wp) :: Rj_not_impl(n_eqns)
 
     REAL(wp) :: p_dyn
 
     REAL(wp) :: alpha_s
+    LOGICAL :: solid_excess_roundoff
     
     IF ( verbose_level .GE. 1 ) WRITE(*,*) 'solver, imex_RK_solver: beginning'
 
@@ -1087,7 +1038,7 @@ CONTAINS
        a_diag = a_dirk_ij(i_RK,i_RK)
 
        !$OMP PARALLEL 
-       !$OMP DO private(j,k,q_guess,q_si,Rj_not_impl)
+       !$OMP DO private(j,k,q_guess,q_si,q_fv_cell,Rj_not_impl,p_dyn)
 
        solve_cells_loop:DO l = 1,solve_cells
 
@@ -1116,13 +1067,13 @@ CONTAINS
 
           ! New solution at the i_RK step without the implicit  and
           ! semi-implicit term
-          q_fv( 1:n_vars , j , k ) = q0( 1:n_vars , j , k )                     &
+          q_fv_cell(1:n_vars) = q0( 1:n_vars , j , k )                           &
                - dt * (MATMUL( divFlux(1:n_eqns,j,k,1:i_RK)                     &
                - expl_terms(1:n_eqns,j,k,1:i_RK) , a_tilde(1:i_RK) )            &
                - MATMUL( NH(1:n_eqns,j,k,1:i_RK) + SI_NH(1:n_eqns,j,k,1:i_RK) , &
                a_dirk(1:i_RK) ) )
 
-          CALL qc_to_qp(q_fv(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
+          CALL qc_to_qp(q_fv_cell , qp(1:n_vars+2,j,k) , p_dyn )
 
           IF ( verbose_level .GE. 2 ) THEN
 
@@ -1138,28 +1089,28 @@ CONTAINS
 
           adiag_pos:IF ( a_diag .NE. 0.0_wp ) THEN
 
-             pos_thick:IF ( q_fv(1,j,k) .GT.  0.0_wp )  THEN
+             pos_thick:IF ( q_fv_cell(1) .GT.  0.0_wp )  THEN
 
                 ! Eval the semi-implicit terms
                 ! (terms which non depend on velocity magnitude)
                 CALL eval_nh_semi_impl_terms( B_prime_x_geom(j,k) ,             &
                      B_prime_y_geom(j,k) , B_second_xx_geom(j,k) ,              &
                      B_second_xy_geom(j,k) , B_second_yy_geom(j,k) ,            &
-                     grav_coeff(j,k) , q_fv( 1:n_vars , j , k ) ,               &
+                     grav_coeff(j,k) , q_fv_cell ,                              &
                      qp( 1:n_vars , j , k ) , SI_NH(1:n_eqns,j,k,i_RK) ,        &
                      Z(j,k), fric_array(j,k) )
 
                 ! Assemble the initial guess for the implicit solver
-                q_si(1:n_vars) = q_fv(1:n_vars,j,k ) + dt * a_diag *            &
+                q_si(1:n_vars) = q_fv_cell + dt * a_diag *                     &
                      SI_NH(1:n_eqns,j,k,i_RK)
 
-                IF ( ( q_fv(2,j,k)**2 + q_fv(3,j,k)**2 ) .EQ. 0.0_wp ) THEN
+                IF ( ( q_fv_cell(2)**2 + q_fv_cell(3)**2 ) .EQ. 0.0_wp ) THEN
 
                    !Case 1: if the velocity was null, then it must stay null
                    q_si(2:3) = 0.0_wp 
 
-                ELSEIF ( ( q_si(2)*q_fv(2,j,k) .LT. 0.0_wp ) .OR.               &
-                     ( q_si(3)*q_fv(3,j,k) .LT. 0.0_wp ) ) THEN
+                ELSEIF ( ( q_si(2)*q_fv_cell(2) .LT. 0.0_wp ) .OR.              &
+                     ( q_si(3)*q_fv_cell(3) .LT. 0.0_wp ) ) THEN
 
                    ! If the semi-impl. friction term changed the sign of the 
                    ! velocity then set it to zero
@@ -1169,15 +1120,15 @@ CONTAINS
 
                    ! Align the velocity vector with previous one
                    q_si(2:3) = SQRT( q_si(2)**2 + q_si(3)**2 ) *                &
-                        q_fv(2:3,j,k) / SQRT( q_fv(2,j,k)**2                    &
-                        + q_fv(3,j,k)**2 ) 
+                        q_fv_cell(2:3) / SQRT( q_fv_cell(2)**2                  &
+                        + q_fv_cell(3)**2 )
 
                 END IF
 
                 ! Update the semi-implicit term accordingly with the
                 ! corrections above
                 SI_NH(1:n_eqns,j,k,i_RK) = ( q_si(1:n_vars) -                   &
-                     q_fv(1:n_vars,j,k ) ) / ( dt*a_diag )
+                     q_fv_cell ) / ( dt*a_diag )
 
                 ! Initialize the guess for the NR solver
                 q_guess(1:n_vars) = q_si(1:n_vars)
@@ -1246,8 +1197,8 @@ CONTAINS
              ELSE
 
                 ! If h=0 nothing has to be changed 
-                q_guess(1:n_vars) = q_fv( 1:n_vars , j , k ) 
-                q_si(1:n_vars) = q_fv( 1:n_vars , j , k ) 
+                q_guess(1:n_vars) = q_fv_cell
+                q_si(1:n_vars) = q_fv_cell
                 SI_NH(1:n_eqns,j,k,i_RK) = 0.0_wp
                 NH(1:n_eqns,j,k,i_RK) = 0.0_wp
 
@@ -1323,14 +1274,15 @@ CONTAINS
 
     END DO runge_kutta
 
-    !$OMP PARALLEL DO private(j,k)
+    !$OMP PARALLEL DO private(j,k,p_dyn,alpha_s,solid_excess_roundoff,          &
+    !$OMP & residual_cell)
 
     assemble_sol:DO l = 1,solve_cells
 
        j = j_cent(l)
        k = k_cent(l)
 
-       residual_term(1:n_vars,j,k) = MATMUL( divFlux(1:n_eqns,j,k,1:n_RK)       &
+       residual_cell = MATMUL( divFlux(1:n_eqns,j,k,1:n_RK)                     &
             - expl_terms(1:n_eqns,j,k,1:n_RK) , omega_tilde ) -                 &
             MATMUL( NH(1:n_eqns,j,k,1:n_RK) + SI_NH(1:n_eqns,j,k,1:n_RK) ,      &
             omega )
@@ -1359,7 +1311,7 @@ CONTAINS
        ELSE
 
           ! The assembling coeffs are different
-          q(1:n_vars,j,k) = q0(1:n_vars,j,k) - dt*residual_term(1:n_vars,j,k)
+          q(1:n_vars,j,k) = q0(1:n_vars,j,k) - dt*residual_cell
 
        END IF
 
@@ -1450,7 +1402,8 @@ CONTAINS
 
           ELSE
 
-             WHERE ( q(5:4+n_solid,j,k) .GT. -1.0E-7_wp )  &
+             WHERE ( ( q(5:4+n_solid,j,k) .LT. 0.0_wp ) .AND.                 &
+                  ( q(5:4+n_solid,j,k) .GT. -1.0E-7_wp ) )                   &
                   q(5:4+n_solid,j,k) = 0.0_wp
 
           END IF
@@ -1545,8 +1498,16 @@ CONTAINS
           
        IF ( SUM(q(5:4+n_solid,j,k)) .GT. q(1,j,k) ) THEN
 
-          IF ( ( (SUM(q(5:4+n_solid,j,k))-q(1,j,k))/q(1,j,k) .LT. 1.0E-10_wp )  &
-               .OR. ( q(1,j,k) .LT. epsilon(1.0_wp) ) ) THEN
+          ! Fortran does not guarantee short-circuit evaluation of .OR.;
+          ! evaluate the relative excess only when the denominator is safe.
+          IF ( q(1,j,k) .LT. EPSILON(1.0_wp) ) THEN
+             solid_excess_roundoff = .TRUE.
+          ELSE
+             solid_excess_roundoff = ( ( SUM(q(5:4+n_solid,j,k))             &
+                  - q(1,j,k) ) / q(1,j,k) .LT. 1.0E-10_wp )
+          END IF
+
+          IF ( solid_excess_roundoff ) THEN
 
              CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
 
@@ -1783,6 +1744,7 @@ CONTAINS
     END IF
 
     qj_rel = qj / qj_org
+    check = .FALSE.
 
     ! -----------------------------------------------
     newton_raphson_loop:DO nl_iter=1,max_nl_iter
@@ -2204,7 +2166,9 @@ CONTAINS
 
        alam2 = alam
        scal_f2 = scal_f
-       alam = MAX( tmplam , 0.5_wp * alam )
+       ! Keep the interpolated step.  A lower bound of 0.5 made every
+       ! accepted update an exact halving after the upper bound above.
+       alam = MAX( tmplam , 0.1_wp * alam )
 
     END DO optimal_step_search
 
@@ -2415,7 +2379,8 @@ CONTAINS
 
     !$OMP PARALLEL DO private(j,k,erosion_term,deposition_term,eqns_term,       &
     !$OMP & topo_term,r_Ri,r_rho_m,r_rho_c,r_red_grav,                          &
-    !$OMP & continuous_phase_erosion_term,continuous_phase_loss_term)
+    !$OMP & continuous_phase_erosion_term,continuous_phase_loss_term,           &
+    !$OMP & out_of_source_fraction,p_dyn)
 
     DO l = 1,solve_cells
 
@@ -2717,12 +2682,16 @@ CONTAINS
           k = k_stag_x(l)
 
           CALL eval_fluxes( q_interfaceL(1:n_vars,j,k) ,                        &
-               qp_interfaceL(1:n_vars+2,j,k) , B_prime_x_geom(j-1,k) ,          &
-               B_prime_y_geom(j-1,k) , grav_coeff_stag_x(j,k) , 1 , fluxL )
+               qp_interfaceL(1:n_vars+2,j,k) ,                                  &
+               B_prime_x_geom(MAX(1,j-1),MIN(k,comp_cells_y)) ,                 &
+               B_prime_y_geom(MAX(1,j-1),MIN(k,comp_cells_y)) ,                 &
+               grav_coeff_stag_x(j,k) , 1 , fluxL )
 
           CALL eval_fluxes( q_interfaceR(1:n_vars,j,k) ,                        &
-               qp_interfaceR(1:n_vars+2,j,k) , B_prime_x_geom(j,k) ,            &
-               B_prime_y_geom(j,k) , grav_coeff_stag_x(j,k) , 1 , fluxR )
+               qp_interfaceR(1:n_vars+2,j,k) ,                                  &
+               B_prime_x_geom(MIN(j,comp_cells_x),MIN(k,comp_cells_y)) ,        &
+               B_prime_y_geom(MIN(j,comp_cells_x),MIN(k,comp_cells_y)) ,        &
+               grav_coeff_stag_x(j,k) , 1 , fluxR )
 
           IF ( ( qp_interfaceL(n_vars+1,j,k) .GT. 0.0_wp ) .AND.                &
                ( qp_interfaceR(n_vars+1,j,k) .GE. 0.0_wp ) ) THEN
@@ -2740,8 +2709,8 @@ CONTAINS
 
           END IF
 
-          IF ( (  q_interfaceL(n_vars+1,j,k) .EQ. 0.0_wp ) .AND.                &
-               (  q_interfaceR(n_vars+1,j,k) .EQ. 0.0_wp ) ) THEN
+          IF ( (  qp_interfaceL(n_vars+1,j,k) .EQ. 0.0_wp ) .AND.               &
+               (  qp_interfaceR(n_vars+1,j,k) .EQ. 0.0_wp ) ) THEN
 
              H_interface_x(1,j,k) = 0.0_wp
              H_interface_x(4:n_vars,j,k) = 0.0_wp
@@ -2764,12 +2733,16 @@ CONTAINS
           k = k_stag_y(l)
 
           CALL eval_fluxes( q_interfaceB(1:n_vars,j,k) ,                        &
-               qp_interfaceB(1:n_vars+2,j,k) , B_prime_x_geom(j,k-1) ,          &
-               B_prime_y_geom(j,k-1) , grav_coeff_stag_y(j,k) , 2 , fluxB )
+               qp_interfaceB(1:n_vars+2,j,k) ,                                  &
+               B_prime_x_geom(MIN(j,comp_cells_x),MAX(1,k-1)) ,                 &
+               B_prime_y_geom(MIN(j,comp_cells_x),MAX(1,k-1)) ,                 &
+               grav_coeff_stag_y(j,k) , 2 , fluxB )
 
           CALL eval_fluxes( q_interfaceT(1:n_vars,j,k) ,                        &
-               qp_interfaceT(1:n_vars+2,j,k) , B_prime_x_geom(j,k) ,            &
-               B_prime_y_geom(j,k) , grav_coeff_stag_y(j,k) , 2 , fluxT )
+               qp_interfaceT(1:n_vars+2,j,k) ,                                  &
+               B_prime_x_geom(MIN(j,comp_cells_x),MIN(k,comp_cells_y)) ,        &
+               B_prime_y_geom(MIN(j,comp_cells_x),MIN(k,comp_cells_y)) ,        &
+               grav_coeff_stag_y(j,k) , 2 , fluxT )
 
           IF ( ( q_interfaceB(3,j,k) .GT. 0.0_wp ) .AND.                        &
                ( q_interfaceT(3,j,k) .GE. 0.0_wp ) ) THEN
@@ -2789,8 +2762,8 @@ CONTAINS
 
           ! In the equation for mass and for trasnport (T,alphas) if the 
           ! velocities at the interfaces are null, then the flux is null
-          IF ( (  q_interfaceB(3,j,k) .EQ. 0.0_wp ) .AND.                       &
-               (  q_interfaceT(3,j,k) .EQ. 0.0_wp ) ) THEN
+          IF ( (  qp_interfaceB(n_vars+2,j,k) .EQ. 0.0_wp ) .AND.               &
+               (  qp_interfaceT(n_vars+2,j,k) .EQ. 0.0_wp ) ) THEN
 
              H_interface_y(1,j,k) = 0.0_wp
              H_interface_y(4:n_vars,j,k) = 0.0_wp
@@ -3147,7 +3120,7 @@ CONTAINS
     
     !$OMP PARALLEL DO private(j,k,i,qrecW,qrecE,qrecS,qrecN,x_stencil,y_stencil,&
     !$OMP & qrec_stencil,qrec_prime_x,qrec_prime_y,qp2recW,qp2recE,qp2recS,     &
-    !$OMP & qp2recN,source_bdry,dq)
+    !$OMP & qp2recN,source_bdry,dq,diverging_flag)
 
     DO l = 1,solve_cells
 
@@ -3613,7 +3586,7 @@ CONTAINS
 
                    ELSEIF ( sourceN(j,k) ) THEN
 
-                      x_stencil(3) = y_stag(k+1)
+                      y_stencil(3) = y_stag(k+1)
                       qrec_stencil(3) = source_bdry(i)
 
                    END IF
