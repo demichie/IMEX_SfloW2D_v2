@@ -981,7 +981,8 @@ CONTAINS
        a_diag = a_dirk_ij(i_RK,i_RK)
 
        !$OMP PARALLEL 
-       !$OMP DO private(j,k,q_guess,q_si,q_fv_cell,Rj_not_impl,p_dyn,           &
+       !$OMP DO schedule(guided)                                                &
+       !$OMP & private(j,k,q_guess,q_si,q_fv_cell,Rj_not_impl,p_dyn,           &
        !$OMP & newton_iterations,newton_linear_info,newton_converged)
 
        solve_cells_loop:DO l = 1,solve_cells
