@@ -171,11 +171,11 @@ MODULE solver_2d
   !> Implicit coeff. for the non-hyp. part for a single step of the R-K scheme
   REAL(wp) :: a_diag
 
-  !> Intermediate solutions of the Runge-Kutta scheme
-  REAL(wp), ALLOCATABLE :: q_rk(:,:,:,:)
+  !> Conservative solution at the current Runge-Kutta stage
+  REAL(wp), ALLOCATABLE :: q_rk(:,:,:)
 
-  !> Intermediate physical solutions of the Runge-Kutta scheme
-  REAL(wp), ALLOCATABLE :: qp_rk(:,:,:,:)
+  !> Physical solution at the current Runge-Kutta stage
+  REAL(wp), ALLOCATABLE :: qp_rk(:,:,:)
 
   !> Intermediate hyperbolic terms of the Runge-Kutta scheme
   REAL(wp), ALLOCATABLE :: divFlux(:,:,:,:)
@@ -434,8 +434,8 @@ CONTAINS
     ALLOCATE( a_tilde(n_RK) )
     ALLOCATE( a_dirk(n_RK) )
 
-    ALLOCATE( q_rk( n_vars , comp_cells_x , comp_cells_y , n_RK ) )
-    ALLOCATE( qp_rk( n_vars+2 , comp_cells_x , comp_cells_y , n_RK ) )
+    ALLOCATE( q_rk( n_vars , comp_cells_x , comp_cells_y ) )
+    ALLOCATE( qp_rk( n_vars+2 , comp_cells_x , comp_cells_y ) )
     ALLOCATE( divFlux( n_eqns , comp_cells_x , comp_cells_y , n_RK ) )
     ALLOCATE( NH( n_eqns , comp_cells_x , comp_cells_y , n_RK ) )
     ALLOCATE( SI_NH( n_eqns , comp_cells_x , comp_cells_y , n_RK ) )
@@ -954,9 +954,9 @@ CONTAINS
        ! Initialization of the solution guess
        q0( 1:n_vars , j , k ) = q( 1:n_vars , j , k )
        ! Initialization of the variables for the Runge-Kutta scheme
-       q_rk( 1:n_vars , j , k , 1:n_RK ) = 0.0_wp
-       qp_rk( 1:n_vars+2 , j , k , 1:n_RK ) = 0.0_wp
-       qp_rk( 4 , j , k , 1:n_RK ) = T_ambient
+       q_rk( 1:n_vars , j , k ) = 0.0_wp
+       qp_rk( 1:n_vars+2 , j , k ) = 0.0_wp
+       qp_rk( 4 , j , k ) = T_ambient
        
 
        divFlux(1:n_eqns , j , k , 1:n_RK ) = 0.0_wp
@@ -1008,8 +1008,8 @@ CONTAINS
 
           ELSE
 
-             ! solution from the previous RK step
-             !q_guess(1:n_vars) = q_rk( 1:n_vars , j , k  , MAX(1,i_RK-1))
+             ! For stages after the first, q_guess is assembled below from
+             ! q_fv_cell and the current implicit contribution.
 
           END IF
 
@@ -1188,8 +1188,10 @@ CONTAINS
 
           END IF
 
-          ! Store the solution at the end of the i_RK step
-          q_rk( 1:n_vars , j , k , i_RK ) = q_guess
+          ! Store the current stage. Previous stage states are no longer
+          ! needed here: their evaluated terms are retained in divFlux, NH,
+          ! SI_NH and expl_terms.
+          q_rk( 1:n_vars , j , k ) = q_guess
 
           IF ( verbose_level .GE. 2 ) THEN
 
@@ -1209,15 +1211,15 @@ CONTAINS
 
           IF ( omega_tilde(i_RK) .GT. 0.0_wp ) THEN
           
-             IF ( q_rk(1,j,k,i_RK) .GT. 0.0_wp ) THEN
+             IF ( q_rk(1,j,k) .GT. 0.0_wp ) THEN
 
-                CALL qc_to_qp( q_rk(1:n_vars,j,k,i_RK) ,                        &
-                     qp_rk(1:n_vars+2,j,k,i_RK) , p_dyn )
+                CALL qc_to_qp( q_rk(1:n_vars,j,k) ,                             &
+                     qp_rk(1:n_vars+2,j,k) , p_dyn )
 
              ELSE
 
-                qp_rk(1:n_vars+2,j,k,i_RK) = 0.0_wp
-                qp_rk(4,j,k,i_RK) = T_ambient
+                qp_rk(1:n_vars+2,j,k) = 0.0_wp
+                qp_rk(4,j,k) = T_ambient
 
              END IF
 
@@ -1226,7 +1228,7 @@ CONTAINS
                   B_second_xx_geom(j,k) , B_second_xy_geom(j,k) ,               &
                   B_second_yy_geom(j,k) , grav_coeff(j,k), d_grav_coeff_dx(j,k),&
                   d_grav_coeff_dy(j,k) , source_xy(j,k),                        &
-                  qp_rk(1:n_vars+2,j,k,i_RK), expl_terms(1:n_eqns,j,k,i_RK), t, &
+                  qp_rk(1:n_vars+2,j,k), expl_terms(1:n_eqns,j,k,i_RK), t,      &
                   cell_source_fractions(j,k) )
   
           END IF
@@ -1240,8 +1242,7 @@ CONTAINS
 
           ! Eval and store the explicit hyperbolic (fluxes) terms
           CALL eval_hyperbolic_terms(                                           &
-               q_rk(1:n_vars,1:comp_cells_x,1:comp_cells_y,i_RK) ,              &
-               qp_rk(1:n_vars+2,1:comp_cells_x,1:comp_cells_y,i_RK) ,           &
+               q_rk , qp_rk ,                                                   &
                divFlux(1:n_eqns,1:comp_cells_x,1:comp_cells_y,i_RK) )
 
        END IF
@@ -1280,7 +1281,7 @@ CONTAINS
             .AND. ( SUM(ABS(omega(:)-a_dirk_ij(n_RK,:))) .EQ. 0.0_wp ) ) THEN
 
           ! The assembling coeffs are equal to the last step of the RK scheme
-          q(1:n_vars,j,k) = q_rk(1:n_vars,j,k,n_RK)
+          q(1:n_vars,j,k) = q_rk(1:n_vars,j,k)
 
        ELSE
 
