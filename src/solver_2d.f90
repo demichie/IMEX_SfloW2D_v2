@@ -3074,6 +3074,7 @@ CONTAINS
     REAL(wp) :: dq
 
     LOGICAL :: diverging_flag
+    LOGICAL :: regular_interior
 
     !WRITE(*,*) 'recontruction 0'
     !WRITE(*,*) 'nvars',n_vars
@@ -3081,7 +3082,7 @@ CONTAINS
     
     !$OMP PARALLEL DO private(j,k,i,qrecW,qrecE,qrecS,qrecN,x_stencil,y_stencil,&
     !$OMP & qrec_stencil,qrec_prime_x,qrec_prime_y,qp2recW,qp2recE,qp2recS,     &
-    !$OMP & qp2recN,source_bdry,dq,diverging_flag)
+    !$OMP & qp2recN,source_bdry,dq,diverging_flag,regular_interior)
 
     DO l = 1,solve_cells
 
@@ -3124,6 +3125,42 @@ CONTAINS
           
        END IF
        
+       regular_interior = ( j .GT. 1 ) .AND. ( j .LT. comp_cells_x ) .AND.     &
+            ( k .GT. 1 ) .AND. ( k .LT. comp_cells_y ) .AND.                   &
+            ( source_cell(j,k) .NE. 2 )
+
+       IF ( regular_interior ) THEN
+
+          x_stencil(1) = x_comp(j-1)
+          x_stencil(3) = x_comp(j+1)
+          y_stencil(1) = y_comp(k-1)
+          y_stencil(3) = y_comp(k+1)
+
+          fast_vars_loop:DO i=1,n_vars+2
+
+             qrec_stencil(2) = qp_expl(i,j,k)
+
+             qrec_stencil(1) = qp_expl(i,j-1,k)
+             qrec_stencil(3) = qp_expl(i,j+1,k)
+             CALL limit( qrec_stencil , x_stencil , limiter(i) ,               &
+                  qrec_prime_x(i) )
+
+             dq = reconstr_coeff * dx2 * qrec_prime_x(i)
+             qrecW(i) = qrec_stencil(2) - dq
+             qrecE(i) = qrec_stencil(2) + dq
+
+             qrec_stencil(1) = qp_expl(i,j,k-1)
+             qrec_stencil(3) = qp_expl(i,j,k+1)
+             CALL limit( qrec_stencil , y_stencil , limiter(i) ,               &
+                  qrec_prime_y(i) )
+
+             dq = reconstr_coeff * dy2 * qrec_prime_y(i)
+             qrecS(i) = qrec_stencil(2) - dq
+             qrecN(i) = qrec_stencil(2) + dq
+
+          END DO fast_vars_loop
+
+       ELSE
        
        vars_loop:DO i=1,n_vars
 
@@ -3599,6 +3636,8 @@ CONTAINS
           ENDIF check_comp_cells_y2
 
        ENDDO add_vars_loop
+
+       END IF
 
        ! check if du/dx + dv/dy > 0 (flow locally diverges)
        diverging_flag = ( ( qrec_prime_x(n_vars+1) + qrec_prime_y(n_vars+2) )   &
