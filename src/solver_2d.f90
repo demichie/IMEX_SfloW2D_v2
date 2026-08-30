@@ -66,8 +66,6 @@ MODULE solver_2d
 
   !> Conservative variables
   REAL(wp), ALLOCATABLE :: q(:,:,:)        
-  !> Conservative variables at previous time step
-  REAL(wp), ALLOCATABLE :: q0(:,:,:)        
   !> Map of positive thickness 
   LOGICAL, ALLOCATABLE :: hpos(:,:)        
   !> Map of positive thickness at previous output step
@@ -234,8 +232,7 @@ CONTAINS
     h = n_vars * epsilon(1.0_wp)
     one_by_h = 1.0_wp / h
     
-    ALLOCATE( q( n_vars , comp_cells_x , comp_cells_y ) , q0( n_vars ,          &
-         comp_cells_x , comp_cells_y ) )
+    ALLOCATE( q( n_vars , comp_cells_x , comp_cells_y ) )
 
     ALLOCATE( hpos( comp_cells_x , comp_cells_y ) , hpos_old ( comp_cells_x ,   &
          comp_cells_y ) )
@@ -487,7 +484,7 @@ CONTAINS
 
   SUBROUTINE deallocate_solver_variables
 
-    DEALLOCATE( q , q0 , hpos , hpos_old )
+    DEALLOCATE( q , hpos , hpos_old )
 
     DEALLOCATE( hmax , pdynmax , mod_vel_max )
 
@@ -911,6 +908,7 @@ CONTAINS
     REAL(wp) :: q_guess(n_vars) !< initial guess for the solution of the RK step
     REAL(wp) :: q_fv_cell(n_vars) !< finite-volume state for the current cell
     REAL(wp) :: residual_cell(n_vars) !< final RK residual for the current cell
+    REAL(wp) :: q_old_cell(n_vars) !< state before the final RK assembly
     INTEGER :: j,k,l            !< loop counter over the grid volumes
     REAL(wp) :: Rj_not_impl(n_eqns)
 
@@ -951,8 +949,6 @@ CONTAINS
           
        END IF
 
-       ! Initialization of the solution guess
-       q0( 1:n_vars , j , k ) = q( 1:n_vars , j , k )
        ! Initialization of the variables for the Runge-Kutta scheme
        q_rk( 1:n_vars , j , k ) = 0.0_wp
        qp_rk( 1:n_vars+2 , j , k ) = 0.0_wp
@@ -1004,7 +1000,7 @@ CONTAINS
           IF ( i_RK .EQ. 1 ) THEN
 
              ! solution from the previous time step
-             q_guess(1:n_vars) = q0( 1:n_vars , j , k) 
+             q_guess(1:n_vars) = q( 1:n_vars , j , k)
 
           ELSE
 
@@ -1015,7 +1011,7 @@ CONTAINS
 
           ! New solution at the i_RK step without the implicit  and
           ! semi-implicit term
-          q_fv_cell(1:n_vars) = q0( 1:n_vars , j , k )                           &
+          q_fv_cell(1:n_vars) = q( 1:n_vars , j , k )                            &
                - dt * (MATMUL( divFlux(1:n_eqns,j,k,1:i_RK)                     &
                - expl_terms(1:n_eqns,j,k,1:i_RK) , a_tilde(1:i_RK) )            &
                - MATMUL( NH(1:n_eqns,j,k,1:i_RK) + SI_NH(1:n_eqns,j,k,1:i_RK) , &
@@ -1090,7 +1086,7 @@ CONTAINS
 
                 ! Solve the implicit system to find the solution at the 
                 ! i_RK step of the IMEX RK procedure
-                CALL solve_rk_step( q_guess(1:n_vars) , q0(1:n_vars,j,k ) ,     &
+                CALL solve_rk_step( q_guess(1:n_vars) , q(1:n_vars,j,k ) ,      &
                      a_diag , Rj_not_impl , B_prime_x_geom(j,k) ,               &
                      B_prime_y_geom(j,k), Z(j,k), fric_array(j,k),              &
                      newton_iterations, newton_converged, newton_linear_info )
@@ -1250,12 +1246,16 @@ CONTAINS
     END DO runge_kutta
 
     !$OMP PARALLEL DO private(j,k,p_dyn,alpha_s,solid_excess_roundoff,          &
-    !$OMP & residual_cell)
+    !$OMP & residual_cell,q_old_cell)
 
     assemble_sol:DO l = 1,solve_cells
 
        j = j_cent(l)
        k = k_cent(l)
+
+       ! q remains equal to Q^n throughout all RK stages. Preserve the old
+       ! state locally before overwriting this cell during final assembly.
+       q_old_cell = q(1:n_vars,j,k)
 
        residual_cell = MATMUL( divFlux(1:n_eqns,j,k,1:n_RK)                     &
             - expl_terms(1:n_eqns,j,k,1:n_RK) , omega_tilde ) -                 &
@@ -1266,11 +1266,11 @@ CONTAINS
        IF ( verbose_level .GE. 1 ) THEN
 
           WRITE(*,*) 'cell jk =',j,k
-          WRITE(*,*) 'before imex_RK_solver: qc',q0(1:n_vars,j,k)
+          WRITE(*,*) 'before imex_RK_solver: qc',q_old_cell
 
-          IF ( q0(1,j,k) .GT. 0.0_wp ) THEN
+          IF ( q_old_cell(1) .GT. 0.0_wp ) THEN
 
-             CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
+             CALL qc_to_qp(q_old_cell , qp(1:n_vars+2,j,k) , p_dyn )
              WRITE(*,*) 'before imex_RK_solver: qp',qp(1:n_vars+2,j,k)
  
           END IF
@@ -1286,7 +1286,7 @@ CONTAINS
        ELSE
 
           ! The assembling coeffs are different
-          q(1:n_vars,j,k) = q0(1:n_vars,j,k) - dt*residual_cell
+          q(1:n_vars,j,k) = q_old_cell - dt*residual_cell
 
        END IF
 
@@ -1294,10 +1294,10 @@ CONTAINS
           
           WRITE(*,*) 'j,k,n_RK',j,k,n_RK
           WRITE(*,*) 'dt',dt
-          WRITE(*,*) 'before imex_RK_solver: qc',q0(1:n_vars,j,k)
-          IF ( q0(1,j,k) .GT. 0.0_wp ) THEN
-             
-             CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
+          WRITE(*,*) 'before imex_RK_solver: qc',q_old_cell
+          IF ( q_old_cell(1) .GT. 0.0_wp ) THEN
+
+             CALL qc_to_qp(q_old_cell , qp(1:n_vars+2,j,k) , p_dyn )
              WRITE(*,*) 'before imex_RK_solver: qp',qp(1:n_vars+2,j,k)
              
           END IF
@@ -1320,10 +1320,10 @@ CONTAINS
 
              WRITE(*,*) 'j,k,n_RK',j,k,n_RK
              WRITE(*,*) 'dt',dt
-             WRITE(*,*) 'before imex_RK_solver: qc',q0(1:n_vars,j,k)
-             IF ( q0(1,j,k) .GT. 0.0_wp ) THEN
+             WRITE(*,*) 'before imex_RK_solver: qc',q_old_cell
+             IF ( q_old_cell(1) .GT. 0.0_wp ) THEN
 
-                CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
+                CALL qc_to_qp(q_old_cell , qp(1:n_vars+2,j,k) , p_dyn )
                 WRITE(*,*) 'before imex_RK_solver: qp',qp(1:n_vars+2,j,k)
 
              END IF
@@ -1355,10 +1355,10 @@ CONTAINS
              WRITE(*,*) 'WARNINIG: negative solid mass'
              WRITE(*,*) 'j,k,n_RK',j,k,n_RK
              WRITE(*,*) 'dt',dt
-             WRITE(*,*) 'before imex_RK_solver: qc',q0(1:n_vars,j,k)
-             IF ( q0(1,j,k) .GT. 0.0_wp ) THEN
-                
-                CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
+             WRITE(*,*) 'before imex_RK_solver: qc',q_old_cell
+             IF ( q_old_cell(1) .GT. 0.0_wp ) THEN
+
+                CALL qc_to_qp(q_old_cell , qp(1:n_vars+2,j,k) , p_dyn )
                 WRITE(*,*) 'before imex_RK_solver: qp',qp(1:n_vars+2,j,k)
                 
              END IF
@@ -1416,10 +1416,10 @@ CONTAINS
              !WRITE(*,*) 'j,k',j,k
              !WRITE(*,*) 'alpha_s',alpha_s
              
-             !WRITE(*,*) 'before imex_RK_solver: qc',q0(1:n_vars,j,k)
+             !WRITE(*,*) 'before imex_RK_solver: qc',q_old_cell
              !WRITE(*,*) 'after imex_RK_solver: qc',q(1:n_vars,j,k)
              
-             !CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
+             !CALL qc_to_qp(q_old_cell , qp(1:n_vars+2,j,k) , p_dyn )
              !WRITE(*,*) 'before imex_RK_solver: qp',qp(1:n_vars+2,j,k)
              
              !CALL qc_to_qp(q(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
@@ -1457,10 +1457,10 @@ CONTAINS
           WRITE(*,*) 'qp new',qp(1:n_vars+2,j,k)
           WRITE(*,*) 'qc new',q(1:n_vars,j,k)
 
-          CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
+          CALL qc_to_qp(q_old_cell , qp(1:n_vars+2,j,k) , p_dyn )
           WRITE(*,*) j,k
           WRITE(*,*) 'qp old',qp(1:n_vars+2,j,k)
-          WRITE(*,*) 'qc old',q0(1:n_vars,j,k)
+          WRITE(*,*) 'qc old',q_old_cell
 
           WRITE(*,*) 'H_interface(4)'
           WRITE(*,*) H_interface_x(4,j+1,k)/dx*dt, H_interface_x(4,j,k)/dx*dt
@@ -1484,7 +1484,7 @@ CONTAINS
 
           IF ( solid_excess_roundoff ) THEN
 
-             CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
+             CALL qc_to_qp(q_old_cell , qp(1:n_vars+2,j,k) , p_dyn )
 
              q(5:4+n_solid,j,k) = q(5:4+n_solid,j,k)                            &
                   / SUM(q(5:4+n_solid,j,k)) * q(1,j,k)
@@ -1496,10 +1496,10 @@ CONTAINS
              WRITE(*,*) 'j,k,n_RK',j,k,n_RK
              WRITE(*,*) 'dt',dt
              WRITE(*,*) ' B_cent(j,k)', B_cent(j,k)
-             WRITE(*,*) 'before imex_RK_solver: qc',q0(1:n_vars,j,k)
-             IF ( q0(1,j,k) .GT. 0.0_wp ) THEN
+             WRITE(*,*) 'before imex_RK_solver: qc',q_old_cell
+             IF ( q_old_cell(1) .GT. 0.0_wp ) THEN
 
-                CALL qc_to_qp(q0(1:n_vars,j,k) , qp(1:n_vars+2,j,k) , p_dyn )
+                CALL qc_to_qp(q_old_cell , qp(1:n_vars+2,j,k) , p_dyn )
                 WRITE(*,*) 'before imex_RK_solver: qp',qp(1:n_vars+2,j,k)
 
              END IF
