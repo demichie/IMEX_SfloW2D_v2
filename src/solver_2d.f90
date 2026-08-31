@@ -907,17 +907,20 @@ CONTAINS
     INTEGER :: newton_iterations
     INTEGER :: newton_linear_info
     LOGICAL :: newton_converged
+    LOGICAL :: newton_line_search_failed
     INTEGER :: newton_calls_step
     INTEGER :: newton_iterations_step
     INTEGER :: newton_iterations_max_step
     INTEGER :: newton_failures_step
     INTEGER :: newton_linear_failures_step
+    INTEGER :: newton_line_search_failures_step
 
     newton_calls_step = 0
     newton_iterations_step = 0
     newton_iterations_max_step = 0
     newton_failures_step = 0
     newton_linear_failures_step = 0
+    newton_line_search_failures_step = 0
     
     IF ( verbose_level .GE. 1 ) WRITE(*,*) 'solver, imex_RK_solver: beginning'
 
@@ -979,7 +982,8 @@ CONTAINS
        !$OMP PARALLEL 
        !$OMP DO schedule(guided)                                                &
        !$OMP & private(j,k,q_guess,q_si,q_fv_cell,Rj_not_impl,p_dyn,           &
-       !$OMP & newton_iterations,newton_linear_info,newton_converged)
+       !$OMP & newton_iterations,newton_linear_info,newton_converged,          &
+       !$OMP & newton_line_search_failed)
 
        solve_cells_loop:DO l = 1,solve_cells
 
@@ -1086,7 +1090,8 @@ CONTAINS
                 CALL solve_rk_step( q_guess(1:n_vars) , q(1:n_vars,j,k ) ,      &
                      a_diag , Rj_not_impl , B_prime_x_geom(j,k) ,               &
                      B_prime_y_geom(j,k), Z(j,k), fric_array(j,k),              &
-                     newton_iterations, newton_converged, newton_linear_info )
+                     newton_iterations, newton_converged, newton_linear_info,   &
+                     newton_line_search_failed )
 
                 IF ( ( verbose_level .GE. 1 ) .OR.                             &
                      ( .NOT. newton_converged ) ) THEN
@@ -1099,17 +1104,25 @@ CONTAINS
                            + newton_iterations
                       newton_iterations_max_step = MAX(                        &
                            newton_iterations_max_step, newton_iterations )
-                      IF ( .NOT. newton_converged )                            &
-                           newton_failures_step = newton_failures_step + 1
-                      IF ( newton_linear_info .NE. 0 )                         &
-                           newton_linear_failures_step =                       &
-                           newton_linear_failures_step + 1
                    END IF
 
                    IF ( .NOT. newton_converged ) THEN
-                      WRITE(*,*) 'WARNING: Newton solve did not converge'
-                      WRITE(*,*) 'cell, RK stage, iterations, linear info:',    &
-                           j, k, i_RK, newton_iterations, newton_linear_info
+                      newton_failures_step = newton_failures_step + 1
+                      IF ( newton_linear_info .NE. 0 )                         &
+                           newton_linear_failures_step =                       &
+                           newton_linear_failures_step + 1
+                      IF ( newton_line_search_failed )                         &
+                           newton_line_search_failures_step =                  &
+                           newton_line_search_failures_step + 1
+
+                      IF ( verbose_level .GE. 1 ) THEN
+                         WRITE(*,*) 'WARNING: Newton solve did not converge'
+                         WRITE(*,*)                                           &
+                              'cell, RK stage, iterations, linear info:',      &
+                              j, k, i_RK, newton_iterations, newton_linear_info
+                         WRITE(*,*) 'line search failed:',                     &
+                              newton_line_search_failed
+                      END IF
                    END IF
 
                    !$OMP END CRITICAL(newton_diagnostics)
@@ -1554,6 +1567,12 @@ CONTAINS
             newton_iterations_max_step
        WRITE(*,*) 'Newton failures / linear failures:',                        &
             newton_failures_step,newton_linear_failures_step
+       WRITE(*,*) 'Newton line-search failures:',                              &
+            newton_line_search_failures_step
+    ELSEIF ( newton_failures_step .GT. 0 ) THEN
+       WRITE(*,*) 'WARNING: Newton failures / linear / line search:',           &
+            newton_failures_step,newton_linear_failures_step,                  &
+            newton_line_search_failures_step
     END IF
      
     RETURN
@@ -1574,6 +1593,7 @@ CONTAINS
   !> \param[in]     qj_old    conservative variables at the old time step
   !> \param[in]     a_diag    implicit coefficient for the non-hyperbolic terms 
   !> \param[in]     Rj_not_impl
+  !> \param[out]    line_search_failed  true when no acceptable step is found
   !
   !> \date 2019/12/16
   !> @author 
@@ -1583,7 +1603,7 @@ CONTAINS
 
   SUBROUTINE solve_rk_step( qj, qj_old, a_diag, Rj_not_impl, Bprimej_x,         &
        Bprimej_y, Zij, fric_val,                                               &
-       iterations_used, converged, linear_info )
+       iterations_used, converged, linear_info, line_search_failed )
 
     USE parameters_2d, ONLY : max_nl_iter , tol_rel , tol_abs
 
@@ -1604,6 +1624,7 @@ CONTAINS
     INTEGER, INTENT(OUT) :: iterations_used
     LOGICAL, INTENT(OUT) :: converged
     INTEGER, INTENT(OUT) :: linear_info
+    LOGICAL, INTENT(OUT) :: line_search_failed
 
     REAL(wp) :: qj_init(n_vars)
 
@@ -1640,12 +1661,10 @@ CONTAINS
     REAL(wp) :: stpmax
     LOGICAL :: check
 
-    REAL(wp), PARAMETER :: TOLF=1.0E-10_wp , TOLMIN=1.0E-6_wp
+    REAL(wp), PARAMETER :: TOLF=1.0E-10_wp
     REAL(wp) :: TOLX
 
     ! REAL(wp) :: qpj(n_vars+2) , p_dyn
-
-    REAL(wp) :: desc_dir2(n_vars)
 
     REAL(wp) :: desc_dir_temp(n_vars)
 
@@ -1656,6 +1675,7 @@ CONTAINS
     iterations_used = 0
     converged = .FALSE.
     linear_info = 0
+    line_search_failed = .FALSE.
 
     IF ( rheology_model .EQ. 8 ) THEN
 
@@ -1716,6 +1736,10 @@ CONTAINS
 
        CALL eval_jacobian( qj_rel , qj_org , coeff_f , Bprimej_x , Bprimej_y ,  &
             left_matrix, Zij, fric_val )
+
+       ! DGESV/SGESV overwrite the Jacobian with its LU factors in the fully
+       ! implicit case. Form the line-search gradient before the linear solve.
+       IF ( nl_iter .GT. 1 ) grad_f = MATMUL( right_term , left_matrix )
        
        IF ( n_nh .EQ. n_eqns ) THEN
 
@@ -1848,13 +1872,17 @@ CONTAINS
           stpmax = STPMX * MAX( SQRT( DOT_PRODUCT(qj_rel,qj_rel) ) ,            &
                DBLE( SIZE(qj_rel) ) )
 
-          grad_f = MATMUL( right_term , left_matrix )
-
-          desc_dir2 = desc_dir
-
           CALL lnsrch( qj_rel_NR_old , qj_org , qj_old , scal_f_old , grad_f ,  &
                desc_dir , coeff_f , qj_rel , scal_f , right_term , stpmax ,     &
                check , Rj_not_impl , Bprimej_x , Bprimej_y, Zij, fric_val )
+
+          IF ( check ) THEN
+             qj = qj_rel * qj_org
+             line_search_failed = .TRUE.
+             IF ( verbose_level .GE. 2 )                                      &
+                  WRITE(*,*) 'solve_rk_step: line search failed'
+             RETURN
+          END IF
 
        ELSE
 
@@ -1883,16 +1911,6 @@ CONTAINS
           check= .FALSE.
           converged = .TRUE.
           EXIT newton_raphson_loop
-
-       END IF
-
-       IF (check) THEN
-
-          check = ( MAXVAL( ABS(grad_f(:)) * MAX( ABS( qj_rel(:) ),1.0_wp ) /   &
-               MAX( scal_f , 0.5_wp * SIZE(qj_rel) ) )  < TOLMIN )
-
-          IF ( verbose_level .GE. 3 ) WRITE(*,*) '2: check',check
-          !          RETURN
 
        END IF
 
@@ -2140,6 +2158,8 @@ CONTAINS
     IF ( alamin .EQ. 0.0_wp ) THEN
 
        qj_rel(:) = qj_rel_NR_old(:)
+       scal_f = scal_f_old
+       check = .TRUE.
 
        RETURN
 
