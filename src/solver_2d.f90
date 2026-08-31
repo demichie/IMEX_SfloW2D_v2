@@ -1636,6 +1636,8 @@ CONTAINS
     REAL(wp) :: scal_f
 
     REAL(wp) :: coeff_f(n_eqns)
+    REAL(wp) :: residual_ref(n_eqns)
+    REAL(wp) :: residual_tol(n_eqns)
 
     REAL(wp) :: qj_rel_NR_old(n_vars)
     REAL(wp) :: scal_f_old
@@ -1660,9 +1662,6 @@ CONTAINS
     REAL(wp), PARAMETER :: STPMX=100.0_wp
     REAL(wp) :: stpmax
     LOGICAL :: check
-
-    REAL(wp), PARAMETER :: TOLF=1.0E-10_wp
-    REAL(wp) :: TOLX
 
     ! REAL(wp) :: qpj(n_vars+2) , p_dyn
 
@@ -1703,8 +1702,6 @@ CONTAINS
 
        iterations_used = nl_iter
 
-       TOLX = epsilon(qj_rel)
-       
        IF ( verbose_level .GE. 2 ) WRITE(*,*) 'solve_rk_step: nl_iter',nl_iter
 
        CALL eval_f( qj , qj_old , a_diag , coeff_f , Rj_not_impl , Bprimej_x ,  &
@@ -1724,7 +1721,10 @@ CONTAINS
 
        ! check the residual of the system
 
-       IF ( MAXVAL( ABS( right_term(:) ) ) < TOLF ) THEN
+       IF ( nl_iter .EQ. 1 ) residual_ref = ABS(right_term)
+       residual_tol = tol_abs + tol_rel * residual_ref
+
+       IF ( ALL( ABS(right_term) .LE. residual_tol ) ) THEN
 
           IF ( verbose_level .GE. 3 ) WRITE(*,*) '1: check',check
           converged = .TRUE.
@@ -1905,7 +1905,7 @@ CONTAINS
 
        END IF
 
-       IF ( MAXVAL( ABS( right_term(:) ) ) < TOLF ) THEN
+       IF ( ALL( ABS(right_term) .LE. residual_tol ) ) THEN
 
           IF ( verbose_level .GE. 3 ) WRITE(*,*) '1: check',check
           check= .FALSE.
@@ -1915,11 +1915,11 @@ CONTAINS
        END IF
 
        IF ( MAXVAL( ABS( qj_rel(:) - qj_rel_NR_old(:) ) / MAX( ABS( qj_rel(:)) ,&
-            1.0_wp ) ) < TOLX ) THEN
+            1.0_wp ) ) < EPSILON(1.0_wp) ) THEN
 
-          IF ( verbose_level .GE. 3 ) WRITE(*,*) 'check',check
-          converged = .TRUE.
-          EXIT newton_raphson_loop
+          IF ( verbose_level .GE. 2 )                                         &
+               WRITE(*,*) 'solve_rk_step: stagnation before convergence'
+          RETURN
 
        END IF
 
@@ -2105,8 +2105,8 @@ CONTAINS
     !> Value of the scalar function at x
     REAL(wp), INTENT(OUT) :: scal_f
 
-    !> Value of the scalar function at x
-    REAL(wp), INTENT(OUT) :: right_term(n_eqns)
+    !> Residual at the initial point, updated with the accepted step
+    REAL(wp), INTENT(INOUT) :: right_term(n_eqns)
 
     !> Output quantity check is false on a normal exit 
     LOGICAL, INTENT(OUT) :: check
@@ -2118,7 +2118,7 @@ CONTAINS
 
     ! vars for stochastic variable
     REAL(wp), INTENT(IN):: Zij ! value stochastic process
-    REAL(wp), INTENT(OUT) :: fric_val ! to save the value of the friction
+    REAL(wp), INTENT(INOUT) :: fric_val ! to save the value of the friction
     REAL(wp), PARAMETER :: TOLX=epsilon(qj_rel)
 
     INTEGER, DIMENSION(1) :: ndum
@@ -2127,9 +2127,9 @@ CONTAINS
     REAL(wp) :: desc_dir_abs
     REAL(wp) :: rhs1 , rhs2 , slope, tmplam
 
-    REAL(wp) :: scal_f_min , alam_min
-
     REAL(wp) :: qj(n_vars)
+    REAL(wp) :: right_term_old(n_eqns)
+    REAL(wp) :: fric_val_old
 
     ALF = 1.0e-4_wp
 
@@ -2146,6 +2146,8 @@ CONTAINS
     END IF
 
     check = .FALSE.
+    right_term_old = right_term
+    fric_val_old = fric_val
 
     desc_dir_abs = NORM2(desc_dir)
     
@@ -2153,12 +2155,23 @@ CONTAINS
 
     slope = DOT_PRODUCT(grad_f,desc_dir)
 
+    IF ( slope .GE. 0.0_wp ) THEN
+       qj_rel = qj_rel_NR_old
+       scal_f = scal_f_old
+       right_term = right_term_old
+       fric_val = fric_val_old
+       check = .TRUE.
+       RETURN
+    END IF
+
     alamin = TOLX / MAXVAL(ABS( desc_dir(:))/MAX( ABS(qj_rel_NR_old(:)),1.0_wp ))
 
     IF ( alamin .EQ. 0.0_wp ) THEN
 
        qj_rel(:) = qj_rel_NR_old(:)
        scal_f = scal_f_old
+       right_term = right_term_old
+       fric_val = fric_val_old
        check = .TRUE.
 
        RETURN
@@ -2168,8 +2181,6 @@ CONTAINS
     alam = 1.0_wp
     alam2 = alam
     scal_f2 = scal_f_old
-
-    scal_f_min = scal_f_old
 
     optimal_step_search: DO
 
@@ -2193,15 +2204,8 @@ CONTAINS
 
        END IF
 
-       IF ( scal_f .LT. scal_f_min ) THEN
-
-          scal_f_min = scal_f
-          alam_min = alam
-
-       END IF
-
-       IF ( scal_f .LE. 0.9_wp * scal_f_old ) THEN   
-          ! sufficient function decrease
+       IF ( scal_f .LE. scal_f_old + ALF * alam * slope ) THEN
+          ! Sufficient decrease according to the Armijo condition.
 
           IF ( verbose_level .GE. 4 ) THEN
 
@@ -2222,11 +2226,12 @@ CONTAINS
 
           qj_rel(:) = qj_rel_NR_old(:)
           scal_f = scal_f_old
+          right_term = right_term_old
+          fric_val = fric_val_old
           check = .TRUE.
 
           EXIT optimal_step_search
 
-          !       ELSE IF ( scal_f .LE. scal_f_old + ALF * alam * slope ) THEN   
        ELSE  
 
           IF ( alam .EQ. 1.0_wp ) THEN
