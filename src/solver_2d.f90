@@ -902,6 +902,7 @@ CONTAINS
 
     REAL(wp) :: alpha_s
     LOGICAL :: solid_excess_roundoff
+    LOGICAL :: need_explicit_stage
 
     INTEGER :: newton_iterations
     INTEGER :: newton_linear_info
@@ -954,6 +955,15 @@ CONTAINS
     runge_kutta:DO i_RK = 1,n_RK
 
        IF ( verbose_level .GE. 1 ) WRITE(*,*) 'solver, imex_RK_solver: i_RK',i_RK
+
+       ! An explicit stage is required not only when it contributes to the
+       ! final RK assembly, but also when a later stage depends on it.
+       need_explicit_stage = ( omega_tilde(i_RK) .NE. 0.0_wp )
+
+       IF ( i_RK .LT. n_RK ) THEN
+          need_explicit_stage = need_explicit_stage .OR.                       &
+               ANY( a_tilde_ij(i_RK+1:n_RK,i_RK) .NE. 0.0_wp )
+       END IF
 
        ! define the explicits coefficients for the i-th step of the Runge-Kutta
        a_tilde = 0.0_wp
@@ -1192,7 +1202,7 @@ CONTAINS
           END IF
 
 
-          IF ( omega_tilde(i_RK) .GT. 0.0_wp ) THEN
+          IF ( need_explicit_stage ) THEN
           
              IF ( q_rk(1,j,k) .GT. 0.0_wp ) THEN
 
@@ -1221,7 +1231,7 @@ CONTAINS
        !$OMP END DO
        !$OMP END PARALLEL 
 
-       IF ( omega_tilde(i_RK) .GT. 0.0_wp ) THEN
+       IF ( need_explicit_stage ) THEN
 
           ! Eval and store the explicit hyperbolic (fluxes) terms
           CALL eval_hyperbolic_terms(                                           &
