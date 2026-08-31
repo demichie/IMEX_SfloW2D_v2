@@ -1614,7 +1614,6 @@ CONTAINS
     INTEGER :: pivot(n_vars)
 
     REAL(wp) :: left_matrix_small22(n_nh,n_nh)
-    REAL(wp) :: left_matrix_small21(n_eqns-n_nh,n_nh)
 
     REAL(wp) :: desc_dir_small2(n_nh)
     INTEGER :: pivot_small2(n_nh)
@@ -1745,6 +1744,8 @@ CONTAINS
 
           END DO
 
+          ! Non-implicit columns are diagonal by construction in
+          ! eval_jacobian; therefore the A21 block is identically zero.
           DO i=1,n_vars-n_nh
 
              idx = explicit_map(i)
@@ -1758,17 +1759,8 @@ CONTAINS
 
              desc_dir_small1(i) = desc_dir_small1(i) / left_matrix(idx,idx)
 
-             DO j=1,n_nh
-                left_matrix_small21(i,j) =                                     &
-                     left_matrix(implicit_map(j),idx)
-             END DO
-
           END DO
 
-          desc_dir_small2 = desc_dir_small2 -                                   &
-               MATMUL( desc_dir_small1 , left_matrix_small21 )
-          
-          
           IF ( n_nh .EQ. 2 ) THEN
 
              det_small = left_matrix_small22(1,1) * left_matrix_small22(2,2)   &
