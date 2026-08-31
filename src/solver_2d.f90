@@ -1723,7 +1723,7 @@ CONTAINS
        CALL eval_jacobian( qj_rel , qj_org , coeff_f , Bprimej_x , Bprimej_y ,  &
             left_matrix, Zij, fric_val )
        
-       IF ( COUNT( implicit_flag ) .EQ. n_eqns ) THEN
+       IF ( n_nh .EQ. n_eqns ) THEN
 
           desc_dir_temp = - right_term
 
@@ -1781,7 +1781,7 @@ CONTAINS
                MATMUL( desc_dir_small1 , left_matrix_small21 )
           
           
-          IF ( COUNT( implicit_flag ) .EQ. 2 ) THEN
+          IF ( n_nh .EQ. 2 ) THEN
 
              det_small = left_matrix_small22(1,1) * left_matrix_small22(2,2)   &
                   - left_matrix_small22(2,1) * left_matrix_small22(1,2)
@@ -1801,6 +1801,17 @@ CONTAINS
                   left_matrix_small22(2,1) * desc_dir_small2(1) ) * inv_det
 
              desc_dir_small2 = sol_small
+
+          ELSEIF ( n_nh .EQ. 3 ) THEN
+
+             CALL solve_3x3_pivoted( left_matrix_small22,                      &
+                  desc_dir_small2, ok )
+
+             IF ( ok .NE. 0 ) THEN
+                linear_info = ok
+                qj = qj_init
+                RETURN
+             END IF
 
           ELSE
              
@@ -1902,6 +1913,124 @@ CONTAINS
     RETURN
     
   END SUBROUTINE solve_rk_step
+
+
+  !******************************************************************************
+  !> \brief Solve a 3x3 linear system with partial pivoting
+  !
+  !> The matrix and right-hand side are overwritten with the elimination
+  !> factors and the solution, respectively. A nonzero info value identifies
+  !> the first singular pivot.
+  !******************************************************************************
+
+  SUBROUTINE solve_3x3_pivoted( matrix, rhs, info )
+
+    IMPLICIT NONE
+
+    REAL(wp), INTENT(INOUT) :: matrix(3,3)
+    REAL(wp), INTENT(INOUT) :: rhs(3)
+    INTEGER, INTENT(OUT) :: info
+
+    INTEGER :: j
+    INTEGER :: pivot_row
+    REAL(wp) :: factor
+    REAL(wp) :: pivot_abs
+    REAL(wp) :: swap_value
+
+    info = 0
+
+    ! First elimination column.
+    pivot_row = 1
+    pivot_abs = ABS(matrix(1,1))
+
+    IF ( ABS(matrix(2,1)) .GT. pivot_abs ) THEN
+       pivot_row = 2
+       pivot_abs = ABS(matrix(2,1))
+    END IF
+
+    IF ( ABS(matrix(3,1)) .GT. pivot_abs ) THEN
+       pivot_row = 3
+       pivot_abs = ABS(matrix(3,1))
+    END IF
+
+    IF ( pivot_abs .LE. TINY(1.0_wp) ) THEN
+       info = 1
+       RETURN
+    END IF
+
+    IF ( pivot_row .NE. 1 ) THEN
+
+       DO j=1,3
+          swap_value = matrix(1,j)
+          matrix(1,j) = matrix(pivot_row,j)
+          matrix(pivot_row,j) = swap_value
+       END DO
+
+       swap_value = rhs(1)
+       rhs(1) = rhs(pivot_row)
+       rhs(pivot_row) = swap_value
+
+    END IF
+
+    factor = matrix(2,1) / matrix(1,1)
+    matrix(2,1) = factor
+    matrix(2,2) = matrix(2,2) - factor * matrix(1,2)
+    matrix(2,3) = matrix(2,3) - factor * matrix(1,3)
+    rhs(2) = rhs(2) - factor * rhs(1)
+
+    factor = matrix(3,1) / matrix(1,1)
+    matrix(3,1) = factor
+    matrix(3,2) = matrix(3,2) - factor * matrix(1,2)
+    matrix(3,3) = matrix(3,3) - factor * matrix(1,3)
+    rhs(3) = rhs(3) - factor * rhs(1)
+
+    ! Second elimination column.
+    pivot_row = 2
+    pivot_abs = ABS(matrix(2,2))
+
+    IF ( ABS(matrix(3,2)) .GT. pivot_abs ) THEN
+       pivot_row = 3
+       pivot_abs = ABS(matrix(3,2))
+    END IF
+
+    IF ( pivot_abs .LE. TINY(1.0_wp) ) THEN
+       info = 2
+       RETURN
+    END IF
+
+    IF ( pivot_row .NE. 2 ) THEN
+
+       DO j=1,3
+          swap_value = matrix(2,j)
+          matrix(2,j) = matrix(pivot_row,j)
+          matrix(pivot_row,j) = swap_value
+       END DO
+
+       swap_value = rhs(2)
+       rhs(2) = rhs(pivot_row)
+       rhs(pivot_row) = swap_value
+
+    END IF
+
+    factor = matrix(3,2) / matrix(2,2)
+    matrix(3,2) = factor
+    matrix(3,3) = matrix(3,3) - factor * matrix(2,3)
+    rhs(3) = rhs(3) - factor * rhs(2)
+
+    IF ( ABS(matrix(3,3)) .LE. TINY(1.0_wp) ) THEN
+       info = 3
+       RETURN
+    END IF
+
+    ! Back substitution.
+    rhs(3) = rhs(3) / matrix(3,3)
+    rhs(2) = ( rhs(2) - matrix(2,3) * rhs(3) ) / matrix(2,2)
+    rhs(1) = ( rhs(1) - matrix(1,2) * rhs(2)                         &
+         - matrix(1,3) * rhs(3) ) / matrix(1,1)
+
+    RETURN
+
+  END SUBROUTINE solve_3x3_pivoted
 
   !******************************************************************************
   !> \brief Search the descent stepsize
