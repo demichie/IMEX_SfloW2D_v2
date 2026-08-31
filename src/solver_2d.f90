@@ -145,7 +145,8 @@ MODULE solver_2d
   !> Time step
   REAL(wp) :: dt
 
-  LOGICAL, ALLOCATABLE :: mask22(:,:) , mask21(:,:) , mask11(:,:) , mask12(:,:)
+  !> Map from explicit variables to the full system
+  INTEGER, ALLOCATABLE :: explicit_map(:)
 
   INTEGER :: i_RK           !< loop counter for the RK iteration
 
@@ -307,34 +308,19 @@ CONTAINS
     ALLOCATE( omega(n_RK) )
 
 
-    ! Allocate the logical arrays defining the implicit parts of the system
-    ALLOCATE( mask22(n_eqns,n_eqns) )
-    ALLOCATE( mask21(n_eqns,n_eqns) )
-    ALLOCATE( mask11(n_eqns,n_eqns) )
-    ALLOCATE( mask12(n_eqns,n_eqns) )
+    ! Store the explicit-variable indices once. Together with implicit_map this
+    ! avoids rebuilding reduced systems through PACK/RESHAPE during Newton.
+    ALLOCATE( explicit_map(n_eqns-n_nh) )
 
-    ! Initialize the logical arrays with all false (everything is implicit)
-    mask11(1:n_eqns,1:n_eqns) = .FALSE.
-    mask12(1:n_eqns,1:n_eqns) = .FALSE.
-    mask22(1:n_eqns,1:n_eqns) = .FALSE.
-    mask21(1:n_eqns,1:n_eqns) = .FALSE.
-
-    ! Set to .TRUE. the elements not corresponding to equations and variables to 
-    ! be solved implicitly
+    j = 0
     DO i = 1,n_eqns
 
-       DO j = 1,n_eqns
+       IF ( .NOT.implicit_flag(i) ) THEN
 
-          IF ( .NOT.implicit_flag(i) .AND. .NOT.implicit_flag(j) )              &
-               mask11(j,i) = .TRUE.
-          IF ( implicit_flag(i) .AND. .NOT.implicit_flag(j) )                   &
-               mask12(j,i) = .TRUE.
-          IF ( implicit_flag(i) .AND. implicit_flag(j) )                        &
-               mask22(j,i) = .TRUE.
-          IF ( .NOT.implicit_flag(i) .AND. implicit_flag(j) )                   &
-               mask21(j,i) = .TRUE.
+          j = j + 1
+          explicit_map(j) = i
 
-       END DO
+       END IF
 
     END DO
 
@@ -543,7 +529,7 @@ CONTAINS
     DEALLOCATE( SI_NH )
     DEALLOCATE( expl_terms )
 
-    DEALLOCATE( mask22 , mask21 , mask11 , mask12 )
+    DEALLOCATE( explicit_map )
 
     DEALLOCATE( j_cent , k_cent )
     DEALLOCATE ( j_stag_x , k_stag_x )
@@ -1629,8 +1615,6 @@ CONTAINS
 
     REAL(wp) :: left_matrix_small22(n_nh,n_nh)
     REAL(wp) :: left_matrix_small21(n_eqns-n_nh,n_nh)
-    REAL(wp) :: left_matrix_small11(n_eqns-n_nh,n_vars-n_nh)
-    ! REAL(wp) :: left_matrix_small12(n_nh,n_vars-n_nh)
 
     REAL(wp) :: desc_dir_small2(n_nh)
     INTEGER :: pivot_small2(n_nh)
@@ -1639,7 +1623,8 @@ CONTAINS
 
     INTEGER :: ok
 
-    INTEGER :: i 
+    INTEGER :: i,j
+    INTEGER :: idx
     INTEGER :: nl_iter
 
     REAL(wp), PARAMETER :: STPMX=100.0_wp
@@ -1749,31 +1734,34 @@ CONTAINS
 
        ELSE
 
-          left_matrix_small11 = reshape(pack(left_matrix, mask11),              &
-               [n_eqns-n_nh,n_eqns-n_nh]) 
+          DO i=1,n_nh
 
-          ! not needed for computation
-          !left_matrix_small12 = reshape(pack(left_matrix, mask12),             &
-          !     [n_nh,n_eqns-n_nh]) 
+             desc_dir_small2(i) = right_term(implicit_map(i))
 
-          left_matrix_small22 = reshape(pack(left_matrix, mask22),              &
-               [n_nh,n_nh]) 
+             DO j=1,n_nh
+                left_matrix_small22(i,j) =                                     &
+                     left_matrix(implicit_map(i),implicit_map(j))
+             END DO
 
-          left_matrix_small21 = reshape(pack(left_matrix, mask21),              &
-               [n_eqns-n_nh,n_nh]) 
-
-          desc_dir_small1 = pack( right_term, .NOT.implicit_flag )
-          desc_dir_small2 = pack( right_term , implicit_flag )
+          END DO
 
           DO i=1,n_vars-n_nh
 
-             IF ( ABS(left_matrix_small11(i,i)) .LE. TINY(1.0_wp) ) THEN
+             idx = explicit_map(i)
+             desc_dir_small1(i) = right_term(idx)
+
+             IF ( ABS(left_matrix(idx,idx)) .LE. TINY(1.0_wp) ) THEN
                 linear_info = i
                 qj = qj_init
                 RETURN
              END IF
 
-             desc_dir_small1(i) = desc_dir_small1(i) / left_matrix_small11(i,i)
+             desc_dir_small1(i) = desc_dir_small1(i) / left_matrix(idx,idx)
+
+             DO j=1,n_nh
+                left_matrix_small21(i,j) =                                     &
+                     left_matrix(implicit_map(j),idx)
+             END DO
 
           END DO
 
@@ -1835,8 +1823,15 @@ CONTAINS
              
           END IF
 
-          desc_dir = unpack( - desc_dir_small2 , implicit_flag , 0.0_wp )       &
-               + unpack( - desc_dir_small1 , .NOT.implicit_flag , 0.0_wp )
+          desc_dir = 0.0_wp
+
+          DO i=1,n_nh
+             desc_dir(implicit_map(i)) = -desc_dir_small2(i)
+          END DO
+
+          DO i=1,n_vars-n_nh
+             desc_dir(explicit_map(i)) = -desc_dir_small1(i)
+          END DO
           
        END IF
 
